@@ -1,12 +1,11 @@
 import { Router, type IRouter } from "express";
+import { type Request, type Response } from "express";
 import { getAuth } from "@clerk/express";
 import { randomBytes } from "crypto";
 import { db, notionConnectionsTable, oauthStatesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import {
   InitiateNotionOAuthResponse,
-  HandleNotionOAuthCallbackQueryParams,
-  HandleNotionOAuthCallbackResponse,
   GetNotionConnectionStatusResponse,
   DisconnectNotionResponse,
 } from "@workspace/api-zod";
@@ -42,14 +41,21 @@ router.post("/notion/connect", async (req, res): Promise<void> => {
   res.json(data);
 });
 
-router.get("/notion/callback", async (req, res): Promise<void> => {
-  const parsed = HandleNotionOAuthCallbackQueryParams.safeParse(req.query);
-  if (!parsed.success) {
-    res.status(400).json({ error: "Missing code or state" });
+async function handleNotionCallback(req: Request, res: Response): Promise<void> {
+  const code = req.query.code as string | undefined;
+  const state = req.query.state as string | undefined;
+  const error = req.query.error as string | undefined;
+
+  if (error) {
+    req.log.warn({ error }, "Notion OAuth denied by user");
+    res.redirect("/?notion_error=access_denied");
     return;
   }
 
-  const { code, state } = parsed.data;
+  if (!code || !state) {
+    res.redirect("/?notion_error=missing_params");
+    return;
+  }
 
   const [oauthState] = await db
     .select()
@@ -57,7 +63,8 @@ router.get("/notion/callback", async (req, res): Promise<void> => {
     .where(eq(oauthStatesTable.state, state));
 
   if (!oauthState) {
-    res.status(400).json({ error: "Invalid or expired state" });
+    req.log.warn({ state }, "Invalid or expired OAuth state");
+    res.redirect("/?notion_error=invalid_state");
     return;
   }
 
@@ -82,7 +89,7 @@ router.get("/notion/callback", async (req, res): Promise<void> => {
   if (!tokenResponse.ok) {
     const err = await tokenResponse.text();
     req.log.error({ err }, "Notion token exchange failed");
-    res.status(400).json({ error: "Failed to exchange code for token" });
+    res.redirect("/?notion_error=token_exchange_failed");
     return;
   }
 
@@ -118,14 +125,12 @@ router.get("/notion/callback", async (req, res): Promise<void> => {
 
   req.log.info({ userId }, "Notion connected successfully");
 
-  const data = HandleNotionOAuthCallbackResponse.parse({
-    connected: true,
-    workspaceName: tokenData.workspace_name ?? null,
-    workspaceIcon: tokenData.workspace_icon ?? null,
-    connectedAt: new Date().toISOString(),
-  });
-  res.json(data);
-});
+  res.redirect("/dashboard");
+}
+
+// Handle both paths — Notion may be configured with either
+router.get("/notion/callback", handleNotionCallback);
+router.get("/notion/oauth-callback", handleNotionCallback);
 
 router.get("/notion/status", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
