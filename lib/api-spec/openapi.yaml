@@ -3,13 +3,18 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Farm Management System API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: notion
+    description: Notion integration operations
+  - name: dashboard
+    description: Dashboard summary data
+
 paths:
   /healthz:
     get:
@@ -24,7 +29,136 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /notion/connect:
+    post:
+      operationId: initiateNotionOAuth
+      tags: [notion]
+      summary: Initiate Notion OAuth flow
+      description: Returns the Notion OAuth authorization URL for the current user
+      security:
+        - clerkAuth: []
+      responses:
+        "200":
+          description: OAuth URL generated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotionOAuthUrl"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /notion/callback:
+    get:
+      operationId: handleNotionOAuthCallback
+      tags: [notion]
+      summary: Handle Notion OAuth callback
+      description: Exchanges OAuth code for access token and stores it
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Connected successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotionConnectionStatus"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /notion/status:
+    get:
+      operationId: getNotionConnectionStatus
+      tags: [notion]
+      summary: Get Notion connection status for current user
+      security:
+        - clerkAuth: []
+      responses:
+        "200":
+          description: Connection status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotionConnectionStatus"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /notion/disconnect:
+    post:
+      operationId: disconnectNotion
+      tags: [notion]
+      summary: Disconnect Notion integration
+      security:
+        - clerkAuth: []
+      responses:
+        "200":
+          description: Disconnected successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotionConnectionStatus"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get financial summary from Notion Laba Rugi database
+      description: Returns total pendapatan and total pengeluaran from the user's connected Notion workspace
+      security:
+        - clerkAuth: []
+      responses:
+        "200":
+          description: Financial summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Notion not connected or database not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
+  securitySchemes:
+    clerkAuth:
+      type: http
+      scheme: bearer
+
   schemas:
     HealthStatus:
       type: object
@@ -34,3 +168,67 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    NotionOAuthUrl:
+      type: object
+      properties:
+        url:
+          type: string
+        state:
+          type: string
+      required:
+        - url
+        - state
+
+    NotionConnectionStatus:
+      type: object
+      properties:
+        connected:
+          type: boolean
+        workspaceName:
+          type: ["string", "null"]
+        workspaceIcon:
+          type: ["string", "null"]
+        connectedAt:
+          type: ["string", "null"]
+      required:
+        - connected
+        - workspaceName
+        - workspaceIcon
+        - connectedAt
+
+    DashboardSummary:
+      type: object
+      properties:
+        totalPendapatan:
+          type: number
+          description: Total income from Laba Rugi database
+        totalPengeluaran:
+          type: number
+          description: Total expenses from Laba Rugi database
+        labaRugi:
+          type: number
+          description: Net profit/loss (pendapatan - pengeluaran)
+        currency:
+          type: string
+          description: Currency code (IDR)
+        lastUpdated:
+          type: ["string", "null"]
+          description: ISO timestamp of last data fetch
+        notionDatabaseId:
+          type: ["string", "null"]
+          description: Notion database ID used
+      required:
+        - totalPendapatan
+        - totalPengeluaran
+        - labaRugi
+        - currency
+        - lastUpdated
+        - notionDatabaseId

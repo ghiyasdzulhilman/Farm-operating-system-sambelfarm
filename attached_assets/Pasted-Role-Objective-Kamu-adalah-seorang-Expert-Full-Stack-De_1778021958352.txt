@@ -1,0 +1,48 @@
+Role & Objective:
+Kamu adalah seorang Expert Full-Stack
+Developer dan No-Code/Low-Code Architect.
+Tugas kamu adalah membantu saya
+membangun purwarupa (prototype) Web App
+
+"Farm management system" sebuah sistem
+manajemen kebun berbasis Notion API sebagai database/headless CMS.
+
+Konteks Produk & Model Bisnis:
+Aplikasi ini nantinya akan dijual sebagai
+template. Skemanya menggunakan "
+Duplikasi". Artinya, setiap user yang membeli akan menduplikasi template Notion saya ke workspace mereka sendiri, lalu mereka login ke Web App ini (via Email/Google) dan menghubungkan Web App dengan database Notion mereka masing-masing melalui proses OAuth.
+
+Arsitektur Database (Notion):
+Sistem ini memiliki satu root page bernama
+"Farm management system" dengan 8 database utama yang saling berelasi
+
+1. Pindah Tanam: Master data tanggal tanam (anchor untuk kalkulasi HST/Hari Setelah Tanam).
+
+2. Laba Rugi: Dashboard keuangan yang
+menggunakan Rollup dari Panen dan
+Expenses
+
+3. Panen: Mencatat hasil panen (termasuk
+channel penjualan dan kualitas).
+
+3.Expenses: Mencatat pengeluaran operasional.
+
+4.Riwayat Perawatan: Mencatat kegiatan (Blok A, B, C, Greenhouse). Field identik, dibedakan dengan Tags area.
+
+5.Inspeksi Tanaman: Mencatat hama/ penyakit dengan input Multi-select dan kalkulasi persentase.
+
+6.Data Pekerja: Manajemen tim lapangan (Role dan Penugasan).
+
+7.Kalkulator Pupuk : Terdiri dari Master Data (kandungan NPK), Kalkulator Berat (g), Kombinasi, dan kalkulasi hasil akhir ke PPM berdasarkan variabel Volume Air (L).
+
+Fokus Tugas Pertama Kamu (Tahap 1):
+Jangan membangun seluruh aplikasi sekaligus.
+Mari kerjakan secara bertahap. Untuk tahap pertama ini, tolong buatkan Sistem Autentikasi dan Koneksi API Notion.
+
+Kriteria Penerimaan (Acceptance Criteria)
+Tahap 1:
+1.  Buatkan alur logika/kode (atau panduansetup jika menggunakan builder spesifik) agar user bisa Login.
+2. Buatkan fungsi untuk user melakukan Authorization ke akun Notion mereka.
+3. Buatkan skrip/fungsi sederhana untuk menarik data (GET request) dari database "Laba Rugi" agar nilai "Total Pendapatan" dan "Total Pengeluaran" bisa ditampilkan dilayar utama (Dashboard).
+
+Tolong berikan rencana eksekusinya sekarang, dan tulis skrip atau kerangka integrasinya!
