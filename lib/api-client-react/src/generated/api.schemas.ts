@@ -53,6 +53,31 @@ export interface AddExpenseBody {
   areaId: string;
 }
 
+export interface HarvestDropdownOptions {
+  pindahTanam: NotionOption[];
+}
+
+export interface AddHarvestBody {
+  /** Harvest activity name (Title property) */
+  kegiatan: string;
+  /** Harvest quantity in kg */
+  jumlahPanen: number;
+  /** Selling price per kg */
+  hargaJualPerKg: number;
+  /** Harvest quality grade */
+  kualitas: string;
+  /** Sales channel */
+  channelPenjualan: string;
+  /** Page ID of the related Pindah Tanam (area) entry */
+  areaId: string;
+}
+
+export interface AddHarvestResult {
+  success: boolean;
+  /** Notion page ID of the newly created harvest entry */
+  pageId: string;
+}
+
 export interface AddExpenseResult {
   success: boolean;
   /** Notion page ID of the newly created expense */

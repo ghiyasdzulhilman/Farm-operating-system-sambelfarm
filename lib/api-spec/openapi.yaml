@@ -153,6 +153,73 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /notion/harvest-dropdown-options:
+    get:
+      operationId: getHarvestDropdownOptions
+      tags: [notion]
+      summary: Get dropdown options for harvest form
+      description: Returns list of Pindah Tanam pages from Notion for the Area field
+      security:
+        - clerkAuth: []
+      responses:
+        "200":
+          description: Harvest dropdown options
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HarvestDropdownOptions"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Notion not connected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /notion/add-harvest:
+    post:
+      operationId: addHarvest
+      tags: [notion]
+      summary: Add a new harvest entry to Notion Panen database
+      security:
+        - clerkAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddHarvestBody"
+      responses:
+        "201":
+          description: Harvest created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AddHarvestResult"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Notion not connected or Panen database not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /notion/add-expense:
     post:
       operationId: addExpense
@@ -325,6 +392,57 @@ components:
         - hargaPerPcs
         - kategoriId
         - areaId
+
+    HarvestDropdownOptions:
+      type: object
+      properties:
+        pindahTanam:
+          type: array
+          items:
+            $ref: "#/components/schemas/NotionOption"
+      required:
+        - pindahTanam
+
+    AddHarvestBody:
+      type: object
+      properties:
+        kegiatan:
+          type: string
+          description: Harvest activity name (Title property)
+        jumlahPanen:
+          type: number
+          description: Harvest quantity in kg
+        hargaJualPerKg:
+          type: number
+          description: Selling price per kg
+        kualitas:
+          type: string
+          description: Harvest quality grade
+        channelPenjualan:
+          type: string
+          description: Sales channel
+        areaId:
+          type: string
+          description: Page ID of the related Pindah Tanam (area) entry
+      required:
+        - kegiatan
+        - jumlahPanen
+        - hargaJualPerKg
+        - kualitas
+        - channelPenjualan
+        - areaId
+
+    AddHarvestResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        pageId:
+          type: string
+          description: Notion page ID of the newly created harvest entry
+      required:
+        - success
+        - pageId
 
     AddExpenseResult:
       type: object

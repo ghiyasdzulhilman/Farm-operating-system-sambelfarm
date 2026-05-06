@@ -19,10 +19,13 @@ import type {
 import type {
   AddExpenseBody,
   AddExpenseResult,
+  AddHarvestBody,
+  AddHarvestResult,
   DashboardSummary,
   DropdownOptions,
   ErrorResponse,
   HandleNotionOAuthCallbackParams,
+  HarvestDropdownOptions,
   HealthStatus,
   NotionConnectionStatus,
   NotionOAuthUrl,
@@ -537,6 +540,172 @@ export function useGetDropdownOptions<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * Returns list of Pindah Tanam pages from Notion for the Area field
+ * @summary Get dropdown options for harvest form
+ */
+export const getGetHarvestDropdownOptionsUrl = () => {
+  return `/api/notion/harvest-dropdown-options`;
+};
+
+export const getHarvestDropdownOptions = async (
+  options?: RequestInit,
+): Promise<HarvestDropdownOptions> => {
+  return customFetch<HarvestDropdownOptions>(
+    getGetHarvestDropdownOptionsUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetHarvestDropdownOptionsQueryKey = () => {
+  return [`/api/notion/harvest-dropdown-options`] as const;
+};
+
+export const getGetHarvestDropdownOptionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getHarvestDropdownOptions>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getHarvestDropdownOptions>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetHarvestDropdownOptionsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getHarvestDropdownOptions>>
+  > = ({ signal }) => getHarvestDropdownOptions({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getHarvestDropdownOptions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetHarvestDropdownOptionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getHarvestDropdownOptions>>
+>;
+export type GetHarvestDropdownOptionsQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get dropdown options for harvest form
+ */
+
+export function useGetHarvestDropdownOptions<
+  TData = Awaited<ReturnType<typeof getHarvestDropdownOptions>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getHarvestDropdownOptions>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetHarvestDropdownOptionsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Add a new harvest entry to Notion Panen database
+ */
+export const getAddHarvestUrl = () => {
+  return `/api/notion/add-harvest`;
+};
+
+export const addHarvest = async (
+  addHarvestBody: AddHarvestBody,
+  options?: RequestInit,
+): Promise<AddHarvestResult> => {
+  return customFetch<AddHarvestResult>(getAddHarvestUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(addHarvestBody),
+  });
+};
+
+export const getAddHarvestMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addHarvest>>,
+    TError,
+    { data: BodyType<AddHarvestBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof addHarvest>>,
+  TError,
+  { data: BodyType<AddHarvestBody> },
+  TContext
+> => {
+  const mutationKey = ["addHarvest"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof addHarvest>>,
+    { data: BodyType<AddHarvestBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return addHarvest(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AddHarvestMutationResult = NonNullable<
+  Awaited<ReturnType<typeof addHarvest>>
+>;
+export type AddHarvestMutationBody = BodyType<AddHarvestBody>;
+export type AddHarvestMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Add a new harvest entry to Notion Panen database
+ */
+export const useAddHarvest = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addHarvest>>,
+    TError,
+    { data: BodyType<AddHarvestBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof addHarvest>>,
+  TError,
+  { data: BodyType<AddHarvestBody> },
+  TContext
+> => {
+  return useMutation(getAddHarvestMutationOptions(options));
+};
 
 /**
  * @summary Add a new expense entry to Notion Expenses database

@@ -80,6 +80,33 @@ export const GetDropdownOptionsResponse = zod.object({
 });
 
 /**
+ * Returns list of Pindah Tanam pages from Notion for the Area field
+ * @summary Get dropdown options for harvest form
+ */
+export const GetHarvestDropdownOptionsResponse = zod.object({
+  pindahTanam: zod.array(
+    zod.object({
+      id: zod.string(),
+      name: zod.string(),
+    }),
+  ),
+});
+
+/**
+ * @summary Add a new harvest entry to Notion Panen database
+ */
+export const AddHarvestBody = zod.object({
+  kegiatan: zod.string().describe("Harvest activity name (Title property)"),
+  jumlahPanen: zod.number().describe("Harvest quantity in kg"),
+  hargaJualPerKg: zod.number().describe("Selling price per kg"),
+  kualitas: zod.string().describe("Harvest quality grade"),
+  channelPenjualan: zod.string().describe("Sales channel"),
+  areaId: zod
+    .string()
+    .describe("Page ID of the related Pindah Tanam (area) entry"),
+});
+
+/**
  * @summary Add a new expense entry to Notion Expenses database
  */
 export const AddExpenseBody = zod.object({

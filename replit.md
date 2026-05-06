@@ -45,6 +45,8 @@ Required env vars:
   - `components/layout/app-layout.tsx` — shell with header/nav
 - `artifacts/api-server/src/routes/` — Express route handlers
   - `notion.ts` — POST /notion/connect, GET /notion/callback, GET /notion/status, POST /notion/disconnect
+  - `expenses.ts` — GET /notion/dropdown-options, POST /notion/add-expense
+  - `harvest.ts` — GET /notion/harvest-dropdown-options, POST /notion/add-harvest
   - `dashboard.ts` — GET /dashboard/summary (queries Notion Laba Rugi DB)
 
 ## Architecture decisions
@@ -61,6 +63,8 @@ Required env vars:
 - **Authentication**: Email + Google login via Clerk
 - **Notion OAuth**: Connect/disconnect user's own Notion workspace; stores access token per user
 - **Dashboard**: Pulls Total Pendapatan + Total Pengeluaran from the "Laba Rugi" Notion database, displays Laba/Rugi net figure in IDR format
+- **Input Pengeluaran**: Form dialog (Tambah Pengeluaran) untuk menambah data ke Notion database "Expenses" — dropdown Kategori & Area dari Notion
+- **Input Panen**: Form dialog (Tambah Panen) untuk menambah data ke Notion database "Panen" — dropdown Area dari "Pindah Tanam", Select statis Kualitas & Channel Penjualan
 
 ## User preferences
 

@@ -23,6 +23,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog";
+import { AddHarvestDialog } from "@/components/harvest/add-harvest-dialog";
 
 export function DashboardPage() {
   const queryClient = useQueryClient();
@@ -143,6 +144,7 @@ export function DashboardPage() {
           animate={{ opacity: 1, x: 0 }}
           className="flex items-center gap-2"
         >
+          <AddHarvestDialog onSuccess={handleExpenseAdded} />
           <AddExpenseDialog onSuccess={handleExpenseAdded} />
           <Button
             variant="ghost"
