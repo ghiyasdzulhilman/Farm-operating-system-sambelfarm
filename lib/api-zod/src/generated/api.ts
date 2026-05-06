@@ -80,6 +80,65 @@ export const GetDropdownOptionsResponse = zod.object({
 });
 
 /**
+ * Returns all properties (columns) from a Notion database with their types
+ * @summary Inspect Notion database properties
+ */
+export const InspectDatabaseQueryParams = zod.object({
+  type: zod.enum(["panen", "expenses"]),
+});
+
+export const InspectDatabaseResponse = zod.object({
+  databaseId: zod.string(),
+  databaseName: zod.string(),
+  properties: zod.array(
+    zod.object({
+      id: zod.string(),
+      name: zod.string(),
+      type: zod.string(),
+      relatedDatabaseId: zod.string().nullish(),
+    }),
+  ),
+});
+
+/**
+ * @summary Get saved field mappings for a database
+ */
+export const GetFieldMappingsQueryParams = zod.object({
+  type: zod.enum(["panen", "expenses"]),
+});
+
+export const GetFieldMappingsResponse = zod.object({
+  databaseType: zod.string(),
+  mappings: zod.record(
+    zod.string(),
+    zod.object({
+      propertyId: zod.string(),
+      propertyName: zod.string(),
+      relatedDatabaseId: zod.string().nullish(),
+    }),
+  ),
+});
+
+/**
+ * @summary Save field mappings for a database
+ */
+export const SaveFieldMappingsBody = zod.object({
+  databaseType: zod.string(),
+  mappings: zod.record(
+    zod.string(),
+    zod.object({
+      propertyId: zod.string(),
+      propertyName: zod.string(),
+      relatedDatabaseId: zod.string().nullish(),
+    }),
+  ),
+});
+
+export const SaveFieldMappingsResponse = zod.object({
+  success: zod.boolean(),
+});
+
+/**
  * Returns list of Pindah Tanam pages from Notion for the Area field
  * @summary Get dropdown options for harvest form
  */

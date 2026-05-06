@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { Show, UserButton } from "@clerk/react";
-import { Leaf, LayoutDashboard, Link as LinkIcon, Menu, LogOut } from "lucide-react";
+import { Leaf, LayoutDashboard, Link as LinkIcon, Settings, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
@@ -16,6 +16,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     { name: "Beranda", href: "/", icon: Leaf },
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Koneksi Notion", href: "/connect", icon: LinkIcon },
+    { name: "Pengaturan", href: "/settings", icon: Settings },
   ];
 
   return (

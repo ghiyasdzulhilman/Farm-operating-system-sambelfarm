@@ -24,11 +24,17 @@ import type {
   DashboardSummary,
   DropdownOptions,
   ErrorResponse,
+  FieldMappingsResponse,
+  GetFieldMappingsParams,
   HandleNotionOAuthCallbackParams,
   HarvestDropdownOptions,
   HealthStatus,
+  InspectDatabaseParams,
+  InspectDatabaseResponse,
   NotionConnectionStatus,
   NotionOAuthUrl,
+  SaveFieldMappingsBody,
+  SaveFieldMappingsResponse,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -540,6 +546,284 @@ export function useGetDropdownOptions<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * Returns all properties (columns) from a Notion database with their types
+ * @summary Inspect Notion database properties
+ */
+export const getInspectDatabaseUrl = (params: InspectDatabaseParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/notion/inspect-database?${stringifiedParams}`
+    : `/api/notion/inspect-database`;
+};
+
+export const inspectDatabase = async (
+  params: InspectDatabaseParams,
+  options?: RequestInit,
+): Promise<InspectDatabaseResponse> => {
+  return customFetch<InspectDatabaseResponse>(getInspectDatabaseUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getInspectDatabaseQueryKey = (params?: InspectDatabaseParams) => {
+  return [`/api/notion/inspect-database`, ...(params ? [params] : [])] as const;
+};
+
+export const getInspectDatabaseQueryOptions = <
+  TData = Awaited<ReturnType<typeof inspectDatabase>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  params: InspectDatabaseParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof inspectDatabase>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getInspectDatabaseQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof inspectDatabase>>> = ({
+    signal,
+  }) => inspectDatabase(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof inspectDatabase>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type InspectDatabaseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof inspectDatabase>>
+>;
+export type InspectDatabaseQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Inspect Notion database properties
+ */
+
+export function useInspectDatabase<
+  TData = Awaited<ReturnType<typeof inspectDatabase>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  params: InspectDatabaseParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof inspectDatabase>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getInspectDatabaseQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get saved field mappings for a database
+ */
+export const getGetFieldMappingsUrl = (params: GetFieldMappingsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/notion/field-mappings?${stringifiedParams}`
+    : `/api/notion/field-mappings`;
+};
+
+export const getFieldMappings = async (
+  params: GetFieldMappingsParams,
+  options?: RequestInit,
+): Promise<FieldMappingsResponse> => {
+  return customFetch<FieldMappingsResponse>(getGetFieldMappingsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetFieldMappingsQueryKey = (
+  params?: GetFieldMappingsParams,
+) => {
+  return [`/api/notion/field-mappings`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetFieldMappingsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getFieldMappings>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  params: GetFieldMappingsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getFieldMappings>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetFieldMappingsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getFieldMappings>>
+  > = ({ signal }) => getFieldMappings(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getFieldMappings>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetFieldMappingsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getFieldMappings>>
+>;
+export type GetFieldMappingsQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get saved field mappings for a database
+ */
+
+export function useGetFieldMappings<
+  TData = Awaited<ReturnType<typeof getFieldMappings>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  params: GetFieldMappingsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getFieldMappings>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetFieldMappingsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Save field mappings for a database
+ */
+export const getSaveFieldMappingsUrl = () => {
+  return `/api/notion/field-mappings`;
+};
+
+export const saveFieldMappings = async (
+  saveFieldMappingsBody: SaveFieldMappingsBody,
+  options?: RequestInit,
+): Promise<SaveFieldMappingsResponse> => {
+  return customFetch<SaveFieldMappingsResponse>(getSaveFieldMappingsUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(saveFieldMappingsBody),
+  });
+};
+
+export const getSaveFieldMappingsMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof saveFieldMappings>>,
+    TError,
+    { data: BodyType<SaveFieldMappingsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof saveFieldMappings>>,
+  TError,
+  { data: BodyType<SaveFieldMappingsBody> },
+  TContext
+> => {
+  const mutationKey = ["saveFieldMappings"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof saveFieldMappings>>,
+    { data: BodyType<SaveFieldMappingsBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return saveFieldMappings(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SaveFieldMappingsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof saveFieldMappings>>
+>;
+export type SaveFieldMappingsMutationBody = BodyType<SaveFieldMappingsBody>;
+export type SaveFieldMappingsMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Save field mappings for a database
+ */
+export const useSaveFieldMappings = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof saveFieldMappings>>,
+    TError,
+    { data: BodyType<SaveFieldMappingsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof saveFieldMappings>>,
+  TError,
+  { data: BodyType<SaveFieldMappingsBody> },
+  TContext
+> => {
+  return useMutation(getSaveFieldMappingsMutationOptions(options));
+};
 
 /**
  * Returns list of Pindah Tanam pages from Notion for the Area field

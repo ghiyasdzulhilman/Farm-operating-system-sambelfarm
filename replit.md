@@ -38,15 +38,18 @@ Required env vars:
 - `lib/db/src/schema/` — Drizzle table definitions
   - `notionConnections.ts` — stores per-user Notion access tokens
   - `oauthStates.ts` — transient OAuth PKCE state tokens
+  - `fieldMappings.ts` — per-user field mapping config (composite PK: userId+databaseType, JSONB mappings)
 - `artifacts/farm-app/src/` — React frontend
   - `pages/home.tsx` — landing page (public)
   - `pages/dashboard.tsx` — financial summary (protected)
   - `pages/connect.tsx` — Notion OAuth connect/disconnect (protected)
+  - `pages/settings.tsx` — field mapping configuration UI (protected)
   - `components/layout/app-layout.tsx` — shell with header/nav
 - `artifacts/api-server/src/routes/` — Express route handlers
   - `notion.ts` — POST /notion/connect, GET /notion/callback, GET /notion/status, POST /notion/disconnect
-  - `expenses.ts` — GET /notion/dropdown-options, POST /notion/add-expense
-  - `harvest.ts` — GET /notion/harvest-dropdown-options, POST /notion/add-harvest
+  - `expenses.ts` — GET /notion/dropdown-options, POST /notion/add-expense (mapping-aware)
+  - `harvest.ts` — GET /notion/harvest-dropdown-options, POST /notion/add-harvest (mapping-aware)
+  - `mappings.ts` — GET /notion/inspect-database, GET+POST /notion/field-mappings
   - `dashboard.ts` — GET /dashboard/summary (queries Notion Laba Rugi DB)
 
 ## Architecture decisions
@@ -56,6 +59,7 @@ Required env vars:
 - **Clerk proxy middleware**: Clerk FAPI requests are proxied through the Express API server so auth works on custom domains without DNS CNAME setup.
 - **Laba Rugi auto-discovery**: The dashboard route searches the user's Notion workspace for a database matching "Laba Rugi" — no manual DB ID configuration needed.
 - **State-based OAuth**: Transient state tokens stored in `oauth_states` table for CSRF protection during Notion OAuth flow.
+- **Field Mapping (ID-based)**: `field_mappings` table stores per-user JSONB mapping of app field keys → `{ propertyId, propertyName, relatedDatabaseId }`. POST to Notion uses property IDs as keys (not names). Relation dropdowns use stored `relatedDatabaseId` to bypass name-based search. Falls back to hardcoded names if no mapping set.
 
 ## Product
 
@@ -65,6 +69,7 @@ Required env vars:
 - **Dashboard**: Pulls Total Pendapatan + Total Pengeluaran from the "Laba Rugi" Notion database, displays Laba/Rugi net figure in IDR format
 - **Input Pengeluaran**: Form dialog (Tambah Pengeluaran) untuk menambah data ke Notion database "Expenses" — dropdown Kategori & Area dari Notion
 - **Input Panen**: Form dialog (Tambah Panen) untuk menambah data ke Notion database "Panen" — dropdown Area dari "Pindah Tanam", Select statis Kualitas & Channel Penjualan
+- **Pengaturan / Field Mapping**: Halaman `/settings` — user memuat kolom Notion, memetakan field aplikasi ke properti Notion, disimpan per-user per-database-type. Dropdown otomatis pakai relatedDatabaseId dari mapping.
 
 ## User preferences
 

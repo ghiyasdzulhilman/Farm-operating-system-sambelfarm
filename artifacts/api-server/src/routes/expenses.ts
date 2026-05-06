@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { getAuth } from "@clerk/express";
-import { db, notionConnectionsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { db, notionConnectionsTable, fieldMappingsTable, type FieldMappingData } from "@workspace/db";
+import { eq, and } from "drizzle-orm";
 import { AddExpenseBody, GetDropdownOptionsResponse } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -19,6 +19,8 @@ interface NotionDatabase {
   id: string;
   title?: Array<{ plain_text: string }>;
 }
+
+// ---- Notion helpers ---------------------------------------------------------
 
 async function findDatabaseByName(accessToken: string, name: string): Promise<string | null> {
   const response = await fetch("https://api.notion.com/v1/search", {
@@ -41,7 +43,10 @@ async function findDatabaseByName(accessToken: string, name: string): Promise<st
   return found?.id ?? null;
 }
 
-async function queryAllPages(accessToken: string, databaseId: string): Promise<Array<{ id: string; name: string }>> {
+async function queryAllPages(
+  accessToken: string,
+  databaseId: string,
+): Promise<Array<{ id: string; name: string }>> {
   const response = await fetch(`https://api.notion.com/v1/databases/${databaseId}/query`, {
     method: "POST",
     headers: {
@@ -59,6 +64,26 @@ async function queryAllPages(accessToken: string, databaseId: string): Promise<A
     return { id: page.id, name };
   });
 }
+
+// ---- Mapping helpers --------------------------------------------------------
+
+async function getMapping(userId: string, databaseType: string): Promise<FieldMappingData | null> {
+  const [row] = await db
+    .select()
+    .from(fieldMappingsTable)
+    .where(and(
+      eq(fieldMappingsTable.userId, userId),
+      eq(fieldMappingsTable.databaseType, databaseType),
+    ));
+  return (row?.mappings as FieldMappingData) ?? null;
+}
+
+/** Returns property ID from mapping if set, otherwise returns the fallback name. */
+function pk(mapping: FieldMappingData | null, field: string, fallback: string): string {
+  return mapping?.[field]?.propertyId ?? fallback;
+}
+
+// ---- Routes -----------------------------------------------------------------
 
 // GET /notion/dropdown-options
 router.get("/notion/dropdown-options", async (req, res): Promise<void> => {
@@ -80,9 +105,17 @@ router.get("/notion/dropdown-options", async (req, res): Promise<void> => {
 
   const { accessToken } = connection;
 
+  // Load saved mapping to get the linked database IDs for relation fields
+  const mapping = await getMapping(userId, "expenses");
+
+  // Use mapped relatedDatabaseId if available, otherwise fall back to name search
   const [kategoriDbId, labaRugiDbId] = await Promise.all([
-    findDatabaseByName(accessToken, "Kategori Pengeluaran"),
-    findDatabaseByName(accessToken, "Laba Rugi"),
+    mapping?.kategori?.relatedDatabaseId
+      ? Promise.resolve(mapping.kategori.relatedDatabaseId)
+      : findDatabaseByName(accessToken, "Kategori Pengeluaran"),
+    mapping?.area?.relatedDatabaseId
+      ? Promise.resolve(mapping.area.relatedDatabaseId)
+      : findDatabaseByName(accessToken, "Laba Rugi"),
   ]);
 
   const [categories, areas] = await Promise.all([
@@ -122,31 +155,35 @@ router.post("/notion/add-expense", async (req, res): Promise<void> => {
 
   const { accessToken } = connection;
 
+  // Load mapping for this user's expenses database
+  const mapping = await getMapping(userId, "expenses");
+
   const expensesDbId = await findDatabaseByName(accessToken, "Expenses");
   if (!expensesDbId) {
     res.status(404).json({ error: "Database 'Expenses' tidak ditemukan di workspace Notion Anda." });
     return;
   }
 
+  // Build Notion properties: use mapped property IDs when available, fall back to hardcoded names
   const notionBody = {
     parent: { database_id: expensesDbId },
     properties: {
-      Pengeluaran: {
+      [pk(mapping, "pengeluaran", "Pengeluaran")]: {
         title: [{ text: { content: pengeluaran } }],
       },
-      Qty: {
+      [pk(mapping, "qty", "Qty")]: {
         number: qty,
       },
-      "Harga/pcs": {
+      [pk(mapping, "hargaPerPcs", "Harga/pcs")]: {
         number: hargaPerPcs,
       },
-      Date: {
+      [pk(mapping, "date", "Date")]: {
         date: { start: date },
       },
-      Kategori: {
+      [pk(mapping, "kategori", "Kategori")]: {
         relation: [{ id: kategoriId }],
       },
-      Area: {
+      [pk(mapping, "area", "Area")]: {
         relation: [{ id: areaId }],
       },
     },
@@ -163,9 +200,16 @@ router.post("/notion/add-expense", async (req, res): Promise<void> => {
   });
 
   if (!response.ok) {
-    const err = await response.text();
-    req.log.error({ err }, "Failed to create expense in Notion");
-    res.status(400).json({ error: "Gagal menyimpan pengeluaran ke Notion. Pastikan nama properti database sesuai." });
+    const errBody = await response.text();
+    req.log.error({ statusCode: response.status, errBody }, "Notion rejected add-expense");
+    let userMessage = "Gagal menyimpan pengeluaran ke Notion.";
+    try {
+      const errParsed = JSON.parse(errBody) as { message?: string };
+      if (errParsed.message) userMessage = `Notion: ${errParsed.message}`;
+    } catch {
+      // keep default
+    }
+    res.status(400).json({ error: userMessage });
     return;
   }
 

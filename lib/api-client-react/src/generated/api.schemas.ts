@@ -53,6 +53,49 @@ export interface AddExpenseBody {
   areaId: string;
 }
 
+export interface DatabaseProperty {
+  id: string;
+  name: string;
+  type: string;
+  /** @nullable */
+  relatedDatabaseId?: string | null;
+}
+
+export interface InspectDatabaseResponse {
+  databaseId: string;
+  databaseName: string;
+  properties: DatabaseProperty[];
+}
+
+export interface FieldMappingEntry {
+  propertyId: string;
+  propertyName: string;
+  /** @nullable */
+  relatedDatabaseId?: string | null;
+}
+
+export type FieldMappingsResponseMappings = {
+  [key: string]: FieldMappingEntry;
+};
+
+export interface FieldMappingsResponse {
+  databaseType: string;
+  mappings: FieldMappingsResponseMappings;
+}
+
+export type SaveFieldMappingsBodyMappings = {
+  [key: string]: FieldMappingEntry;
+};
+
+export interface SaveFieldMappingsBody {
+  databaseType: string;
+  mappings: SaveFieldMappingsBodyMappings;
+}
+
+export interface SaveFieldMappingsResponse {
+  success: boolean;
+}
+
 export interface HarvestDropdownOptions {
   pindahTanam: NotionOption[];
   labaRugi: NotionOption[];
@@ -112,3 +155,27 @@ export type HandleNotionOAuthCallbackParams = {
   code: string;
   state: string;
 };
+
+export type InspectDatabaseParams = {
+  type: InspectDatabaseType;
+};
+
+export type InspectDatabaseType =
+  (typeof InspectDatabaseType)[keyof typeof InspectDatabaseType];
+
+export const InspectDatabaseType = {
+  panen: "panen",
+  expenses: "expenses",
+} as const;
+
+export type GetFieldMappingsParams = {
+  type: GetFieldMappingsType;
+};
+
+export type GetFieldMappingsType =
+  (typeof GetFieldMappingsType)[keyof typeof GetFieldMappingsType];
+
+export const GetFieldMappingsType = {
+  panen: "panen",
+  expenses: "expenses",
+} as const;

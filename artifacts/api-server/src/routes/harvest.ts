@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { getAuth } from "@clerk/express";
-import { db, notionConnectionsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { db, notionConnectionsTable, fieldMappingsTable, type FieldMappingData } from "@workspace/db";
+import { eq, and } from "drizzle-orm";
 import { AddHarvestBody, GetHarvestDropdownOptionsResponse } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -19,6 +19,8 @@ interface NotionDatabase {
   id: string;
   title?: Array<{ plain_text: string }>;
 }
+
+// ---- Notion helpers ---------------------------------------------------------
 
 async function findDatabaseByName(accessToken: string, name: string): Promise<string | null> {
   const response = await fetch("https://api.notion.com/v1/search", {
@@ -63,6 +65,26 @@ async function queryAllPages(
   });
 }
 
+// ---- Mapping helpers --------------------------------------------------------
+
+async function getMapping(userId: string, databaseType: string): Promise<FieldMappingData | null> {
+  const [row] = await db
+    .select()
+    .from(fieldMappingsTable)
+    .where(and(
+      eq(fieldMappingsTable.userId, userId),
+      eq(fieldMappingsTable.databaseType, databaseType),
+    ));
+  return (row?.mappings as FieldMappingData) ?? null;
+}
+
+/** Returns property ID from mapping if set, otherwise returns the fallback name. */
+function pk(mapping: FieldMappingData | null, field: string, fallback: string): string {
+  return mapping?.[field]?.propertyId ?? fallback;
+}
+
+// ---- Routes -----------------------------------------------------------------
+
 // GET /notion/harvest-dropdown-options
 router.get("/notion/harvest-dropdown-options", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
@@ -83,9 +105,17 @@ router.get("/notion/harvest-dropdown-options", async (req, res): Promise<void> =
 
   const { accessToken } = connection;
 
+  // Load saved mapping to get the linked database IDs for relation fields
+  const mapping = await getMapping(userId, "panen");
+
+  // Use mapped relatedDatabaseId if available, otherwise fall back to name search
   const [pindahTanamDbId, labaRugiDbId] = await Promise.all([
-    findDatabaseByName(accessToken, "Pindah Tanam"),
-    findDatabaseByName(accessToken, "Laba Rugi"),
+    mapping?.areaPindahTanam?.relatedDatabaseId
+      ? Promise.resolve(mapping.areaPindahTanam.relatedDatabaseId)
+      : findDatabaseByName(accessToken, "Pindah Tanam"),
+    mapping?.areaLabaRugi?.relatedDatabaseId
+      ? Promise.resolve(mapping.areaLabaRugi.relatedDatabaseId)
+      : findDatabaseByName(accessToken, "Laba Rugi"),
   ]);
 
   const [pindahTanam, labaRugi] = await Promise.all([
@@ -133,34 +163,38 @@ router.post("/notion/add-harvest", async (req, res): Promise<void> => {
 
   const { accessToken } = connection;
 
+  // Load mapping for this user's panen database
+  const mapping = await getMapping(userId, "panen");
+
   const panenDbId = await findDatabaseByName(accessToken, "Panen");
   if (!panenDbId) {
     res.status(404).json({ error: "Database 'Panen' tidak ditemukan di workspace Notion Anda." });
     return;
   }
 
+  // Build Notion properties: use mapped property IDs when available, fall back to hardcoded names
   const notionBody = {
     parent: { database_id: panenDbId },
     properties: {
-      Kegiatan: {
+      [pk(mapping, "kegiatan", "Kegiatan")]: {
         title: [{ text: { content: kegiatan } }],
       },
-      "Jumlah Panen (kg)": {
+      [pk(mapping, "jumlahPanen", "Jumlah Panen (kg)")]: {
         number: jumlahPanen,
       },
-      "Harga Jual per (Kg)": {
+      [pk(mapping, "hargaJualPerKg", "Harga Jual per (Kg)")]: {
         number: hargaJualPerKg,
       },
-      Kualitas: {
+      [pk(mapping, "kualitas", "Kualitas")]: {
         select: { name: kualitas },
       },
-      "Channel Penjualan": {
+      [pk(mapping, "channelPenjualan", "Channel Penjualan")]: {
         select: { name: channelPenjualan },
       },
-      "Area Pindah Tanam": {
+      [pk(mapping, "areaPindahTanam", "Area Pindah Tanam")]: {
         relation: [{ id: pindahTanamId }],
       },
-      "Area Laba Rugi": {
+      [pk(mapping, "areaLabaRugi", "Area Laba Rugi")]: {
         relation: [{ id: labaRugiId }],
       },
     },
@@ -181,10 +215,10 @@ router.post("/notion/add-harvest", async (req, res): Promise<void> => {
     req.log.error({ statusCode: response.status, errBody }, "Notion rejected add-harvest");
     let userMessage = "Gagal menyimpan data panen ke Notion.";
     try {
-      const parsed = JSON.parse(errBody) as { message?: string };
-      if (parsed.message) userMessage = `Notion: ${parsed.message}`;
+      const errParsed = JSON.parse(errBody) as { message?: string };
+      if (errParsed.message) userMessage = `Notion: ${errParsed.message}`;
     } catch {
-      // keep default message
+      // keep default
     }
     res.status(400).json({ error: userMessage });
     return;
