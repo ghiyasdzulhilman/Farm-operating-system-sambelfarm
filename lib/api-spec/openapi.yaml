@@ -125,6 +125,73 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /notion/dropdown-options:
+    get:
+      operationId: getDropdownOptions
+      tags: [notion]
+      summary: Get dropdown options for expense form
+      description: Returns list of Kategori Pengeluaran and Laba Rugi (area) pages from Notion
+      security:
+        - clerkAuth: []
+      responses:
+        "200":
+          description: Dropdown options
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DropdownOptions"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Notion not connected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /notion/add-expense:
+    post:
+      operationId: addExpense
+      tags: [notion]
+      summary: Add a new expense entry to Notion Expenses database
+      security:
+        - clerkAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddExpenseBody"
+      responses:
+        "201":
+          description: Expense created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AddExpenseResult"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Notion not connected or Expenses database not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /dashboard/summary:
     get:
       operationId: getDashboardSummary
@@ -203,6 +270,73 @@ components:
         - workspaceName
         - workspaceIcon
         - connectedAt
+
+    NotionOption:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+      required:
+        - id
+        - name
+
+    DropdownOptions:
+      type: object
+      properties:
+        categories:
+          type: array
+          items:
+            $ref: "#/components/schemas/NotionOption"
+        areas:
+          type: array
+          items:
+            $ref: "#/components/schemas/NotionOption"
+      required:
+        - categories
+        - areas
+
+    AddExpenseBody:
+      type: object
+      properties:
+        pengeluaran:
+          type: string
+          description: Expense name (Title property)
+        date:
+          type: string
+          description: Date in ISO 8601 format (YYYY-MM-DD)
+        qty:
+          type: number
+          description: Quantity
+        hargaPerPcs:
+          type: number
+          description: Price per unit
+        kategoriId:
+          type: string
+          description: Page ID of the related Kategori Pengeluaran entry
+        areaId:
+          type: string
+          description: Page ID of the related Laba Rugi (area) entry
+      required:
+        - pengeluaran
+        - date
+        - qty
+        - hargaPerPcs
+        - kategoriId
+        - areaId
+
+    AddExpenseResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        pageId:
+          type: string
+          description: Notion page ID of the newly created expense
+      required:
+        - success
+        - pageId
 
     DashboardSummary:
       type: object

@@ -28,6 +28,37 @@ export interface NotionConnectionStatus {
   connectedAt: string | null;
 }
 
+export interface NotionOption {
+  id: string;
+  name: string;
+}
+
+export interface DropdownOptions {
+  categories: NotionOption[];
+  areas: NotionOption[];
+}
+
+export interface AddExpenseBody {
+  /** Expense name (Title property) */
+  pengeluaran: string;
+  /** Date in ISO 8601 format (YYYY-MM-DD) */
+  date: string;
+  /** Quantity */
+  qty: number;
+  /** Price per unit */
+  hargaPerPcs: number;
+  /** Page ID of the related Kategori Pengeluaran entry */
+  kategoriId: string;
+  /** Page ID of the related Laba Rugi (area) entry */
+  areaId: string;
+}
+
+export interface AddExpenseResult {
+  success: boolean;
+  /** Notion page ID of the newly created expense */
+  pageId: string;
+}
+
 export interface DashboardSummary {
   /** Total income from Laba Rugi database */
   totalPendapatan: number;

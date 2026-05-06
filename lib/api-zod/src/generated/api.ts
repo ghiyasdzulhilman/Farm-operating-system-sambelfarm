@@ -61,6 +61,41 @@ export const DisconnectNotionResponse = zod.object({
 });
 
 /**
+ * Returns list of Kategori Pengeluaran and Laba Rugi (area) pages from Notion
+ * @summary Get dropdown options for expense form
+ */
+export const GetDropdownOptionsResponse = zod.object({
+  categories: zod.array(
+    zod.object({
+      id: zod.string(),
+      name: zod.string(),
+    }),
+  ),
+  areas: zod.array(
+    zod.object({
+      id: zod.string(),
+      name: zod.string(),
+    }),
+  ),
+});
+
+/**
+ * @summary Add a new expense entry to Notion Expenses database
+ */
+export const AddExpenseBody = zod.object({
+  pengeluaran: zod.string().describe("Expense name (Title property)"),
+  date: zod.string().describe("Date in ISO 8601 format (YYYY-MM-DD)"),
+  qty: zod.number().describe("Quantity"),
+  hargaPerPcs: zod.number().describe("Price per unit"),
+  kategoriId: zod
+    .string()
+    .describe("Page ID of the related Kategori Pengeluaran entry"),
+  areaId: zod
+    .string()
+    .describe("Page ID of the related Laba Rugi (area) entry"),
+});
+
+/**
  * Returns total pendapatan and total pengeluaran from the user's connected Notion workspace
  * @summary Get financial summary from Notion Laba Rugi database
  */

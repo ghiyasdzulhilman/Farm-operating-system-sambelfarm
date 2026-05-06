@@ -17,7 +17,10 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  AddExpenseBody,
+  AddExpenseResult,
   DashboardSummary,
+  DropdownOptions,
   ErrorResponse,
   HandleNotionOAuthCallbackParams,
   HealthStatus,
@@ -26,7 +29,7 @@ import type {
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
-import type { ErrorType } from "../custom-fetch";
+import type { ErrorType, BodyType } from "../custom-fetch";
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
@@ -457,6 +460,168 @@ export const useDisconnectNotion = <
   TContext
 > => {
   return useMutation(getDisconnectNotionMutationOptions(options));
+};
+
+/**
+ * Returns list of Kategori Pengeluaran and Laba Rugi (area) pages from Notion
+ * @summary Get dropdown options for expense form
+ */
+export const getGetDropdownOptionsUrl = () => {
+  return `/api/notion/dropdown-options`;
+};
+
+export const getDropdownOptions = async (
+  options?: RequestInit,
+): Promise<DropdownOptions> => {
+  return customFetch<DropdownOptions>(getGetDropdownOptionsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetDropdownOptionsQueryKey = () => {
+  return [`/api/notion/dropdown-options`] as const;
+};
+
+export const getGetDropdownOptionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDropdownOptions>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDropdownOptions>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetDropdownOptionsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getDropdownOptions>>
+  > = ({ signal }) => getDropdownOptions({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDropdownOptions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetDropdownOptionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDropdownOptions>>
+>;
+export type GetDropdownOptionsQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get dropdown options for expense form
+ */
+
+export function useGetDropdownOptions<
+  TData = Awaited<ReturnType<typeof getDropdownOptions>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDropdownOptions>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDropdownOptionsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Add a new expense entry to Notion Expenses database
+ */
+export const getAddExpenseUrl = () => {
+  return `/api/notion/add-expense`;
+};
+
+export const addExpense = async (
+  addExpenseBody: AddExpenseBody,
+  options?: RequestInit,
+): Promise<AddExpenseResult> => {
+  return customFetch<AddExpenseResult>(getAddExpenseUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(addExpenseBody),
+  });
+};
+
+export const getAddExpenseMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addExpense>>,
+    TError,
+    { data: BodyType<AddExpenseBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof addExpense>>,
+  TError,
+  { data: BodyType<AddExpenseBody> },
+  TContext
+> => {
+  const mutationKey = ["addExpense"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof addExpense>>,
+    { data: BodyType<AddExpenseBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return addExpense(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AddExpenseMutationResult = NonNullable<
+  Awaited<ReturnType<typeof addExpense>>
+>;
+export type AddExpenseMutationBody = BodyType<AddExpenseBody>;
+export type AddExpenseMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Add a new expense entry to Notion Expenses database
+ */
+export const useAddExpense = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addExpense>>,
+    TError,
+    { data: BodyType<AddExpenseBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof addExpense>>,
+  TError,
+  { data: BodyType<AddExpenseBody> },
+  TContext
+> => {
+  return useMutation(getAddExpenseMutationOptions(options));
 };
 
 /**
