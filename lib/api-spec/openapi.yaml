@@ -400,8 +400,13 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/NotionOption"
+        labaRugi:
+          type: array
+          items:
+            $ref: "#/components/schemas/NotionOption"
       required:
         - pindahTanam
+        - labaRugi
 
     AddHarvestBody:
       type: object
@@ -421,16 +426,20 @@ components:
         channelPenjualan:
           type: string
           description: Sales channel
-        areaId:
+        pindahTanamId:
           type: string
-          description: Page ID of the related Pindah Tanam (area) entry
+          description: Page ID of the related Pindah Tanam entry (Area Pindah Tanam relation)
+        labaRugiId:
+          type: string
+          description: Page ID of the related Laba Rugi entry (Area Laba Rugi relation)
       required:
         - kegiatan
         - jumlahPanen
         - hargaJualPerKg
         - kualitas
         - channelPenjualan
-        - areaId
+        - pindahTanamId
+        - labaRugiId
 
     AddHarvestResult:
       type: object

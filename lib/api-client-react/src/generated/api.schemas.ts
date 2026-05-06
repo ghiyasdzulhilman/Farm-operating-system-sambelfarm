@@ -55,6 +55,7 @@ export interface AddExpenseBody {
 
 export interface HarvestDropdownOptions {
   pindahTanam: NotionOption[];
+  labaRugi: NotionOption[];
 }
 
 export interface AddHarvestBody {
@@ -68,8 +69,10 @@ export interface AddHarvestBody {
   kualitas: string;
   /** Sales channel */
   channelPenjualan: string;
-  /** Page ID of the related Pindah Tanam (area) entry */
-  areaId: string;
+  /** Page ID of the related Pindah Tanam entry (Area Pindah Tanam relation) */
+  pindahTanamId: string;
+  /** Page ID of the related Laba Rugi entry (Area Laba Rugi relation) */
+  labaRugiId: string;
 }
 
 export interface AddHarvestResult {

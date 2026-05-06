@@ -60,10 +60,21 @@ const harvestSchema = z.object({
   hargaJualPerKg: z.coerce.number().min(0, "Harga tidak boleh negatif"),
   kualitas: z.string().min(1, "Pilih kualitas"),
   channelPenjualan: z.string().min(1, "Pilih channel penjualan"),
-  areaId: z.string().min(1, "Pilih area"),
+  pindahTanamId: z.string().min(1, "Pilih area Pindah Tanam"),
+  labaRugiId: z.string().min(1, "Pilih area Laba Rugi"),
 });
 
 type HarvestFormValues = z.infer<typeof harvestSchema>;
+
+const EMPTY_VALUES: HarvestFormValues = {
+  kegiatan: "",
+  jumlahPanen: 0,
+  hargaJualPerKg: 0,
+  kualitas: "",
+  channelPenjualan: "",
+  pindahTanamId: "",
+  labaRugiId: "",
+};
 
 interface AddHarvestDialogProps {
   onSuccess?: () => void;
@@ -80,14 +91,7 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
 
   const form = useForm<HarvestFormValues>({
     resolver: zodResolver(harvestSchema),
-    defaultValues: {
-      kegiatan: "",
-      jumlahPanen: 0,
-      hargaJualPerKg: 0,
-      kualitas: "",
-      channelPenjualan: "",
-      areaId: "",
-    },
+    defaultValues: EMPTY_VALUES,
   });
 
   const addHarvest = useAddHarvest({
@@ -98,22 +102,17 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
           description: "Data telah disimpan ke Notion dan dashboard diperbarui.",
         });
         queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
-        form.reset({
-          kegiatan: "",
-          jumlahPanen: 0,
-          hargaJualPerKg: 0,
-          kualitas: "",
-          channelPenjualan: "",
-          areaId: "",
-        });
+        form.reset(EMPTY_VALUES);
         setOpen(false);
         onSuccess?.();
       },
-      onError: () => {
+      onError: (error) => {
+        const message =
+          error instanceof Error ? error.message : "Terjadi kesalahan saat menyimpan data panen.";
         toast({
           variant: "destructive",
           title: "Gagal menyimpan",
-          description: "Terjadi kesalahan saat menyimpan data panen ke Notion.",
+          description: message,
         });
       },
     },
@@ -136,11 +135,7 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button
-          variant="secondary"
-          data-testid="button-add-harvest"
-          className="gap-2"
-        >
+        <Button variant="secondary" data-testid="button-add-harvest" className="gap-2">
           <Sprout className="h-4 w-4" />
           Tambah Panen
         </Button>
@@ -153,7 +148,7 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
 
         {isLoadingOptions ? (
           <div className="space-y-4 py-2">
-            {[1, 2, 3, 4].map((i) => (
+            {[1, 2, 3, 4, 5, 6].map((i) => (
               <Skeleton key={i} className="h-10 w-full" />
             ))}
           </div>
@@ -252,7 +247,7 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
                       </FormControl>
                       <SelectContent>
                         {KUALITAS_OPTIONS.map((opt) => (
-                          <SelectItem key={opt} value={opt} data-testid={`option-kualitas-${opt}`}>
+                          <SelectItem key={opt} value={opt}>
                             {opt}
                           </SelectItem>
                         ))}
@@ -278,7 +273,7 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
                       </FormControl>
                       <SelectContent>
                         {CHANNEL_OPTIONS.map((opt) => (
-                          <SelectItem key={opt} value={opt} data-testid={`option-channel-${opt}`}>
+                          <SelectItem key={opt} value={opt}>
                             {opt}
                           </SelectItem>
                         ))}
@@ -289,32 +284,59 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
                 )}
               />
 
-              {/* Area (dari Pindah Tanam) */}
+              {/* Area Pindah Tanam */}
               <FormField
                 control={form.control}
-                name="areaId"
+                name="pindahTanamId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Area (Pindah Tanam)</FormLabel>
+                    <FormLabel>Area Pindah Tanam</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger data-testid="select-area-panen">
-                          <SelectValue placeholder="Pilih area tanam..." />
+                        <SelectTrigger data-testid="select-pindah-tanam">
+                          <SelectValue placeholder="Pilih area pindah tanam..." />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {dropdownOptions?.pindahTanam.length === 0 && (
                           <SelectItem value="_empty" disabled>
-                            Tidak ada area ditemukan
+                            Tidak ada data Pindah Tanam ditemukan
                           </SelectItem>
                         )}
-                        {dropdownOptions?.pindahTanam.map((area) => (
-                          <SelectItem
-                            key={area.id}
-                            value={area.id}
-                            data-testid={`option-area-${area.id}`}
-                          >
-                            {area.name}
+                        {dropdownOptions?.pindahTanam.map((item) => (
+                          <SelectItem key={item.id} value={item.id}>
+                            {item.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Area Laba Rugi */}
+              <FormField
+                control={form.control}
+                name="labaRugiId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Area Laba Rugi</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-laba-rugi">
+                          <SelectValue placeholder="Pilih area laba rugi..." />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {dropdownOptions?.labaRugi.length === 0 && (
+                          <SelectItem value="_empty" disabled>
+                            Tidak ada data Laba Rugi ditemukan
+                          </SelectItem>
+                        )}
+                        {dropdownOptions?.labaRugi.map((item) => (
+                          <SelectItem key={item.id} value={item.id}>
+                            {item.name}
                           </SelectItem>
                         ))}
                       </SelectContent>

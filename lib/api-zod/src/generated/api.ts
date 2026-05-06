@@ -90,6 +90,12 @@ export const GetHarvestDropdownOptionsResponse = zod.object({
       name: zod.string(),
     }),
   ),
+  labaRugi: zod.array(
+    zod.object({
+      id: zod.string(),
+      name: zod.string(),
+    }),
+  ),
 });
 
 /**
@@ -101,9 +107,16 @@ export const AddHarvestBody = zod.object({
   hargaJualPerKg: zod.number().describe("Selling price per kg"),
   kualitas: zod.string().describe("Harvest quality grade"),
   channelPenjualan: zod.string().describe("Sales channel"),
-  areaId: zod
+  pindahTanamId: zod
     .string()
-    .describe("Page ID of the related Pindah Tanam (area) entry"),
+    .describe(
+      "Page ID of the related Pindah Tanam entry (Area Pindah Tanam relation)",
+    ),
+  labaRugiId: zod
+    .string()
+    .describe(
+      "Page ID of the related Laba Rugi entry (Area Laba Rugi relation)",
+    ),
 });
 
 /**

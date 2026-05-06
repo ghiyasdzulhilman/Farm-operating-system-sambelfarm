@@ -41,7 +41,10 @@ async function findDatabaseByName(accessToken: string, name: string): Promise<st
   return found?.id ?? null;
 }
 
-async function queryAllPages(accessToken: string, databaseId: string): Promise<Array<{ id: string; name: string }>> {
+async function queryAllPages(
+  accessToken: string,
+  databaseId: string,
+): Promise<Array<{ id: string; name: string }>> {
   const response = await fetch(`https://api.notion.com/v1/databases/${databaseId}/query`, {
     method: "POST",
     headers: {
@@ -80,12 +83,17 @@ router.get("/notion/harvest-dropdown-options", async (req, res): Promise<void> =
 
   const { accessToken } = connection;
 
-  const pindahTanamDbId = await findDatabaseByName(accessToken, "Pindah Tanam");
-  const pindahTanam = pindahTanamDbId
-    ? await queryAllPages(accessToken, pindahTanamDbId)
-    : [];
+  const [pindahTanamDbId, labaRugiDbId] = await Promise.all([
+    findDatabaseByName(accessToken, "Pindah Tanam"),
+    findDatabaseByName(accessToken, "Laba Rugi"),
+  ]);
 
-  const data = GetHarvestDropdownOptionsResponse.parse({ pindahTanam });
+  const [pindahTanam, labaRugi] = await Promise.all([
+    pindahTanamDbId ? queryAllPages(accessToken, pindahTanamDbId) : Promise.resolve([]),
+    labaRugiDbId ? queryAllPages(accessToken, labaRugiDbId) : Promise.resolve([]),
+  ]);
+
+  const data = GetHarvestDropdownOptionsResponse.parse({ pindahTanam, labaRugi });
   res.json(data);
 });
 
@@ -103,7 +111,15 @@ router.post("/notion/add-harvest", async (req, res): Promise<void> => {
     return;
   }
 
-  const { kegiatan, jumlahPanen, hargaJualPerKg, kualitas, channelPenjualan, areaId } = parsed.data;
+  const {
+    kegiatan,
+    jumlahPanen,
+    hargaJualPerKg,
+    kualitas,
+    channelPenjualan,
+    pindahTanamId,
+    labaRugiId,
+  } = parsed.data;
 
   const [connection] = await db
     .select()
@@ -141,8 +157,11 @@ router.post("/notion/add-harvest", async (req, res): Promise<void> => {
       "Channel Penjualan": {
         select: { name: channelPenjualan },
       },
-      Area: {
-        relation: [{ id: areaId }],
+      "Area Pindah Tanam": {
+        relation: [{ id: pindahTanamId }],
+      },
+      "Area Laba Rugi": {
+        relation: [{ id: labaRugiId }],
       },
     },
   };
@@ -158,9 +177,16 @@ router.post("/notion/add-harvest", async (req, res): Promise<void> => {
   });
 
   if (!response.ok) {
-    const err = await response.text();
-    req.log.error({ err }, "Failed to create harvest in Notion");
-    res.status(400).json({ error: "Gagal menyimpan data panen ke Notion. Pastikan nama properti database sesuai." });
+    const errBody = await response.text();
+    req.log.error({ statusCode: response.status, errBody }, "Notion rejected add-harvest");
+    let userMessage = "Gagal menyimpan data panen ke Notion.";
+    try {
+      const parsed = JSON.parse(errBody) as { message?: string };
+      if (parsed.message) userMessage = `Notion: ${parsed.message}`;
+    } catch {
+      // keep default message
+    }
+    res.status(400).json({ error: userMessage });
     return;
   }
 
