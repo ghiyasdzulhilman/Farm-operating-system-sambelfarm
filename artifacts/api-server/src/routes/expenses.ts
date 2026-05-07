@@ -67,7 +67,12 @@ async function queryAllPages(
 
 // ---- Mapping helpers --------------------------------------------------------
 
-async function getMapping(userId: string, databaseType: string): Promise<FieldMappingData | null> {
+interface MappingRow {
+  notionDatabaseId: string | null;
+  mappings: FieldMappingData;
+}
+
+async function getMappingRow(userId: string, databaseType: string): Promise<MappingRow | null> {
   const [row] = await db
     .select()
     .from(fieldMappingsTable)
@@ -75,12 +80,16 @@ async function getMapping(userId: string, databaseType: string): Promise<FieldMa
       eq(fieldMappingsTable.userId, userId),
       eq(fieldMappingsTable.databaseType, databaseType),
     ));
-  return (row?.mappings as FieldMappingData) ?? null;
+  if (!row) return null;
+  return {
+    notionDatabaseId: row.notionDatabaseId ?? null,
+    mappings: (row.mappings as FieldMappingData) ?? {},
+  };
 }
 
 /** Returns property ID from mapping if set, otherwise returns the fallback name. */
-function pk(mapping: FieldMappingData | null, field: string, fallback: string): string {
-  return mapping?.[field]?.propertyId ?? fallback;
+function pk(mappings: FieldMappingData | undefined, field: string, fallback: string): string {
+  return mappings?.[field]?.propertyId ?? fallback;
 }
 
 // ---- Routes -----------------------------------------------------------------
@@ -105,22 +114,27 @@ router.get("/notion/dropdown-options", async (req, res): Promise<void> => {
 
   const { accessToken } = connection;
 
-  // Load saved mapping to get the linked database IDs for relation fields
-  const mapping = await getMapping(userId, "expenses");
+  // Load saved mapping — includes notionDatabaseId + property mappings
+  const mappingRow = await getMappingRow(userId, "expenses");
+  const mappings = mappingRow?.mappings;
 
-  // Use mapped relatedDatabaseId if available, otherwise fall back to name search
-  const [kategoriDbId, labaRugiDbId] = await Promise.all([
-    mapping?.kategori?.relatedDatabaseId
-      ? Promise.resolve(mapping.kategori.relatedDatabaseId)
+  // Resolve dropdown databases:
+  // 1. Use relatedDatabaseId from mapping (most accurate)
+  // 2. Fall back to name search
+  const [kategoriDbId, areaDbId] = await Promise.all([
+    mappings?.kategori?.relatedDatabaseId
+      ? Promise.resolve(mappings.kategori.relatedDatabaseId)
       : findDatabaseByName(accessToken, "Kategori Pengeluaran"),
-    mapping?.area?.relatedDatabaseId
-      ? Promise.resolve(mapping.area.relatedDatabaseId)
+    mappings?.area?.relatedDatabaseId
+      ? Promise.resolve(mappings.area.relatedDatabaseId)
       : findDatabaseByName(accessToken, "Laba Rugi"),
   ]);
 
+  req.log.info({ userId, kategoriDbId, areaDbId }, "Expenses dropdown options resolved");
+
   const [categories, areas] = await Promise.all([
     kategoriDbId ? queryAllPages(accessToken, kategoriDbId) : Promise.resolve([]),
-    labaRugiDbId ? queryAllPages(accessToken, labaRugiDbId) : Promise.resolve([]),
+    areaDbId ? queryAllPages(accessToken, areaDbId) : Promise.resolve([]),
   ]);
 
   const data = GetDropdownOptionsResponse.parse({ categories, areas });
@@ -155,12 +169,22 @@ router.post("/notion/add-expense", async (req, res): Promise<void> => {
 
   const { accessToken } = connection;
 
-  // Load mapping for this user's expenses database
-  const mapping = await getMapping(userId, "expenses");
+  // Load full mapping row — includes notionDatabaseId + property mappings
+  const mappingRow = await getMappingRow(userId, "expenses");
+  const mappings = mappingRow?.mappings;
 
-  const expensesDbId = await findDatabaseByName(accessToken, "Expenses");
+  // Use stored notionDatabaseId if available, otherwise fall back to name search
+  const expensesDbId =
+    mappingRow?.notionDatabaseId ||
+    (await findDatabaseByName(accessToken, "Expenses"));
+
+  req.log.info(
+    { userId, expensesDbId, usingStoredId: !!mappingRow?.notionDatabaseId },
+    "Add expense: resolved Expenses database ID",
+  );
+
   if (!expensesDbId) {
-    res.status(404).json({ error: "Database 'Expenses' tidak ditemukan di workspace Notion Anda." });
+    res.status(404).json({ error: "Database 'Expenses' tidak ditemukan. Pilih database di halaman Pengaturan." });
     return;
   }
 
@@ -168,22 +192,22 @@ router.post("/notion/add-expense", async (req, res): Promise<void> => {
   const notionBody = {
     parent: { database_id: expensesDbId },
     properties: {
-      [pk(mapping, "pengeluaran", "Pengeluaran")]: {
+      [pk(mappings, "pengeluaran", "Pengeluaran")]: {
         title: [{ text: { content: pengeluaran } }],
       },
-      [pk(mapping, "qty", "Qty")]: {
+      [pk(mappings, "qty", "Qty")]: {
         number: qty,
       },
-      [pk(mapping, "hargaPerPcs", "Harga/pcs")]: {
+      [pk(mappings, "hargaPerPcs", "Harga/pcs")]: {
         number: hargaPerPcs,
       },
-      [pk(mapping, "date", "Date")]: {
+      [pk(mappings, "date", "Date")]: {
         date: { start: date },
       },
-      [pk(mapping, "kategori", "Kategori")]: {
+      [pk(mappings, "kategori", "Kategori")]: {
         relation: [{ id: kategoriId }],
       },
-      [pk(mapping, "area", "Area")]: {
+      [pk(mappings, "area", "Area")]: {
         relation: [{ id: areaId }],
       },
     },
@@ -206,9 +230,7 @@ router.post("/notion/add-expense", async (req, res): Promise<void> => {
     try {
       const errParsed = JSON.parse(errBody) as { message?: string };
       if (errParsed.message) userMessage = `Notion: ${errParsed.message}`;
-    } catch {
-      // keep default
-    }
+    } catch { /* keep default */ }
     res.status(400).json({ error: userMessage });
     return;
   }

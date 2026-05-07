@@ -153,6 +153,34 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /notion/list-databases:
+    get:
+      operationId: listDatabases
+      tags: [notion]
+      summary: List all Notion databases in workspace
+      description: Returns all databases the user has shared with the Notion integration
+      security:
+        - clerkAuth: []
+      responses:
+        "200":
+          description: List of databases
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DatabaseListResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Notion not connected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /notion/inspect-database:
     get:
       operationId: inspectDatabase
@@ -168,6 +196,12 @@ paths:
           schema:
             type: string
             enum: [panen, expenses]
+        - name: databaseId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Notion database ID to inspect. If provided, used directly. Otherwise tries saved mapping then name search.
       responses:
         "200":
           description: Database properties
@@ -201,7 +235,7 @@ paths:
           required: true
           schema:
             type: string
-            enum: [panen, expenses]
+            enum: [panen, expenses, laba_rugi]
       responses:
         "200":
           description: Field mappings
@@ -526,11 +560,36 @@ components:
         - propertyId
         - propertyName
 
+    DatabaseListItem:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        iconEmoji:
+          type: ["string", "null"]
+      required:
+        - id
+        - name
+
+    DatabaseListResponse:
+      type: object
+      properties:
+        databases:
+          type: array
+          items:
+            $ref: "#/components/schemas/DatabaseListItem"
+      required:
+        - databases
+
     FieldMappingsResponse:
       type: object
       properties:
         databaseType:
           type: string
+        notionDatabaseId:
+          type: ["string", "null"]
         mappings:
           type: object
           additionalProperties:
@@ -544,6 +603,8 @@ components:
       properties:
         databaseType:
           type: string
+        notionDatabaseId:
+          type: ["string", "null"]
         mappings:
           type: object
           additionalProperties:

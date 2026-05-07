@@ -74,12 +74,25 @@ export interface FieldMappingEntry {
   relatedDatabaseId?: string | null;
 }
 
+export interface DatabaseListItem {
+  id: string;
+  name: string;
+  /** @nullable */
+  iconEmoji?: string | null;
+}
+
+export interface DatabaseListResponse {
+  databases: DatabaseListItem[];
+}
+
 export type FieldMappingsResponseMappings = {
   [key: string]: FieldMappingEntry;
 };
 
 export interface FieldMappingsResponse {
   databaseType: string;
+  /** @nullable */
+  notionDatabaseId?: string | null;
   mappings: FieldMappingsResponseMappings;
 }
 
@@ -89,6 +102,8 @@ export type SaveFieldMappingsBodyMappings = {
 
 export interface SaveFieldMappingsBody {
   databaseType: string;
+  /** @nullable */
+  notionDatabaseId?: string | null;
   mappings: SaveFieldMappingsBodyMappings;
 }
 
@@ -158,6 +173,10 @@ export type HandleNotionOAuthCallbackParams = {
 
 export type InspectDatabaseParams = {
   type: InspectDatabaseType;
+  /**
+   * Notion database ID to inspect. If provided, used directly. Otherwise tries saved mapping then name search.
+   */
+  databaseId?: string;
 };
 
 export type InspectDatabaseType =
@@ -178,4 +197,5 @@ export type GetFieldMappingsType =
 export const GetFieldMappingsType = {
   panen: "panen",
   expenses: "expenses",
+  laba_rugi: "laba_rugi",
 } as const;

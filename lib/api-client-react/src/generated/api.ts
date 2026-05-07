@@ -22,6 +22,7 @@ import type {
   AddHarvestBody,
   AddHarvestResult,
   DashboardSummary,
+  DatabaseListResponse,
   DropdownOptions,
   ErrorResponse,
   FieldMappingsResponse,
@@ -539,6 +540,82 @@ export function useGetDropdownOptions<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetDropdownOptionsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Returns all databases the user has shared with the Notion integration
+ * @summary List all Notion databases in workspace
+ */
+export const getListDatabasesUrl = () => {
+  return `/api/notion/list-databases`;
+};
+
+export const listDatabases = async (
+  options?: RequestInit,
+): Promise<DatabaseListResponse> => {
+  return customFetch<DatabaseListResponse>(getListDatabasesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListDatabasesQueryKey = () => {
+  return [`/api/notion/list-databases`] as const;
+};
+
+export const getListDatabasesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listDatabases>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listDatabases>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListDatabasesQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listDatabases>>> = ({
+    signal,
+  }) => listDatabases({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listDatabases>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListDatabasesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listDatabases>>
+>;
+export type ListDatabasesQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary List all Notion databases in workspace
+ */
+
+export function useListDatabases<
+  TData = Awaited<ReturnType<typeof listDatabases>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listDatabases>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListDatabasesQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

@@ -1,19 +1,40 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Settings, RefreshCcw, Save, CheckCircle2, AlertCircle, Loader2, Info } from "lucide-react";
+import {
+  Settings,
+  RefreshCcw,
+  Save,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  Info,
+  Database,
+} from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import {
+  useListDatabases,
+  getListDatabasesQueryKey,
   useInspectDatabase,
   getInspectDatabaseQueryKey,
   useGetFieldMappings,
   getGetFieldMappingsQueryKey,
   useSaveFieldMappings,
 } from "@workspace/api-client-react";
-import type { DatabaseProperty, FieldMappingEntry } from "@workspace/api-client-react";
+import type {
+  DatabaseProperty,
+  FieldMappingEntry,
+  SaveFieldMappingsBody,
+} from "@workspace/api-client-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -42,8 +63,8 @@ const PANEN_FIELDS: RequiredField[] = [
   { key: "hargaJualPerKg", label: "Harga Jual per Kg", expectedType: "number", description: "Harga jual per kilogram" },
   { key: "kualitas", label: "Kualitas", expectedType: "select", description: "Grade kualitas (Grade A, B, C, dst.)" },
   { key: "channelPenjualan", label: "Channel Penjualan", expectedType: "select", description: "Jalur penjualan hasil panen" },
-  { key: "areaPindahTanam", label: "Area Pindah Tanam", expectedType: "relation", description: "Relasi ke database Pindah Tanam (untuk menghitung HST)" },
-  { key: "areaLabaRugi", label: "Area Laba Rugi", expectedType: "relation", description: "Relasi ke database Laba Rugi (untuk merekap pendapatan)" },
+  { key: "areaPindahTanam", label: "Area Pindah Tanam", expectedType: "relation", description: "Relasi ke database Pindah Tanam" },
+  { key: "areaLabaRugi", label: "Area Laba Rugi", expectedType: "relation", description: "Relasi ke database Laba Rugi" },
 ];
 
 const EXPENSES_FIELDS: RequiredField[] = [
@@ -65,43 +86,42 @@ const TYPE_COLORS: Record<string, string> = {
   select: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
   relation: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
   date: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300",
-  formula: "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400",
-  rollup: "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400",
 };
 
 function TypeBadge({ type }: { type: string }) {
   return (
-    <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-medium ${TYPE_COLORS[type] ?? "bg-gray-100 text-gray-600"}`}>
+    <span
+      className={`inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-medium ${TYPE_COLORS[type] ?? "bg-gray-100 text-gray-600"}`}
+    >
       {type}
     </span>
   );
 }
 
 // ---------------------------------------------------------------------------
-// MappingSection — one tab (panen or expenses)
+// MappingSection — property mapping for one database type (panen or expenses)
 // ---------------------------------------------------------------------------
 
 interface MappingSectionProps {
   dbType: "panen" | "expenses";
   fields: RequiredField[];
   dbLabel: string;
+  selectedDbId: string;
 }
 
-function MappingSection({ dbType, fields, dbLabel }: MappingSectionProps) {
+function MappingSection({ dbType, fields, dbLabel, selectedDbId }: MappingSectionProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Pending selections: fieldKey -> propertyId
   const [selections, setSelections] = useState<Record<string, string>>({});
   const [hasLoadedFromSaved, setHasLoadedFromSaved] = useState(false);
+  const [loadedForDbId, setLoadedForDbId] = useState<string>("");
 
-  // Load existing saved mappings
   const { data: saved, isLoading: isLoadingSaved } = useGetFieldMappings(
     { type: dbType },
     { query: { queryKey: getGetFieldMappingsQueryKey({ type: dbType }) } },
   );
 
-  // Initialise selections from saved mappings when they arrive
   useEffect(() => {
     if (saved && !hasLoadedFromSaved) {
       const ids: Record<string, string> = {};
@@ -113,41 +133,39 @@ function MappingSection({ dbType, fields, dbLabel }: MappingSectionProps) {
     }
   }, [saved, hasLoadedFromSaved]);
 
-  // Inspect database — enabled:false so it only fires on refetch()
+  const inspectParams = { type: dbType, databaseId: selectedDbId || undefined };
+
   const {
     data: inspected,
     isFetching: isInspecting,
     refetch: loadProperties,
     error: inspectError,
-  } = useInspectDatabase(
-    { type: dbType },
-    { query: { enabled: false, queryKey: getInspectDatabaseQueryKey({ type: dbType }) } },
-  );
-
-  const properties: DatabaseProperty[] = inspected?.properties ?? [];
-
-  // Save mutation
-  const { mutate: saveMappings, isPending: isSaving } = useSaveFieldMappings({
-    mutation: {
-      onSuccess: () => {
-        toast({
-          title: "Pemetaan berhasil disimpan",
-          description: `Konfigurasi kolom database ${dbLabel} telah disimpan.`,
-        });
-        queryClient.invalidateQueries({ queryKey: getGetFieldMappingsQueryKey({ type: dbType }) });
-        setHasLoadedFromSaved(false);
-      },
-      onError: (err) => {
-        toast({
-          variant: "destructive",
-          title: "Gagal menyimpan",
-          description: err instanceof Error ? err.message : "Terjadi kesalahan.",
-        });
-      },
+  } = useInspectDatabase(inspectParams, {
+    query: {
+      enabled: false,
+      queryKey: getInspectDatabaseQueryKey(inspectParams),
     },
   });
 
-  function handleSave() {
+  const properties: DatabaseProperty[] = inspected?.properties ?? [];
+  const dbChanged = loadedForDbId && selectedDbId && loadedForDbId !== selectedDbId;
+
+  async function handleLoadProperties() {
+    if (!selectedDbId) {
+      toast({
+        variant: "destructive",
+        title: "Database belum dipilih",
+        description: `Pilih database ${dbLabel} di bagian 'Pilih Database Notion' dulu.`,
+      });
+      return;
+    }
+    await loadProperties();
+    setLoadedForDbId(selectedDbId);
+  }
+
+  const { mutateAsync: saveAsync, isPending: isSaving } = useSaveFieldMappings();
+
+  async function handleSave() {
     if (properties.length === 0) {
       toast({
         variant: "destructive",
@@ -170,8 +188,7 @@ function MappingSection({ dbType, fields, dbLabel }: MappingSectionProps) {
       };
     }
 
-    const mappedCount = Object.keys(mappings).length;
-    if (mappedCount === 0) {
+    if (Object.keys(mappings).length === 0) {
       toast({
         variant: "destructive",
         title: "Tidak ada field yang dipetakan",
@@ -180,37 +197,86 @@ function MappingSection({ dbType, fields, dbLabel }: MappingSectionProps) {
       return;
     }
 
-    saveMappings({ data: { databaseType: dbType, mappings } });
+    try {
+      await saveAsync({
+        data: {
+          databaseType: dbType,
+          notionDatabaseId: selectedDbId || null,
+          mappings: mappings as SaveFieldMappingsBody["mappings"],
+        },
+      });
+      toast({
+        title: "Pemetaan berhasil disimpan",
+        description: `Konfigurasi kolom database ${dbLabel} telah disimpan.`,
+      });
+      queryClient.invalidateQueries({
+        queryKey: getGetFieldMappingsQueryKey({ type: dbType }),
+      });
+      setHasLoadedFromSaved(false);
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: "Gagal menyimpan pemetaan",
+        description: err instanceof Error ? err.message : "Terjadi kesalahan.",
+      });
+    }
   }
 
   const savedCount = Object.keys(saved?.mappings ?? {}).length;
   const isMapped = savedCount > 0;
 
   return (
-    <div className="space-y-6">
-      {/* Status banner */}
+    <div className="space-y-5">
       {!isLoadingSaved && (
-        <Alert className={isMapped ? "border-emerald-200 bg-emerald-50 dark:bg-emerald-900/20" : "border-amber-200 bg-amber-50 dark:bg-amber-900/20"}>
+        <Alert
+          className={
+            isMapped
+              ? "border-emerald-200 bg-emerald-50 dark:bg-emerald-900/20"
+              : "border-amber-200 bg-amber-50 dark:bg-amber-900/20"
+          }
+        >
           {isMapped ? (
             <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
           ) : (
             <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
           )}
-          <AlertDescription className={isMapped ? "text-emerald-700 dark:text-emerald-300" : "text-amber-700 dark:text-amber-300"}>
+          <AlertDescription
+            className={
+              isMapped
+                ? "text-emerald-700 dark:text-emerald-300"
+                : "text-amber-700 dark:text-amber-300"
+            }
+          >
             {isMapped
-              ? `${savedCount} dari ${fields.length} field sudah dipetakan. Klik "Muat Kolom" untuk memperbarui.`
-              : `Belum ada pemetaan untuk database ${dbLabel}. Muat kolom dari Notion untuk memulai.`}
+              ? `${savedCount} dari ${fields.length} field sudah dipetakan.`
+              : `Belum ada pemetaan untuk database ${dbLabel}.`}
           </AlertDescription>
         </Alert>
       )}
 
-      {/* Load button */}
-      <div className="flex items-center gap-3">
+      {!selectedDbId && (
+        <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-900/20">
+          <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+          <AlertDescription className="text-blue-700 dark:text-blue-300">
+            Pilih database {dbLabel} di Langkah 1 terlebih dahulu, lalu klik "Muat Kolom".
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {dbChanged && (
+        <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-900/20">
+          <AlertCircle className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="text-amber-700">
+            Database berubah — klik "Muat Kolom" untuk memperbarui daftar kolom.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <div className="flex items-center gap-3 flex-wrap">
         <Button
           variant="outline"
-          onClick={() => loadProperties()}
-          disabled={isInspecting}
-          data-testid={`button-load-${dbType}`}
+          onClick={handleLoadProperties}
+          disabled={isInspecting || !selectedDbId}
           className="gap-2"
         >
           {isInspecting ? (
@@ -222,36 +288,45 @@ function MappingSection({ dbType, fields, dbLabel }: MappingSectionProps) {
         </Button>
         {properties.length > 0 && (
           <span className="text-sm text-muted-foreground">
-            {properties.length} kolom ditemukan di database <strong>{inspected?.databaseName}</strong>
+            {properties.length} kolom dari{" "}
+            <strong>{inspected?.databaseName}</strong>
           </span>
         )}
       </div>
 
-      {/* Error state */}
       {inspectError && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            {inspectError instanceof Error ? inspectError.message : "Gagal memuat kolom dari Notion."}
+            {inspectError instanceof Error
+              ? inspectError.message
+              : "Gagal memuat kolom dari Notion."}
           </AlertDescription>
         </Alert>
       )}
 
-      {/* Field mapping table */}
       <div className="rounded-lg border border-border overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-muted/50 border-b border-border">
             <tr>
-              <th className="text-left px-4 py-3 font-medium text-muted-foreground w-[35%]">Field Aplikasi</th>
-              <th className="text-left px-4 py-3 font-medium text-muted-foreground w-[12%]">Tipe</th>
-              <th className="text-left px-4 py-3 font-medium text-muted-foreground">Kolom Notion</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground w-[35%]">
+                Field Aplikasi
+              </th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground w-[12%]">
+                Tipe
+              </th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground">
+                Kolom Notion
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {fields.map((field) => {
               const currentPropId = selections[field.key] ?? "";
               const matchedProp = properties.find((p) => p.id === currentPropId);
-              const typeMatch = matchedProp ? matchedProp.type === field.expectedType : null;
+              const typeMatch = matchedProp
+                ? matchedProp.type === field.expectedType
+                : null;
 
               return (
                 <tr key={field.key} className="hover:bg-muted/30 transition-colors">
@@ -274,14 +349,11 @@ function MappingSection({ dbType, fields, dbLabel }: MappingSectionProps) {
                         }
                         disabled={properties.length === 0}
                       >
-                        <SelectTrigger
-                          className="h-8 text-sm"
-                          data-testid={`select-mapping-${dbType}-${field.key}`}
-                        >
+                        <SelectTrigger className="h-8 text-sm">
                           <SelectValue
                             placeholder={
                               properties.length === 0
-                                ? "Muat kolom dari Notion dulu..."
+                                ? "Muat kolom dulu..."
                                 : "Pilih kolom Notion..."
                             }
                           />
@@ -298,9 +370,10 @@ function MappingSection({ dbType, fields, dbLabel }: MappingSectionProps) {
                         </SelectContent>
                       </Select>
 
-                      {/* Type match indicator */}
                       {matchedProp && typeMatch === false && (
-                        <span title={`Tipe tidak sesuai: diperlukan '${field.expectedType}', dipilih '${matchedProp.type}'`}>
+                        <span
+                          title={`Tipe tidak sesuai: diperlukan '${field.expectedType}', dipilih '${matchedProp.type}'`}
+                        >
                           <AlertCircle className="h-4 w-4 text-amber-500 flex-shrink-0" />
                         </span>
                       )}
@@ -316,22 +389,15 @@ function MappingSection({ dbType, fields, dbLabel }: MappingSectionProps) {
         </table>
       </div>
 
-      {/* Hint when properties loaded */}
       {properties.length > 0 && (
         <p className="text-xs text-muted-foreground flex items-center gap-1.5">
           <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-          Ikon hijau = tipe kolom sesuai. Ikon kuning = tipe tidak sesuai (tetap bisa disimpan, namun data mungkin tidak masuk dengan benar).
+          Ikon hijau = tipe sesuai. Ikon kuning = tipe tidak sesuai (masih bisa disimpan).
         </p>
       )}
 
-      {/* Save button */}
       <div className="flex justify-end pt-2">
-        <Button
-          onClick={handleSave}
-          disabled={isSaving}
-          data-testid={`button-save-${dbType}`}
-          className="gap-2"
-        >
+        <Button onClick={handleSave} disabled={isSaving} className="gap-2">
           {isSaving ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -353,7 +419,175 @@ function MappingSection({ dbType, fields, dbLabel }: MappingSectionProps) {
 // SettingsPage
 // ---------------------------------------------------------------------------
 
+interface DbSelections {
+  labaRugi: string;
+  panen: string;
+  expenses: string;
+}
+
 export function SettingsPage() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const [dbSelections, setDbSelections] = useState<DbSelections>({
+    labaRugi: "",
+    panen: "",
+    expenses: "",
+  });
+  const [initDone, setInitDone] = useState(false);
+  const [isSavingDbs, setIsSavingDbs] = useState(false);
+
+  const { data: dbListData, isFetching: isLoadingDbs, refetch: refreshDbs } = useListDatabases({
+    query: { queryKey: getListDatabasesQueryKey() },
+  });
+  const allDatabases = dbListData?.databases ?? [];
+
+  const { data: savedPanen } = useGetFieldMappings(
+    { type: "panen" },
+    { query: { queryKey: getGetFieldMappingsQueryKey({ type: "panen" }) } },
+  );
+  const { data: savedExpenses } = useGetFieldMappings(
+    { type: "expenses" },
+    { query: { queryKey: getGetFieldMappingsQueryKey({ type: "expenses" }) } },
+  );
+  const { data: savedLabaRugi } = useGetFieldMappings(
+    { type: "laba_rugi" },
+    { query: { queryKey: getGetFieldMappingsQueryKey({ type: "laba_rugi" }) } },
+  );
+
+  useEffect(() => {
+    if (
+      !initDone &&
+      savedPanen !== undefined &&
+      savedExpenses !== undefined &&
+      savedLabaRugi !== undefined
+    ) {
+      setDbSelections({
+        labaRugi: savedLabaRugi?.notionDatabaseId ?? "",
+        panen: savedPanen?.notionDatabaseId ?? "",
+        expenses: savedExpenses?.notionDatabaseId ?? "",
+      });
+      setInitDone(true);
+    }
+  }, [savedPanen, savedExpenses, savedLabaRugi, initDone]);
+
+  const { mutateAsync: saveAsync } = useSaveFieldMappings();
+
+  async function handleSaveDatabaseSelections() {
+    if (!dbSelections.labaRugi && !dbSelections.panen && !dbSelections.expenses) {
+      toast({
+        variant: "destructive",
+        title: "Belum ada database dipilih",
+        description: "Pilih setidaknya satu database sebelum menyimpan.",
+      });
+      return;
+    }
+
+    setIsSavingDbs(true);
+    try {
+      await Promise.all([
+        saveAsync({
+          data: {
+            databaseType: "laba_rugi",
+            notionDatabaseId: dbSelections.labaRugi || null,
+            mappings: {} as SaveFieldMappingsBody["mappings"],
+          },
+        }),
+        saveAsync({
+          data: {
+            databaseType: "panen",
+            notionDatabaseId: dbSelections.panen || null,
+            mappings:
+              (savedPanen?.mappings as SaveFieldMappingsBody["mappings"]) ??
+              ({} as SaveFieldMappingsBody["mappings"]),
+          },
+        }),
+        saveAsync({
+          data: {
+            databaseType: "expenses",
+            notionDatabaseId: dbSelections.expenses || null,
+            mappings:
+              (savedExpenses?.mappings as SaveFieldMappingsBody["mappings"]) ??
+              ({} as SaveFieldMappingsBody["mappings"]),
+          },
+        }),
+      ]);
+
+      toast({
+        title: "Pilihan database disimpan",
+        description: "Konfigurasi database berhasil diperbarui.",
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: getGetFieldMappingsQueryKey({ type: "laba_rugi" }),
+      });
+      queryClient.invalidateQueries({
+        queryKey: getGetFieldMappingsQueryKey({ type: "panen" }),
+      });
+      queryClient.invalidateQueries({
+        queryKey: getGetFieldMappingsQueryKey({ type: "expenses" }),
+      });
+      setInitDone(false);
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: "Gagal menyimpan",
+        description: err instanceof Error ? err.message : "Terjadi kesalahan.",
+      });
+    } finally {
+      setIsSavingDbs(false);
+    }
+  }
+
+  function dbName(id: string) {
+    return allDatabases.find((d) => d.id === id)?.name ?? id;
+  }
+
+  function DbSelectRow({
+    label,
+    value,
+    onChange,
+    hint,
+  }: {
+    label: string;
+    value: string;
+    onChange: (v: string) => void;
+    hint?: string;
+  }) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-[180px_1fr] items-center gap-3 py-3 border-b border-border last:border-0">
+        <div>
+          <div className="font-medium text-sm">{label}</div>
+          {hint && <div className="text-xs text-muted-foreground mt-0.5">{hint}</div>}
+        </div>
+        <div className="flex items-center gap-2">
+          <Select value={value} onValueChange={onChange} disabled={isLoadingDbs}>
+            <SelectTrigger className="h-9 text-sm flex-1">
+              <SelectValue placeholder="Pilih database..." />
+            </SelectTrigger>
+            <SelectContent>
+              {allDatabases.map((db) => (
+                <SelectItem key={db.id} value={db.id}>
+                  <span className="flex items-center gap-2">
+                    {db.iconEmoji ? (
+                      <span>{db.iconEmoji}</span>
+                    ) : (
+                      <Database className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                    )}
+                    {db.name}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {value && (
+            <CheckCircle2 className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8 max-w-4xl">
       <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
@@ -364,35 +598,139 @@ export function SettingsPage() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Pengaturan</h1>
             <p className="text-muted-foreground mt-0.5">
-              Petakan kolom Notion Anda ke field aplikasi agar data masuk dengan benar.
+              Pilih database Notion Anda dan petakan kolom ke field aplikasi.
             </p>
           </div>
         </div>
       </motion.div>
 
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+      {/* Step 1: Database Selection */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
+      >
         <Card>
           <CardHeader>
-            <CardTitle>Pemetaan Kolom (Field Mapping)</CardTitle>
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">
+                    1
+                  </span>
+                  Pilih Database Notion
+                </CardTitle>
+                <CardDescription className="mt-1">
+                  Pilih database Notion yang berperan sebagai Laba Rugi, Panen, dan Pengeluaran di
+                  aplikasi ini.
+                </CardDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => void refreshDbs()}
+                disabled={isLoadingDbs}
+                className="gap-2 flex-shrink-0"
+              >
+                {isLoadingDbs ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <RefreshCcw className="h-3.5 w-3.5" />
+                )}
+                {isLoadingDbs ? "Memuat..." : "Perbarui Daftar"}
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {allDatabases.length === 0 && !isLoadingDbs ? (
+              <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-900/20 mb-4">
+                <AlertCircle className="h-4 w-4 text-amber-600" />
+                <AlertDescription className="text-amber-700">
+                  Tidak ada database ditemukan. Pastikan Notion sudah terhubung dan integrasi memiliki
+                  akses ke database Anda.
+                </AlertDescription>
+              </Alert>
+            ) : null}
+
+            <DbSelectRow
+              label="Database Laba Rugi"
+              hint="Untuk dashboard ringkasan keuangan"
+              value={dbSelections.labaRugi}
+              onChange={(v) => setDbSelections((prev) => ({ ...prev, labaRugi: v }))}
+            />
+            <DbSelectRow
+              label="Database Panen"
+              hint="Untuk input data hasil panen"
+              value={dbSelections.panen}
+              onChange={(v) => setDbSelections((prev) => ({ ...prev, panen: v }))}
+            />
+            <DbSelectRow
+              label="Database Pengeluaran"
+              hint="Untuk input data pengeluaran"
+              value={dbSelections.expenses}
+              onChange={(v) => setDbSelections((prev) => ({ ...prev, expenses: v }))}
+            />
+
+            <div className="flex justify-end pt-5">
+              <Button onClick={handleSaveDatabaseSelections} disabled={isSavingDbs} className="gap-2">
+                {isSavingDbs ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Menyimpan...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4" />
+                    Simpan Pilihan Database
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Step 2: Property Mapping */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+      >
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">
+                2
+              </span>
+              Pemetaan Kolom (Opsional)
+            </CardTitle>
             <CardDescription>
-              Hubungkan setiap field di aplikasi ke kolom yang sesuai di database Notion Anda.
-              Klik <strong>"Muat Kolom dari Notion"</strong> untuk membaca struktur database,
-              lalu pilih kolom yang tepat untuk setiap field. Simpan saat selesai.
-              <br />
-              <span className="text-xs mt-1 block text-muted-foreground">
-                Pemetaan disimpan berdasarkan <strong>ID properti</strong> — bukan nama kolom —
-                sehingga tetap valid meskipun Anda mengganti nama kolom di Notion.
+              Petakan kolom Notion ke field aplikasi. Diperlukan jika nama kolom di database Anda
+              berbeda dari template standar.{" "}
+              <span className="text-xs">
+                Pemetaan disimpan berdasarkan <strong>ID properti</strong> — tetap valid meski nama
+                kolom diubah.
               </span>
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="panen">
               <TabsList className="mb-6">
-                <TabsTrigger value="panen" data-testid="tab-panen">
+                <TabsTrigger value="panen">
                   Database Panen
+                  {dbSelections.panen && (
+                    <span className="ml-2 text-xs text-muted-foreground hidden sm:inline">
+                      ({dbName(dbSelections.panen)})
+                    </span>
+                  )}
                 </TabsTrigger>
-                <TabsTrigger value="expenses" data-testid="tab-expenses">
+                <TabsTrigger value="expenses">
                   Database Pengeluaran
+                  {dbSelections.expenses && (
+                    <span className="ml-2 text-xs text-muted-foreground hidden sm:inline">
+                      ({dbName(dbSelections.expenses)})
+                    </span>
+                  )}
                 </TabsTrigger>
               </TabsList>
 
@@ -401,6 +739,7 @@ export function SettingsPage() {
                   dbType="panen"
                   fields={PANEN_FIELDS}
                   dbLabel="Panen"
+                  selectedDbId={dbSelections.panen}
                 />
               </TabsContent>
 
@@ -409,6 +748,7 @@ export function SettingsPage() {
                   dbType="expenses"
                   fields={EXPENSES_FIELDS}
                   dbLabel="Pengeluaran"
+                  selectedDbId={dbSelections.expenses}
                 />
               </TabsContent>
             </Tabs>
@@ -416,23 +756,31 @@ export function SettingsPage() {
         </Card>
       </motion.div>
 
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
+      {/* Info card */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.15 }}
+      >
         <Card className="border-border/60 bg-muted/30">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Cara Kerja Field Mapping</CardTitle>
+            <CardTitle className="text-base">Cara Kerja</CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground space-y-2">
             <p>
-              <strong className="text-foreground">1. Muat Kolom</strong> — Aplikasi membaca semua properti (kolom) dari database Notion Anda beserta tipe datanya.
+              <strong className="text-foreground">1. Pilih Database</strong> — Tautkan
+              database Notion Anda ke peran di aplikasi (Laba Rugi, Panen, Pengeluaran).
+              Ini memungkinkan aplikasi menemukan database yang tepat.
             </p>
             <p>
-              <strong className="text-foreground">2. Petakan Field</strong> — Pilih kolom Notion yang bersesuaian dengan setiap field di aplikasi. Ikon tipe membantu memastikan kolom yang dipilih sesuai.
+              <strong className="text-foreground">2. Pemetaan Kolom (opsional)</strong> — Jika
+              nama kolom di database Anda berbeda dari template, petakan tiap field ke kolom
+              yang sesuai. Klik "Muat Kolom" untuk membaca struktur database.
             </p>
             <p>
-              <strong className="text-foreground">3. Simpan</strong> — Konfigurasi disimpan menggunakan ID properti Notion (bukan nama), sehingga tetap valid jika Anda mengganti nama kolom.
-            </p>
-            <p>
-              <strong className="text-foreground">4. Dinamis</strong> — Dropdown Area di form Panen dan Pengeluaran otomatis menggunakan database yang terhubung via relasi dari pemetaan ini — tanpa hardcode nama apapun.
+              <strong className="text-foreground">3. Dropdown Otomatis</strong> — Dropdown Area
+              dan Kategori di form input otomatis menggunakan database yang ditautkan via relasi,
+              berdasarkan pemetaan yang tersimpan.
             </p>
           </CardContent>
         </Card>

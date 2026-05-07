@@ -67,7 +67,12 @@ async function queryAllPages(
 
 // ---- Mapping helpers --------------------------------------------------------
 
-async function getMapping(userId: string, databaseType: string): Promise<FieldMappingData | null> {
+interface MappingRow {
+  notionDatabaseId: string | null;
+  mappings: FieldMappingData;
+}
+
+async function getMappingRow(userId: string, databaseType: string): Promise<MappingRow | null> {
   const [row] = await db
     .select()
     .from(fieldMappingsTable)
@@ -75,12 +80,16 @@ async function getMapping(userId: string, databaseType: string): Promise<FieldMa
       eq(fieldMappingsTable.userId, userId),
       eq(fieldMappingsTable.databaseType, databaseType),
     ));
-  return (row?.mappings as FieldMappingData) ?? null;
+  if (!row) return null;
+  return {
+    notionDatabaseId: row.notionDatabaseId ?? null,
+    mappings: (row.mappings as FieldMappingData) ?? {},
+  };
 }
 
 /** Returns property ID from mapping if set, otherwise returns the fallback name. */
-function pk(mapping: FieldMappingData | null, field: string, fallback: string): string {
-  return mapping?.[field]?.propertyId ?? fallback;
+function pk(mappings: FieldMappingData | undefined, field: string, fallback: string): string {
+  return mappings?.[field]?.propertyId ?? fallback;
 }
 
 // ---- Routes -----------------------------------------------------------------
@@ -105,18 +114,21 @@ router.get("/notion/harvest-dropdown-options", async (req, res): Promise<void> =
 
   const { accessToken } = connection;
 
-  // Load saved mapping to get the linked database IDs for relation fields
-  const mapping = await getMapping(userId, "panen");
+  // Load saved mapping
+  const mappingRow = await getMappingRow(userId, "panen");
+  const mappings = mappingRow?.mappings;
 
-  // Use mapped relatedDatabaseId if available, otherwise fall back to name search
+  // Resolve dropdown databases using stored relation IDs if available
   const [pindahTanamDbId, labaRugiDbId] = await Promise.all([
-    mapping?.areaPindahTanam?.relatedDatabaseId
-      ? Promise.resolve(mapping.areaPindahTanam.relatedDatabaseId)
+    mappings?.areaPindahTanam?.relatedDatabaseId
+      ? Promise.resolve(mappings.areaPindahTanam.relatedDatabaseId)
       : findDatabaseByName(accessToken, "Pindah Tanam"),
-    mapping?.areaLabaRugi?.relatedDatabaseId
-      ? Promise.resolve(mapping.areaLabaRugi.relatedDatabaseId)
+    mappings?.areaLabaRugi?.relatedDatabaseId
+      ? Promise.resolve(mappings.areaLabaRugi.relatedDatabaseId)
       : findDatabaseByName(accessToken, "Laba Rugi"),
   ]);
+
+  req.log.info({ userId, pindahTanamDbId, labaRugiDbId }, "Harvest dropdown options resolved");
 
   const [pindahTanam, labaRugi] = await Promise.all([
     pindahTanamDbId ? queryAllPages(accessToken, pindahTanamDbId) : Promise.resolve([]),
@@ -163,38 +175,48 @@ router.post("/notion/add-harvest", async (req, res): Promise<void> => {
 
   const { accessToken } = connection;
 
-  // Load mapping for this user's panen database
-  const mapping = await getMapping(userId, "panen");
+  // Load full mapping row
+  const mappingRow = await getMappingRow(userId, "panen");
+  const mappings = mappingRow?.mappings;
 
-  const panenDbId = await findDatabaseByName(accessToken, "Panen");
+  // Use stored notionDatabaseId if available, otherwise fall back to name search
+  const panenDbId =
+    mappingRow?.notionDatabaseId ||
+    (await findDatabaseByName(accessToken, "Panen"));
+
+  req.log.info(
+    { userId, panenDbId, usingStoredId: !!mappingRow?.notionDatabaseId },
+    "Add harvest: resolved Panen database ID",
+  );
+
   if (!panenDbId) {
-    res.status(404).json({ error: "Database 'Panen' tidak ditemukan di workspace Notion Anda." });
+    res.status(404).json({ error: "Database 'Panen' tidak ditemukan. Pilih database di halaman Pengaturan." });
     return;
   }
 
-  // Build Notion properties: use mapped property IDs when available, fall back to hardcoded names
+  // Build Notion properties using mapped IDs or hardcoded fallback names
   const notionBody = {
     parent: { database_id: panenDbId },
     properties: {
-      [pk(mapping, "kegiatan", "Kegiatan")]: {
+      [pk(mappings, "kegiatan", "Kegiatan")]: {
         title: [{ text: { content: kegiatan } }],
       },
-      [pk(mapping, "jumlahPanen", "Jumlah Panen (kg)")]: {
+      [pk(mappings, "jumlahPanen", "Jumlah Panen (kg)")]: {
         number: jumlahPanen,
       },
-      [pk(mapping, "hargaJualPerKg", "Harga Jual per (Kg)")]: {
+      [pk(mappings, "hargaJualPerKg", "Harga Jual per (Kg)")]: {
         number: hargaJualPerKg,
       },
-      [pk(mapping, "kualitas", "Kualitas")]: {
+      [pk(mappings, "kualitas", "Kualitas")]: {
         select: { name: kualitas },
       },
-      [pk(mapping, "channelPenjualan", "Channel Penjualan")]: {
+      [pk(mappings, "channelPenjualan", "Channel Penjualan")]: {
         select: { name: channelPenjualan },
       },
-      [pk(mapping, "areaPindahTanam", "Area Pindah Tanam")]: {
+      [pk(mappings, "areaPindahTanam", "Area Pindah Tanam")]: {
         relation: [{ id: pindahTanamId }],
       },
-      [pk(mapping, "areaLabaRugi", "Area Laba Rugi")]: {
+      [pk(mappings, "areaLabaRugi", "Area Laba Rugi")]: {
         relation: [{ id: labaRugiId }],
       },
     },
@@ -217,9 +239,7 @@ router.post("/notion/add-harvest", async (req, res): Promise<void> => {
     try {
       const errParsed = JSON.parse(errBody) as { message?: string };
       if (errParsed.message) userMessage = `Notion: ${errParsed.message}`;
-    } catch {
-      // keep default
-    }
+    } catch { /* keep default */ }
     res.status(400).json({ error: userMessage });
     return;
   }

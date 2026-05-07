@@ -80,11 +80,31 @@ export const GetDropdownOptionsResponse = zod.object({
 });
 
 /**
+ * Returns all databases the user has shared with the Notion integration
+ * @summary List all Notion databases in workspace
+ */
+export const ListDatabasesResponse = zod.object({
+  databases: zod.array(
+    zod.object({
+      id: zod.string(),
+      name: zod.string(),
+      iconEmoji: zod.string().nullish(),
+    }),
+  ),
+});
+
+/**
  * Returns all properties (columns) from a Notion database with their types
  * @summary Inspect Notion database properties
  */
 export const InspectDatabaseQueryParams = zod.object({
   type: zod.enum(["panen", "expenses"]),
+  databaseId: zod.coerce
+    .string()
+    .optional()
+    .describe(
+      "Notion database ID to inspect. If provided, used directly. Otherwise tries saved mapping then name search.",
+    ),
 });
 
 export const InspectDatabaseResponse = zod.object({
@@ -104,11 +124,12 @@ export const InspectDatabaseResponse = zod.object({
  * @summary Get saved field mappings for a database
  */
 export const GetFieldMappingsQueryParams = zod.object({
-  type: zod.enum(["panen", "expenses"]),
+  type: zod.enum(["panen", "expenses", "laba_rugi"]),
 });
 
 export const GetFieldMappingsResponse = zod.object({
   databaseType: zod.string(),
+  notionDatabaseId: zod.string().nullish(),
   mappings: zod.record(
     zod.string(),
     zod.object({
@@ -124,6 +145,7 @@ export const GetFieldMappingsResponse = zod.object({
  */
 export const SaveFieldMappingsBody = zod.object({
   databaseType: zod.string(),
+  notionDatabaseId: zod.string().nullish(),
   mappings: zod.record(
     zod.string(),
     zod.object({
