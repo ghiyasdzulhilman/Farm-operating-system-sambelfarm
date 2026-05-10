@@ -114,7 +114,9 @@ export function DashboardPage() {
   };
 
   const handleRefreshSummary = () => {
+    // Pastikan ini sama persis dengan yang di-invalidate oleh form
     queryClient.invalidateQueries({ queryKey: ["dashboardSummaryRaw"] });
+    refetch(); // Paksa fetch ulang saat tombol refresh manual diklik
   };
 
   if (isLoadingConnection) {
@@ -167,25 +169,33 @@ export function DashboardPage() {
           <h1 className="text-3xl font-bold tracking-tight">Dashboard Finansial</h1>
           <p className="text-muted-foreground mt-1">Pantau arus kas dan efisiensi panen di setiap blok.</p>
         </motion.div>
-
-        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-2">
-          <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => refetch()} disabled={isFetching}>
-            <RefreshCcw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
-          </Button>
-        </motion.div>
       </div>
 
       {/* Baris Filter & Waktu Update */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 -mt-2 bg-muted/30 p-3 rounded-lg border border-border/50">
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <CalendarClock className="h-4 w-4" />
-          <span>Update Data Notion: {formatDate(summary?.lastUpdated ?? null)}</span>
+        
+        {/* Kiri: Info Update & Tombol Refresh */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <CalendarClock className="h-4 w-4" />
+            <span>Update: {formatDate(summary?.lastUpdated ?? null)}</span>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-7 px-2 text-xs text-muted-foreground hover:text-primary" 
+            onClick={handleRefreshSummary} 
+            disabled={isFetching}
+          >
+            <RefreshCcw className={`h-3 w-3 mr-1 ${isFetching ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
         </div>
 
-        {/* Dropdown Filter Area */}
+        {/* Kanan: Dropdown Filter Area */}
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium text-foreground">Filter Data:</span>
+          <span className="text-sm font-medium text-foreground hidden sm:inline-block">Filter Data:</span>
           <Select value={selectedAreaId} onValueChange={setSelectedAreaId}>
             <SelectTrigger className="w-[180px] h-8 text-sm bg-background">
               <SelectValue placeholder="Pilih Area" />
