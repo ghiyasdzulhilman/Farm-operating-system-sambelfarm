@@ -8,11 +8,10 @@ import {
   Plus, 
   FlaskConical, 
   Settings, 
-  X,
   Tractor,
   Banknote,
-  Container,
-  ChefHat
+  ChevronRight,
+  ClipboardList
 } from "lucide-react";
 
 // Import komponen dialog input lu (Pastiin path-nya sesuai)
@@ -28,10 +27,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
     return <main className="min-h-screen bg-background">{children}</main>;
   }
 
-  // Definisi navigasi (Cuma 4 item sekarang)
+  // Definisi navigasi (Cuma 4 item)
   const navItems = [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { href: "/operasional", icon: Sprout, label: "Operasional" },
+    { href: "/operasional", icon: ClipboardList, label: "Operasional" }, // Ganti ikon biar lebih pro
     { href: "/lab", icon: FlaskConical, label: "Lab" },
     { href: "/settings", icon: Settings, label: "Setelan" },
   ];
@@ -40,7 +39,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-muted/20 pb-24 md:pb-0 font-sans">
       {/* HEADER: Profil User */}
       <header className="sticky top-0 z-40 w-full border-b border-border bg-background/80 backdrop-blur-md">
-        <div className="container flex h-14 items-center justify-between px-4">
+        <div className="container flex h-14 items-center justify-between px-4 max-w-5xl mx-auto">
           <div className="flex items-center gap-2">
             <Tractor className="h-5 w-5 text-primary" />
             <span className="font-bold text-lg tracking-tight text-foreground">
@@ -56,7 +55,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         {children}
       </main>
 
-      {/* BOTTOM NAVIGATION (PIXEL PERFECT DESIGN) */}
+      {/* BOTTOM NAVIGATION (REVISED FOR PRECISION) */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border pb-safe shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
         <div className="relative max-w-lg mx-auto h-16 px-4">
           
@@ -81,7 +80,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
               })}
             </div>
 
-            {/* LOBANG DI TENGAH: Tempat FAB absolute bersarang */}
+            {/* LOBANG DI TENGAH */}
             <div className="w-1/5 flex justify-center items-center" />
 
             {/* Bagian Kanan (Nav 3 & 4) */}
@@ -103,8 +102,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
             </div>
           </div>
 
-          {/* ----- THE SUPER FAB: Tombol Input Tengah (Absolute) ----- */}
-          <div className="absolute left-1/2 -translate-x-1/2 -top-6 flex justify-center items-center">
+          {/* ----- THE SUPER FAB: Tombol Input Tengah (PRECISION TUNED) ----- */}
+          <div className="absolute left-1/2 -translate-x-1/2 -top-4 flex justify-center items-center"> {/* Turun dikit biar presisi */}
             
             {/* Menu Pop-up pas tombol plus diklik */}
             <AnimatePresence>
@@ -118,25 +117,45 @@ export function AppLayout({ children }: { children: ReactNode }) {
                     onClick={() => setIsFabOpen(false)}
                   />
                   
-                  {/* Pilihan Tombol Input Bergaya SaaS */}
+                  {/* Pilihan Input: Gaya LIST ITEM Profesional (FULL REMAKE) */}
                   <motion.div
                     initial={{ opacity: 0, y: 15, scale: 0.9, x: "-50%" }}
                     animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
                     exit={{ opacity: 0, y: 15, scale: 0.9, x: "-50%" }}
-                    className="absolute bottom-20 left-1/2 w-[240px] bg-card p-3 rounded-2xl border border-border shadow-xl space-y-2 z-20"
+                    className="absolute bottom-20 left-1/2 w-[280px] bg-card p-2 rounded-2xl border border-border shadow-2xl z-20"
                   >
-                    <h4 className="text-xs font-semibold text-muted-foreground px-1 pb-1">Input Cepat</h4>
+                    <h4 className="text-xs font-semibold text-muted-foreground pt-2 px-3 pb-2">Menu Input Cepat</h4>
                     
-                    {/* Ganti Tombol Biasa Pakai Ikon Profesional */}
-                    <div onClick={() => setIsFabOpen(false)} className="flex items-center gap-3 bg-background hover:bg-accent border p-2 rounded-lg cursor-pointer transition-colors shadow-sm">
-                      <div className="p-1.5 bg-emerald-100 text-emerald-700 rounded-md"><ChefHat className="h-4 w-4"/></div>
-                      <AddHarvestDialog onSuccess={() => {}} />
-                    </div>
+                    {/* LIST ITEM: Tambah Panen (🌶️) */}
+                    {/* Catatan: Komponen lu harusnya menerima children sebagai trigger, kalau tidak, gua perlu liat daleman komponen lu */}
+                    <AddHarvestDialog onSuccess={() => {}} >
+                        <div onClick={() => setIsFabOpen(false)} className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/60 transition-colors cursor-pointer text-left w-full border border-border/50 bg-background shadow-sm">
+                            <div className="flex items-center justify-center h-10 w-10 rounded-md bg-emerald-100 text-emerald-700">
+                                <Sprout className="h-5 w-5"/>
+                            </div>
+                            <div>
+                                <div className="text-sm font-semibold">Tambah Panen</div>
+                                <div className="text-[11px] text-muted-foreground">Catat hasil panen dari blok.</div>
+                            </div>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground/50 ml-auto flex-shrink-0" />
+                        </div>
+                    </AddHarvestDialog>
                     
-                    <div onClick={() => setIsFabOpen(false)} className="flex items-center gap-3 bg-background hover:bg-accent border p-2 rounded-lg cursor-pointer transition-colors shadow-sm">
-                      <div className="p-1.5 bg-rose-100 text-rose-700 rounded-md"><Banknote className="h-4 w-4"/></div>
-                      <AddExpenseDialog onSuccess={() => {}} />
-                    </div>
+                    {/* LIST ITEM: Catat Pengeluaran (💸) */}
+                    <AddExpenseDialog onSuccess={() => {}} >
+                        <div onClick={() => setIsFabOpen(false)} className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/60 transition-colors cursor-pointer text-left w-full border border-border/50 bg-background shadow-sm mt-1">
+                            <div className="flex items-center justify-center h-10 w-10 rounded-md bg-rose-100 text-rose-700">
+                                <Banknote className="h-5 w-5"/>
+                            </div>
+                            <div>
+                                <div className="text-sm font-semibold">Catat Pengeluaran</div>
+                                <div className="text-[11px] text-muted-foreground">Catat biaya operasional.</div>
+                            </div>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground/50 ml-auto flex-shrink-0" />
+                        </div>
+                    </AddExpenseDialog>
+                    
+                    <div className="pt-1" /> {/* Spacer bawah */}
                   </motion.div>
                 </>
               )}
