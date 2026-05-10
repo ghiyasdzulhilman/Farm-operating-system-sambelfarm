@@ -21,7 +21,13 @@ interface NotionPage {
   properties: Record<string, NotionProperty>;
 }
 
-// --- 1. Fungsi Query Laba Rugi ---
+interface NotionQueryResponse {
+  results: NotionPage[];
+  has_more: boolean;
+  next_cursor: string | null;
+}
+
+// --- 1. Fungsi Utama Narik Data Laba Rugi ---
 async function queryLabaRugi(accessToken: string, databaseId: string, mappings: any) {
   const response = await fetch(`https://api.notion.com/v1/databases/${databaseId}/query`, {
     method: "POST",
@@ -33,9 +39,12 @@ async function queryLabaRugi(accessToken: string, databaseId: string, mappings: 
     body: JSON.stringify({ page_size: 100 }),
   });
 
-  if (!response.ok) return { totalModal: 0, totalPendapatan: 0, totalPengeluaran: 0, areas: [] };
+  if (!response.ok) {
+    return { totalModal: 0, totalPendapatan: 0, totalPengeluaran: 0, marginTotal: 0, areas: [] };
+  }
 
-  const data = await response.json();
+  const data = (await response.json()) as NotionQueryResponse;
+
   const modalPropId = mappings?.modalAwal?.propertyId;
   const pendapatanPropId = mappings?.pendapatan?.propertyId;
   const pengeluaranPropId = mappings?.pengeluaran?.propertyId;
@@ -51,7 +60,10 @@ async function queryLabaRugi(accessToken: string, databaseId: string, mappings: 
       if (!propId) return 0;
       const prop = Object.values(page.properties).find((p: any) => p.id === propId) as any;
       if (!prop) return 0;
-      return prop.rollup?.number ?? prop.number ?? prop.formula?.number ?? 0;
+      if (prop.type === "rollup") return prop.rollup?.number ?? 0;
+      if (prop.type === "number") return prop.number ?? 0;
+      if (prop.type === "formula") return prop.formula?.number ?? 0;
+      return 0;
     };
 
     const modalAwal = extractNum(modalPropId);
@@ -59,38 +71,54 @@ async function queryLabaRugi(accessToken: string, databaseId: string, mappings: 
     const pengeluaran = extractNum(pengeluaranPropId);
 
     let areaName = "Area Tanpa Nama";
-    const titleProp = Object.values(page.properties).find((p: any) => p.id === areaPropId || p.type === "title") as any;
-    if (titleProp?.title?.[0]) areaName = titleProp.title[0].plain_text;
+    if (areaPropId) {
+      const titleProp = Object.values(page.properties).find((p: any) => p.id === areaPropId) as any;
+      if (titleProp && titleProp.title?.[0]) areaName = titleProp.title[0].plain_text;
+    } else {
+      const titleProp = Object.values(page.properties).find((p: any) => p.type === "title") as any;
+      if (titleProp && titleProp.title?.[0]) areaName = titleProp.title[0].plain_text;
+    }
 
     totalModal += modalAwal;
     totalPendapatan += pendapatan;
     totalPengeluaran += pengeluaran;
 
+    const profit = pendapatan - pengeluaran;
+    const margin = modalAwal > 0 ? (profit / modalAwal) * 100 : 0;
+
     areas.push({
-      id: page.id, // Ini adalah Area ID (Laba Rugi Page ID)
+      id: page.id, // Ini krusial: Kita butuh Page ID Laba Rugi buat nyocokin relasi panen nanti
       name: areaName,
       modalAwal,
       pendapatan,
       pengeluaran,
-      profit: pendapatan - pengeluaran,
-      margin: modalAwal > 0 ? ((pendapatan - pengeluaran) / modalAwal) * 100 : 0,
-      harvestWeight: 0 // Akan diisi nanti
+      profit,
+      margin,
+      harvestWeight: 0 // Akan di-update dari database panen
     });
   }
 
-  return { totalModal, totalPendapatan, totalPengeluaran, areas };
+  const profitGlobal = totalPendapatan - totalPengeluaran;
+  const marginTotal = totalModal > 0 ? (profitGlobal / totalModal) * 100 : 0;
+
+  return { totalModal, totalPendapatan, totalPengeluaran, marginTotal, areas };
 }
 
-// --- 2. Fungsi Query Panen (Group by Area) ---
+// --- 2. Fungsi Baru: Narik Data Panen dan Di-Group Per Area ---
 async function queryHarvestByArea(accessToken: string, databaseId: string, mappings: any) {
   let hasMore = true;
   let nextCursor: string | undefined = undefined;
+  
+  // weightMap bakal nyimpen data format: { "global": 393, "ID-Blok-B": 75, ... }
   const weightMap: Record<string, number> = { global: 0 };
 
   const weightPropId = mappings?.jumlahPanen?.propertyId || mappings?.jumlah?.propertyId;
-  const areaRelationId = mappings?.area?.propertyId; // ID kolom Relasi ke Laba Rugi
+  const labaRugiRelationId = mappings?.labaRugiId?.propertyId || mappings?.labaRugi?.propertyId;
 
   while (hasMore) {
+    const body: any = { page_size: 100 };
+    if (nextCursor) body.start_cursor = nextCursor;
+
     const response = await fetch(`https://api.notion.com/v1/databases/${databaseId}/query`, {
       method: "POST",
       headers: {
@@ -98,62 +126,125 @@ async function queryHarvestByArea(accessToken: string, databaseId: string, mappi
         "Content-Type": "application/json",
         "Notion-Version": "2022-06-28",
       },
-      body: JSON.stringify({ page_size: 100, start_cursor: nextCursor }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) break;
-    const data = await response.json();
 
+    const data = (await response.json()) as NotionQueryResponse;
+    
     for (const page of data.results) {
-      // Ekstrak Berat
-      const weightProp = Object.values(page.properties).find((p: any) => p.id === weightPropId || p.type === "number") as any;
-      const weight = weightProp?.number ?? weightProp?.formula?.number ?? 0;
-      
+      // 1. Ekstrak Berat Panen (Kg)
+      let weight = 0;
+      if (weightPropId) {
+        const prop = Object.values(page.properties).find((p: any) => p.id === weightPropId) as any;
+        if (prop?.type === "number") weight = prop.number ?? 0;
+        else if (prop?.type === "formula") weight = prop.formula?.number ?? 0;
+      } else {
+         const prop = Object.values(page.properties).find((p: any) => p.type === "number") as any;
+         if (prop) weight = prop.number ?? 0;
+      }
+
       weightMap.global += weight;
 
-      // Ekstrak Area ID (Relasi)
-      const areaProp = Object.values(page.properties).find((p: any) => p.id === areaRelationId || p.type === "relation") as any;
-      const areaId = areaProp?.relation?.[0]?.id;
+      // 2. Ekstrak Area ID dari Relasi (Biar tau ini panen punya blok mana)
+      let relatedIds: string[] = [];
+      if (labaRugiRelationId) {
+        const relProp = Object.values(page.properties).find((p: any) => p.id === labaRugiRelationId) as any;
+        if (relProp?.relation) relatedIds = relProp.relation.map((r: any) => r.id);
+      } else {
+        // Fallback: Kalau belum di-mapping sempurna, kumpulin aja semua ID relasinya.
+        // Nanti bakal otomatis cocok sama ID Laba Rugi yang kita cari.
+        for (const prop of Object.values(page.properties) as any[]) {
+          if (prop.type === "relation" && prop.relation) {
+            prop.relation.forEach((r: any) => relatedIds.push(r.id));
+          }
+        }
+      }
 
-      if (areaId) {
-        weightMap[areaId] = (weightMap[areaId] || 0) + weight;
+      // Masukin beratnya ke masing-masing ID Blok
+      for (const relId of relatedIds) {
+        weightMap[relId] = (weightMap[relId] || 0) + weight;
       }
     }
+
     hasMore = data.has_more;
     nextCursor = data.next_cursor ?? undefined;
   }
+
   return weightMap;
 }
 
-// --- 3. Endpoint Dashboard ---
+// --- 3. Endpoint Dashboard Summary ---
 router.get("/dashboard/summary", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!userId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
 
-  const [connection] = await db.select().from(notionConnectionsTable).where(eq(notionConnectionsTable.userId, userId));
-  const [lrMap] = await db.select().from(fieldMappingsTable).where(and(eq(fieldMappingsTable.userId, userId), eq(fieldMappingsTable.databaseType, "laba_rugi")));
-  const [pMap] = await db.select().from(fieldMappingsTable).where(and(eq(fieldMappingsTable.userId, userId), eq(fieldMappingsTable.databaseType, "panen")));
+  const [connection] = await db
+    .select()
+    .from(notionConnectionsTable)
+    .where(eq(notionConnectionsTable.userId, userId));
 
-  if (!lrMap?.notionDatabaseId) { res.status(404).json({ error: "Setup Laba Rugi dulu bro." }); return; }
+  if (!connection) {
+    res.status(404).json({ error: "Notion tidak terhubung." });
+    return;
+  }
 
-  const [lrResult, harvestMap] = await Promise.all([
-    queryLabaRugi(connection.accessToken, lrMap.notionDatabaseId, lrMap.mappings),
-    pMap?.notionDatabaseId ? queryHarvestByArea(connection.accessToken, pMap.notionDatabaseId, pMap.mappings) : Promise.resolve({ global: 0 })
+  // Tarik Mapping Laba Rugi
+  const [labaRugiMapping] = await db
+    .select()
+    .from(fieldMappingsTable)
+    .where(and(
+      eq(fieldMappingsTable.userId, userId),
+      eq(fieldMappingsTable.databaseType, "laba_rugi"),
+    ));
+
+  // Tarik Mapping Panen
+  const [panenMapping] = await db
+    .select()
+    .from(fieldMappingsTable)
+    .where(and(
+      eq(fieldMappingsTable.userId, userId),
+      eq(fieldMappingsTable.databaseType, "panen"),
+    ));
+
+  const dbLabaRugiId = labaRugiMapping?.notionDatabaseId;
+  const mappingsLabaRugi = labaRugiMapping?.mappings || {};
+
+  if (!dbLabaRugiId) {
+    res.status(404).json({ error: "Database Laba Rugi belum disetup di Pengaturan." });
+    return;
+  }
+
+  // Jalankan kedua fungsi query secara paralel
+  const [resultLabaRugi, harvestMap] = await Promise.all([
+    queryLabaRugi(connection.accessToken, dbLabaRugiId, mappingsLabaRugi),
+    panenMapping?.notionDatabaseId 
+      ? queryHarvestByArea(connection.accessToken, panenMapping.notionDatabaseId, panenMapping.mappings || {})
+      : Promise.resolve({ global: 0 } as Record<string, number>) // Fallback kalau db panen belum konek
   ]);
 
-  // Gabungkan berat panen ke masing-masing area
-  const finalAreas = lrResult.areas.map(area => ({
+  // GABUNGKAN DATA: Cocokin harvestWeight spesifik ke masing-masing area
+  const finalAreas = resultLabaRugi.areas.map(area => ({
     ...area,
-    harvestWeight: harvestMap[area.id] || 0
+    harvestWeight: harvestMap[area.id] || 0 // Tarik data 75 kg untuk Blok B, dst.
   }));
 
+  // Tembak balikan JSON ke Frontend Dashboard
   res.json({
-    totalModal: lrResult.totalModal,
-    totalPendapatan: lrResult.totalPendapatan,
-    totalPengeluaran: lrResult.totalPengeluaran,
-    totalHarvestWeight: harvestMap.global,
-    areas: finalAreas,
+    totalModal: resultLabaRugi.totalModal,
+    totalPendapatan: resultLabaRugi.totalPendapatan,
+    totalPengeluaran: resultLabaRugi.totalPengeluaran,
+    labaRugi: resultLabaRugi.totalPendapatan - resultLabaRugi.totalPengeluaran,
+    marginTotal: resultLabaRugi.marginTotal,
+    areas: finalAreas, 
+    totalHarvestWeight: harvestMap.global, // Ini 393 kg buat Global
+    currency: "IDR",
     lastUpdated: new Date().toISOString(),
+    notionDatabaseId: dbLabaRugiId,
   });
 });
 
