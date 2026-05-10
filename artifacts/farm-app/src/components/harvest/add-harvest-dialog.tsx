@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Sprout, Loader2 } from "lucide-react";
+import { format } from "date-fns";
+import { Sprout, Loader2, CalendarIcon } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import {
@@ -54,20 +55,23 @@ const CHANNEL_OPTIONS = [
   "Konsumen",
 ] as const;
 
+// SATPAM DILONGGARIN: pindahTanamId & labaRugiId dibuat optional. Ditambah field 'tanggal'.
 const harvestSchema = z.object({
   kegiatan: z.string().min(1, "Nama kegiatan wajib diisi"),
+  tanggal: z.string().min(1, "Tanggal wajib diisi"),
   jumlahPanen: z.coerce.number().min(0.01, "Jumlah panen harus lebih dari 0"),
   hargaJualPerKg: z.coerce.number().min(0, "Harga tidak boleh negatif"),
   kualitas: z.string().min(1, "Pilih kualitas"),
   channelPenjualan: z.string().min(1, "Pilih channel penjualan"),
-  pindahTanamId: z.string().min(1, "Pilih area Pindah Tanam"),
-  labaRugiId: z.string().min(1, "Pilih area Laba Rugi"),
+  pindahTanamId: z.string().optional(),
+  labaRugiId: z.string().optional(),
 });
 
 type HarvestFormValues = z.infer<typeof harvestSchema>;
 
 const EMPTY_VALUES: HarvestFormValues = {
   kegiatan: "",
+  tanggal: format(new Date(), "yyyy-MM-dd"), // Default hari ini
   jumlahPanen: 0,
   hargaJualPerKg: 0,
   kualitas: "",
@@ -102,7 +106,7 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
           description: "Data telah disimpan ke Notion dan dashboard diperbarui.",
         });
         queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
-        form.reset(EMPTY_VALUES);
+        form.reset({ ...EMPTY_VALUES, tanggal: format(new Date(), "yyyy-MM-dd") });
         setOpen(false);
         onSuccess?.();
       },
@@ -119,7 +123,13 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
   });
 
   function onSubmit(values: HarvestFormValues) {
-    addHarvest.mutate({ data: values });
+    // Bersihkan id yang kosong biar gak bikin error di Notion
+    const cleanPayload = {
+      ...values,
+      pindahTanamId: values.pindahTanamId === "" ? undefined : values.pindahTanamId,
+      labaRugiId: values.labaRugiId === "" ? undefined : values.labaRugiId,
+    };
+    addHarvest.mutate({ data: cleanPayload as any });
   }
 
   const totalPendapatan =
@@ -169,6 +179,29 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
                         data-testid="input-kegiatan"
                         {...field}
                       />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Tanggal (Baru Ditambahkan) */}
+              <FormField
+                control={form.control}
+                name="tanggal"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tanggal Panen</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                        <Input
+                          type="date"
+                          className="pl-9"
+                          data-testid="input-tanggal"
+                          {...field}
+                        />
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -284,30 +317,31 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
                 )}
               />
 
-              {/* Area Pindah Tanam */}
+              {/* Area Pindah Tanam (Dibuat Opsional) */}
               <FormField
                 control={form.control}
                 name="pindahTanamId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Area Pindah Tanam</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <FormLabel>Area Pindah Tanam (Opsional)</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || ""}>
                       <FormControl>
                         <SelectTrigger data-testid="select-pindah-tanam">
                           <SelectValue placeholder="Pilih area pindah tanam..." />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {dropdownOptions?.pindahTanam.length === 0 && (
+                        {dropdownOptions?.pindahTanam?.length === 0 ? (
                           <SelectItem value="_empty" disabled>
-                            Tidak ada data Pindah Tanam ditemukan
+                            Tidak ada data ditemukan
                           </SelectItem>
+                        ) : (
+                          dropdownOptions?.pindahTanam?.map((item) => (
+                            <SelectItem key={item.id} value={item.id}>
+                              {item.name}
+                            </SelectItem>
+                          ))
                         )}
-                        {dropdownOptions?.pindahTanam.map((item) => (
-                          <SelectItem key={item.id} value={item.id}>
-                            {item.name}
-                          </SelectItem>
-                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -315,30 +349,31 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
                 )}
               />
 
-              {/* Area Laba Rugi */}
+              {/* Area Laba Rugi (Dibuat Opsional) */}
               <FormField
                 control={form.control}
                 name="labaRugiId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Area Laba Rugi</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <FormLabel>Area Laba Rugi (Opsional)</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || ""}>
                       <FormControl>
                         <SelectTrigger data-testid="select-laba-rugi">
                           <SelectValue placeholder="Pilih area laba rugi..." />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {dropdownOptions?.labaRugi.length === 0 && (
+                        {dropdownOptions?.labaRugi?.length === 0 ? (
                           <SelectItem value="_empty" disabled>
-                            Tidak ada data Laba Rugi ditemukan
+                            Tidak ada data ditemukan
                           </SelectItem>
+                        ) : (
+                          dropdownOptions?.labaRugi?.map((item) => (
+                            <SelectItem key={item.id} value={item.id}>
+                              {item.name}
+                            </SelectItem>
+                          ))
                         )}
-                        {dropdownOptions?.labaRugi.map((item) => (
-                          <SelectItem key={item.id} value={item.id}>
-                            {item.name}
-                          </SelectItem>
-                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
