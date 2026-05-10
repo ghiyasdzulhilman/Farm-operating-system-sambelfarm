@@ -305,8 +305,10 @@ function MappingSection({ dbType, fields, dbLabel, selectedDbId }: MappingSectio
         </Alert>
       )}
 
-      <div className="rounded-lg border border-border overflow-hidden">
-        <table className="w-full text-sm">
+      {/* FIX: overflow-x-auto ditambahkan di sini agar tabel bisa discroll ke samping di HP */}
+      <div className="rounded-lg border border-border overflow-x-auto">
+        {/* FIX: min-w-[500px] ditambahkan di sini agar kolom tidak saling gencet */}
+        <table className="w-full text-sm min-w-[500px]">
           <thead className="bg-muted/50 border-b border-border">
             <tr>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground w-[35%]">
@@ -349,7 +351,8 @@ function MappingSection({ dbType, fields, dbLabel, selectedDbId }: MappingSectio
                         }
                         disabled={properties.length === 0}
                       >
-                        <SelectTrigger className="h-8 text-sm">
+                        {/* FIX: min-w-[160px] ditambahkan agar dropdown tidak memendek potong teks */}
+                        <SelectTrigger className="h-8 text-sm min-w-[160px] w-full">
                           <SelectValue
                             placeholder={
                               properties.length === 0
@@ -358,7 +361,6 @@ function MappingSection({ dbType, fields, dbLabel, selectedDbId }: MappingSectio
                             }
                           />
                         </SelectTrigger>
-                        {/* FIX 2: Tambah max-h-[300px] di dropdown pemetaan kolom */}
                         <SelectContent className="max-h-[300px]">
                           {properties.map((prop) => (
                             <SelectItem key={prop.id} value={prop.id}>
@@ -566,7 +568,6 @@ export function SettingsPage() {
             <SelectTrigger className="h-9 text-sm flex-1">
               <SelectValue placeholder="Pilih database..." />
             </SelectTrigger>
-            {/* FIX 1: Tambah max-h-[300px] di dropdown pilihan database */}
             <SelectContent className="max-h-[300px]">
               {allDatabases.map((db) => (
                 <SelectItem key={db.id} value={db.id}>
