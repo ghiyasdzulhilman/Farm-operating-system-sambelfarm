@@ -20,6 +20,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   useGetNotionConnectionStatus,
   getGetNotionConnectionStatusQueryKey,
+  getGetDashboardSummaryQueryKey, // <-- Ini kunci sinkronisasinya
 } from "@workspace/api-client-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,7 +28,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-// Import komponen Select untuk Dropdown Filter
 import {
   Select,
   SelectContent,
@@ -38,8 +38,6 @@ import {
 
 export function DashboardPage() {
   const queryClient = useQueryClient();
-  
-  // State untuk menyimpan filter area yang dipilih
   const [selectedAreaId, setSelectedAreaId] = useState<string>("all");
 
   const {
@@ -57,7 +55,8 @@ export function DashboardPage() {
     refetch,
     isFetching,
   } = useQuery({
-    queryKey: ["dashboardSummaryRaw"],
+    // Pakai key bawaan API client biar sinkron sama form Tambah Panen
+    queryKey: getGetDashboardSummaryQueryKey(), 
     enabled: !!isConnected,
     queryFn: async () => {
       const res = await fetch("/api/dashboard/summary");
@@ -68,12 +67,10 @@ export function DashboardPage() {
 
   const areas = summary?.areas || [];
 
-  // Logic untuk mengubah data Card berdasarkan Filter yang dipilih
   const displayData = useMemo(() => {
     if (!summary) return { modal: 0, pendapatan: 0, pengeluaran: 0, profit: 0, margin: 0 };
 
     if (selectedAreaId === "all") {
-      // Tampilkan Akumulasi Global
       return {
         modal: summary.totalModal || 0,
         pendapatan: summary.totalPendapatan || 0,
@@ -83,7 +80,6 @@ export function DashboardPage() {
       };
     }
 
-    // Tampilkan data spesifik per Area
     const area = areas.find((a: any) => a.id === selectedAreaId);
     if (!area) return { modal: 0, pendapatan: 0, pengeluaran: 0, profit: 0, margin: 0 };
 
@@ -114,9 +110,8 @@ export function DashboardPage() {
   };
 
   const handleRefreshSummary = () => {
-    // Pastikan ini sama persis dengan yang di-invalidate oleh form
-    queryClient.invalidateQueries({ queryKey: ["dashboardSummaryRaw"] });
-    refetch(); // Paksa fetch ulang saat tombol refresh manual diklik
+    queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
+    refetch();
   };
 
   if (isLoadingConnection) {
@@ -174,28 +169,26 @@ export function DashboardPage() {
       {/* Baris Filter & Waktu Update */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 -mt-2 bg-muted/30 p-3 rounded-lg border border-border/50">
         
-        {/* Kiri: Info Update & Tombol Refresh */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <CalendarClock className="h-4 w-4" />
-            <span>Update: {formatDate(summary?.lastUpdated ?? null)}</span>
-          </div>
+        {/* Kiri: Info Update */}
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <CalendarClock className="h-4 w-4" />
+          <span>Update: {formatDate(summary?.lastUpdated ?? null)}</span>
+        </div>
+
+        {/* Kanan: Tombol Refresh dipindah ke sini, sejajar sama Filter */}
+        <div className="flex items-center gap-2">
           <Button 
-            variant="ghost" 
+            variant="outline" 
             size="sm" 
-            className="h-7 px-2 text-xs text-muted-foreground hover:text-primary" 
+            className="h-8 px-2 mr-2 text-xs bg-background" 
             onClick={handleRefreshSummary} 
             disabled={isFetching}
           >
             <RefreshCcw className={`h-3 w-3 mr-1 ${isFetching ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-        </div>
-
-        {/* Kanan: Dropdown Filter Area */}
-        <div className="flex items-center gap-2">
+          
           <Filter className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium text-foreground hidden sm:inline-block">Filter Data:</span>
           <Select value={selectedAreaId} onValueChange={setSelectedAreaId}>
             <SelectTrigger className="w-[180px] h-8 text-sm bg-background">
               <SelectValue placeholder="Pilih Area" />
@@ -267,7 +260,8 @@ export function DashboardPage() {
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
-          <Card className={`border-border shadow-sm h-full relative overflow-hidden ${selectedAreaId !== 'all' ? 'border-primary/20 bg-primary/5' : ''}`}>
+          {/* Warna card dikembalikan ke normal */}
+          <Card className="border-border shadow-sm h-full">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Laba / Rugi Bersih</CardTitle>
               <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
