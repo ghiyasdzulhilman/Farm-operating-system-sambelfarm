@@ -118,13 +118,13 @@ router.get("/notion/harvest-dropdown-options", async (req, res): Promise<void> =
   const mappingRow = await getMappingRow(userId, "panen");
   const mappings = mappingRow?.mappings;
 
-  // Resolve dropdown databases using stored relation IDs if available
+  // KABEL DISAMBUNG: Ganti pencarian ke mappings.labaRugi
   const [pindahTanamDbId, labaRugiDbId] = await Promise.all([
     mappings?.areaPindahTanam?.relatedDatabaseId
       ? Promise.resolve(mappings.areaPindahTanam.relatedDatabaseId)
       : findDatabaseByName(accessToken, "Pindah Tanam"),
-    mappings?.areaLabaRugi?.relatedDatabaseId
-      ? Promise.resolve(mappings.areaLabaRugi.relatedDatabaseId)
+    mappings?.labaRugi?.relatedDatabaseId
+      ? Promise.resolve(mappings.labaRugi.relatedDatabaseId)
       : findDatabaseByName(accessToken, "Laba Rugi"),
   ]);
 
@@ -163,6 +163,9 @@ router.post("/notion/add-harvest", async (req, res): Promise<void> => {
     labaRugiId,
   } = parsed.data;
 
+  // Ambil tanggal dari request body (buat jaga-jaga kalau schema Zod bawaan belum update)
+  const tanggal = req.body.tanggal; 
+
   const [connection] = await db
     .select()
     .from(notionConnectionsTable)
@@ -194,32 +197,49 @@ router.post("/notion/add-harvest", async (req, res): Promise<void> => {
     return;
   }
 
-  // Build Notion properties using mapped IDs or hardcoded fallback names
+  // Build Notion properties safely (hindari kirim relation kosong)
+  const properties: any = {
+    [pk(mappings, "kegiatan", "Kegiatan")]: {
+      title: [{ text: { content: kegiatan } }],
+    },
+    [pk(mappings, "jumlahPanen", "Jumlah Panen (kg)")]: {
+      number: jumlahPanen,
+    },
+    [pk(mappings, "hargaJualPerKg", "Harga Jual per Kg")]: {
+      number: hargaJualPerKg,
+    },
+    [pk(mappings, "kualitas", "Kualitas")]: {
+      select: { name: kualitas },
+    },
+    [pk(mappings, "channelPenjualan", "Channel Penjualan")]: {
+      select: { name: channelPenjualan },
+    },
+  };
+
+  // Masukin tanggal kalau user ngisi
+  if (tanggal) {
+    properties[pk(mappings, "tanggal", "Tanggal")] = {
+      date: { start: tanggal },
+    };
+  }
+
+  // Masukin area pindah tanam kalau user milih
+  if (pindahTanamId) {
+    properties[pk(mappings, "areaPindahTanam", "Area Pindah Tanam")] = {
+      relation: [{ id: pindahTanamId }],
+    };
+  }
+
+  // KABEL DISAMBUNG: Pastikan pake kunci "labaRugi"
+  if (labaRugiId) {
+    properties[pk(mappings, "labaRugi", "Area Laba Rugi")] = {
+      relation: [{ id: labaRugiId }],
+    };
+  }
+
   const notionBody = {
     parent: { database_id: panenDbId },
-    properties: {
-      [pk(mappings, "kegiatan", "Kegiatan")]: {
-        title: [{ text: { content: kegiatan } }],
-      },
-      [pk(mappings, "jumlahPanen", "Jumlah Panen (kg)")]: {
-        number: jumlahPanen,
-      },
-      [pk(mappings, "hargaJualPerKg", "Harga Jual per (Kg)")]: {
-        number: hargaJualPerKg,
-      },
-      [pk(mappings, "kualitas", "Kualitas")]: {
-        select: { name: kualitas },
-      },
-      [pk(mappings, "channelPenjualan", "Channel Penjualan")]: {
-        select: { name: channelPenjualan },
-      },
-      [pk(mappings, "areaPindahTanam", "Area Pindah Tanam")]: {
-        relation: [{ id: pindahTanamId }],
-      },
-      [pk(mappings, "areaLabaRugi", "Area Laba Rugi")]: {
-        relation: [{ id: labaRugiId }],
-      },
-    },
+    properties: properties,
   };
 
   const response = await fetch("https://api.notion.com/v1/pages", {
