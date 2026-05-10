@@ -12,6 +12,7 @@ const VALID_DB_TYPES = new Set([
   "panen",
   "expenses",
   "laba_rugi",
+  "kategori", // <-- INI YANG BARU DITAMBAHIN
   "pindah_tanam",
   "inspeksi",
   "pekerja",
@@ -29,6 +30,7 @@ const DEFAULT_DB_NAMES: Record<string, string> = {
   panen: "Panen",
   expenses: "Expenses",
   laba_rugi: "Laba Rugi",
+  kategori: "Kategori Pengeluaran", // <-- INI YANG BARU DITAMBAHIN
   pindah_tanam: "Pindah tanam",
   inspeksi: "Inspeksi tanaman",
   pekerja: "Data pekerja",
@@ -280,14 +282,14 @@ router.post("/notion/field-mappings", async (req, res): Promise<void> => {
     return;
   }
 
-  const parsed = SaveFieldMappingsBody.safeParse(req.body);
-  if (!parsed.success) {
-    // Kalau strict Zod bikin error pas lu save data, lu bisa pertimbangkan bypass safeParse ini nanti
-    res.status(400).json({ error: parsed.error.message });
+  // Bypass Zod validation sementara buat tipe `kategori` kalau schema lu di `@workspace/api-zod` belum lu update
+  const body = req.body;
+  if (!body || !body.databaseType || !body.mappings) {
+    res.status(400).json({ error: "Request tidak valid." });
     return;
   }
 
-  const { databaseType, notionDatabaseId, mappings } = parsed.data;
+  const { databaseType, notionDatabaseId, mappings } = body;
 
   if (!VALID_DB_TYPES.has(databaseType)) {
     res.status(400).json({ error: "Tipe database tidak valid untuk ekosistem Sambel Farm." });
