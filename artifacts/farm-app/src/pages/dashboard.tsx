@@ -20,7 +20,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   useGetNotionConnectionStatus,
   getGetNotionConnectionStatusQueryKey,
-  getGetDashboardSummaryQueryKey, // <-- Ini kunci sinkronisasinya
+  getGetDashboardSummaryQueryKey,
 } from "@workspace/api-client-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -55,7 +55,6 @@ export function DashboardPage() {
     refetch,
     isFetching,
   } = useQuery({
-    // Pakai key bawaan API client biar sinkron sama form Tambah Panen
     queryKey: getGetDashboardSummaryQueryKey(), 
     enabled: !!isConnected,
     queryFn: async () => {
@@ -260,7 +259,6 @@ export function DashboardPage() {
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
-          {/* Warna card dikembalikan ke normal */}
           <Card className="border-border shadow-sm h-full">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Laba / Rugi Bersih</CardTitle>
@@ -287,8 +285,66 @@ export function DashboardPage() {
         </motion.div>
       </div>
 
+      {/* SECTION 2: Intelligence & Profitability (Tambahan Baru) */}
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Card HPP */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+          <Card className="border-primary/20 bg-primary/5">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-primary" />
+                Harga Pokok Produksi (HPP)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoadingSummary ? <Skeleton className="h-9 w-full" /> : (
+                <>
+                  <div className="text-2xl font-bold">
+                    {/* Rumus: Total Pengeluaran / Total Kg Panen */}
+                    {formatCurrency(displayData.pengeluaran / (summary?.totalHarvestWeight || 1))}/kg
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Batas bawah harga jual agar tidak rugi.
+                  </p>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Card BEP Progress */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
+          <Card className="border-border shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex justify-between">
+                <span>Progres Balik Modal (BEP)</span>
+                <span className="text-primary">{Math.min(displayData.margin > 0 ? (displayData.pendapatan / (displayData.modal || 1)) * 100 : 0, 100).toFixed(1)}%</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoadingSummary ? <Skeleton className="h-4 w-full mt-2" /> : (
+                <div className="space-y-3">
+                  {/* Progress Bar Sederhana */}
+                  <div className="h-3 w-full bg-muted rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-primary transition-all duration-1000" 
+                      style={{ width: `${Math.min((displayData.pendapatan / (displayData.modal || 1)) * 100, 100)}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {displayData.pendapatan >= displayData.modal 
+                      ? "🚀 Selamat! Modal sudah kembali sepenuhnya." 
+                      : `Butuh ${formatCurrency(Math.max((displayData.modal || 0) - (displayData.pendapatan || 0), 0))} lagi untuk BEP.`}
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+
       {/* Rincian Performa per Area */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
