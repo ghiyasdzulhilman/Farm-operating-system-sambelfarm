@@ -153,7 +153,7 @@ function MappingSection({ dbType, fields, dbLabel, selectedDbId }: MappingSectio
   const {
     data: inspected,
     isFetching: isInspecting,
-    refrefetch: loadProperties,
+    refetch: loadProperties, // <-- INI YANG TYPO KEMAREN (udah dibenerin jadi refetch)
     error: inspectError,
   } = useInspectDatabase(inspectParams, {
     query: {
