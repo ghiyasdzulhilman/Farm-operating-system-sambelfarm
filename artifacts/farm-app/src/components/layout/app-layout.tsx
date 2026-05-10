@@ -1,94 +1,138 @@
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Show, UserButton } from "@clerk/react";
-import { Leaf, LayoutDashboard, Link as LinkIcon, Settings, Menu } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useAuth, UserButton } from "@clerk/react";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  LayoutDashboard, 
+  Sprout, 
+  Plus, 
+  FlaskConical, 
+  Settings, 
+  X,
+  Tractor,
+  Banknote
+} from "lucide-react";
 
-interface AppLayoutProps {
-  children: ReactNode;
-}
+// Import komponen dialog input lu (Pastiin path-nya sesuai)
+import { AddHarvestDialog } from "@/components/harvest/add-harvest-dialog";
+import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog";
 
-export function AppLayout({ children }: AppLayoutProps) {
+export function AppLayout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
+  const { isSignedIn } = useAuth();
+  const [isFabOpen, setIsFabOpen] = useState(false);
 
-  const navigation = [
-    { name: "Beranda", href: "/", icon: Leaf },
-    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Koneksi Notion", href: "/connect", icon: LinkIcon },
-    { name: "Pengaturan", href: "/settings", icon: Settings },
+  // Kalau belum login, tampilkan polos aja tanpa navigasi
+  if (!isSignedIn) {
+    return <main className="min-h-screen bg-background">{children}</main>;
+  }
+
+  const navItems = [
+    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { href: "/operasional", icon: Sprout, label: "Operasional" },
+    // Posisi index 2 dikosongin buat tempat FAB (Tombol Tengah)
+    { href: "#", isFab: true },
+    { href: "/lab", icon: FlaskConical, label: "Lab" },
+    { href: "/settings", icon: Settings, label: "Setelan" },
   ];
 
   return (
-    <div className="min-h-screen bg-background flex flex-col font-sans">
-      <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between px-4 sm:px-8 max-w-7xl mx-auto">
-          <div className="flex items-center gap-4">
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden" data-testid="button-mobile-menu">
-                  <Menu className="h-5 w-5" />
-                  <span className="sr-only">Toggle menu</span>
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-64 sm:max-w-none">
-                <div className="flex items-center gap-2 font-semibold mb-6">
-                  <Leaf className="h-6 w-6 text-primary" />
-                  <span>Manajemen Kebun</span>
-                </div>
-                <nav className="flex flex-col gap-2">
-                  {navigation.map((item) => {
-                    const isActive = location === item.href || (item.href !== "/" && location.startsWith(item.href));
-                    return (
-                      <Link key={item.href} href={item.href} className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`} data-testid={`link-mobile-nav-${item.name.toLowerCase().replace(" ", "-")}`}>
-                        <item.icon className="h-4 w-4" />
-                        {item.name}
-                      </Link>
-                    );
-                  })}
-                </nav>
-              </SheetContent>
-            </Sheet>
-            <Link href="/" className="flex items-center gap-2 font-bold tracking-tight text-foreground transition-colors hover:text-primary" data-testid="link-logo">
-              <Leaf className="h-6 w-6 text-primary" />
-              <span className="hidden sm:inline-block">Manajemen Kebun</span>
-            </Link>
+    <div className="min-h-screen bg-muted/20 pb-24 md:pb-0 font-sans">
+      {/* HEADER: Cuma buat nampilin Profil lu di atas */}
+      <header className="sticky top-0 z-40 w-full border-b border-border bg-background/80 backdrop-blur-md">
+        <div className="container flex h-14 items-center justify-between px-4">
+          <div className="flex items-center gap-2">
+            {/* Lu bisa ganti pakai logo Sambel Farm nanti */}
+            <Tractor className="h-5 w-5 text-primary" />
+            <span className="font-bold text-lg tracking-tight text-foreground">
+              Sambel Farm
+            </span>
           </div>
-          
-          <Show when="signed-in">
-            <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
-              {navigation.map((item) => {
-                const isActive = location === item.href || (item.href !== "/" && location.startsWith(item.href));
-                return (
-                  <Link key={item.href} href={item.href} className={`transition-colors hover:text-foreground/80 ${isActive ? "text-foreground" : "text-foreground/60"}`} data-testid={`link-desktop-nav-${item.name.toLowerCase().replace(" ", "-")}`}>
-                    {item.name}
-                  </Link>
-                );
-              })}
-            </nav>
-          </Show>
-
-          <div className="flex items-center gap-4">
-            <Show when="signed-out">
-              <Link href="/sign-in" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors" data-testid="link-login">Masuk</Link>
-              <Link href="/sign-up" className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50" data-testid="link-register">
-                Daftar
-              </Link>
-            </Show>
-            <Show when="signed-in">
-              <UserButton appearance={{ elements: { userButtonAvatarBox: "h-9 w-9" } }} />
-            </Show>
-          </div>
+          <UserButton afterSignOutUrl="/" />
         </div>
       </header>
 
-      <main className="flex-1 w-full max-w-7xl mx-auto p-4 sm:p-8">
+      {/* AREA KONTEN UTAMA */}
+      <main className="container p-4 md:p-6 mx-auto max-w-5xl">
         {children}
       </main>
-      
-      <footer className="py-6 border-t border-border/40 text-center text-sm text-muted-foreground">
-        <p>Sistem Manajemen Kebun &copy; {new Date().getFullYear()}</p>
-      </footer>
+
+      {/* BOTTOM NAVIGATION (Mobile First) */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border pb-safe">
+        <div className="flex justify-around items-center h-16 max-w-md mx-auto relative px-2">
+          {navItems.map((item, index) => {
+            // RENDER TOMBOL TENGAH (FAB)
+            if (item.isFab) {
+              return (
+                <div key="fab" className="relative -top-5 flex justify-center w-1/5">
+                  {/* Menu Pop-up pas tombol plus diklik */}
+                  <AnimatePresence>
+                    {isFabOpen && (
+                      <>
+                        {/* Overlay transparan biar nutup menu pas klik di luar */}
+                        <motion.div 
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="fixed inset-0 bg-background/60 backdrop-blur-sm -z-10"
+                          onClick={() => setIsFabOpen(false)}
+                        />
+                        
+                        {/* Pilihan Tombol Input */}
+                        <motion.div
+                          initial={{ opacity: 0, y: 20, scale: 0.8 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 20, scale: 0.8 }}
+                          className="absolute bottom-16 flex flex-col gap-3 items-center"
+                        >
+                          {/* Note: Gua bungkus komponen lu pakai div onClick biar menunya nutup otomatis pas diklik */}
+                          <div onClick={() => setIsFabOpen(false)} className="flex items-center gap-2 bg-background p-2 rounded-full border shadow-lg">
+                            <AddHarvestDialog onSuccess={() => {}} />
+                          </div>
+                          <div onClick={() => setIsFabOpen(false)} className="flex items-center gap-2 bg-background p-2 rounded-full border shadow-lg">
+                            <AddExpenseDialog onSuccess={() => {}} />
+                          </div>
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Tombol Plus-nya itu sendiri */}
+                  <button
+                    onClick={() => setIsFabOpen(!isFabOpen)}
+                    className={`flex h-14 w-14 items-center justify-center rounded-full shadow-lg text-white transition-transform active:scale-95 ${
+                      isFabOpen ? "bg-rose-500 rotate-45" : "bg-primary"
+                    }`}
+                  >
+                    <Plus className="h-7 w-7" />
+                  </button>
+                </div>
+              );
+            }
+
+            // RENDER TOMBOL NAVIGASI BIASA
+            const Icon = item.icon!;
+            const isActive = location === item.href;
+
+            return (
+              <Link key={item.label} href={item.href}>
+                <a className="flex flex-col items-center justify-center w-1/5 h-full gap-1 text-muted-foreground hover:text-primary transition-colors">
+                  <div
+                    className={`flex items-center justify-center p-1.5 rounded-full transition-all ${
+                      isActive ? "bg-primary/10 text-primary" : "text-muted-foreground"
+                    }`}
+                  >
+                    <Icon className={`h-5 w-5 ${isActive ? "fill-primary/20 stroke-primary" : ""}`} />
+                  </div>
+                  <span className={`text-[10px] font-medium ${isActive ? "text-primary" : ""}`}>
+                    {item.label}
+                  </span>
+                </a>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
     </div>
   );
 }
