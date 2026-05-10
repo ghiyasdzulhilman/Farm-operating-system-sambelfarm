@@ -103,36 +103,49 @@ export function AppLayout({ children }: { children: ReactNode }) {
           {/* ----- THE SUPER FAB ----- */}
           <div className="absolute left-1/2 -translate-x-1/2 -top-4 flex justify-center items-center">
             
+            {/* Overlay Blur (Aman di-unmount karena ga ada pop-up di dalemnya) */}
             <AnimatePresence>
               {isFabOpen && (
-                <>
-                  {/* Overlay Blur */}
-                  <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="fixed inset-0 bg-background/80 backdrop-blur-sm -z-10"
-                    onClick={() => setIsFabOpen(false)}
-                  />
-                  
-                  {/* SPEED DIAL PATTERN: Langsung nampilin tombol polos melayang */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 15, scale: 0.9, x: "-50%" }}
-                    animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
-                    exit={{ opacity: 0, y: 15, scale: 0.9, x: "-50%" }}
-                    className="absolute bottom-20 left-1/2 flex flex-col gap-3 items-center z-20 w-max"
-                  >
-                    <div onClick={() => setIsFabOpen(false)} className="drop-shadow-lg flex justify-center w-full">
-                      <AddHarvestDialog onSuccess={() => {}} />
-                    </div>
-                    
-                    <div onClick={() => setIsFabOpen(false)} className="drop-shadow-lg flex justify-center w-full">
-                      <AddExpenseDialog onSuccess={() => {}} />
-                    </div>
-                  </motion.div>
-                </>
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 bg-background/80 backdrop-blur-sm -z-10"
+                  onClick={() => setIsFabOpen(false)}
+                />
               )}
             </AnimatePresence>
+            
+            {/* SPEED DIAL PATTERN: Disembunyikan pakai CSS, BUKAN dihapus dari layar */}
+            <motion.div
+              initial={false}
+              animate={{ 
+                opacity: isFabOpen ? 1 : 0, 
+                y: isFabOpen ? 0 : 15, 
+                scale: isFabOpen ? 1 : 0.9,
+                pointerEvents: isFabOpen ? "auto" : "none" 
+              }}
+              transition={{ duration: 0.2 }}
+              className="absolute bottom-20 left-1/2 flex flex-col gap-3 items-center z-20 w-max"
+            >
+              <div 
+                className="drop-shadow-lg flex justify-center w-full"
+                onClick={() => {
+                  setTimeout(() => setIsFabOpen(false), 200);
+                }}
+              >
+                <AddHarvestDialog onSuccess={() => setIsFabOpen(false)} />
+              </div>
+              
+              <div 
+                className="drop-shadow-lg flex justify-center w-full"
+                onClick={() => {
+                  setTimeout(() => setIsFabOpen(false), 200);
+                }}
+              >
+                <AddExpenseDialog onSuccess={() => setIsFabOpen(false)} />
+              </div>
+            </motion.div>
 
             {/* Tombol Plus Tengah */}
             <button
