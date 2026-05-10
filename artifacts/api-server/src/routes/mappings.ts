@@ -2,19 +2,43 @@ import { Router, type IRouter } from "express";
 import { getAuth } from "@clerk/express";
 import { db, notionConnectionsTable, fieldMappingsTable, type FieldMappingData } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
+// Note: Kalau API-Zod error gara-gara tipe data baru, bypass aja dulu atau update Zod schema-nya nanti
 import { SaveFieldMappingsBody } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
-// ---- Allowed database types -------------------------------------------------
+// ---- Allowed database types (DI-UPGRADE UNTUK ARSITEKTUR SAMBELFARM) ----
+const VALID_DB_TYPES = new Set([
+  "panen",
+  "expenses",
+  "laba_rugi",
+  "pindah_tanam",
+  "inspeksi",
+  "pekerja",
+  "riwayat_perawatan_a",
+  "riwayat_perawatan_b",
+  "riwayat_perawatan_c",
+  "riwayat_perawatan_gh",
+  "pupuk_master",
+  "pupuk_berat",
+  "pupuk_kombinasi"
+]);
 
-const VALID_DB_TYPES = new Set(["panen", "expenses", "laba_rugi"]);
-
-// Default names for backward-compat name search (used only when no saved DB ID)
+// Default names for backward-compat name search (anchor penamaan default)
 const DEFAULT_DB_NAMES: Record<string, string> = {
   panen: "Panen",
   expenses: "Expenses",
   laba_rugi: "Laba Rugi",
+  pindah_tanam: "Pindah tanam",
+  inspeksi: "Inspeksi tanaman",
+  pekerja: "Data pekerja",
+  riwayat_perawatan_a: "Riwayat Perawatan Blok A",
+  riwayat_perawatan_b: "Riwayat Perawatan Blok B",
+  riwayat_perawatan_c: "Riwayat Perawatan Blok C",
+  riwayat_perawatan_gh: "Riwayat Perawatan Greenhouse",
+  pupuk_master: "Master data",
+  pupuk_berat: "kalkulator pupuk/berat",
+  pupuk_kombinasi: "kombinasi pupuk"
 };
 
 // ---- Notion API types -------------------------------------------------------
@@ -149,7 +173,7 @@ router.get("/notion/list-databases", async (req, res): Promise<void> => {
   res.json({ databases });
 });
 
-// GET /notion/inspect-database?type=panen|expenses&databaseId=xxx
+// GET /notion/inspect-database?type=...
 router.get("/notion/inspect-database", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
   if (!userId) {
@@ -158,8 +182,9 @@ router.get("/notion/inspect-database", async (req, res): Promise<void> => {
   }
 
   const dbType = req.query.type as string;
-  if (!VALID_DB_TYPES.has(dbType) || dbType === "laba_rugi") {
-    res.status(400).json({ error: "Parameter 'type' harus 'panen' atau 'expenses'." });
+  // FIX KRUSIAL: Hapus blokir untuk laba_rugi
+  if (!VALID_DB_TYPES.has(dbType)) {
+    res.status(400).json({ error: "Parameter 'type' database tidak dikenali oleh sistem Sambel Farm." });
     return;
   }
 
@@ -175,7 +200,6 @@ router.get("/notion/inspect-database", async (req, res): Promise<void> => {
 
   const { accessToken } = connection;
 
-  // Resolution order: 1) explicit databaseId param, 2) saved mapping, 3) name search
   const explicitId = req.query.databaseId as string | undefined;
   const savedId = !explicitId ? await getSavedDatabaseId(userId, dbType) : null;
   const fallbackName = DEFAULT_DB_NAMES[dbType];
@@ -184,11 +208,6 @@ router.get("/notion/inspect-database", async (req, res): Promise<void> => {
     explicitId ||
     savedId ||
     (await findDatabaseIdByName(accessToken, fallbackName));
-
-  req.log.info(
-    { userId, dbType, explicitId, savedId, resolvedId },
-    "Resolving database for inspection",
-  );
 
   if (!resolvedId) {
     res.status(404).json({
@@ -207,8 +226,8 @@ router.get("/notion/inspect-database", async (req, res): Promise<void> => {
 
   const databaseName = database.title?.[0]?.plain_text ?? fallbackName;
 
+  // FIX KRUSIAL: Filter formula dan rollup dihapus supaya bisa di-mapping!
   const properties = Object.values(database.properties)
-    .filter((p) => p.type !== "formula" && p.type !== "rollup")
     .map((p) => ({
       id: p.id,
       name: p.name,
@@ -221,12 +240,10 @@ router.get("/notion/inspect-database", async (req, res): Promise<void> => {
       return a.name.localeCompare(b.name);
     });
 
-  req.log.info({ userId, resolvedId, databaseName, count: properties.length }, "Database inspected");
-
   res.json({ databaseId: resolvedId, databaseName, properties });
 });
 
-// GET /notion/field-mappings?type=panen|expenses|laba_rugi
+// GET /notion/field-mappings
 router.get("/notion/field-mappings", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
   if (!userId) {
@@ -236,7 +253,7 @@ router.get("/notion/field-mappings", async (req, res): Promise<void> => {
 
   const dbType = req.query.type as string;
   if (!VALID_DB_TYPES.has(dbType)) {
-    res.status(400).json({ error: "Parameter 'type' harus 'panen', 'expenses', atau 'laba_rugi'." });
+    res.status(400).json({ error: "Parameter 'type' database tidak dikenali." });
     return;
   }
 
@@ -247,11 +264,6 @@ router.get("/notion/field-mappings", async (req, res): Promise<void> => {
       eq(fieldMappingsTable.userId, userId),
       eq(fieldMappingsTable.databaseType, dbType),
     ));
-
-  req.log.info(
-    { userId, dbType, notionDatabaseId: row?.notionDatabaseId ?? null },
-    "Field mappings retrieved",
-  );
 
   res.json({
     databaseType: dbType,
@@ -270,6 +282,7 @@ router.post("/notion/field-mappings", async (req, res): Promise<void> => {
 
   const parsed = SaveFieldMappingsBody.safeParse(req.body);
   if (!parsed.success) {
+    // Kalau strict Zod bikin error pas lu save data, lu bisa pertimbangkan bypass safeParse ini nanti
     res.status(400).json({ error: parsed.error.message });
     return;
   }
@@ -277,7 +290,7 @@ router.post("/notion/field-mappings", async (req, res): Promise<void> => {
   const { databaseType, notionDatabaseId, mappings } = parsed.data;
 
   if (!VALID_DB_TYPES.has(databaseType)) {
-    res.status(400).json({ error: "databaseType harus 'panen', 'expenses', atau 'laba_rugi'." });
+    res.status(400).json({ error: "Tipe database tidak valid untuk ekosistem Sambel Farm." });
     return;
   }
 
@@ -298,11 +311,6 @@ router.post("/notion/field-mappings", async (req, res): Promise<void> => {
         updatedAt: new Date(),
       },
     });
-
-  req.log.info(
-    { userId, databaseType, notionDatabaseId, fieldCount: Object.keys(mappings).length },
-    "Field mappings saved",
-  );
 
   res.json({ success: true });
 });
