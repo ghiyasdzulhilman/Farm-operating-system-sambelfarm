@@ -1,3 +1,4 @@
+import { useState, useMemo } from "react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 import {
@@ -10,11 +11,11 @@ import {
   Wallet,
   Map,
   TrendingUp,
+  Filter,
 } from "lucide-react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 
-// Gunakan useQuery standar dari React Query untuk bypass strict schema
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   useGetNotionConnectionStatus,
@@ -28,10 +29,21 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog";
 import { AddHarvestDialog } from "@/components/harvest/add-harvest-dialog";
 
+// Import komponen Select untuk Dropdown Filter
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 export function DashboardPage() {
   const queryClient = useQueryClient();
+  
+  // State untuk menyimpan filter area yang dipilih
+  const [selectedAreaId, setSelectedAreaId] = useState<string>("all");
 
-  // 1. Cek Koneksi Notion (Tetap pakai bawaan)
   const {
     data: connectionStatus,
     isLoading: isLoadingConnection,
@@ -41,7 +53,6 @@ export function DashboardPage() {
 
   const isConnected = connectionStatus?.connected;
 
-  // 2. FETCH RAW DATA: Bypass satpam Zod agar data Areas & Modal lolos
   const {
     data: summary,
     isLoading: isLoadingSummary,
@@ -57,10 +68,35 @@ export function DashboardPage() {
     },
   });
 
-  // Ekstrak data yang udah lolos
   const areas = summary?.areas || [];
-  const marginTotal = summary?.marginTotal || 0;
-  const totalModal = summary?.totalModal || 0;
+
+  // Logic untuk mengubah data Card berdasarkan Filter yang dipilih
+  const displayData = useMemo(() => {
+    if (!summary) return { modal: 0, pendapatan: 0, pengeluaran: 0, profit: 0, margin: 0 };
+
+    if (selectedAreaId === "all") {
+      // Tampilkan Akumulasi Global
+      return {
+        modal: summary.totalModal || 0,
+        pendapatan: summary.totalPendapatan || 0,
+        pengeluaran: summary.totalPengeluaran || 0,
+        profit: summary.labaRugi || 0,
+        margin: summary.marginTotal || 0,
+      };
+    }
+
+    // Tampilkan data spesifik per Area
+    const area = areas.find((a: any) => a.id === selectedAreaId);
+    if (!area) return { modal: 0, pendapatan: 0, pengeluaran: 0, profit: 0, margin: 0 };
+
+    return {
+      modal: area.modalAwal,
+      pendapatan: area.pendapatan,
+      pengeluaran: area.pengeluaran,
+      profit: area.profit,
+      margin: area.margin,
+    };
+  }, [summary, selectedAreaId, areas]);
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat("id-ID", {
@@ -109,26 +145,16 @@ export function DashboardPage() {
 
   if (!isConnected) {
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="max-w-2xl mx-auto mt-12"
-      >
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl mx-auto mt-12">
         <Alert variant="default" className="border-primary/50 bg-primary/5">
           <AlertCircle className="h-5 w-5 text-primary" />
-          <AlertTitle className="text-lg font-semibold text-primary">
-            Notion Belum Terhubung
-          </AlertTitle>
+          <AlertTitle className="text-lg font-semibold text-primary">Notion Belum Terhubung</AlertTitle>
           <AlertDescription className="mt-2 text-base text-muted-foreground">
-            Sistem Manajemen Kebun memerlukan akses ke workspace Notion Anda
-            untuk membaca database finansial. Silakan hubungkan akun Notion Anda
-            terlebih dahulu di menu Pengaturan.
+            Sistem Manajemen Kebun memerlukan akses ke workspace Notion Anda untuk membaca database finansial.
           </AlertDescription>
           <div className="mt-6">
             <Link href="/settings">
-              <Button size="lg" data-testid="button-connect-prompt">
-                Buka Pengaturan
-              </Button>
+              <Button size="lg">Buka Pengaturan</Button>
             </Link>
           </div>
         </Alert>
@@ -141,37 +167,47 @@ export function DashboardPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard Finansial</h1>
-          <p className="text-muted-foreground mt-1">
-            Pantau arus kas dan efisiensi panen di setiap blok.
-          </p>
+          <p className="text-muted-foreground mt-1">Pantau arus kas dan efisiensi panen di setiap blok.</p>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="flex items-center gap-2"
-        >
+        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-2">
           <AddHarvestDialog onSuccess={handleRefreshSummary} />
           <AddExpenseDialog onSuccess={handleRefreshSummary} />
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-9 w-9"
-            onClick={() => refetch()}
-            disabled={isFetching}
-          >
+          <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => refetch()} disabled={isFetching}>
             <RefreshCcw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
           </Button>
         </motion.div>
       </div>
 
-      <div className="flex items-center gap-1.5 text-xs text-muted-foreground -mt-4">
-        <CalendarClock className="h-3.5 w-3.5" />
-        <span>Terakhir diperbarui: {formatDate(summary?.lastUpdated ?? null)}</span>
+      {/* Baris Filter & Waktu Update */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 -mt-2 bg-muted/30 p-3 rounded-lg border border-border/50">
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <CalendarClock className="h-4 w-4" />
+          <span>Update Data Notion: {formatDate(summary?.lastUpdated ?? null)}</span>
+        </div>
+
+        {/* Dropdown Filter Area */}
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium text-foreground">Filter Data:</span>
+          <Select value={selectedAreaId} onValueChange={setSelectedAreaId}>
+            <SelectTrigger className="w-[180px] h-8 text-sm bg-background">
+              <SelectValue placeholder="Pilih Area" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all" className="font-medium">Semua Area (Global)</SelectItem>
+              {areas.map((area: any) => (
+                <SelectItem key={area.id} value={area.id}>
+                  {area.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
+      {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {/* Card Modal Awal */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
           <Card className="border-border shadow-sm h-full">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -181,18 +217,13 @@ export function DashboardPage() {
               </div>
             </CardHeader>
             <CardContent>
-              {isLoadingSummary ? (
-                <Skeleton className="h-9 w-3/4 mt-1" />
-              ) : (
-                <div className="text-2xl font-bold tracking-tight text-foreground">
-                  {formatCurrency(totalModal)}
-                </div>
+              {isLoadingSummary ? <Skeleton className="h-9 w-3/4 mt-1" /> : (
+                <div className="text-2xl font-bold tracking-tight text-foreground">{formatCurrency(displayData.modal)}</div>
               )}
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* Card Total Pendapatan */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
           <Card className="border-border shadow-sm h-full">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -202,18 +233,15 @@ export function DashboardPage() {
               </div>
             </CardHeader>
             <CardContent>
-              {isLoadingSummary ? (
-                <Skeleton className="h-9 w-3/4 mt-1" />
-              ) : (
+              {isLoadingSummary ? <Skeleton className="h-9 w-3/4 mt-1" /> : (
                 <div className="text-2xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">
-                  {formatCurrency(summary?.totalPendapatan ?? 0)}
+                  {formatCurrency(displayData.pendapatan)}
                 </div>
               )}
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* Card Total Pengeluaran */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <Card className="border-border shadow-sm h-full">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -223,20 +251,17 @@ export function DashboardPage() {
               </div>
             </CardHeader>
             <CardContent>
-              {isLoadingSummary ? (
-                <Skeleton className="h-9 w-3/4 mt-1" />
-              ) : (
+              {isLoadingSummary ? <Skeleton className="h-9 w-3/4 mt-1" /> : (
                 <div className="text-2xl font-bold tracking-tight text-rose-600 dark:text-rose-400">
-                  {formatCurrency(summary?.totalPengeluaran ?? 0)}
+                  {formatCurrency(displayData.pengeluaran)}
                 </div>
               )}
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* Card Laba Bersih & Margin */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
-          <Card className="border-border shadow-sm h-full relative overflow-hidden">
+          <Card className={`border-border shadow-sm h-full relative overflow-hidden ${selectedAreaId !== 'all' ? 'border-primary/20 bg-primary/5' : ''}`}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Laba / Rugi Bersih</CardTitle>
               <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
@@ -244,23 +269,15 @@ export function DashboardPage() {
               </div>
             </CardHeader>
             <CardContent>
-              {isLoadingSummary ? (
-                <Skeleton className="h-9 w-3/4 mt-1" />
-              ) : (
+              {isLoadingSummary ? <Skeleton className="h-9 w-3/4 mt-1" /> : (
                 <>
-                  <div
-                    className={`text-2xl font-bold tracking-tight ${
-                      (summary?.labaRugi ?? 0) >= 0
-                        ? "text-foreground"
-                        : "text-rose-600 dark:text-rose-400"
-                    }`}
-                  >
-                    {formatCurrency(summary?.labaRugi ?? 0)}
+                  <div className={`text-2xl font-bold tracking-tight ${displayData.profit >= 0 ? "text-foreground" : "text-rose-600 dark:text-rose-400"}`}>
+                    {formatCurrency(displayData.profit)}
                   </div>
                   <div className="mt-1 flex items-center gap-1 text-xs font-medium">
                     <TrendingUp className="h-3 w-3" />
-                    <span className={marginTotal >= 0 ? "text-emerald-600" : "text-rose-600"}>
-                      Margin: {marginTotal.toFixed(1)}%
+                    <span className={displayData.margin >= 0 ? "text-emerald-600" : "text-rose-600"}>
+                      Margin: {displayData.margin.toFixed(1)}%
                     </span>
                   </div>
                 </>
@@ -307,8 +324,14 @@ export function DashboardPage() {
                   </thead>
                   <tbody className="divide-y divide-border">
                     {areas.map((area: any) => (
-                      <tr key={area.id} className="hover:bg-muted/30 transition-colors">
-                        <td className="px-4 py-3 font-medium">{area.name}</td>
+                      <tr 
+                        key={area.id} 
+                        className={`transition-colors hover:bg-muted/30 ${selectedAreaId === area.id ? 'bg-primary/5' : ''}`}
+                      >
+                        <td className="px-4 py-3 font-medium flex items-center gap-2">
+                          {area.name}
+                          {selectedAreaId === area.id && <span className="h-2 w-2 rounded-full bg-primary" />}
+                        </td>
                         <td className="px-4 py-3 text-right">{formatCurrency(area.modalAwal)}</td>
                         <td className="px-4 py-3 text-right text-emerald-600">{formatCurrency(area.pendapatan)}</td>
                         <td className="px-4 py-3 text-right text-rose-600">{formatCurrency(area.pengeluaran)}</td>
@@ -317,7 +340,7 @@ export function DashboardPage() {
                         </td>
                         <td className="px-4 py-3 text-right">
                           <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                            area.margin >= 0 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40" : "bg-rose-100 text-rose-700 dark:bg-rose-900/40"
+                            area.margin >= 0 ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
                           }`}>
                             {area.margin.toFixed(1)}%
                           </span>
