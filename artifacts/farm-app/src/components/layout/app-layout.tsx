@@ -126,7 +126,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 pointerEvents: isFabOpen ? "auto" : "none" 
               }}
               transition={{ duration: 0.2 }}
-              className="absolute bottom-20 left-1/2 flex flex-col gap-3 items-center z-20 w-max"
+              className="absolute bottom-20 left-1/2 -translate-x-1/2 flex flex-col gap-3 items-center z-20 w-max"
             >
               <div 
                 className="drop-shadow-lg flex justify-center w-full"
