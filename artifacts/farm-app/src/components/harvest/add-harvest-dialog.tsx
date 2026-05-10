@@ -135,7 +135,7 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="secondary" data-testid="button-add-harvest" className="gap-2">
+        <Button variant="default" data-testid="button-add-harvest" className="gap-2">
           <Sprout className="h-4 w-4" />
           Tambah Panen
         </Button>
