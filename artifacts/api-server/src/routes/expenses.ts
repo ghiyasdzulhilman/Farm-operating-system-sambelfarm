@@ -119,14 +119,13 @@ router.get("/notion/dropdown-options", async (req, res): Promise<void> => {
   const mappings = mappingRow?.mappings;
 
   // Resolve dropdown databases:
-  // 1. Use relatedDatabaseId from mapping (most accurate)
-  // 2. Fall back to name search
+  // KABEL DISAMBUNG: Ganti pencarian ke mappings.labaRugi
   const [kategoriDbId, areaDbId] = await Promise.all([
     mappings?.kategori?.relatedDatabaseId
       ? Promise.resolve(mappings.kategori.relatedDatabaseId)
       : findDatabaseByName(accessToken, "Kategori Pengeluaran"),
-    mappings?.area?.relatedDatabaseId
-      ? Promise.resolve(mappings.area.relatedDatabaseId)
+    mappings?.labaRugi?.relatedDatabaseId
+      ? Promise.resolve(mappings.labaRugi.relatedDatabaseId)
       : findDatabaseByName(accessToken, "Laba Rugi"),
   ]);
 
@@ -188,29 +187,38 @@ router.post("/notion/add-expense", async (req, res): Promise<void> => {
     return;
   }
 
-  // Build Notion properties: use mapped property IDs when available, fall back to hardcoded names
+  // Build Notion properties safely (hindari kirim relation kosong yang bikin error)
+  const properties: any = {
+    [pk(mappings, "pengeluaran", "Pengeluaran")]: {
+      title: [{ text: { content: pengeluaran } }],
+    },
+    [pk(mappings, "qty", "Qty")]: {
+      number: qty,
+    },
+    [pk(mappings, "hargaPerPcs", "Harga/pcs")]: {
+      number: hargaPerPcs,
+    },
+    [pk(mappings, "date", "Date")]: {
+      date: { start: date },
+    },
+  };
+
+  if (kategoriId) {
+    properties[pk(mappings, "kategori", "Kategori")] = {
+      relation: [{ id: kategoriId }],
+    };
+  }
+
+  if (areaId) {
+    // KABEL DISAMBUNG: Pastikan pake kunci "labaRugi"
+    properties[pk(mappings, "labaRugi", "Area Laba Rugi")] = {
+      relation: [{ id: areaId }],
+    };
+  }
+
   const notionBody = {
     parent: { database_id: expensesDbId },
-    properties: {
-      [pk(mappings, "pengeluaran", "Pengeluaran")]: {
-        title: [{ text: { content: pengeluaran } }],
-      },
-      [pk(mappings, "qty", "Qty")]: {
-        number: qty,
-      },
-      [pk(mappings, "hargaPerPcs", "Harga/pcs")]: {
-        number: hargaPerPcs,
-      },
-      [pk(mappings, "date", "Date")]: {
-        date: { start: date },
-      },
-      [pk(mappings, "kategori", "Kategori")]: {
-        relation: [{ id: kategoriId }],
-      },
-      [pk(mappings, "area", "Area")]: {
-        relation: [{ id: areaId }],
-      },
-    },
+    properties: properties,
   };
 
   const response = await fetch("https://api.notion.com/v1/pages", {
