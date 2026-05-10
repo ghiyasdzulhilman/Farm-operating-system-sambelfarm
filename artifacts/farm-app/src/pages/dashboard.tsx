@@ -66,8 +66,9 @@ export function DashboardPage() {
 
   const areas = summary?.areas || [];
 
+  // LOGIC FILTER: Sekarang sudah include harvestWeight per area
   const displayData = useMemo(() => {
-    if (!summary) return { modal: 0, pendapatan: 0, pengeluaran: 0, profit: 0, margin: 0 };
+    if (!summary) return { modal: 0, pendapatan: 0, pengeluaran: 0, profit: 0, margin: 0, harvestWeight: 0 };
 
     if (selectedAreaId === "all") {
       return {
@@ -76,11 +77,12 @@ export function DashboardPage() {
         pengeluaran: summary.totalPengeluaran || 0,
         profit: summary.labaRugi || 0,
         margin: summary.marginTotal || 0,
+        harvestWeight: summary.totalHarvestWeight || 0, // Gunakan 393 kg
       };
     }
 
     const area = areas.find((a: any) => a.id === selectedAreaId);
-    if (!area) return { modal: 0, pendapatan: 0, pengeluaran: 0, profit: 0, margin: 0 };
+    if (!area) return { modal: 0, pendapatan: 0, pengeluaran: 0, profit: 0, margin: 0, harvestWeight: 0 };
 
     return {
       modal: area.modalAwal,
@@ -88,6 +90,7 @@ export function DashboardPage() {
       pengeluaran: area.pengeluaran,
       profit: area.profit,
       margin: area.margin,
+      harvestWeight: area.harvestWeight || 0, // Gunakan 75 kg (untuk Blok B)
     };
   }, [summary, selectedAreaId, areas]);
 
@@ -116,300 +119,89 @@ export function DashboardPage() {
   if (isLoadingConnection) {
     return (
       <div className="space-y-6">
-        <div>
-          <Skeleton className="h-9 w-48 mb-2" />
-          <Skeleton className="h-5 w-64" />
-        </div>
+        <div><Skeleton className="h-9 w-48 mb-2" /><Skeleton className="h-5 w-64" /></div>
         <div className="grid gap-4 md:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
-            <Card key={i}>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <Skeleton className="h-5 w-24" />
-                <Skeleton className="h-4 w-4 rounded-full" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-8 w-32 mb-1" />
-              </CardContent>
-            </Card>
+            <Card key={i}><CardHeader className="pb-2"><Skeleton className="h-5 w-24" /></CardHeader>
+            <CardContent><Skeleton className="h-8 w-32" /></CardContent></Card>
           ))}
         </div>
       </div>
     );
   }
 
-  if (!isConnected) {
-    return (
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl mx-auto mt-12">
-        <Alert variant="default" className="border-primary/50 bg-primary/5">
-          <AlertCircle className="h-5 w-5 text-primary" />
-          <AlertTitle className="text-lg font-semibold text-primary">Notion Belum Terhubung</AlertTitle>
-          <AlertDescription className="mt-2 text-base text-muted-foreground">
-            Sistem Manajemen Kebun memerlukan akses ke workspace Notion Anda untuk membaca database finansial.
-          </AlertDescription>
-          <div className="mt-6">
-            <Link href="/settings">
-              <Button size="lg">Buka Pengaturan</Button>
-            </Link>
-          </div>
-        </Alert>
-      </motion.div>
-    );
-  }
-
   return (
     <div className="space-y-8 pb-10">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard Finansial</h1>
-          <p className="text-muted-foreground mt-1">Pantau arus kas dan efisiensi panen di setiap blok.</p>
-        </motion.div>
-      </div>
+      <h1 className="text-3xl font-bold tracking-tight">Dashboard Finansial</h1>
 
-      {/* Baris Filter & Waktu Update */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 -mt-2 bg-muted/30 p-3 rounded-lg border border-border/50">
-        
-        {/* Kiri: Info Update */}
+      {/* Baris Filter & Refresh */}
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-muted/30 p-3 rounded-lg border border-border/50">
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <CalendarClock className="h-4 w-4" />
           <span>Update: {formatDate(summary?.lastUpdated ?? null)}</span>
         </div>
-
-        {/* Kanan: Tombol Refresh dipindah ke sini, sejajar sama Filter */}
         <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="h-8 px-2 mr-2 text-xs bg-background" 
-            onClick={handleRefreshSummary} 
-            disabled={isFetching}
-          >
-            <RefreshCcw className={`h-3 w-3 mr-1 ${isFetching ? "animate-spin" : ""}`} />
-            Refresh
+          <Button variant="outline" size="sm" className="h-8 px-2 bg-background" onClick={handleRefreshSummary} disabled={isFetching}>
+            <RefreshCcw className={`h-3 w-3 mr-1 ${isFetching ? "animate-spin" : ""}`} /> Refresh
           </Button>
-          
-          <Filter className="h-4 w-4 text-muted-foreground" />
           <Select value={selectedAreaId} onValueChange={setSelectedAreaId}>
-            <SelectTrigger className="w-[180px] h-8 text-sm bg-background">
-              <SelectValue placeholder="Pilih Area" />
-            </SelectTrigger>
+            <SelectTrigger className="w-[180px] h-8 bg-background"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all" className="font-medium">Semua Area (Global)</SelectItem>
-              {areas.map((area: any) => (
-                <SelectItem key={area.id} value={area.id}>
-                  {area.name}
-                </SelectItem>
-              ))}
+              <SelectItem value="all">Semua Area (Global)</SelectItem>
+              {areas.map((area: any) => <SelectItem key={area.id} value={area.id}>{area.name}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-          <Card className="border-border shadow-sm h-full">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Modal Awal</CardTitle>
-              <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center dark:bg-blue-900/50">
-                <Wallet className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              {isLoadingSummary ? <Skeleton className="h-9 w-3/4 mt-1" /> : (
-                <div className="text-2xl font-bold tracking-tight text-foreground">{formatCurrency(displayData.modal)}</div>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
+      {/* Main Cards */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Modal Awal</CardTitle></CardHeader>
+        <CardContent><div className="text-2xl font-bold">{formatCurrency(displayData.modal)}</div></CardContent></Card>
+        
+        <Card><CardHeader className="pb-2 text-emerald-600"><CardTitle className="text-sm font-medium">Pendapatan</CardTitle></CardHeader>
+        <CardContent><div className="text-2xl font-bold text-emerald-600">{formatCurrency(displayData.pendapatan)}</div></CardContent></Card>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
-          <Card className="border-border shadow-sm h-full">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Pendapatan</CardTitle>
-              <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center dark:bg-emerald-900/50">
-                <ArrowUpCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              {isLoadingSummary ? <Skeleton className="h-9 w-3/4 mt-1" /> : (
-                <div className="text-2xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">
-                  {formatCurrency(displayData.pendapatan)}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
+        <Card><CardHeader className="pb-2 text-rose-600"><CardTitle className="text-sm font-medium">Pengeluaran</CardTitle></CardHeader>
+        <CardContent><div className="text-2xl font-bold text-rose-600">{formatCurrency(displayData.pengeluaran)}</div></CardContent></Card>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <Card className="border-border shadow-sm h-full">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Pengeluaran</CardTitle>
-              <div className="h-8 w-8 rounded-full bg-rose-100 flex items-center justify-center dark:bg-rose-900/50">
-                <ArrowDownCircle className="h-4 w-4 text-rose-600 dark:text-rose-400" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              {isLoadingSummary ? <Skeleton className="h-9 w-3/4 mt-1" /> : (
-                <div className="text-2xl font-bold tracking-tight text-rose-600 dark:text-rose-400">
-                  {formatCurrency(displayData.pengeluaran)}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
-          <Card className="border-border shadow-sm h-full">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Laba / Rugi Bersih</CardTitle>
-              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                <DollarSign className="h-4 w-4 text-primary" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              {isLoadingSummary ? <Skeleton className="h-9 w-3/4 mt-1" /> : (
-                <>
-                  <div className={`text-2xl font-bold tracking-tight ${displayData.profit >= 0 ? "text-foreground" : "text-rose-600 dark:text-rose-400"}`}>
-                    {formatCurrency(displayData.profit)}
-                  </div>
-                  <div className="mt-1 flex items-center gap-1 text-xs font-medium">
-                    <TrendingUp className="h-3 w-3" />
-                    <span className={displayData.margin >= 0 ? "text-emerald-600" : "text-rose-600"}>
-                      Margin: {displayData.margin.toFixed(1)}%
-                    </span>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
+        <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Laba/Rugi Bersih</CardTitle></CardHeader>
+        <CardContent>
+          <div className={`text-2xl font-bold ${displayData.profit >= 0 ? "" : "text-rose-600"}`}>{formatCurrency(displayData.profit)}</div>
+          <div className="text-xs text-muted-foreground">Margin: {displayData.margin.toFixed(1)}%</div>
+        </CardContent></Card>
       </div>
 
-      {/* SECTION 2: Intelligence & Profitability (Tambahan Baru) */}
+      {/* SECTION INTELLIGENCE: HPP & BEP */}
       <div className="grid gap-4 md:grid-cols-2">
-        {/* Card HPP */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-          <Card className="border-primary/20 bg-primary/5">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-primary" />
-                Harga Pokok Produksi (HPP)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isLoadingSummary ? <Skeleton className="h-9 w-full" /> : (
-                <>
-                  <div className="text-2xl font-bold">
-                    {/* Rumus: Total Pengeluaran / Total Kg Panen */}
-                    {formatCurrency(displayData.pengeluaran / (summary?.totalHarvestWeight || 1))}/kg
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Batas bawah harga jual agar tidak rugi.
-                  </p>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Card BEP Progress */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
-          <Card className="border-border shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex justify-between">
-                <span>Progres Balik Modal (BEP)</span>
-                <span className="text-primary">{Math.min(displayData.margin > 0 ? (displayData.pendapatan / (displayData.modal || 1)) * 100 : 0, 100).toFixed(1)}%</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isLoadingSummary ? <Skeleton className="h-4 w-full mt-2" /> : (
-                <div className="space-y-3">
-                  {/* Progress Bar Sederhana */}
-                  <div className="h-3 w-full bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-primary transition-all duration-1000" 
-                      style={{ width: `${Math.min((displayData.pendapatan / (displayData.modal || 1)) * 100, 100)}%` }}
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {displayData.pendapatan >= displayData.modal 
-                      ? "🚀 Selamat! Modal sudah kembali sepenuhnya." 
-                      : `Butuh ${formatCurrency(Math.max((displayData.modal || 0) - (displayData.pendapatan || 0), 0))} lagi untuk BEP.`}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
-
-      {/* Rincian Performa per Area */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Map className="h-5 w-5 text-primary" />
-              Rincian Performa per Area
-            </CardTitle>
-            <AlertDescription className="text-sm text-muted-foreground">
-              Evaluasi kinerja keuntungan dari setiap blok tanaman.
-            </AlertDescription>
-          </CardHeader>
+        <Card className="border-primary/20 bg-primary/5">
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Harga Pokok Produksi (HPP)</CardTitle></CardHeader>
           <CardContent>
-            {isLoadingSummary ? (
-              <div className="space-y-3">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-              </div>
-            ) : areas.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground text-sm border rounded-lg border-dashed">
-                Belum ada data area yang ditarik dari Notion.
-              </div>
-            ) : (
-              <div className="rounded-lg border border-border overflow-x-auto">
-                <table className="w-full text-sm min-w-[600px]">
-                  <thead className="bg-muted/50 border-b border-border">
-                    <tr>
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Blok / Area</th>
-                      <th className="text-right px-4 py-3 font-medium text-muted-foreground">Modal</th>
-                      <th className="text-right px-4 py-3 font-medium text-muted-foreground">Pendapatan</th>
-                      <th className="text-right px-4 py-3 font-medium text-muted-foreground">Pengeluaran</th>
-                      <th className="text-right px-4 py-3 font-medium text-muted-foreground">Profit</th>
-                      <th className="text-right px-4 py-3 font-medium text-muted-foreground">Margin</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {areas.map((area: any) => (
-                      <tr 
-                        key={area.id} 
-                        className={`transition-colors hover:bg-muted/30 ${selectedAreaId === area.id ? 'bg-primary/5' : ''}`}
-                      >
-                        <td className="px-4 py-3 font-medium flex items-center gap-2">
-                          {area.name}
-                          {selectedAreaId === area.id && <span className="h-2 w-2 rounded-full bg-primary" />}
-                        </td>
-                        <td className="px-4 py-3 text-right">{formatCurrency(area.modalAwal)}</td>
-                        <td className="px-4 py-3 text-right text-emerald-600">{formatCurrency(area.pendapatan)}</td>
-                        <td className="px-4 py-3 text-right text-rose-600">{formatCurrency(area.pengeluaran)}</td>
-                        <td className={`px-4 py-3 text-right font-medium ${area.profit >= 0 ? "text-foreground" : "text-rose-600"}`}>
-                          {formatCurrency(area.profit)}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                            area.margin >= 0 ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
-                          }`}>
-                            {area.margin.toFixed(1)}%
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            <div className="text-2xl font-bold">
+              {/* RUMUS FIX: Menggunakan harvestWeight yang sudah ter-filter */}
+              {formatCurrency(displayData.pengeluaran / (displayData.harvestWeight || 1))}/kg
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Berdasarkan total panen: {displayData.harvestWeight} kg
+            </p>
           </CardContent>
         </Card>
-      </motion.div>
+
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium flex justify-between">
+            <span>Progres Balik Modal (BEP)</span>
+            <span>{Math.min((displayData.pendapatan / (displayData.modal || 1)) * 100, 100).toFixed(1)}%</span>
+          </CardTitle></CardHeader>
+          <CardContent>
+            <div className="h-3 w-full bg-muted rounded-full overflow-hidden">
+              <div className="h-full bg-primary transition-all duration-1000" style={{ width: `${Math.min((displayData.pendapatan / (displayData.modal || 1)) * 100, 100)}%` }} />
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              {displayData.pendapatan >= displayData.modal ? "🚀 Modal Balik!" : `Butuh ${formatCurrency(displayData.modal - displayData.pendapatan)} lagi.`}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
