@@ -1,17 +1,10 @@
 import { useState, useMemo } from "react";
-import { Link } from "wouter";
 import { motion } from "framer-motion";
 import {
-  AlertCircle,
-  ArrowDownCircle,
-  ArrowUpCircle,
-  DollarSign,
-  RefreshCcw,
   CalendarClock,
-  Wallet,
-  Map,
-  TrendingUp,
+  RefreshCcw,
   Filter,
+  Calendar,
 } from "lucide-react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
@@ -26,8 +19,6 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-
 import {
   Select,
   SelectContent,
@@ -39,15 +30,14 @@ import {
 export function DashboardPage() {
   const queryClient = useQueryClient();
   const [selectedAreaId, setSelectedAreaId] = useState<string>("all");
+  
+  // State Filter Waktu
+  const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), "M"));
+  const [selectedYear, setSelectedYear] = useState<string>(format(new Date(), "yyyy"));
 
-  const {
-    data: connectionStatus,
-    isLoading: isLoadingConnection,
-  } = useGetNotionConnectionStatus({
+  const { data: connectionStatus } = useGetNotionConnectionStatus({
     query: { queryKey: getGetNotionConnectionStatusQueryKey() },
   });
-
-  const isConnected = connectionStatus?.connected;
 
   const {
     data: summary,
@@ -55,10 +45,11 @@ export function DashboardPage() {
     refetch,
     isFetching,
   } = useQuery({
-    queryKey: getGetDashboardSummaryQueryKey(), 
-    enabled: !!isConnected,
+    // Tambahin month & year ke queryKey biar auto-refetch pas ganti filter
+    queryKey: [...getGetDashboardSummaryQueryKey(), selectedMonth, selectedYear],
+    enabled: !!connectionStatus?.connected,
     queryFn: async () => {
-      const res = await fetch("/api/dashboard/summary");
+      const res = await fetch(`/api/dashboard/summary?month=${selectedMonth}&year=${selectedYear}`);
       if (!res.ok) throw new Error("Gagal mengambil data dashboard");
       return res.json();
     },
@@ -66,139 +57,92 @@ export function DashboardPage() {
 
   const areas = summary?.areas || [];
 
-  // LOGIC FILTER: Sekarang sudah include harvestWeight per area
   const displayData = useMemo(() => {
     if (!summary) return { modal: 0, pendapatan: 0, pengeluaran: 0, profit: 0, margin: 0, harvestWeight: 0 };
-
     if (selectedAreaId === "all") {
       return {
-        modal: summary.totalModal || 0,
-        pendapatan: summary.totalPendapatan || 0,
-        pengeluaran: summary.totalPengeluaran || 0,
-        profit: summary.labaRugi || 0,
-        margin: summary.marginTotal || 0,
-        harvestWeight: summary.totalHarvestWeight || 0, // Gunakan 393 kg
+        modal: summary.totalModal,
+        pendapatan: summary.totalPendapatan,
+        pengeluaran: summary.totalPengeluaran,
+        profit: summary.labaRugi,
+        margin: summary.totalModal > 0 ? (summary.labaRugi / summary.totalModal) * 100 : 0,
+        harvestWeight: summary.totalHarvestWeight
       };
     }
-
     const area = areas.find((a: any) => a.id === selectedAreaId);
-    if (!area) return { modal: 0, pendapatan: 0, pengeluaran: 0, profit: 0, margin: 0, harvestWeight: 0 };
-
-    return {
-      modal: area.modalAwal,
-      pendapatan: area.pendapatan,
-      pengeluaran: area.pengeluaran,
-      profit: area.profit,
-      margin: area.margin,
-      harvestWeight: area.harvestWeight || 0, // Gunakan 75 kg (untuk Blok B)
-    };
+    return area || { modal: 0, pendapatan: 0, pengeluaran: 0, profit: 0, margin: 0, harvestWeight: 0 };
   }, [summary, selectedAreaId, areas]);
 
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
+  const formatCurrency = (val: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(val);
 
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return "Belum pernah diperbarui";
-    try {
-      return format(new Date(dateString), "dd MMMM yyyy, HH:mm", { locale: id });
-    } catch {
-      return dateString;
-    }
-  };
-
-  const handleRefreshSummary = () => {
-    queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
-    refetch();
-  };
-
-  if (isLoadingConnection) {
-    return (
-      <div className="space-y-6">
-        <div><Skeleton className="h-9 w-48 mb-2" /><Skeleton className="h-5 w-64" /></div>
-        <div className="grid gap-4 md:grid-cols-4">
-          {[1, 2, 3, 4].map((i) => (
-            <Card key={i}><CardHeader className="pb-2"><Skeleton className="h-5 w-24" /></CardHeader>
-            <CardContent><Skeleton className="h-8 w-32" /></CardContent></Card>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  const months = [
+    { v: "1", l: "Januari" }, { v: "2", l: "Februari" }, { v: "3", l: "Maret" },
+    { v: "4", l: "April" }, { v: "5", l: "Mei" }, { v: "6", l: "Juni" },
+    { v: "7", l: "Juli" }, { v: "8", l: "Agustus" }, { v: "9", l: "September" },
+    { v: "10", l: "Oktober" }, { v: "11", l: "November" }, { v: "12", l: "Desember" }
+  ];
 
   return (
-    <div className="space-y-8 pb-10">
-      <h1 className="text-3xl font-bold tracking-tight">Dashboard Finansial</h1>
+    <div className="space-y-6 pb-10">
+      <h1 className="text-3xl font-bold">Dashboard Finansial</h1>
 
-      {/* Baris Filter & Refresh */}
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-muted/30 p-3 rounded-lg border border-border/50">
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <CalendarClock className="h-4 w-4" />
-          <span>Update: {formatDate(summary?.lastUpdated ?? null)}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="h-8 px-2 bg-background" onClick={handleRefreshSummary} disabled={isFetching}>
-            <RefreshCcw className={`h-3 w-3 mr-1 ${isFetching ? "animate-spin" : ""}`} /> Refresh
-          </Button>
-          <Select value={selectedAreaId} onValueChange={setSelectedAreaId}>
-            <SelectTrigger className="w-[180px] h-8 bg-background"><SelectValue /></SelectTrigger>
+      {/* FILTER BAR */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted/30 p-4 rounded-xl border border-border/50">
+        <div className="flex items-center gap-2 overflow-x-auto">
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+            <SelectTrigger className="w-[130px] h-9 bg-background"><SelectValue /></SelectTrigger>
+            <SelectContent>{months.map(m => <SelectItem key={m.v} value={m.v}>{m.l}</SelectItem>)}</SelectContent>
+          </Select>
+          <Select value={selectedYear} onValueChange={setSelectedYear}>
+            <SelectTrigger className="w-[100px] h-9 bg-background"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Semua Area (Global)</SelectItem>
-              {areas.map((area: any) => <SelectItem key={area.id} value={area.id}>{area.name}</SelectItem>)}
+              {["2024", "2025", "2026"].map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
+
+        <div className="flex items-center justify-end gap-2">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <Select value={selectedAreaId} onValueChange={setSelectedAreaId}>
+            <SelectTrigger className="w-[160px] h-9 bg-background"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua Area</SelectItem>
+              {areas.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Button variant="outline" size="sm" className="h-9" onClick={() => refetch()} disabled={isFetching}>
+            <RefreshCcw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+          </Button>
+        </div>
       </div>
 
-      {/* Main Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Modal Awal</CardTitle></CardHeader>
-        <CardContent><div className="text-2xl font-bold">{formatCurrency(displayData.modal)}</div></CardContent></Card>
-        
-        <Card><CardHeader className="pb-2 text-emerald-600"><CardTitle className="text-sm font-medium">Pendapatan</CardTitle></CardHeader>
-        <CardContent><div className="text-2xl font-bold text-emerald-600">{formatCurrency(displayData.pendapatan)}</div></CardContent></Card>
-
-        <Card><CardHeader className="pb-2 text-rose-600"><CardTitle className="text-sm font-medium">Pengeluaran</CardTitle></CardHeader>
-        <CardContent><div className="text-2xl font-bold text-rose-600">{formatCurrency(displayData.pengeluaran)}</div></CardContent></Card>
-
-        <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Laba/Rugi Bersih</CardTitle></CardHeader>
-        <CardContent>
-          <div className={`text-2xl font-bold ${displayData.profit >= 0 ? "" : "text-rose-600"}`}>{formatCurrency(displayData.profit)}</div>
-          <div className="text-xs text-muted-foreground">Margin: {displayData.margin.toFixed(1)}%</div>
-        </CardContent></Card>
+      {/* MAIN CARDS */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card><CardHeader className="pb-2 text-xs font-medium">Modal Awal</CardHeader><CardContent className="text-xl font-bold">{formatCurrency(displayData.modal)}</CardContent></Card>
+        <Card><CardHeader className="pb-2 text-xs font-medium text-emerald-600">Pendapatan</CardHeader><CardContent className="text-xl font-bold text-emerald-600">{formatCurrency(displayData.pendapatan)}</CardContent></Card>
+        <Card><CardHeader className="pb-2 text-xs font-medium text-rose-600">Pengeluaran</CardHeader><CardContent className="text-xl font-bold text-rose-600">{formatCurrency(displayData.pengeluaran)}</CardContent></Card>
+        <Card><CardHeader className="pb-2 text-xs font-medium">Laba/Rugi</CardHeader><CardContent className={`text-xl font-bold ${displayData.profit >= 0 ? "text-primary" : "text-rose-600"}`}>{formatCurrency(displayData.profit)}</CardContent></Card>
       </div>
 
-      {/* SECTION INTELLIGENCE: HPP & BEP */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card className="border-primary/20 bg-primary/5">
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Harga Pokok Produksi (HPP)</CardTitle></CardHeader>
+      {/* HPP & BEP */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card className="bg-primary/5 border-primary/20">
+          <CardHeader className="pb-2 text-sm font-semibold">HPP (Harga Pokok Produksi)</CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {/* RUMUS FIX: Menggunakan harvestWeight yang sudah ter-filter */}
-              {formatCurrency(displayData.pengeluaran / (displayData.harvestWeight || 1))}/kg
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Berdasarkan total panen: {displayData.harvestWeight} kg
-            </p>
+            <div className="text-2xl font-bold">{formatCurrency(displayData.pengeluaran / (displayData.harvestWeight || 1))}/kg</div>
+            <p className="text-xs text-muted-foreground mt-1">Berdasarkan {displayData.harvestWeight} kg panen bulan ini.</p>
           </CardContent>
         </Card>
-
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium flex justify-between">
-            <span>Progres Balik Modal (BEP)</span>
-            <span>{Math.min((displayData.pendapatan / (displayData.modal || 1)) * 100, 100).toFixed(1)}%</span>
-          </CardTitle></CardHeader>
+          <CardHeader className="pb-2 text-sm font-semibold flex justify-between">
+            <span>Progres BEP</span>
+            <span className="text-primary">{Math.min(displayData.margin, 100).toFixed(1)}%</span>
+          </CardHeader>
           <CardContent>
-            <div className="h-3 w-full bg-muted rounded-full overflow-hidden">
-              <div className="h-full bg-primary transition-all duration-1000" style={{ width: `${Math.min((displayData.pendapatan / (displayData.modal || 1)) * 100, 100)}%` }} />
+            <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+              <div className="h-full bg-primary transition-all" style={{ width: `${Math.min(displayData.margin, 100)}%` }} />
             </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              {displayData.pendapatan >= displayData.modal ? "🚀 Modal Balik!" : `Butuh ${formatCurrency(displayData.modal - displayData.pendapatan)} lagi.`}
-            </p>
           </CardContent>
         </Card>
       </div>
