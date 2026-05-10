@@ -5,7 +5,7 @@ import { eq, and } from "drizzle-orm";
 
 const router: IRouter = Router();
 
-// --- Helper: Cache Nama Kategori (Biar loading tetep kenceng) ---
+// --- Helper 1: Cache Nama Kategori (Biar loading tetep kenceng) ---
 const nameCache: Record<string, string> = {};
 async function getPageName(accessToken: string, pageId: string) {
   if (nameCache[pageId]) return nameCache[pageId];
@@ -25,17 +25,51 @@ async function getPageName(accessToken: string, pageId: string) {
   }
 }
 
-// --- Helper: Filter Tanggal Cerdas di Memory ---
-function isPageInMonth(page: any, month: string, year: string) {
-  const dateProp = Object.values(page.properties).find((p: any) => p.type === "date" || p.type === "created_time") as any;
-  const dateStr = dateProp?.date?.start || dateProp?.created_time;
-  if (!dateStr) return false; // Kalau nggak ada tanggal, lewatin
+// --- Helper 2: Ekstrak Angka Prioritas Mapping (Anti Error Rp0) ---
+function extractNumber(page: any, propId: string | undefined, fallbackKeywords: string[]) {
+  // 1. Coba cari pakai ID Mapping yang di-set user
+  if (propId) {
+    const prop = Object.values(page.properties).find((p: any) => p.id === propId) as any;
+    if (prop) {
+       const val = prop.number ?? prop.formula?.number ?? prop.rollup?.number;
+       if (val != null) return val; // Ambil kalau nilainya bukan null/kosong
+    }
+  }
+  // 2. Fallback kalau belum di-mapping (Cari berdasarkan keyword nama kolom)
+  const keys = Object.keys(page.properties);
+  for (const kw of fallbackKeywords) {
+    const matchKey = keys.find(k => k.toLowerCase().includes(kw));
+    if (matchKey) {
+      const prop = page.properties[matchKey] as any;
+      const val = prop.number ?? prop.formula?.number ?? prop.rollup?.number;
+      if (val != null) return val; // Jangan ambil kalau kolom kosong
+    }
+  }
+  return 0;
+}
+
+// --- Helper 3: Filter Tanggal Cerdas di Memory ---
+function isPageInMonth(page: any, mappings: any, month: string, year: string) {
+  let dateStr = page.created_time; // Fallback otomatis pakai tanggal baris dibuat
+  const datePropId = mappings?.tanggal?.propertyId || mappings?.date?.propertyId;
+
+  if (datePropId) {
+    const dProp = Object.values(page.properties).find((p: any) => p.id === datePropId) as any;
+    if (dProp?.type === 'date' && dProp.date?.start) dateStr = dProp.date.start;
+    else if (dProp?.type === 'created_time') dateStr = dProp.created_time;
+  } else {
+    // Kalau lupa mapping, cari property yang tipe nya date
+    const dProp = Object.values(page.properties).find((p: any) => p.type === 'date') as any;
+    if (dProp?.date?.start) dateStr = dProp.date.start;
+  }
+
+  if (!dateStr) return false;
   const d = new Date(dateStr);
   return (d.getMonth() + 1 === parseInt(month) && d.getFullYear() === parseInt(year));
 }
 
 // --- 1. Query Laba Rugi (Hanya Ambil Modal Awal & Daftar Area) ---
-async function queryAreas(accessToken: string, databaseId: string) {
+async function queryAreas(accessToken: string, databaseId: string, mappings: any) {
   const res = await fetch(`https://api.notion.com/v1/databases/${databaseId}/query`, {
     method: "POST",
     headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json", "Notion-Version": "2022-06-28" },
@@ -46,16 +80,18 @@ async function queryAreas(accessToken: string, databaseId: string) {
 
   let tModal = 0;
   const areas = data.results.map((page: any) => {
-    // Cari kolom modal secara otomatis (Makin aman buat template)
-    const keys = Object.keys(page.properties);
-    const mKey = keys.find(k => k.toLowerCase().includes("modal"));
-    const mProp = mKey ? page.properties[mKey] : null;
-    const modal = mProp?.number ?? mProp?.formula?.number ?? 0;
+    const modal = extractNumber(page, mappings?.modalAwal?.propertyId, ["modal"]);
     tModal += modal;
 
     let name = "Area Tanpa Nama";
-    const tProp = Object.values(page.properties).find((p: any) => p.type === "title") as any;
-    if (tProp?.title?.[0]) name = tProp.title[0].plain_text;
+    const aPropId = mappings?.area?.propertyId;
+    if (aPropId) {
+        const tProp = Object.values(page.properties).find((p: any) => p.id === aPropId) as any;
+        if (tProp?.title?.[0]) name = tProp.title[0].plain_text;
+    } else {
+        const tProp = Object.values(page.properties).find((p: any) => p.type === "title") as any;
+        if (tProp?.title?.[0]) name = tProp.title[0].plain_text;
+    }
 
     return { id: page.id, name, modalAwal: modal, pendapatan: 0, pengeluaran: 0, profit: 0, margin: 0, harvestWeight: 0 };
   });
@@ -63,7 +99,7 @@ async function queryAreas(accessToken: string, databaseId: string) {
 }
 
 // --- 2. Query Panen (Hitung Pendapatan & Berat Sesuai Bulan) ---
-async function queryPanen(accessToken: string, databaseId: string, month: string, year: string) {
+async function queryPanen(accessToken: string, databaseId: string, mappings: any, month: string, year: string) {
   let cursor: string | undefined;
   const resData = { gWeight: 0, gIncome: 0, byArea: {} as Record<string, { w: number, i: number }> };
 
@@ -77,16 +113,17 @@ async function queryPanen(accessToken: string, databaseId: string, month: string
     const data = await res.json();
 
     for (const page of data.results) {
-      if (!isPageInMonth(page, month, year)) continue; // Filter bulan berjalan
+      if (!isPageInMonth(page, mappings, month, year)) continue; 
 
-      const keys = Object.keys(page.properties);
-      const wKey = keys.find(k => k.toLowerCase().includes("jumlah") || k.toLowerCase().includes("kg") || k.toLowerCase().includes("berat"));
-      const iKey = keys.find(k => k.toLowerCase().includes("total") || k.toLowerCase().includes("jual") || k.toLowerCase().includes("pendapatan"));
-      const rKey = keys.find(k => page.properties[k].type === "relation");
+      const weight = extractNumber(page, mappings?.jumlahPanen?.propertyId || mappings?.jumlah?.propertyId, ["jumlah", "kg", "berat"]);
+      const income = extractNumber(page, mappings?.totalPendapatan?.propertyId || mappings?.pendapatan?.propertyId, ["total pendapatan", "total", "pendapatan", "jual"]);
 
-      const weight = wKey ? (page.properties[wKey].number ?? page.properties[wKey].formula?.number ?? 0) : 0;
-      const income = iKey ? (page.properties[iKey].number ?? page.properties[iKey].formula?.number ?? 0) : 0;
-      const areaId = rKey ? page.properties[rKey].relation?.[0]?.id : null;
+      let areaId = null;
+      const aPropId = mappings?.area?.propertyId || mappings?.labaRugi?.propertyId;
+      if (aPropId) {
+         const aProp = Object.values(page.properties).find((p: any) => p.id === aPropId) as any;
+         if (aProp?.relation?.[0]) areaId = aProp.relation[0].id;
+      }
 
       resData.gWeight += weight;
       resData.gIncome += income;
@@ -104,7 +141,7 @@ async function queryPanen(accessToken: string, databaseId: string, month: string
 }
 
 // --- 3. Query Pengeluaran (Hitung Pengeluaran & Detektif Kategori) ---
-async function queryPengeluaran(accessToken: string, databaseId: string, month: string, year: string) {
+async function queryPengeluaran(accessToken: string, databaseId: string, mappings: any, month: string, year: string) {
   let cursor: string | undefined;
   const resData = { gExpense: 0, byArea: {} as Record<string, number>, categories: {} as Record<string, number> };
 
@@ -118,32 +155,30 @@ async function queryPengeluaran(accessToken: string, databaseId: string, month: 
     const data = await res.json();
 
     for (const page of data.results) {
-      if (!isPageInMonth(page, month, year)) continue; // Filter bulan berjalan
+      if (!isPageInMonth(page, mappings, month, year)) continue;
 
-      const keys = Object.keys(page.properties);
-      const eKey = keys.find(k => k.toLowerCase().includes("nominal") || k.toLowerCase().includes("jumlah") || k.toLowerCase().includes("harga") || k.toLowerCase().includes("total"));
-      const expense = eKey ? (page.properties[eKey].number ?? page.properties[eKey].formula?.number ?? 0) : 0;
+      const expense = extractNumber(page, mappings?.nominal?.propertyId || mappings?.pengeluaran?.propertyId, ["nominal", "jumlah", "harga", "total", "pengeluaran"]);
 
       let areaId = null;
       let catName = "Lain-lain";
 
-      // Cari kolom relation (biasanya ada 2: Area Laba Rugi dan Kategori)
-      const relProps = Object.values(page.properties).filter((p: any) => p.type === "relation") as any[];
-      for (const rp of relProps) {
-        const propName = keys.find(k => page.properties[k].id === rp.id) || "";
-        // Cek dari namanya, apakah ini relation buat Kategori?
-        if (propName.toLowerCase().includes("kategori") || propName.toLowerCase().includes("tipe") || propName.toLowerCase().includes("jenis")) {
-           if (rp.relation?.[0]) catName = await getPageName(accessToken, rp.relation[0].id); // Tanya namanya ke Notion
-        } else {
-           if (rp.relation?.[0]) areaId = rp.relation[0].id; // Asumsikan relation lainnya adalah Area
-        }
+      // Detektif Kategori (Relation)
+      const cPropId = mappings?.kategori?.propertyId;
+      if (cPropId) {
+         const cProp = Object.values(page.properties).find((p:any) => p.id === cPropId) as any;
+         if (cProp) {
+            if (cProp.type === "select") catName = cProp.select?.name || catName;
+            else if (cProp.type === "multi_select" && cProp.multi_select?.[0]) catName = cProp.multi_select[0].name;
+            else if (cProp.type === "relation" && cProp.relation?.[0]) catName = await getPageName(accessToken, cProp.relation[0].id);
+            else if (cProp.type === "title" && cProp.title?.[0]) catName = cProp.title[0].plain_text;
+         }
       }
 
-      // Fallback kalau kategori pake select/teks biasa
-      if (catName === "Lain-lain") {
-         const cProp = Object.values(page.properties).find((p:any) => p.type==="select" || p.type==="multi_select") as any;
-         if (cProp?.type === "select") catName = cProp.select?.name || catName;
-         if (cProp?.type === "multi_select") catName = cProp.multi_select?.[0]?.name || catName;
+      // Detektif Area
+      const aPropId = mappings?.area?.propertyId || mappings?.labaRugi?.propertyId;
+      if (aPropId) {
+         const aProp = Object.values(page.properties).find((p: any) => p.id === aPropId) as any;
+         if (aProp?.relation?.[0]) areaId = aProp.relation[0].id;
       }
 
       resData.gExpense += expense;
@@ -172,11 +207,11 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
 
   if (!lrM?.notionDatabaseId) { res.status(404).json({ error: "Setup Laba Rugi dulu." }); return; }
 
-  // Tembak 3 query sekaligus
+  // Tembak 3 query secara paralel pakai mapping yang udah di-set user
   const [areasData, panenData, pengeluaranData] = await Promise.all([
-    queryAreas(conn.accessToken, lrM.notionDatabaseId),
-    pM?.notionDatabaseId ? queryPanen(conn.accessToken, pM.notionDatabaseId, month as string, year as string) : { gWeight: 0, gIncome: 0, byArea: {} },
-    exM?.notionDatabaseId ? queryPengeluaran(conn.accessToken, exM.notionDatabaseId, month as string, year as string) : { gExpense: 0, byArea: {}, categories: {} }
+    queryAreas(conn.accessToken, lrM.notionDatabaseId, lrM.mappings || {}),
+    pM?.notionDatabaseId ? queryPanen(conn.accessToken, pM.notionDatabaseId, pM.mappings || {}, month as string, year as string) : { gWeight: 0, gIncome: 0, byArea: {} },
+    exM?.notionDatabaseId ? queryPengeluaran(conn.accessToken, exM.notionDatabaseId, exM.mappings || {}, month as string, year as string) : { gExpense: 0, byArea: {}, categories: {} }
   ]);
 
   // Gabungin data yang udah dihitung per bulan ke masing-masing Area
