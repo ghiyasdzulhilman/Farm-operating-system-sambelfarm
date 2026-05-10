@@ -10,7 +10,9 @@ import {
   Settings, 
   X,
   Tractor,
-  Banknote
+  Banknote,
+  Container,
+  ChefHat
 } from "lucide-react";
 
 // Import komponen dialog input lu (Pastiin path-nya sesuai)
@@ -22,27 +24,24 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const { isSignedIn } = useAuth();
   const [isFabOpen, setIsFabOpen] = useState(false);
 
-  // Kalau belum login, tampilkan polos aja tanpa navigasi
   if (!isSignedIn) {
     return <main className="min-h-screen bg-background">{children}</main>;
   }
 
+  // Definisi navigasi (Cuma 4 item sekarang)
   const navItems = [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/operasional", icon: Sprout, label: "Operasional" },
-    // Posisi index 2 dikosongin buat tempat FAB (Tombol Tengah)
-    { href: "#", isFab: true },
     { href: "/lab", icon: FlaskConical, label: "Lab" },
     { href: "/settings", icon: Settings, label: "Setelan" },
   ];
 
   return (
     <div className="min-h-screen bg-muted/20 pb-24 md:pb-0 font-sans">
-      {/* HEADER: Cuma buat nampilin Profil lu di atas */}
+      {/* HEADER: Profil User */}
       <header className="sticky top-0 z-40 w-full border-b border-border bg-background/80 backdrop-blur-md">
         <div className="container flex h-14 items-center justify-between px-4">
           <div className="flex items-center gap-2">
-            {/* Lu bisa ganti pakai logo Sambel Farm nanti */}
             <Tractor className="h-5 w-5 text-primary" />
             <span className="font-bold text-lg tracking-tight text-foreground">
               Sambel Farm
@@ -57,80 +56,102 @@ export function AppLayout({ children }: { children: ReactNode }) {
         {children}
       </main>
 
-      {/* BOTTOM NAVIGATION (Mobile First) */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border pb-safe">
-        <div className="flex justify-around items-center h-16 max-w-md mx-auto relative px-2">
-          {navItems.map((item, index) => {
-            // RENDER TOMBOL TENGAH (FAB)
-            if (item.isFab) {
-              return (
-                <div key="fab" className="relative -top-5 flex justify-center w-1/5">
-                  {/* Menu Pop-up pas tombol plus diklik */}
-                  <AnimatePresence>
-                    {isFabOpen && (
-                      <>
-                        {/* Overlay transparan biar nutup menu pas klik di luar */}
-                        <motion.div 
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          className="fixed inset-0 bg-background/60 backdrop-blur-sm -z-10"
-                          onClick={() => setIsFabOpen(false)}
-                        />
-                        
-                        {/* Pilihan Tombol Input */}
-                        <motion.div
-                          initial={{ opacity: 0, y: 20, scale: 0.8 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: 20, scale: 0.8 }}
-                          className="absolute bottom-16 flex flex-col gap-3 items-center"
-                        >
-                          {/* Note: Gua bungkus komponen lu pakai div onClick biar menunya nutup otomatis pas diklik */}
-                          <div onClick={() => setIsFabOpen(false)} className="flex items-center gap-2 bg-background p-2 rounded-full border shadow-lg">
-                            <AddHarvestDialog onSuccess={() => {}} />
-                          </div>
-                          <div onClick={() => setIsFabOpen(false)} className="flex items-center gap-2 bg-background p-2 rounded-full border shadow-lg">
-                            <AddExpenseDialog onSuccess={() => {}} />
-                          </div>
-                        </motion.div>
-                      </>
-                    )}
-                  </AnimatePresence>
+      {/* BOTTOM NAVIGATION (PIXEL PERFECT DESIGN) */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border pb-safe shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
+        <div className="relative max-w-lg mx-auto h-16 px-4">
+          
+          {/* CONTAINER JEMPOL: Isi 4 Nav + 1 Lobang di tengah */}
+          <div className="flex items-center justify-between h-full w-full gap-1">
+            
+            {/* Bagian Kiri (Nav 1 & 2) */}
+            <div className="flex w-2/5 justify-around h-full items-center">
+              {[navItems[0], navItems[1]].map((item) => {
+                const Icon = item.icon;
+                const isActive = location === item.href;
+                return (
+                  <Link key={item.label} href={item.href}>
+                    <a className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary transition-colors min-w-[60px]">
+                      <div className={`p-2 rounded-xl transition-all ${isActive ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}>
+                        <Icon className={`h-5 w-5 ${isActive ? "stroke-primary stroke-[2.5]" : ""}`} />
+                      </div>
+                      <span className={`text-[10px] font-semibold ${isActive ? "text-primary" : ""}`}>{item.label}</span>
+                    </a>
+                  </Link>
+                );
+              })}
+            </div>
 
-                  {/* Tombol Plus-nya itu sendiri */}
-                  <button
-                    onClick={() => setIsFabOpen(!isFabOpen)}
-                    className={`flex h-14 w-14 items-center justify-center rounded-full shadow-lg text-white transition-transform active:scale-95 ${
-                      isFabOpen ? "bg-rose-500 rotate-45" : "bg-primary"
-                    }`}
+            {/* LOBANG DI TENGAH: Tempat FAB absolute bersarang */}
+            <div className="w-1/5 flex justify-center items-center" />
+
+            {/* Bagian Kanan (Nav 3 & 4) */}
+            <div className="flex w-2/5 justify-around h-full items-center">
+              {[navItems[2], navItems[3]].map((item) => {
+                const Icon = item.icon;
+                const isActive = location === item.href;
+                return (
+                  <Link key={item.label} href={item.href}>
+                    <a className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary transition-colors min-w-[60px]">
+                      <div className={`p-2 rounded-xl transition-all ${isActive ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}>
+                        <Icon className={`h-5 w-5 ${isActive ? "stroke-primary stroke-[2.5]" : ""}`} />
+                      </div>
+                      <span className={`text-[10px] font-semibold ${isActive ? "text-primary" : ""}`}>{item.label}</span>
+                    </a>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* ----- THE SUPER FAB: Tombol Input Tengah (Absolute) ----- */}
+          <div className="absolute left-1/2 -translate-x-1/2 -top-6 flex justify-center items-center">
+            
+            {/* Menu Pop-up pas tombol plus diklik */}
+            <AnimatePresence>
+              {isFabOpen && (
+                <>
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 bg-background/80 backdrop-blur-sm -z-10"
+                    onClick={() => setIsFabOpen(false)}
+                  />
+                  
+                  {/* Pilihan Tombol Input Bergaya SaaS */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 15, scale: 0.9, x: "-50%" }}
+                    animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
+                    exit={{ opacity: 0, y: 15, scale: 0.9, x: "-50%" }}
+                    className="absolute bottom-20 left-1/2 w-[240px] bg-card p-3 rounded-2xl border border-border shadow-xl space-y-2 z-20"
                   >
-                    <Plus className="h-7 w-7" />
-                  </button>
-                </div>
-              );
-            }
+                    <h4 className="text-xs font-semibold text-muted-foreground px-1 pb-1">Input Cepat</h4>
+                    
+                    {/* Ganti Tombol Biasa Pakai Ikon Profesional */}
+                    <div onClick={() => setIsFabOpen(false)} className="flex items-center gap-3 bg-background hover:bg-accent border p-2 rounded-lg cursor-pointer transition-colors shadow-sm">
+                      <div className="p-1.5 bg-emerald-100 text-emerald-700 rounded-md"><ChefHat className="h-4 w-4"/></div>
+                      <AddHarvestDialog onSuccess={() => {}} />
+                    </div>
+                    
+                    <div onClick={() => setIsFabOpen(false)} className="flex items-center gap-3 bg-background hover:bg-accent border p-2 rounded-lg cursor-pointer transition-colors shadow-sm">
+                      <div className="p-1.5 bg-rose-100 text-rose-700 rounded-md"><Banknote className="h-4 w-4"/></div>
+                      <AddExpenseDialog onSuccess={() => {}} />
+                    </div>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
 
-            // RENDER TOMBOL NAVIGASI BIASA
-            const Icon = item.icon!;
-            const isActive = location === item.href;
-
-            return (
-              <Link key={item.label} href={item.href}>
-                <a className="flex flex-col items-center justify-center w-1/5 h-full gap-1 text-muted-foreground hover:text-primary transition-colors">
-                  <div
-                    className={`flex items-center justify-center p-1.5 rounded-full transition-all ${
-                      isActive ? "bg-primary/10 text-primary" : "text-muted-foreground"
-                    }`}
-                  >
-                    <Icon className={`h-5 w-5 ${isActive ? "fill-primary/20 stroke-primary" : ""}`} />
-                  </div>
-                  <span className={`text-[10px] font-medium ${isActive ? "text-primary" : ""}`}>
-                    {item.label}
-                  </span>
-                </a>
-              </Link>
-            );
-          })}
+            {/* Tombol Plus Tengah yang Presisi */}
+            <button
+              onClick={() => setIsFabOpen(!isFabOpen)}
+              className={`flex h-16 w-16 items-center justify-center rounded-full shadow-2xl text-white transition-all duration-300 ease-in-out active:scale-95 ${
+                isFabOpen ? "bg-rose-500 rotate-45 scale-90" : "bg-primary hover:bg-primary/95"
+              }`}
+            >
+              <Plus className="h-8 w-8" />
+            </button>
+          </div>
         </div>
       </nav>
     </div>
