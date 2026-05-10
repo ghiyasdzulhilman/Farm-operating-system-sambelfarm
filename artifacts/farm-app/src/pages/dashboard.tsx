@@ -26,8 +26,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog";
-import { AddHarvestDialog } from "@/components/harvest/add-harvest-dialog";
 
 // Import komponen Select untuk Dropdown Filter
 import {
@@ -171,8 +169,6 @@ export function DashboardPage() {
         </motion.div>
 
         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-2">
-          <AddHarvestDialog onSuccess={handleRefreshSummary} />
-          <AddExpenseDialog onSuccess={handleRefreshSummary} />
           <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => refetch()} disabled={isFetching}>
             <RefreshCcw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
           </Button>
