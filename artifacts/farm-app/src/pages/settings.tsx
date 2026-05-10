@@ -358,7 +358,8 @@ function MappingSection({ dbType, fields, dbLabel, selectedDbId }: MappingSectio
                             }
                           />
                         </SelectTrigger>
-                        <SelectContent>
+                        {/* FIX 2: Tambah max-h-[300px] di dropdown pemetaan kolom */}
+                        <SelectContent className="max-h-[300px]">
                           {properties.map((prop) => (
                             <SelectItem key={prop.id} value={prop.id}>
                               <span className="flex items-center gap-2">
@@ -565,7 +566,8 @@ export function SettingsPage() {
             <SelectTrigger className="h-9 text-sm flex-1">
               <SelectValue placeholder="Pilih database..." />
             </SelectTrigger>
-            <SelectContent>
+            {/* FIX 1: Tambah max-h-[300px] di dropdown pilihan database */}
+            <SelectContent className="max-h-[300px]">
               {allDatabases.map((db) => (
                 <SelectItem key={db.id} value={db.id}>
                   <span className="flex items-center gap-2">
