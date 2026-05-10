@@ -84,8 +84,13 @@ const LABA_RUGI_FIELDS: RequiredField[] = [
   { key: "pengeluaran", label: "Total Pengeluaran", expectedType: "rollup", description: "Kolom rollup/formula pengeluaran" },
 ];
 
+// DITAMBAHKAN: Field buat Kategori
+const KATEGORI_FIELDS: RequiredField[] = [
+  { key: "namaKategori", label: "Nama Kategori", expectedType: "title", description: "Kolom utama nama kategori (Bibit, Pupuk, dll)" },
+];
+
 // ---------------------------------------------------------------------------
-// Type badge helper (Support Rollup & Formula ditambahkan)
+// Type badge helper
 // ---------------------------------------------------------------------------
 
 const TYPE_COLORS: Record<string, string> = {
@@ -113,7 +118,7 @@ function TypeBadge({ type }: { type: string }) {
 // ---------------------------------------------------------------------------
 
 interface MappingSectionProps {
-  dbType: "panen" | "expenses" | "laba_rugi";
+  dbType: "panen" | "expenses" | "laba_rugi" | "kategori";
   fields: RequiredField[];
   dbLabel: string;
   selectedDbId: string;
@@ -148,7 +153,7 @@ function MappingSection({ dbType, fields, dbLabel, selectedDbId }: MappingSectio
   const {
     data: inspected,
     isFetching: isInspecting,
-    refetch: loadProperties,
+    refrefetch: loadProperties,
     error: inspectError,
   } = useInspectDatabase(inspectParams, {
     query: {
@@ -158,7 +163,6 @@ function MappingSection({ dbType, fields, dbLabel, selectedDbId }: MappingSectio
   });
 
   const properties: DatabaseProperty[] = inspected?.properties ?? [];
-  const dbChanged = loadedForDbId && selectedDbId && loadedForDbId !== selectedDbId;
 
   async function handleLoadProperties() {
     if (!selectedDbId) {
@@ -303,7 +307,6 @@ function MappingSection({ dbType, fields, dbLabel, selectedDbId }: MappingSectio
               const currentPropId = selections[field.key] ?? "";
               const matchedProp = properties.find((p) => p.id === currentPropId);
               
-              // Modifikasi validasi agar formula & rollup bisa diterima sebagai number
               let typeMatch = matchedProp ? matchedProp.type === field.expectedType : null;
               if (matchedProp && field.expectedType === "rollup" && (matchedProp.type === "formula" || matchedProp.type === "number")) {
                   typeMatch = true; 
@@ -376,6 +379,7 @@ interface DbSelections {
   labaRugi: string;
   panen: string;
   expenses: string;
+  kategori: string; // DITAMBAHKAN: Field kategori
 }
 
 export function SettingsPage() {
@@ -386,6 +390,7 @@ export function SettingsPage() {
     labaRugi: "",
     panen: "",
     expenses: "",
+    kategori: "", // DITAMBAHKAN: State default kategori
   });
   const [initDone, setInitDone] = useState(false);
   const [isSavingDbs, setIsSavingDbs] = useState(false);
@@ -398,17 +403,20 @@ export function SettingsPage() {
   const { data: savedPanen } = useGetFieldMappings({ type: "panen" }, { query: { queryKey: getGetFieldMappingsQueryKey({ type: "panen" }) } });
   const { data: savedExpenses } = useGetFieldMappings({ type: "expenses" }, { query: { queryKey: getGetFieldMappingsQueryKey({ type: "expenses" }) } });
   const { data: savedLabaRugi } = useGetFieldMappings({ type: "laba_rugi" }, { query: { queryKey: getGetFieldMappingsQueryKey({ type: "laba_rugi" }) } });
+  const { data: savedKategori } = useGetFieldMappings({ type: "kategori" }, { query: { queryKey: getGetFieldMappingsQueryKey({ type: "kategori" }) } }); // DITAMBAHKAN
 
   useEffect(() => {
-    if (!initDone && savedPanen !== undefined && savedExpenses !== undefined && savedLabaRugi !== undefined) {
+    // DITAMBAHKAN: Pastikan savedKategori juga sudah diload sebelum set state
+    if (!initDone && savedPanen !== undefined && savedExpenses !== undefined && savedLabaRugi !== undefined && savedKategori !== undefined) {
       setDbSelections({
         labaRugi: savedLabaRugi?.notionDatabaseId ?? "",
         panen: savedPanen?.notionDatabaseId ?? "",
         expenses: savedExpenses?.notionDatabaseId ?? "",
+        kategori: savedKategori?.notionDatabaseId ?? "", // Set initial state
       });
       setInitDone(true);
     }
-  }, [savedPanen, savedExpenses, savedLabaRugi, initDone]);
+  }, [savedPanen, savedExpenses, savedLabaRugi, savedKategori, initDone]);
 
   const { mutateAsync: saveAsync } = useSaveFieldMappings();
 
@@ -437,12 +445,21 @@ export function SettingsPage() {
             mappings: (savedExpenses?.mappings as SaveFieldMappingsBody["mappings"]) ?? ({} as SaveFieldMappingsBody["mappings"]),
           },
         }),
+        // DITAMBAHKAN: Simpan database pilihan untuk kategori
+        saveAsync({
+          data: {
+            databaseType: "kategori",
+            notionDatabaseId: dbSelections.kategori || null,
+            mappings: (savedKategori?.mappings as SaveFieldMappingsBody["mappings"]) ?? ({} as SaveFieldMappingsBody["mappings"]),
+          },
+        }),
       ]);
 
       toast({ title: "Pilihan database disimpan" });
       queryClient.invalidateQueries({ queryKey: getGetFieldMappingsQueryKey({ type: "laba_rugi" }) });
       queryClient.invalidateQueries({ queryKey: getGetFieldMappingsQueryKey({ type: "panen" }) });
       queryClient.invalidateQueries({ queryKey: getGetFieldMappingsQueryKey({ type: "expenses" }) });
+      queryClient.invalidateQueries({ queryKey: getGetFieldMappingsQueryKey({ type: "kategori" }) }); // Invalidate cache kategori
     } catch (err) {
       toast({ variant: "destructive", title: "Gagal menyimpan", description: err instanceof Error ? err.message : "Terjadi kesalahan." });
     } finally {
@@ -518,6 +535,8 @@ export function SettingsPage() {
             <DbSelectRow label="Database Laba Rugi" hint="Untuk dashboard keuangan" value={dbSelections.labaRugi} onChange={(v) => setDbSelections((prev) => ({ ...prev, labaRugi: v }))} />
             <DbSelectRow label="Database Panen" hint="Untuk input data hasil panen" value={dbSelections.panen} onChange={(v) => setDbSelections((prev) => ({ ...prev, panen: v }))} />
             <DbSelectRow label="Database Pengeluaran" hint="Untuk input data pengeluaran" value={dbSelections.expenses} onChange={(v) => setDbSelections((prev) => ({ ...prev, expenses: v }))} />
+            {/* DITAMBAHKAN: Row untuk Kategori */}
+            <DbSelectRow label="Database Kategori" hint="Untuk master data kategori pengeluaran" value={dbSelections.kategori} onChange={(v) => setDbSelections((prev) => ({ ...prev, kategori: v }))} />
 
             <div className="flex justify-end pt-5">
               <Button onClick={handleSaveDatabaseSelections} disabled={isSavingDbs} className="gap-2">
@@ -549,6 +568,10 @@ export function SettingsPage() {
                 <TabsTrigger value="expenses" className="flex-1 min-w-[120px]">
                   Pengeluaran {dbSelections.expenses && <span className="ml-2 text-xs opacity-60 hidden sm:inline">({dbName(dbSelections.expenses)})</span>}
                 </TabsTrigger>
+                {/* DITAMBAHKAN: Trigger Tab Kategori */}
+                <TabsTrigger value="kategori" className="flex-1 min-w-[120px]">
+                  Kategori {dbSelections.kategori && <span className="ml-2 text-xs opacity-60 hidden sm:inline">({dbName(dbSelections.kategori)})</span>}
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="laba_rugi">
@@ -559,6 +582,10 @@ export function SettingsPage() {
               </TabsContent>
               <TabsContent value="expenses">
                 <MappingSection dbType="expenses" fields={EXPENSES_FIELDS} dbLabel="Pengeluaran" selectedDbId={dbSelections.expenses} />
+              </TabsContent>
+              {/* DITAMBAHKAN: Content Tab Kategori */}
+              <TabsContent value="kategori">
+                <MappingSection dbType="kategori" fields={KATEGORI_FIELDS} dbLabel="Kategori" selectedDbId={dbSelections.kategori} />
               </TabsContent>
             </Tabs>
           </CardContent>
