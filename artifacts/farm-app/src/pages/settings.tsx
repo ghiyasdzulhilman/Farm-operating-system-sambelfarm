@@ -59,11 +59,13 @@ interface RequiredField {
 
 const PANEN_FIELDS: RequiredField[] = [
   { key: "kegiatan", label: "Kegiatan / Judul", expectedType: "title", description: "Nama sesi panen" },
+  { key: "tanggal", label: "Tanggal", expectedType: "date", description: "Tanggal panen" },
   { key: "jumlahPanen", label: "Jumlah Panen (kg)", expectedType: "number", description: "Berat hasil panen" },
   { key: "hargaJualPerKg", label: "Harga Jual per Kg", expectedType: "number", description: "Harga jual per kg" },
   { key: "kualitas", label: "Kualitas", expectedType: "select", description: "Grade A, B, C, dst." },
   { key: "channelPenjualan", label: "Channel Penjualan", expectedType: "select", description: "Jalur penjualan" },
   { key: "areaPindahTanam", label: "Area Pindah Tanam", expectedType: "relation", description: "Relasi ke Pindah Tanam" },
+  { key: "labaRugi", label: "Area Laba Rugi", expectedType: "relation", description: "Relasi ke Area Laba Rugi" },
 ];
 
 const EXPENSES_FIELDS: RequiredField[] = [
@@ -72,6 +74,7 @@ const EXPENSES_FIELDS: RequiredField[] = [
   { key: "qty", label: "Qty / Jumlah", expectedType: "number", description: "Jumlah unit" },
   { key: "hargaPerPcs", label: "Harga per pcs", expectedType: "number", description: "Harga per satuan" },
   { key: "kategori", label: "Kategori", expectedType: "relation", description: "Relasi Kategori" },
+  { key: "labaRugi", label: "Area Laba Rugi", expectedType: "relation", description: "Relasi ke Area Laba Rugi" },
 ];
 
 const LABA_RUGI_FIELDS: RequiredField[] = [
