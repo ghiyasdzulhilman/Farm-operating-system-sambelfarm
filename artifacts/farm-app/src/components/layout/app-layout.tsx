@@ -9,8 +9,6 @@ import {
   FlaskConical, 
   Settings, 
   Tractor,
-  Banknote,
-  ChevronRight,
   ClipboardList
 } from "lucide-react";
 
@@ -30,7 +28,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   // Definisi navigasi (Cuma 4 item)
   const navItems = [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { href: "/operasional", icon: ClipboardList, label: "Operasional" }, // Ganti ikon biar lebih pro
+    { href: "/operasional", icon: ClipboardList, label: "Operasional" },
     { href: "/lab", icon: FlaskConical, label: "Lab" },
     { href: "/settings", icon: Settings, label: "Setelan" },
   ];
@@ -55,14 +53,14 @@ export function AppLayout({ children }: { children: ReactNode }) {
         {children}
       </main>
 
-      {/* BOTTOM NAVIGATION (REVISED FOR PRECISION) */}
+      {/* BOTTOM NAVIGATION */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border pb-safe shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
         <div className="relative max-w-lg mx-auto h-16 px-4">
           
-          {/* CONTAINER JEMPOL: Isi 4 Nav + 1 Lobang di tengah */}
+          {/* CONTAINER JEMPOL */}
           <div className="flex items-center justify-between h-full w-full gap-1">
             
-            {/* Bagian Kiri (Nav 1 & 2) */}
+            {/* Bagian Kiri */}
             <div className="flex w-2/5 justify-around h-full items-center">
               {[navItems[0], navItems[1]].map((item) => {
                 const Icon = item.icon;
@@ -83,7 +81,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
             {/* LOBANG DI TENGAH */}
             <div className="w-1/5 flex justify-center items-center" />
 
-            {/* Bagian Kanan (Nav 3 & 4) */}
+            {/* Bagian Kanan */}
             <div className="flex w-2/5 justify-around h-full items-center">
               {[navItems[2], navItems[3]].map((item) => {
                 const Icon = item.icon;
@@ -102,13 +100,13 @@ export function AppLayout({ children }: { children: ReactNode }) {
             </div>
           </div>
 
-          {/* ----- THE SUPER FAB: Tombol Input Tengah (PRECISION TUNED) ----- */}
-          <div className="absolute left-1/2 -translate-x-1/2 -top-4 flex justify-center items-center"> {/* Turun dikit biar presisi */}
+          {/* ----- THE SUPER FAB ----- */}
+          <div className="absolute left-1/2 -translate-x-1/2 -top-4 flex justify-center items-center">
             
-            {/* Menu Pop-up pas tombol plus diklik */}
             <AnimatePresence>
               {isFabOpen && (
                 <>
+                  {/* Overlay Blur */}
                   <motion.div 
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -117,51 +115,26 @@ export function AppLayout({ children }: { children: ReactNode }) {
                     onClick={() => setIsFabOpen(false)}
                   />
                   
-                  {/* Pilihan Input: Gaya LIST ITEM Profesional (FULL REMAKE) */}
+                  {/* SPEED DIAL PATTERN: Langsung nampilin tombol polos melayang */}
                   <motion.div
                     initial={{ opacity: 0, y: 15, scale: 0.9, x: "-50%" }}
                     animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
                     exit={{ opacity: 0, y: 15, scale: 0.9, x: "-50%" }}
-                    className="absolute bottom-20 left-1/2 w-[280px] bg-card p-2 rounded-2xl border border-border shadow-2xl z-20"
+                    className="absolute bottom-20 left-1/2 flex flex-col gap-3 items-center z-20 w-max"
                   >
-                    <h4 className="text-xs font-semibold text-muted-foreground pt-2 px-3 pb-2">Menu Input Cepat</h4>
+                    <div onClick={() => setIsFabOpen(false)} className="drop-shadow-lg flex justify-center w-full">
+                      <AddHarvestDialog onSuccess={() => {}} />
+                    </div>
                     
-                    {/* LIST ITEM: Tambah Panen (🌶️) */}
-                    {/* Catatan: Komponen lu harusnya menerima children sebagai trigger, kalau tidak, gua perlu liat daleman komponen lu */}
-                    <AddHarvestDialog onSuccess={() => {}} >
-                        <div onClick={() => setIsFabOpen(false)} className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/60 transition-colors cursor-pointer text-left w-full border border-border/50 bg-background shadow-sm">
-                            <div className="flex items-center justify-center h-10 w-10 rounded-md bg-emerald-100 text-emerald-700">
-                                <Sprout className="h-5 w-5"/>
-                            </div>
-                            <div>
-                                <div className="text-sm font-semibold">Tambah Panen</div>
-                                <div className="text-[11px] text-muted-foreground">Catat hasil panen dari blok.</div>
-                            </div>
-                            <ChevronRight className="h-4 w-4 text-muted-foreground/50 ml-auto flex-shrink-0" />
-                        </div>
-                    </AddHarvestDialog>
-                    
-                    {/* LIST ITEM: Catat Pengeluaran (💸) */}
-                    <AddExpenseDialog onSuccess={() => {}} >
-                        <div onClick={() => setIsFabOpen(false)} className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/60 transition-colors cursor-pointer text-left w-full border border-border/50 bg-background shadow-sm mt-1">
-                            <div className="flex items-center justify-center h-10 w-10 rounded-md bg-rose-100 text-rose-700">
-                                <Banknote className="h-5 w-5"/>
-                            </div>
-                            <div>
-                                <div className="text-sm font-semibold">Catat Pengeluaran</div>
-                                <div className="text-[11px] text-muted-foreground">Catat biaya operasional.</div>
-                            </div>
-                            <ChevronRight className="h-4 w-4 text-muted-foreground/50 ml-auto flex-shrink-0" />
-                        </div>
-                    </AddExpenseDialog>
-                    
-                    <div className="pt-1" /> {/* Spacer bawah */}
+                    <div onClick={() => setIsFabOpen(false)} className="drop-shadow-lg flex justify-center w-full">
+                      <AddExpenseDialog onSuccess={() => {}} />
+                    </div>
                   </motion.div>
                 </>
               )}
             </AnimatePresence>
 
-            {/* Tombol Plus Tengah yang Presisi */}
+            {/* Tombol Plus Tengah */}
             <button
               onClick={() => setIsFabOpen(!isFabOpen)}
               className={`flex h-16 w-16 items-center justify-center rounded-full shadow-2xl text-white transition-all duration-300 ease-in-out active:scale-95 ${
