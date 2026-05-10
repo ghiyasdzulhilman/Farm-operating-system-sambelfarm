@@ -40,13 +40,14 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 
+// SATPAM DILONGGARIN: kategoriId & areaId dibuat optional biar form ga macet
 const expenseSchema = z.object({
   pengeluaran: z.string().min(1, "Nama pengeluaran wajib diisi"),
   date: z.string().min(1, "Tanggal wajib diisi"),
-  qty: z.coerce.number().min(1, "Qty minimal 1"),
+  qty: z.coerce.number().min(0.1, "Qty tidak valid"),
   hargaPerPcs: z.coerce.number().min(0, "Harga tidak boleh negatif"),
-  kategoriId: z.string().min(1, "Pilih kategori"),
-  areaId: z.string().min(1, "Pilih area"),
+  kategoriId: z.string().optional(),
+  areaId: z.string().optional(),
 });
 
 type ExpenseFormValues = z.infer<typeof expenseSchema>;
@@ -95,18 +96,24 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
         setOpen(false);
         onSuccess?.();
       },
-      onError: () => {
+      onError: (error) => {
         toast({
           variant: "destructive",
           title: "Gagal menyimpan",
-          description: "Terjadi kesalahan saat menyimpan pengeluaran ke Notion.",
+          description: "Cek kembali koneksi Notion atau pastikan mapping sudah benar.",
         });
       },
     },
   });
 
   function onSubmit(values: ExpenseFormValues) {
-    addExpense.mutate({ data: values });
+    // Bersihkan data kosong (ubah string kosong jadi undefined biar Notion ga error)
+    const cleanPayload = {
+      ...values,
+      kategoriId: values.kategoriId === "" ? undefined : values.kategoriId,
+      areaId: values.areaId === "" ? undefined : values.areaId,
+    };
+    addExpense.mutate({ data: cleanPayload as any });
   }
 
   const subtotal = (form.watch("qty") || 0) * (form.watch("hargaPerPcs") || 0);
@@ -191,7 +198,8 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                       <FormControl>
                         <Input
                           type="number"
-                          min={1}
+                          min={0.1}
+                          step="any"
                           placeholder="0"
                           data-testid="input-qty"
                           {...field}
@@ -237,24 +245,23 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                 name="kategoriId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Kategori</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <FormLabel>Kategori (Opsional)</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || ""}>
                       <FormControl>
                         <SelectTrigger data-testid="select-kategori">
                           <SelectValue placeholder="Pilih kategori pengeluaran..." />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {dropdownOptions?.categories.length === 0 && (
-                          <SelectItem value="_empty" disabled>
-                            Tidak ada kategori ditemukan
-                          </SelectItem>
+                        {dropdownOptions?.categories?.length === 0 ? (
+                          <SelectItem value="_empty" disabled>Tidak ada kategori ditemukan</SelectItem>
+                        ) : (
+                          dropdownOptions?.categories?.map((cat) => (
+                            <SelectItem key={cat.id} value={cat.id} data-testid={`option-kategori-${cat.id}`}>
+                              {cat.name}
+                            </SelectItem>
+                          ))
                         )}
-                        {dropdownOptions?.categories.map((cat) => (
-                          <SelectItem key={cat.id} value={cat.id} data-testid={`option-kategori-${cat.id}`}>
-                            {cat.name}
-                          </SelectItem>
-                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -267,24 +274,23 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                 name="areaId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Area (Laba Rugi)</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <FormLabel>Area Laba Rugi (Opsional)</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || ""}>
                       <FormControl>
                         <SelectTrigger data-testid="select-area">
                           <SelectValue placeholder="Pilih area kebun..." />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {dropdownOptions?.areas.length === 0 && (
-                          <SelectItem value="_empty" disabled>
-                            Tidak ada area ditemukan
-                          </SelectItem>
+                        {dropdownOptions?.areas?.length === 0 ? (
+                          <SelectItem value="_empty" disabled>Tidak ada area ditemukan</SelectItem>
+                        ) : (
+                          dropdownOptions?.areas?.map((area) => (
+                            <SelectItem key={area.id} value={area.id} data-testid={`option-area-${area.id}`}>
+                              {area.name}
+                            </SelectItem>
+                          ))
                         )}
-                        {dropdownOptions?.areas.map((area) => (
-                          <SelectItem key={area.id} value={area.id} data-testid={`option-area-${area.id}`}>
-                            {area.name}
-                          </SelectItem>
-                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
