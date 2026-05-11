@@ -379,36 +379,42 @@ const profitChartData = areas.map((area: any) => ({
 
     <Card>
       <CardHeader>
-        <CardTitle>Aktivitas Operasional</CardTitle>
+        <CardTitle>
+          Aktivitas Operasional
+        </CardTitle>
       </CardHeader>
 
       <CardContent className="space-y-3">
 
-{summary?.activities?.map(
-  (activity: any, index: number) => (
-    <div
-      key={index}
-      className="flex items-center justify-between p-3 rounded-lg border"
-    >
-      <div>
-        <p className="font-medium">
-          {activity.title}
-        </p>
+        {summary?.activities?.map(
+          (activity: any, index: number) => (
+            <div
+              key={index}
+              className="flex items-center justify-between p-3 rounded-lg border"
+            >
+              <div>
+                <p className="font-medium">
+                  {activity.title}
+                </p>
 
-        <p className="text-sm text-muted-foreground">
-          {activity.description}
-        </p>
-      </div>
+                <p className="text-sm text-muted-foreground">
+                  {activity.description}
+                </p>
+              </div>
 
-      <span className="text-xs text-muted-foreground">
-        {activity.time}
-      </span>
-    </div>
-  )
-)}
+              <span className="text-xs text-muted-foreground">
+                {activity.time}
+              </span>
+            </div>
+          )
+        )}
+
+      </CardContent>
+    </Card>
 
   </div>
 )}
+
 {activeSection === "insight" && (
   <div className="space-y-4">
 
