@@ -176,12 +176,13 @@ async function queryHarvestByArea(accessToken: string, databaseId: string, mappi
 }
 async function queryRecentActivities(
   accessToken: string,
-  databaseId: string
+  panenDatabaseId: string,
+  expensesDatabaseId: string
 ) {
 
   const activities: any[] = [];
 const response = await fetch(
-  `https://api.notion.com/v1/databases/${databaseId}/query`,
+  `https://api.notion.com/v1/databases/${panenDatabaseId}/query`,
   {
     method: "POST",
     headers: {
@@ -224,6 +225,54 @@ description: `${weight}kg berhasil dicatat`,
     time: "Baru saja",
   });
 
+}
+const expenseResponse = await fetch(
+  `https://api.notion.com/v1/databases/${expensesDatabaseId}/query`,
+  {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+      "Notion-Version": "2022-06-28",
+    },
+    body: JSON.stringify({
+      page_size: 5,
+    }),
+  }
+);
+
+if (expenseResponse.ok) {
+
+  const expenseData =
+    (await expenseResponse.json()) as NotionQueryResponse;
+for (const page of expenseData.results) {
+
+  const titleProp = Object.values(
+    page.properties
+  ).find((p: any) => p.type === "title") as any;
+
+  const expenseName =
+    titleProp?.title?.[0]?.plain_text ||
+    "Pengeluaran";
+
+  const numberProp = Object.values(
+    page.properties
+  ).find((p: any) => p.type === "number") as any;
+
+  const amount =
+    numberProp?.number || 0;
+
+  activities.push({
+    type: "expense",
+
+    title: expenseName,
+
+    description: `Pengeluaran Rp${amount.toLocaleString("id-ID")}`,
+
+    time: "Hari ini",
+  });
+
+}
 }
   return activities;
 }
@@ -343,8 +392,15 @@ res.json({
   lastUpdated: new Date().toISOString(),
 
   notionDatabaseId: dbLabaRugiId,
-activities: panenMapping?.notionDatabaseId
-  ? await queryRecentActivities(
+activities:
+  panenMapping?.notionDatabaseId &&
+  expensesMapping?.notionDatabaseId
+    ? await queryRecentActivities(
+        connection.accessToken,
+        panenMapping.notionDatabaseId,
+        expensesMapping.notionDatabaseId
+      )
+    : [],
       connection.accessToken,
       panenMapping.notionDatabaseId
     )
