@@ -639,21 +639,68 @@ export function SettingsPage() {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="laba_rugi">
-              <TabsList className="mb-6 flex-wrap h-auto p-1">
-                <TabsTrigger value="laba_rugi" className="flex-1 min-w-[120px]">
-                  Laba Rugi {dbSelections.labaRugi && <span className="ml-2 text-xs opacity-60 hidden sm:inline">({dbName(dbSelections.labaRugi)})</span>}
-                </TabsTrigger>
-                <TabsTrigger value="panen" className="flex-1 min-w-[120px]">
-                  Panen {dbSelections.panen && <span className="ml-2 text-xs opacity-60 hidden sm:inline">({dbName(dbSelections.panen)})</span>}
-                </TabsTrigger>
-                <TabsTrigger value="expenses" className="flex-1 min-w-[120px]">
-                  Pengeluaran {dbSelections.expenses && <span className="ml-2 text-xs opacity-60 hidden sm:inline">({dbName(dbSelections.expenses)})</span>}
-                </TabsTrigger>
-                {/* DITAMBAHKAN: Trigger Tab Kategori */}
-                <TabsTrigger value="kategori" className="flex-1 min-w-[120px]">
-                  Kategori {dbSelections.kategori && <span className="ml-2 text-xs opacity-60 hidden sm:inline">({dbName(dbSelections.kategori)})</span>}
-                </TabsTrigger>
-              </TabsList>
+              <Tabs defaultValue="laba_rugi">
+  <TabsList
+    className="
+      mb-6
+      flex
+      w-full
+      overflow-x-auto
+      whitespace-nowrap
+      rounded-2xl
+      bg-muted
+      p-1
+      gap-1
+    "
+  >
+    <TabsTrigger
+      value="laba_rugi"
+      className="
+        min-w-fit
+        px-5
+        rounded-xl
+        data-[state=active]:shadow-sm
+      "
+    >
+      Laba Rugi
+    </TabsTrigger>
+
+    <TabsTrigger
+      value="panen"
+      className="
+        min-w-fit
+        px-5
+        rounded-xl
+        data-[state=active]:shadow-sm
+      "
+    >
+      Panen
+    </TabsTrigger>
+
+    <TabsTrigger
+      value="expenses"
+      className="
+        min-w-fit
+        px-5
+        rounded-xl
+        data-[state=active]:shadow-sm
+      "
+    >
+      Pengeluaran
+    </TabsTrigger>
+
+    <TabsTrigger
+      value="kategori"
+      className="
+        min-w-fit
+        px-5
+        rounded-xl
+        data-[state=active]:shadow-sm
+      "
+    >
+      Kategori
+    </TabsTrigger>
+  </TabsList>
 
               <TabsContent value="laba_rugi">
                 <MappingSection dbType="laba_rugi" fields={LABA_RUGI_FIELDS} dbLabel="Laba Rugi" selectedDbId={dbSelections.labaRugi} />
