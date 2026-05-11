@@ -163,6 +163,7 @@ function MappingSection({ dbType, fields, dbLabel, selectedDbId }: MappingSectio
   });
 
   const properties: DatabaseProperty[] = inspected?.properties ?? [];
+
 function normalizeString(str: string) {
   return str
     .toLowerCase()
@@ -232,6 +233,7 @@ if (result.data?.properties?.length) {
   setTimeout(() => {
     autoMapFields();
   }, 100);
+}
 }
 
   const { mutateAsync: saveAsync, isPending: isSaving } = useSaveFieldMappings();
