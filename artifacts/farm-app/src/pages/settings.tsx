@@ -163,6 +163,57 @@ function MappingSection({ dbType, fields, dbLabel, selectedDbId }: MappingSectio
   });
 
   const properties: DatabaseProperty[] = inspected?.properties ?? [];
+function normalizeString(str: string) {
+  return str
+    .toLowerCase()
+    .replace(/\s+/g, "")
+    .replace(/[^\w]/g, "");
+}
+
+function autoMapFields() {
+  if (!properties.length) return;
+
+  const nextSelections: Record<string, string> = {};
+
+  for (const field of fields) {
+    const normalizedField = normalizeString(field.label);
+
+    const matched = properties.find((prop) => {
+      const normalizedProp = normalizeString(prop.name);
+
+      const typeCompatible =
+        prop.type === field.expectedType ||
+        (
+          field.expectedType === "rollup" &&
+          ["formula", "number", "rollup"].includes(prop.type)
+        );
+
+      return (
+        typeCompatible &&
+        (
+          normalizedProp.includes(normalizedField) ||
+          normalizedField.includes(normalizedProp)
+        )
+      );
+    });
+
+    if (matched) {
+      nextSelections[field.key] = matched.id;
+    }
+  }
+
+  if (Object.keys(nextSelections).length > 0) {
+    setSelections((prev) => ({
+      ...prev,
+      ...nextSelections,
+    }));
+
+    toast({
+      title: "Auto mapping berhasil",
+      description: `${Object.keys(nextSelections).length} kolom berhasil dipetakan otomatis.`,
+    });
+  }
+}
 
   async function handleLoadProperties() {
     if (!selectedDbId) {
@@ -173,9 +224,15 @@ function MappingSection({ dbType, fields, dbLabel, selectedDbId }: MappingSectio
       });
       return;
     }
-    await loadProperties();
-    setLoadedForDbId(selectedDbId);
-  }
+    const result = await loadProperties();
+
+setLoadedForDbId(selectedDbId);
+
+if (result.data?.properties?.length) {
+  setTimeout(() => {
+    autoMapFields();
+  }, 100);
+}
 
   const { mutateAsync: saveAsync, isPending: isSaving } = useSaveFieldMappings();
 
