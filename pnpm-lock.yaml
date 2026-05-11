@@ -156,6 +156,10 @@ overrides:
 importers:
 
   .:
+    dependencies:
+      date-fns:
+        specifier: ^3.6.0
+        version: 3.6.0
     devDependencies:
       prettier:
         specifier: ^3.8.1
