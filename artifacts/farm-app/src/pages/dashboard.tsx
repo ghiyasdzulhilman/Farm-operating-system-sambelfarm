@@ -166,7 +166,15 @@ const profitChartData = areas.map((area: any) => ({
       </div>
     );
   }
+const harvestActivities =
+  summary?.activities?.filter(
+    (a: any) => a.type === "harvest"
+  ) || [];
 
+const expenseActivities =
+  summary?.activities?.filter(
+    (a: any) => a.type === "expense"
+  ) || [];
   return (
     <div className="space-y-8 pb-10">
       <h1 className="text-3xl font-bold tracking-tight">Dashboard Finansial</h1>
