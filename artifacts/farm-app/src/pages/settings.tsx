@@ -62,8 +62,8 @@ const PANEN_FIELDS: RequiredField[] = [
   { key: "tanggal", label: "Tanggal", expectedType: "date|created_time", description: "Tanggal panen" },
   { key: "jumlahPanen", label: "Jumlah Panen (kg)", expectedType: "number", description: "Berat hasil panen" },
   { key: "hargaJualPerKg", label: "Harga Jual per Kg", expectedType: "number", description: "Harga jual per kg" },
-  { key: "kualitas", label: "Kualitas", expectedType: "select", description: "Grade A, B, C, dst." },
-  { key: "channelPenjualan", label: "Channel Penjualan", expectedType: "select", description: "Jalur penjualan" },
+  { key: "kualitas", label: "Kualitas", expectedType: "select|multi_select", description: "Grade A, B, C, dst." },
+  { key: "channelPenjualan", label: "Channel Penjualan", expectedType: "select|multi_select", description: "Jalur penjualan" },
   { key: "areaPindahTanam", label: "Area Pindah Tanam", expectedType: "relation", description: "Relasi ke Pindah Tanam" },
   { key: "labaRugi", label: "Area Laba Rugi", expectedType: "relation", description: "Relasi ke Area Laba Rugi" },
 ];
