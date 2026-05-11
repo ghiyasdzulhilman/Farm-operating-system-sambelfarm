@@ -35,7 +35,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+} from "recharts";
 export function DashboardPage() {
   const queryClient = useQueryClient();
   const [selectedAreaId, setSelectedAreaId] = useState<string>("all");
@@ -137,6 +144,10 @@ const localRecommendation =
     : displayData.margin < 15
       ? "Margin area ini rendah. Perlu optimasi produksi."
       : "Performa area dalam kondisi baik.";
+const profitChartData = areas.map((area: any) => ({
+  name: area.name,
+  profit: area.profit,
+}));
   const handleRefreshSummary = () => {
     queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
     refetch();
@@ -249,11 +260,34 @@ const localRecommendation =
               <div className="h-full bg-primary transition-all duration-1000" style={{ width: `${Math.min((displayData.pendapatan / (displayData.modal || 1)) * 100, 100)}%` }} />
             </div>
             <p className="text-xs text-muted-foreground mt-2">
-              {displayData.pendapatan >= displayData.modal ? "🚀 Modal Balik!" : `Butuh ${formatCurrency(displayData.modal - displayData.pendapatan)} lagi.`}
+              {displayData.pendapatan >= displayData.modal ? "Modal Balik!" : `Butuh ${formatCurrency(displayData.modal - displayData.pendapatan)} lagi.`}
             </p>
           </CardContent>
         </Card>
       </div>
+<Card>
+  <CardHeader>
+    <CardTitle>
+      Profit per Area
+    </CardTitle>
+  </CardHeader>
+
+  <CardContent>
+    <div className="h-[300px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={profitChartData}>
+          <XAxis dataKey="name" />
+
+          <YAxis />
+
+          <Tooltip />
+
+          <Bar dataKey="profit" />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  </CardContent>
+</Card>
   </>
 )}
 {activeSection === "production" && (
