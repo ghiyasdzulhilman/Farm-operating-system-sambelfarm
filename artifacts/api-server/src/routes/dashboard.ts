@@ -174,24 +174,43 @@ async function queryHarvestByArea(accessToken: string, databaseId: string, mappi
 
   return weightMap;
 }
-async function queryRecentActivities() {
+async function queryRecentActivities(
+  accessToken: string,
+  databaseId: string
+) {
 
-  const activities = [
-    {
-      type: "harvest",
-      title: "Panen baru",
-      description: "75kg berhasil dicatat",
-      time: "Baru saja",
+  const activities: any[] = [];
+const response = await fetch(
+  `https://api.notion.com/v1/databases/${databaseId}/query`,
+  {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+      "Notion-Version": "2022-06-28",
     },
+    body: JSON.stringify({
+      page_size: 5,
+    }),
+  }
+);
 
-    {
-      type: "expense",
-      title: "Pengeluaran baru",
-      description: "Pembelian pupuk & nutrisi",
-      time: "Hari ini",
-    },
-  ];
+if (!response.ok) {
+  return [];
+}
 
+const data =
+  (await response.json()) as NotionQueryResponse;
+for (const page of data.results) {
+
+  activities.push({
+    type: "harvest",
+    title: "Panen baru",
+    description: "Data panen berhasil dicatat",
+    time: "Baru saja",
+  });
+
+}
   return activities;
 }
 // --- 3. Endpoint Dashboard Summary ---
@@ -310,7 +329,12 @@ res.json({
   lastUpdated: new Date().toISOString(),
 
   notionDatabaseId: dbLabaRugiId,
-activities: await queryRecentActivities(),
+activities: panenMapping?.notionDatabaseId
+  ? await queryRecentActivities(
+      connection.accessToken,
+      panenMapping.notionDatabaseId
+    )
+  : [],
 });
 });
 
