@@ -507,12 +507,19 @@ const isMapped = savedCount > 0;
               "
             >
               <SelectValue
-                placeholder={
-                  properties.length === 0
-                    ? "Muat kolom dulu..."
-                    : "Pilih kolom Notion..."
-                }
-              />
+  placeholder={
+    properties.length === 0
+      ? "Muat kolom dulu..."
+      : "Pilih kolom Notion..."
+  }
+>
+  {matchedProp ? (
+    <div className="flex items-center gap-2">
+      <TypeBadge type={matchedProp.type} />
+      <span>{matchedProp.name}</span>
+    </div>
+  ) : null}
+</SelectValue>
             </SelectTrigger>
 
             <SelectContent className="max-h-[300px]">
