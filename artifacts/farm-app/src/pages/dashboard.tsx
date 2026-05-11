@@ -275,14 +275,30 @@ const profitChartData = areas.map((area: any) => ({
   <CardContent>
     <div className="h-[300px]">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={profitChartData}>
+        <BarChart
+  data={profitChartData}
+  margin={{
+    top: 10,
+    right: 10,
+    left: -20,
+    bottom: 10,
+  }}
+>
           <XAxis dataKey="name" />
 
-          <YAxis />
+          <YAxis
+  tickFormatter={(value) =>
+    `${(value / 1000000).toFixed(0)}jt`
+  }
+/>
 
           <Tooltip />
 
-          <Bar dataKey="profit" />
+          <Bar
+  dataKey="profit"
+  fill="#16a34a"
+  radius={[6, 6, 0, 0]}
+/>
         </BarChart>
       </ResponsiveContainer>
     </div>
