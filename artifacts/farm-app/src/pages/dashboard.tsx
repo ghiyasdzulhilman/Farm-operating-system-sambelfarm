@@ -421,16 +421,24 @@ const [activeSection, setActiveSection] = useState<
 
         <div className="p-3 rounded-lg border bg-background">
           <p className="font-medium">
-            🚀 Status Bisnis
+            📊 Status Bisnis
           </p>
 
           <p className="text-sm text-muted-foreground mt-1">
-            {displayData.profit > 0
-              ? "Usaha sedang menghasilkan profit positif."
-              : "Usaha masih dalam fase pengembangan modal."}
+            {summary?.insight?.businessStatus === "Profitable"
+  ? "Usaha sedang menghasilkan profit positif."
+  : "Usaha masih dalam fase pengembangan modal."}
           </p>
         </div>
+<div className="p-3 rounded-lg border bg-background">
+  <p className="font-medium">
+    🎧 Rekomendasi Sistem
+  </p>
 
+  <p className="text-sm text-muted-foreground mt-1">
+    {summary?.insight?.recommendation}
+  </p>
+</div>
       </CardContent>
     </Card>
 
