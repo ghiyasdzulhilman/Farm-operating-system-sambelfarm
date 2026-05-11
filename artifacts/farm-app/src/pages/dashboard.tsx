@@ -390,7 +390,11 @@ const profitChartData = areas.map((area: any) => ({
           (activity: any, index: number) => (
             <div
               key={index}
-              className="flex items-center justify-between p-3 rounded-lg border"
+              className={`flex items-center justify-between p-3 rounded-lg border ${
+  activity.type === "harvest"
+    ? "border-emerald-200 bg-emerald-50/50"
+    : "border-amber-200 bg-amber-50/50"
+}`}
             >
               <div>
                 <p className="font-medium">
