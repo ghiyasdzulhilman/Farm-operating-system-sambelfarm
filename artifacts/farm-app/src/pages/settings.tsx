@@ -296,7 +296,16 @@ if (result.data?.properties?.length) {
   }
 
   const savedCount = Object.keys(saved?.mappings ?? {}).length;
-  const isMapped = savedCount > 0;
+
+const totalFields = fields.length;
+
+const missingFields = fields.filter(
+  (field) => !saved?.mappings?.[field.key]
+);
+
+const isComplete = missingFields.length === 0;
+
+const isMapped = savedCount > 0;
 
   return (
     <div className="space-y-5">
@@ -320,9 +329,13 @@ if (result.data?.properties?.length) {
                 : "text-amber-700 dark:text-amber-300"
             }
           >
-            {isMapped
-              ? `${savedCount} dari ${fields.length} field sudah dipetakan.`
-              : `Belum ada pemetaan untuk database ${dbLabel}.`}
+            {
+  isMapped
+    ? isComplete
+      ? `✅ Semua field (${totalFields}) sudah dipetakan dan siap digunakan.`
+      : `⚠️ ${savedCount}/${totalFields} field dipetakan. Masih ada ${missingFields.length} field belum lengkap.`
+    : `Belum ada pemetaan untuk database ${dbLabel}.`
+}
           </AlertDescription>
         </Alert>
       )}
