@@ -402,13 +402,12 @@ res.json({
 
   notionDatabaseId: dbLabaRugiId,
 activities:
-  panenMapping?.notionDatabaseId &&
-  expensesMapping?.notionDatabaseId
+  panenMapping?.notionDatabaseId
     ? await queryRecentActivities(
-        connection.accessToken,
-        panenMapping.notionDatabaseId,
-        expensesMapping.notionDatabaseId
-      )
+  connection.accessToken,
+  panenMapping.notionDatabaseId,
+  expensesMapping?.notionDatabaseId || ""
+)
     : [],
       
 });
