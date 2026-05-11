@@ -311,7 +311,7 @@ const [expensesMapping] = await db
   .from(fieldMappingsTable)
   .where(and(
     eq(fieldMappingsTable.userId, userId),
-    eq(fieldMappingsTable.databaseType, "expenses"),
+    eq(fieldMappingsTable.databaseType, "pengeluaran"),
   ));
     .select()
     .from(fieldMappingsTable)
