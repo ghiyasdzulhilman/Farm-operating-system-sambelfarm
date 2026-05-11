@@ -262,7 +262,7 @@ const [activeSection, setActiveSection] = useState<
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium">
-            Produktivitas
+            Harga jual rata rata
           </CardTitle>
         </CardHeader>
 
