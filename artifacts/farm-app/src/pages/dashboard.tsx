@@ -39,7 +39,13 @@ import {
 export function DashboardPage() {
   const queryClient = useQueryClient();
   const [selectedAreaId, setSelectedAreaId] = useState<string>("all");
-
+const [activeSection, setActiveSection] = useState<
+  "overview" |
+  "financial" |
+  "production" |
+  "operational" |
+  "insight"
+>("overview");
   const {
     data: connectionStatus,
     isLoading: isLoadingConnection,
@@ -133,7 +139,31 @@ export function DashboardPage() {
   return (
     <div className="space-y-8 pb-10">
       <h1 className="text-3xl font-bold tracking-tight">Dashboard Finansial</h1>
+<div className="sticky top-14 z-20 bg-background/95 backdrop-blur border-b mb-6">
+  <div className="flex gap-2 overflow-x-auto py-3 scrollbar-hide">
 
+    {[
+      { key: "overview", label: "Overview" },
+      { key: "financial", label: "Finansial" },
+      { key: "production", label: "Produksi" },
+      { key: "operational", label: "Operasional" },
+      { key: "insight", label: "Insight" },
+    ].map((tab) => (
+      <button
+        key={tab.key}
+        onClick={() => setActiveSection(tab.key as any)}
+        className={`px-4 py-2 rounded-full text-sm whitespace-nowrap transition-all ${
+          activeSection === tab.key
+            ? "bg-primary text-primary-foreground"
+            : "bg-muted text-muted-foreground"
+        }`}
+      >
+        {tab.label}
+      </button>
+    ))}
+
+  </div>
+</div>
       {/* Baris Filter & Refresh */}
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-muted/30 p-3 rounded-lg border border-border/50">
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -153,7 +183,9 @@ export function DashboardPage() {
           </Select>
         </div>
       </div>
-
+{(activeSection === "overview" ||
+  activeSection === "financial") && (
+  <>
       {/* Main Cards */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Modal Awal</CardTitle></CardHeader>
@@ -202,6 +234,8 @@ export function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+  </>
+)}
     </div>
   );
 }
