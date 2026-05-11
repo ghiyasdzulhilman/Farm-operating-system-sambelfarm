@@ -234,18 +234,62 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
   }));
 
   // Tembak balikan JSON ke Frontend Dashboard
-  res.json({
+  const totalProfit =
+  resultLabaRugi.totalPendapatan -
+  resultLabaRugi.totalPengeluaran;
+
+const hpp =
+  resultLabaRugi.totalPengeluaran /
+  (harvestMap.global || 1);
+
+const bepProgress =
+  (resultLabaRugi.totalPendapatan /
+    (resultLabaRugi.totalModal || 1)) *
+  100;
+
+res.json({
+  financial: {
     totalModal: resultLabaRugi.totalModal,
     totalPendapatan: resultLabaRugi.totalPendapatan,
     totalPengeluaran: resultLabaRugi.totalPengeluaran,
-    labaRugi: resultLabaRugi.totalPendapatan - resultLabaRugi.totalPengeluaran,
+    labaRugi: totalProfit,
     marginTotal: resultLabaRugi.marginTotal,
-    areas: finalAreas, 
-    totalHarvestWeight: harvestMap.global, // Ini 393 kg buat Global
-    currency: "IDR",
-    lastUpdated: new Date().toISOString(),
-    notionDatabaseId: dbLabaRugiId,
-  });
+    bepProgress,
+  },
+
+  production: {
+    totalHarvestWeight: harvestMap.global,
+    hpp,
+    averageRevenuePerKg:
+      resultLabaRugi.totalPendapatan /
+      (harvestMap.global || 1),
+  },
+
+  operational: {
+    totalAreas: finalAreas.length,
+    activeAreas: finalAreas.length,
+  },
+
+  insight: {
+    businessStatus:
+      totalProfit > 0
+        ? "Profitable"
+        : "Developing",
+
+    recommendation:
+      resultLabaRugi.marginTotal < 15
+        ? "Margin rendah, efisiensi operasional perlu ditingkatkan."
+        : "Performa usaha dalam kondisi baik.",
+  },
+
+  areas: finalAreas,
+
+  currency: "IDR",
+
+  lastUpdated: new Date().toISOString(),
+
+  notionDatabaseId: dbLabaRugiId,
+});
 });
 
 export default router;
