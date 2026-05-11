@@ -314,6 +314,10 @@ const [panenMapping] = await db
 
 // Tarik Mapping Pengeluaran
 const [expensesMapping] = await db
+console.log(
+  "EXPENSE DB:",
+  expensesMapping?.notionDatabaseId
+);
   .select()
   .from(fieldMappingsTable)
   .where(and(
