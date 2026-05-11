@@ -451,6 +451,11 @@ const expenseActivities =
     )
   )}
 </div>
+      </CardContent>
+    </Card>
+
+  </div>
+)}
 
 {activeSection === "insight" && (
   <div className="space-y-4">
