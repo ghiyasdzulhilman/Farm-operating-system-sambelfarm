@@ -126,7 +126,17 @@ const [activeSection, setActiveSection] = useState<
       return dateString;
     }
   };
+const localBusinessStatus =
+  displayData.margin > 0
+    ? "Profitable"
+    : "Developing";
 
+const localRecommendation =
+  displayData.margin < 0
+    ? "Usaha area ini masih merugi. Fokus efisiensi biaya operasional."
+    : displayData.margin < 15
+      ? "Margin area ini rendah. Perlu optimasi produksi."
+      : "Performa area dalam kondisi baik.";
   const handleRefreshSummary = () => {
     queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
     refetch();
@@ -389,7 +399,7 @@ const [activeSection, setActiveSection] = useState<
 
       <CardContent className="space-y-4">
 <p className="text-xs text-red-500">
-  {summary?.insight?.businessStatus}
+  {summary?.insight?.localBusinessStatus}
 </p>
 
 <p className="text-xs text-blue-500">
@@ -397,7 +407,7 @@ const [activeSection, setActiveSection] = useState<
 </p>
         <div className="p-3 rounded-lg border bg-background">
           <p className="font-medium">
-            📈 Margin Usaha
+            📈 Margin Area
           </p>
 
           <p className="text-sm text-muted-foreground mt-1">
@@ -427,7 +437,7 @@ const [activeSection, setActiveSection] = useState<
 
         <div className="p-3 rounded-lg border bg-background">
           <p className="font-medium">
-            📊 Status Bisnis
+            📊 Status Area
           </p>
 
           <p className="text-sm text-muted-foreground mt-1">
@@ -442,7 +452,7 @@ const [activeSection, setActiveSection] = useState<
   </p>
 
   <p className="text-sm text-muted-foreground mt-1">
-    {summary?.insight?.recommendation}
+    {summary?.insight?.localRecommendation}
   </p>
 </div>
       </CardContent>
