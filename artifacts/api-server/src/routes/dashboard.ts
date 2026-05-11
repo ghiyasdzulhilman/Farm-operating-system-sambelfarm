@@ -236,9 +236,15 @@ const dateProp = Object.values(
     p.type === "created_time"
 ) as any;
 
-const activityDate =
-  dateProp?.date?.start ||
-  dateProp?.created_time;
+let activityDate = "";
+
+if (dateProp?.type === "date") {
+  activityDate = dateProp.date?.start || "";
+}
+
+if (dateProp?.type === "created_time") {
+  activityDate = dateProp.created_time || "";
+}
 const numberProp = Object.values(
   page.properties
 ).find(
