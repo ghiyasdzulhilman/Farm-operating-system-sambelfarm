@@ -384,56 +384,28 @@ const profitChartData = areas.map((area: any) => ({
 
       <CardContent className="space-y-3">
 
-        <div className="flex items-center justify-between p-3 rounded-lg border">
-          <div>
-            <p className="font-medium">
-              Input Panen
-            </p>
+{summary?.activities?.map(
+  (activity: any, index: number) => (
+    <div
+      key={index}
+      className="flex items-center justify-between p-3 rounded-lg border"
+    >
+      <div>
+        <p className="font-medium">
+          {activity.title}
+        </p>
 
-            <p className="text-sm text-muted-foreground">
-              Data panen berhasil dicatat
-            </p>
-          </div>
+        <p className="text-sm text-muted-foreground">
+          {activity.description}
+        </p>
+      </div>
 
-          <span className="text-xs text-muted-foreground">
-            Baru saja
-          </span>
-        </div>
-
-        <div className="flex items-center justify-between p-3 rounded-lg border">
-          <div>
-            <p className="font-medium">
-              Pengeluaran Baru
-            </p>
-
-            <p className="text-sm text-muted-foreground">
-              Pembelian pupuk & nutrisi
-            </p>
-          </div>
-
-          <span className="text-xs text-muted-foreground">
-            Hari ini
-          </span>
-        </div>
-
-        <div className="flex items-center justify-between p-3 rounded-lg border">
-          <div>
-            <p className="font-medium">
-              Area Aktif
-            </p>
-
-            <p className="text-sm text-muted-foreground">
-              {areas.length} blok sedang berjalan
-            </p>
-          </div>
-
-          <span className="text-xs text-emerald-600">
-            Aktif
-          </span>
-        </div>
-
-      </CardContent>
-    </Card>
+      <span className="text-xs text-muted-foreground">
+        {activity.time}
+      </span>
+    </div>
+  )
+)}
 
   </div>
 )}
