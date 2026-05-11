@@ -399,7 +399,7 @@ const localRecommendation =
 
       <CardContent className="space-y-4">
 <p className="text-xs text-red-500">
-  {summary?.insight?.localBusinessStatus}
+  {localBusinessStatus}
 </p>
 
 <p className="text-xs text-blue-500">
@@ -452,7 +452,7 @@ const localRecommendation =
   </p>
 
   <p className="text-sm text-muted-foreground mt-1">
-    {summary?.insight?.localRecommendation}
+    {localRecommendation}
   </p>
 </div>
       </CardContent>
