@@ -183,6 +183,7 @@ async function queryRecentActivities(
 
   const activities: any[] = [];
 const expenseAmountPropId =
+  expensesMappings?.subtotal?.propertyId ||
   expensesMappings?.hargaPerPcs?.propertyId ||
   expensesMappings?.total?.propertyId ||
   expensesMappings?.jumlah?.propertyId;
@@ -216,13 +217,11 @@ const areaName =
   titleProp?.title?.[0]?.plain_text ||
   "Area";
 
-const numberProp = expenseAmountPropId
-  ? Object.values(page.properties).find(
-      (p: any) => p.id === expenseAmountPropId
-    ) as any
-  : Object.values(page.properties).find(
-      (p: any) => p.type === "number"
-    ) as any;
+const numberProp = Object.values(
+  page.properties
+).find(
+  (p: any) => p.type === "number"
+) as any;
 
 const weight =
   numberProp?.number || 0;
@@ -264,14 +263,16 @@ for (const page of expenseData.results) {
     titleProp?.title?.[0]?.plain_text ||
     "Pengeluaran";
 
-  const numberProp = Object.values(
-    page.properties
-  ).find((p: any) => p.type === "number") as any;
+  const formulaProp = Object.values(
+  page.properties
+).find(
+  (p: any) =>
+    p.type === "formula" &&
+    typeof p.formula?.number === "number"
+) as any;
 
-  const amount =
-  numberProp?.type === "formula"
-    ? numberProp.formula?.number || 0
-    : numberProp?.number || 0;
+const amount =
+  formulaProp?.formula?.number || 0;
 
   activities.push({
     type: "expense",
