@@ -77,15 +77,25 @@ const [activeSection, setActiveSection] = useState<
     if (!summary) return { modal: 0, pendapatan: 0, pengeluaran: 0, profit: 0, margin: 0, harvestWeight: 0 };
 
     if (selectedAreaId === "all") {
-      return {
-        modal: summary.totalModal || 0,
-        pendapatan: summary.totalPendapatan || 0,
-        pengeluaran: summary.totalPengeluaran || 0,
-        profit: summary.labaRugi || 0,
-        margin: summary.marginTotal || 0,
-        harvestWeight: summary.totalHarvestWeight || 0, // Gunakan 393 kg
-      };
-    }
+  return {
+    modal: summary.financial?.totalModal || 0,
+
+    pendapatan:
+      summary.financial?.totalPendapatan || 0,
+
+    pengeluaran:
+      summary.financial?.totalPengeluaran || 0,
+
+    profit:
+      summary.financial?.labaRugi || 0,
+
+    margin:
+      summary.financial?.marginTotal || 0,
+
+    harvestWeight:
+      summary.production?.totalHarvestWeight || 0,
+  };
+}
 
     const area = areas.find((a: any) => a.id === selectedAreaId);
     if (!area) return { modal: 0, pendapatan: 0, pengeluaran: 0, profit: 0, margin: 0, harvestWeight: 0 };
