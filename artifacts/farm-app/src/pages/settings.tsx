@@ -639,7 +639,6 @@ export function SettingsPage() {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="laba_rugi">
-              <Tabs defaultValue="laba_rugi">
   <TabsList
     className="
       mb-6
@@ -701,6 +700,8 @@ export function SettingsPage() {
       Kategori
     </TabsTrigger>
   </TabsList>
+
+  <TabsContent value="laba_rugi">
 
               <TabsContent value="laba_rugi">
                 <MappingSection dbType="laba_rugi" fields={LABA_RUGI_FIELDS} dbLabel="Laba Rugi" selectedDbId={dbSelections.labaRugi} />
