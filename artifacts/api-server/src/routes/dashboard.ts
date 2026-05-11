@@ -367,7 +367,7 @@ const [expensesMapping] = await db
     eq(fieldMappingsTable.userId, userId),
     eq(fieldMappingsTable.databaseType, "pengeluaran"),
   ));
-
+console.log(expensesMapping);
 console.log(
   "EXPENSE DB:",
   expensesMapping?.notionDatabaseId
