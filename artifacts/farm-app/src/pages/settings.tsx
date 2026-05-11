@@ -701,8 +701,6 @@ export function SettingsPage() {
     </TabsTrigger>
   </TabsList>
 
-  <TabsContent value="laba_rugi">
-
               <TabsContent value="laba_rugi">
                 <MappingSection dbType="laba_rugi" fields={LABA_RUGI_FIELDS} dbLabel="Laba Rugi" selectedDbId={dbSelections.labaRugi} />
               </TabsContent>
