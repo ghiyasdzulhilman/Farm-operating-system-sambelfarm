@@ -278,7 +278,10 @@ const expenseResponse = await fetch(
     }),
   }
 );
-
+console.log(
+  "EXPENSE STATUS:",
+  expenseResponse.status
+);
 if (expenseResponse.ok) {
 
   const expenseData =
