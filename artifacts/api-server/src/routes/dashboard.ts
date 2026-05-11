@@ -269,7 +269,9 @@ for (const page of expenseData.results) {
   ).find((p: any) => p.type === "number") as any;
 
   const amount =
-    numberProp?.number || 0;
+  numberProp?.type === "formula"
+    ? numberProp.formula?.number || 0
+    : numberProp?.number || 0;
 
   activities.push({
     type: "expense",
