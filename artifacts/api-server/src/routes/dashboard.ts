@@ -5,7 +5,7 @@ import { eq, and } from "drizzle-orm";
 import { formatDistanceToNow } from "date-fns";
 const router: IRouter = Router();
 
-// --- Interface Notion ---
+// -- Interface Notion --
 interface NotionProperty {
   id: string;
   type: string;
