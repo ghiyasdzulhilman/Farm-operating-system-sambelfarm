@@ -174,7 +174,26 @@ async function queryHarvestByArea(accessToken: string, databaseId: string, mappi
 
   return weightMap;
 }
+async function queryRecentActivities() {
 
+  const activities = [
+    {
+      type: "harvest",
+      title: "Panen baru",
+      description: "75kg berhasil dicatat",
+      time: "Baru saja",
+    },
+
+    {
+      type: "expense",
+      title: "Pengeluaran baru",
+      description: "Pembelian pupuk & nutrisi",
+      time: "Hari ini",
+    },
+  ];
+
+  return activities;
+}
 // --- 3. Endpoint Dashboard Summary ---
 router.get("/dashboard/summary", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
@@ -291,6 +310,7 @@ res.json({
   lastUpdated: new Date().toISOString(),
 
   notionDatabaseId: dbLabaRugiId,
+activities: await queryRecentActivities(),
 });
 });
 
