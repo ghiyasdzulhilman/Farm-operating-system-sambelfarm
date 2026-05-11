@@ -59,7 +59,7 @@ interface RequiredField {
 
 const PANEN_FIELDS: RequiredField[] = [
   { key: "kegiatan", label: "Kegiatan / Judul", expectedType: "title", description: "Nama sesi panen" },
-  { key: "tanggal", label: "Tanggal", expectedType: "date", description: "Tanggal panen" },
+  { key: "tanggal", label: "Tanggal", expectedType: "date|created_time", description: "Tanggal panen" },
   { key: "jumlahPanen", label: "Jumlah Panen (kg)", expectedType: "number", description: "Berat hasil panen" },
   { key: "hargaJualPerKg", label: "Harga Jual per Kg", expectedType: "number", description: "Harga jual per kg" },
   { key: "kualitas", label: "Kualitas", expectedType: "select", description: "Grade A, B, C, dst." },
@@ -70,7 +70,7 @@ const PANEN_FIELDS: RequiredField[] = [
 
 const EXPENSES_FIELDS: RequiredField[] = [
   { key: "pengeluaran", label: "Nama Pengeluaran", expectedType: "title", description: "Nama item pengeluaran" },
-  { key: "date", label: "Tanggal", expectedType: "date", description: "Tanggal transaksi" },
+  { key: "date", label: "Tanggal", expectedType: "date|created_time", description: "Tanggal transaksi" },
   { key: "qty", label: "Qty / Jumlah", expectedType: "number", description: "Jumlah unit" },
   { key: "hargaPerPcs", label: "Harga per pcs", expectedType: "number", description: "Harga per satuan" },
   { key: "kategori", label: "Kategori", expectedType: "relation", description: "Relasi Kategori" },
@@ -191,7 +191,9 @@ function autoMapFields() {
       const normalizedProp = normalizeString(prop.name);
 
       const typeCompatible =
-        prop.type === field.expectedType ||
+  field.expectedType
+    .split("|")
+    .includes(prop.type) ||
         (
           field.expectedType === "rollup" &&
           ["formula", "number", "rollup"].includes(prop.type)
