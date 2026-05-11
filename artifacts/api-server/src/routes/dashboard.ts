@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { getAuth } from "@clerk/express";
 import { db, notionConnectionsTable, fieldMappingsTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
-
+import { formatDistanceToNow } from "date-fns";
 const router: IRouter = Router();
 
 // --- Interface Notion ---
@@ -174,6 +174,18 @@ async function queryHarvestByArea(accessToken: string, databaseId: string, mappi
 
   return weightMap;
 }
+function formatRelativeTime(dateString?: string) {
+  if (!dateString) return "Baru saja";
+
+  try {
+    return formatDistanceToNow(
+      new Date(dateString),
+      { addSuffix: true }
+    );
+  } catch {
+    return "Baru saja";
+  }
+}
 async function queryRecentActivities(
   accessToken: string,
   panenDatabaseId: string,
@@ -216,7 +228,17 @@ const titleProp = Object.values(
 const areaName =
   titleProp?.title?.[0]?.plain_text ||
   "Area";
+const dateProp = Object.values(
+  page.properties
+).find(
+  (p: any) =>
+    p.type === "date" ||
+    p.type === "created_time"
+) as any;
 
+const activityDate =
+  dateProp?.date?.start ||
+  dateProp?.created_time;
 const numberProp = Object.values(
   page.properties
 ).find(
