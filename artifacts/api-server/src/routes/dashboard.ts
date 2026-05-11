@@ -304,7 +304,14 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
     ));
 
   // Tarik Mapping Panen
-  const [panenMapping] = await db
+const [panenMapping] = await db
+  .select()
+  .from(fieldMappingsTable)
+  .where(and(
+    eq(fieldMappingsTable.userId, userId),
+    eq(fieldMappingsTable.databaseType, "panen"),
+  ));
+
 // Tarik Mapping Pengeluaran
 const [expensesMapping] = await db
   .select()
@@ -313,12 +320,6 @@ const [expensesMapping] = await db
     eq(fieldMappingsTable.userId, userId),
     eq(fieldMappingsTable.databaseType, "pengeluaran"),
   ));
-    .select()
-    .from(fieldMappingsTable)
-    .where(and(
-      eq(fieldMappingsTable.userId, userId),
-      eq(fieldMappingsTable.databaseType, "panen"),
-    ));
 
   const dbLabaRugiId = labaRugiMapping?.notionDatabaseId;
   const mappingsLabaRugi = labaRugiMapping?.mappings || {};
@@ -409,10 +410,7 @@ activities:
         expensesMapping.notionDatabaseId
       )
     : [],
-      connection.accessToken,
-      panenMapping.notionDatabaseId
-    )
-  : [],
+      
 });
 });
 
