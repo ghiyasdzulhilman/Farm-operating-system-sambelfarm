@@ -252,7 +252,7 @@ const weight =
     title: `Panen ${areaName}`,
 
 description: `${weight}kg berhasil dicatat`,
-    time: "Baru saja",
+    time: formatRelativeTime(activityDate),
   });
 
 }
