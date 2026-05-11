@@ -234,6 +234,8 @@ const [activeSection, setActiveSection] = useState<
           </CardContent>
         </Card>
       </div>
+  </>
+)}
 {activeSection === "production" && (
   <div className="space-y-4">
 
@@ -301,8 +303,6 @@ const [activeSection, setActiveSection] = useState<
     </div>
 
   </div>
-)}
-  </>
 )}
     </div>
   );
