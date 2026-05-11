@@ -130,7 +130,7 @@ const localBusinessStatus =
   displayData.margin > 0
     ? "Profitable"
     : "Developing";
-<p>{localRecommendation}</p>
+
 const localRecommendation =
   displayData.margin < 0
     ? "Usaha area ini masih merugi. Fokus efisiensi biaya operasional."
