@@ -394,38 +394,63 @@ const expenseActivities =
 
       <CardContent className="space-y-3">
 
-        {summary?.activities?.map(
-          (activity: any, index: number) => (
-            <div
-              key={index}
-              className={`flex items-center justify-between p-3 rounded-lg border ${
-  activity.type === "harvest"
-    ? "border-emerald-200 bg-emerald-50/50"
-    : "border-amber-200 bg-amber-50/50"
-}`}
-            >
-              <div>
-                <p className="font-medium">
-                  {activity.title}
-                </p>
+        <div className="space-y-2">
+  <p className="text-sm font-semibold text-emerald-700">
+    🌾 Aktivitas Panen
+  </p>
 
-                <p className="text-sm text-muted-foreground">
-                  {activity.description}
-                </p>
-              </div>
+  {harvestActivities.map(
+    (activity: any, index: number) => (
+      <div
+        key={index}
+        className="flex items-center justify-between p-3 rounded-lg border border-emerald-200 bg-emerald-50/50"
+      >
+        <div>
+          <p className="font-medium">
+            {activity.title}
+          </p>
 
-              <span className="text-xs text-muted-foreground">
-                {activity.time}
-              </span>
-            </div>
-          )
-        )}
+          <p className="text-sm text-muted-foreground">
+            {activity.description}
+          </p>
+        </div>
 
-      </CardContent>
-    </Card>
+        <span className="text-xs text-muted-foreground">
+          {activity.time}
+        </span>
+      </div>
+    )
+  )}
+</div>
 
-  </div>
-)}
+<div className="space-y-2 pt-4">
+  <p className="text-sm font-semibold text-amber-700">
+    💸 Aktivitas Pengeluaran
+  </p>
+
+  {expenseActivities.map(
+    (activity: any, index: number) => (
+      <div
+        key={index}
+        className="flex items-center justify-between p-3 rounded-lg border border-amber-200 bg-amber-50/50"
+      >
+        <div>
+          <p className="font-medium">
+            {activity.title}
+          </p>
+
+          <p className="text-sm text-muted-foreground">
+            {activity.description}
+          </p>
+        </div>
+
+        <span className="text-xs text-muted-foreground">
+          {activity.time}
+        </span>
+      </div>
+    )
+  )}
+</div>
 
 {activeSection === "insight" && (
   <div className="space-y-4">
