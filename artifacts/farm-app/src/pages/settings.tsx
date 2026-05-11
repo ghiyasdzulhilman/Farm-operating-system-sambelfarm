@@ -163,7 +163,15 @@ function MappingSection({ dbType, fields, dbLabel, selectedDbId }: MappingSectio
   });
 
   const properties: DatabaseProperty[] = inspected?.properties ?? [];
-
+useEffect(() => {
+  if (
+    selectedDbId &&
+    properties.length === 0 &&
+    !isInspecting
+  ) {
+    loadProperties();
+  }
+}, [selectedDbId]);
 function normalizeString(str: string) {
   return str
     .toLowerCase()
