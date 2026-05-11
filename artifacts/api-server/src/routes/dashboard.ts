@@ -272,14 +272,16 @@ res.json({
 
   insight: {
     businessStatus:
-      totalProfit > 0
-        ? "Profitable"
-        : "Developing",
+  resultLabaRugi.marginTotal > 0
+    ? "Profitable"
+    : "Developing",
 
     recommendation:
-      resultLabaRugi.marginTotal < 15
-        ? "Margin rendah, efisiensi operasional perlu ditingkatkan."
-        : "Performa usaha dalam kondisi baik.",
+  resultLabaRugi.marginTotal < 0
+    ? "Usaha masih merugi. Fokus meningkatkan penjualan dan efisiensi biaya."
+    : resultLabaRugi.marginTotal < 15
+      ? "Margin rendah, efisiensi operasional perlu ditingkatkan."
+      : "Performa usaha dalam kondisi baik.",
   },
 
   areas: finalAreas,
