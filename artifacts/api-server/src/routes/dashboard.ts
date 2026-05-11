@@ -202,11 +202,25 @@ if (!response.ok) {
 const data =
   (await response.json()) as NotionQueryResponse;
 for (const page of data.results) {
+const titleProp = Object.values(
+  page.properties
+).find((p: any) => p.type === "title") as any;
 
+const areaName =
+  titleProp?.title?.[0]?.plain_text ||
+  "Area";
+
+const numberProp = Object.values(
+  page.properties
+).find((p: any) => p.type === "number") as any;
+
+const weight =
+  numberProp?.number || 0;
   activities.push({
     type: "harvest",
-    title: "Panen baru",
-    description: "Data panen berhasil dicatat",
+    title: `Panen ${areaName}`,
+
+description: `${weight}kg berhasil dicatat`,
     time: "Baru saja",
   });
 
