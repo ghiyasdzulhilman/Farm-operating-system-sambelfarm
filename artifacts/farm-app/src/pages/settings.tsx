@@ -405,8 +405,10 @@ const isMapped = savedCount > 0;
     );
 
     let typeMatch = matchedProp
-      ? matchedProp.type === field.expectedType
-      : null;
+  ? field.expectedType
+      .split("|")
+      .includes(matchedProp.type)
+  : null;
 
     // Allow formula & number as rollup fallback
     if (
