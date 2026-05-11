@@ -330,11 +330,32 @@ const isMapped = savedCount > 0;
             }
           >
             {
-  isMapped
-    ? isComplete
-      ? `✅ Semua field (${totalFields}) sudah dipetakan dan siap digunakan.`
-      : `⚠️ ${savedCount}/${totalFields} field dipetakan. Masih ada ${missingFields.length} field belum lengkap.`
-    : `Belum ada pemetaan untuk database ${dbLabel}.`
+  isMapped ? (
+  isComplete ? (
+    <div className="space-y-1">
+      <div>
+        ✅ Semua field ({totalFields}) sudah dipetakan dan siap digunakan.
+      </div>
+    </div>
+  ) : (
+    <div className="space-y-2">
+      <div>
+        ⚠️ {savedCount}/{totalFields} field dipetakan.
+        Masih ada {missingFields.length} field belum lengkap.
+      </div>
+
+      <div className="text-xs space-y-1">
+        {missingFields.map((field) => (
+          <div key={field.key}>
+            • {field.label}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+) : (
+  `Belum ada pemetaan untuk database ${dbLabel}.`
+)
 }
           </AlertDescription>
         </Alert>
