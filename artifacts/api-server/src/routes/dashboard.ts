@@ -177,10 +177,15 @@ async function queryHarvestByArea(accessToken: string, databaseId: string, mappi
 async function queryRecentActivities(
   accessToken: string,
   panenDatabaseId: string,
-  expensesDatabaseId: string
+  expensesDatabaseId: string,
+  expensesMappings: any
 ) {
 
   const activities: any[] = [];
+const expenseAmountPropId =
+  expensesMappings?.hargaPerPcs?.propertyId ||
+  expensesMappings?.total?.propertyId ||
+  expensesMappings?.jumlah?.propertyId;
 const response = await fetch(
   `https://api.notion.com/v1/databases/${panenDatabaseId}/query`,
   {
@@ -211,9 +216,13 @@ const areaName =
   titleProp?.title?.[0]?.plain_text ||
   "Area";
 
-const numberProp = Object.values(
-  page.properties
-).find((p: any) => p.type === "number") as any;
+const numberProp = expenseAmountPropId
+  ? Object.values(page.properties).find(
+      (p: any) => p.id === expenseAmountPropId
+    ) as any
+  : Object.values(page.properties).find(
+      (p: any) => p.type === "number"
+    ) as any;
 
 const weight =
   numberProp?.number || 0;
@@ -411,7 +420,8 @@ activities:
     ? await queryRecentActivities(
   connection.accessToken,
   panenMapping.notionDatabaseId,
-  expensesMapping?.notionDatabaseId || ""
+  expensesMapping?.notionDatabaseId || "",
+  expensesMapping?.mappings || {}
 )
     : [],
       
