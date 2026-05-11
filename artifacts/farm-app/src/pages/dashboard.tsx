@@ -367,6 +367,65 @@ const [activeSection, setActiveSection] = useState<
 
   </div>
 )}
+{activeSection === "insight" && (
+  <div className="space-y-4">
+
+    <Card className="border-emerald-200 bg-emerald-50/50">
+      <CardHeader>
+        <CardTitle className="text-emerald-700">
+          Smart Insight
+        </CardTitle>
+      </CardHeader>
+
+      <CardContent className="space-y-4">
+
+        <div className="p-3 rounded-lg border bg-background">
+          <p className="font-medium">
+            📈 Margin Usaha
+          </p>
+
+          <p className="text-sm text-muted-foreground mt-1">
+            Margin keuntungan saat ini berada di{" "}
+            <span className="font-semibold text-emerald-600">
+              {displayData.margin.toFixed(1)}%
+            </span>
+          </p>
+        </div>
+
+        <div className="p-3 rounded-lg border bg-background">
+          <p className="font-medium">
+            💰 Efisiensi Produksi
+          </p>
+
+          <p className="text-sm text-muted-foreground mt-1">
+            HPP saat ini sekitar{" "}
+            <span className="font-semibold">
+              {formatCurrency(
+                displayData.pengeluaran /
+                  (displayData.harvestWeight || 1)
+              )}
+            </span>
+            /kg
+          </p>
+        </div>
+
+        <div className="p-3 rounded-lg border bg-background">
+          <p className="font-medium">
+            🚀 Status Bisnis
+          </p>
+
+          <p className="text-sm text-muted-foreground mt-1">
+            {displayData.profit > 0
+              ? "Usaha sedang menghasilkan profit positif."
+              : "Usaha masih dalam fase pengembangan modal."}
+          </p>
+        </div>
+
+      </CardContent>
+    </Card>
+
+  </div>
+)}
     </div>
   );
 }
