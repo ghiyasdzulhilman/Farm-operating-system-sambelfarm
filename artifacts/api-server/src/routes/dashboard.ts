@@ -305,6 +305,14 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
 
   // Tarik Mapping Panen
   const [panenMapping] = await db
+// Tarik Mapping Pengeluaran
+const [expensesMapping] = await db
+  .select()
+  .from(fieldMappingsTable)
+  .where(and(
+    eq(fieldMappingsTable.userId, userId),
+    eq(fieldMappingsTable.databaseType, "expenses"),
+  ));
     .select()
     .from(fieldMappingsTable)
     .where(and(
