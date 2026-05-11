@@ -293,74 +293,155 @@ function MappingSection({ dbType, fields, dbLabel, selectedDbId }: MappingSectio
         </Button>
       </div>
 
-      <div className="rounded-lg border border-border overflow-x-auto">
-        <table className="w-full text-sm min-w-[500px]">
-          <thead className="bg-muted/50 border-b border-border">
-            <tr>
-              <th className="text-left px-4 py-3 font-medium text-muted-foreground w-[35%]">Field Aplikasi</th>
-              <th className="text-left px-4 py-3 font-medium text-muted-foreground w-[12%]">Tipe</th>
-              <th className="text-left px-4 py-3 font-medium text-muted-foreground">Kolom Notion</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {fields.map((field) => {
-              const currentPropId = selections[field.key] ?? "";
-              const matchedProp = properties.find((p) => p.id === currentPropId);
-              
-              let typeMatch = matchedProp ? matchedProp.type === field.expectedType : null;
-              if (matchedProp && field.expectedType === "rollup" && (matchedProp.type === "formula" || matchedProp.type === "number")) {
-                  typeMatch = true; 
-              }
+      <div className="space-y-4">
+  {fields.map((field, index) => {
+    const currentPropId = selections[field.key] ?? "";
 
-              return (
-                <tr key={field.key} className="hover:bg-muted/30 transition-colors">
-                  <td className="px-4 py-3">
-                    <div className="font-medium text-foreground">{field.label}</div>
-                    <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
-                      <Info className="h-3 w-3 flex-shrink-0" />
-                      {field.description}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <TypeBadge type={field.expectedType} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <Select
-                        value={currentPropId}
-                        onValueChange={(val) => setSelections((prev) => ({ ...prev, [field.key]: val }))}
-                        disabled={properties.length === 0}
-                      >
-                        <SelectTrigger className="h-8 text-sm min-w-[160px] w-full">
-                          <SelectValue placeholder={properties.length === 0 ? "Muat kolom dulu..." : "Pilih kolom Notion..."} />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-[300px]">
-                          {properties.map((prop) => (
-                            <SelectItem key={prop.id} value={prop.id}>
-                              <span className="flex items-center gap-2">
-                                <TypeBadge type={prop.type} />
-                                {prop.name}
-                              </span>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {matchedProp && typeMatch === false && (
-                        <span title={`Tipe tidak sesuai`}>
-                          <AlertCircle className="h-4 w-4 text-amber-500 flex-shrink-0" />
-                        </span>
-                      )}
-                      {matchedProp && typeMatch === true && (
-                        <CheckCircle2 className="h-4 w-4 text-emerald-500 flex-shrink-0" />
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+    const matchedProp = properties.find(
+      (p) => p.id === currentPropId
+    );
+
+    let typeMatch = matchedProp
+      ? matchedProp.type === field.expectedType
+      : null;
+
+    // Allow formula & number as rollup fallback
+    if (
+      matchedProp &&
+      field.expectedType === "rollup" &&
+      (matchedProp.type === "formula" ||
+        matchedProp.type === "number")
+    ) {
+      typeMatch = true;
+    }
+
+    return (
+      <motion.div
+        key={field.key}
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: index * 0.03 }}
+        className="
+          rounded-2xl
+          border
+          border-border
+          bg-card
+          p-4
+          shadow-sm
+          space-y-4
+        "
+      >
+        {/* HEADER */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-2">
+            {/* TITLE */}
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="font-semibold text-sm text-foreground">
+                {field.label}
+              </h3>
+
+              <TypeBadge type={field.expectedType} />
+            </div>
+
+            {/* DESCRIPTION */}
+            <div className="flex items-start gap-2 text-xs text-muted-foreground leading-relaxed">
+              <Info className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+
+              <span>{field.description}</span>
+            </div>
+          </div>
+
+          {/* STATUS */}
+          {matchedProp && (
+            <div className="flex-shrink-0">
+              {typeMatch ? (
+                <div
+                  className="
+                    flex items-center gap-1
+                    rounded-full
+                    bg-emerald-100
+                    px-2 py-1
+                    text-[11px]
+                    font-medium
+                    text-emerald-700
+                  "
+                >
+                  <CheckCircle2 className="h-3 w-3" />
+                  Cocok
+                </div>
+              ) : (
+                <div
+                  className="
+                    flex items-center gap-1
+                    rounded-full
+                    bg-amber-100
+                    px-2 py-1
+                    text-[11px]
+                    font-medium
+                    text-amber-700
+                  "
+                >
+                  <AlertCircle className="h-3 w-3" />
+                  Tidak cocok
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* SELECT AREA */}
+        <div className="space-y-2">
+          <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">
+            Kolom Notion
+          </div>
+
+          <Select
+            value={currentPropId}
+            onValueChange={(val) =>
+              setSelections((prev) => ({
+                ...prev,
+                [field.key]: val,
+              }))
+            }
+            disabled={properties.length === 0}
+          >
+            <SelectTrigger
+              className="
+                h-11
+                rounded-xl
+                border-border
+                bg-background
+              "
+            >
+              <SelectValue
+                placeholder={
+                  properties.length === 0
+                    ? "Muat kolom dulu..."
+                    : "Pilih kolom Notion..."
+                }
+              />
+            </SelectTrigger>
+
+            <SelectContent className="max-h-[300px]">
+              {properties.map((prop) => (
+                <SelectItem
+                  key={prop.id}
+                  value={prop.id}
+                >
+                  <div className="flex items-center gap-2">
+                    <TypeBadge type={prop.type} />
+
+                    <span>{prop.name}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </motion.div>
+    );
+  })}
+</div>
 
       <div className="flex justify-end pt-2">
         <Button onClick={handleSave} disabled={isSaving} className="gap-2">
