@@ -398,13 +398,7 @@ const localRecommendation =
       </CardHeader>
 
       <CardContent className="space-y-4">
-<p className="text-xs text-red-500">
-  {localBusinessStatus}
-</p>
 
-<p className="text-xs text-blue-500">
-  {displayData.margin}
-</p>
         <div className="p-3 rounded-lg border bg-background">
           <p className="font-medium">
             📈 Margin Area
