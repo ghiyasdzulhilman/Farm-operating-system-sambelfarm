@@ -13,6 +13,8 @@ interface NotionProperty {
   number?: number | null;
   formula?: { number?: number | null };
   title?: Array<{ plain_text: string }>;
+date?: { start?: string };
+created_time?: string;
   relation?: Array<{ id: string }>;
 }
 
