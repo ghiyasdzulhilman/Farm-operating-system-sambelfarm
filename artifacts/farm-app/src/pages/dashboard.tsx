@@ -385,7 +385,15 @@ const profitChartData = areas.map((area: any) => ({
       </CardHeader>
 
       <CardContent className="space-y-3">
+const harvestActivities =
+  summary?.activities?.filter(
+    (a: any) => a.type === "harvest"
+  ) || [];
 
+const expenseActivities =
+  summary?.activities?.filter(
+    (a: any) => a.type === "expense"
+  ) || [];
         {summary?.activities?.map(
           (activity: any, index: number) => (
             <div
