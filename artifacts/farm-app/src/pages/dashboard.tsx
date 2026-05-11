@@ -130,7 +130,7 @@ const localBusinessStatus =
   displayData.margin > 0
     ? "Profitable"
     : "Developing";
-
+<p>{localRecommendation}</p>
 const localRecommendation =
   displayData.margin < 0
     ? "Usaha area ini masih merugi. Fokus efisiensi biaya operasional."
@@ -403,7 +403,7 @@ const localRecommendation =
 </p>
 
 <p className="text-xs text-blue-500">
-  {summary?.financial?.marginTotal}
+  {displayData.margin}
 </p>
         <div className="p-3 rounded-lg border bg-background">
           <p className="font-medium">
@@ -441,9 +441,9 @@ const localRecommendation =
           </p>
 
           <p className="text-sm text-muted-foreground mt-1">
-            {summary?.insight?.businessStatus === "Profitable"
-  ? "Usaha sedang menghasilkan profit positif."
-  : "Usaha masih dalam fase pengembangan modal."}
+            {localBusinessStatus === "Profitable"
+  ? "Area sedang menghasilkan profit positif."
+  : "Area masih dalam fase merugi / pengembangan."}
           </p>
         </div>
 <div className="p-3 rounded-lg border bg-background">
