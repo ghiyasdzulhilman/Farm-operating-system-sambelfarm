@@ -425,6 +425,7 @@ const expenseActivities =
     </SelectTrigger>
 
     <SelectContent>
+
       <SelectItem value="all">
         Semua Area (Global)
       </SelectItem>
@@ -437,6 +438,7 @@ const expenseActivities =
           {area.name}
         </SelectItem>
       ))}
+
     </SelectContent>
   </Select>
 
