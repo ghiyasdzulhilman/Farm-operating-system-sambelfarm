@@ -205,6 +205,8 @@ export function FinancialSection({
   </div>
 
 </CardContent>
+</Card>
+</div>
 
     {/* HPP & BEP */}
     <div className="grid gap-4 md:grid-cols-2">
