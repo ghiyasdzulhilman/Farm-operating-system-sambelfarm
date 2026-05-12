@@ -243,7 +243,9 @@ let relatedArea = "Area Tidak Diketahui";
 const relationProp = Object.values(
   page.properties
 ).find(
-  (p: any) => p.type === "relation"
+  (p: any) =>
+    p.type === "relation" &&
+    p.relation?.length
 ) as any;
 
 const relationId =
