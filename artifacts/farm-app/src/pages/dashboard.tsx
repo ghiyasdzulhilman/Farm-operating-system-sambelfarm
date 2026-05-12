@@ -313,8 +313,6 @@ const expenseActivities =
   </h1>
 
 </div>
-
-<div
   className="
     sticky
     top-1
