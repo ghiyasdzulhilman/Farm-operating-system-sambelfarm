@@ -278,10 +278,7 @@ const expenseResponse = await fetch(
     }),
   }
 );
-console.log(
-  "EXPENSE STATUS:",
-  expenseResponse.status
-);
+
 if (expenseResponse.ok) {
 
   const expenseData =
@@ -365,9 +362,9 @@ const [expensesMapping] = await db
   .from(fieldMappingsTable)
   .where(and(
     eq(fieldMappingsTable.userId, userId),
-    eq(fieldMappingsTable.databaseType, "pengeluaran"),
+    eq(fieldMappingsTable.databaseType, "expenses"),
   ));
-console.log(expensesMapping);
+
 console.log(
   "EXPENSE DB:",
   expensesMapping?.notionDatabaseId
