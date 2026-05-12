@@ -45,7 +45,7 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-
+import { UserButton } from "@clerk/react";
 // ---------------------------------------------------------------------------
 // Field definitions — Arsitektur Sambel Farm
 // ---------------------------------------------------------------------------
@@ -706,6 +706,43 @@ export function SettingsPage() {
           </div>
         </div>
       </motion.div>
+
+<motion.div
+  initial={{ opacity: 0, y: 10 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ delay: 0.03 }}
+>
+
+  <Card>
+
+    <CardContent
+      className="
+        flex
+        items-center
+        justify-between
+        p-5
+      "
+    >
+
+      <div>
+
+        <p className="font-semibold">
+          Account
+        </p>
+
+        <p className="text-sm text-muted-foreground">
+          Manage your account and session
+        </p>
+
+      </div>
+
+      <UserButton afterSignOutUrl="/" />
+
+    </CardContent>
+
+  </Card>
+
+</motion.div>
 
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
         <Card>
