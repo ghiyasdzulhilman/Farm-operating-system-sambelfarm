@@ -519,6 +519,7 @@ const expenseActivities =
       </button>
 
     ))}
+</div>
 
   {/* TOOLBAR */}
   <div
