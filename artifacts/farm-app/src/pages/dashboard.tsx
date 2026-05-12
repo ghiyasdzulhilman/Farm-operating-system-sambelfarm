@@ -275,7 +275,19 @@ const expenseActivities =
   ) || [];
   return (
     <div className="space-y-3 pb-10">
-      <div className="space-y-0">
+      <div
+  className={`
+    overflow-hidden
+    transition-all
+    duration-300
+
+    ${
+      isHeaderHidden
+        ? "max-h-0 opacity-0"
+        : "max-h-20 opacity-100"
+    }
+  `}
+>
 
   <h1 className="text-2xl font-bold tracking-tight">
     Dashboard
