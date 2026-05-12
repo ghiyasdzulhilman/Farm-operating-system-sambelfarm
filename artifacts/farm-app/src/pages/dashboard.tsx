@@ -389,6 +389,7 @@ const expenseActivities =
 
 ))}
 
+</div>
 <div
   className="
     mt-3
