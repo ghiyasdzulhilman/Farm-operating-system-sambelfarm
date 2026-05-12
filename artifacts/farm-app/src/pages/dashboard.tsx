@@ -344,7 +344,7 @@ const expenseActivities =
 >
 
     {[
-  { key: "financial", label: "Finansial" },
+  { key: "financial", label: "Financial" },
   { key: "production", label: "Produksi" },
   { key: "operational", label: "Operasional" },
   { key: "insight", label: "Insight" },
@@ -445,7 +445,7 @@ const expenseActivities =
     {[
       {
         key: "financial",
-        label: "Finansial",
+        label: "Financial",
       },
       {
         key: "production",
@@ -666,8 +666,6 @@ const expenseActivities =
     </button>
 
   </div>
-
-</div>
 
   <section
   ref={financialRef}
