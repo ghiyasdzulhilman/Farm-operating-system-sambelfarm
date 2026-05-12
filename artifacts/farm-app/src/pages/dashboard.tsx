@@ -271,7 +271,7 @@ const expenseActivities =
     (a: any) => a.type === "expense"
   ) || [];
   return (
-    <div className="space-y-4 pb-10">
+    <div className="space-y-3 pb-10">
       <div className="space-y-0">
 
   <h1 className="text-2xl font-bold tracking-tight">
