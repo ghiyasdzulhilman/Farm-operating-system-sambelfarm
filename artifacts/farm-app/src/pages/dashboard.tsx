@@ -520,8 +520,6 @@ const expenseActivities =
 
     ))}
 
-  </div>
-
   {/* TOOLBAR */}
   <div
     className="
@@ -718,6 +716,7 @@ const expenseActivities =
   />
 
 </section>
+  </div>
 
   );
 }
