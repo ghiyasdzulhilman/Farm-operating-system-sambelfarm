@@ -82,24 +82,72 @@ const [activeSection, setActiveSection] =
 
 useEffect(() => {
 
-  const sections = [
-    {
-      key: "financial",
-      ref: financialRef,
-    },
-    {
-      key: "production",
-      ref: productionRef,
-    },
-    {
-      key: "operational",
-      ref: operationalRef,
-    },
-    {
-      key: "insight",
-      ref: insightRef,
-    },
-  ];
+  const handleScroll = () => {
+
+    const sections = [
+      {
+        key: "financial",
+        ref: financialRef,
+      },
+      {
+        key: "production",
+        ref: productionRef,
+      },
+      {
+        key: "operational",
+        ref: operationalRef,
+      },
+      {
+        key: "insight",
+        ref: insightRef,
+      },
+    ];
+
+    let currentSection =
+      "financial";
+
+    sections.forEach((section) => {
+
+      const element =
+        section.ref.current;
+
+      if (!element) return;
+
+      const rect =
+        element.getBoundingClientRect();
+
+      if (rect.top <= 140) {
+
+        currentSection =
+          section.key;
+
+      }
+
+    });
+
+    setActiveSection(
+      currentSection as any
+    );
+
+  };
+
+  window.addEventListener(
+    "scroll",
+    handleScroll
+  );
+
+  handleScroll();
+
+  return () => {
+
+    window.removeEventListener(
+      "scroll",
+      handleScroll
+    );
+
+  };
+
+}, []);
 
   const observer =
   new IntersectionObserver(
