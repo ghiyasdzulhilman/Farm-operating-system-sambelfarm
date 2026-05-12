@@ -237,7 +237,18 @@ const dateProp = Object.values(
     p.type === "date" ||
     p.type === "created_time"
 ) as any;
+let relatedArea = "Area Tidak Diketahui";
 
+const relationProp = Object.values(
+  page.properties
+).find(
+  (p: any) => p.type === "relation"
+) as any;
+
+if (relationProp?.relation?.length) {
+  relatedArea =
+    `Area ${relationProp.relation.length}`;
+}
 let activityDate = "";
 
 if (dateProp?.type === "date") {
@@ -259,7 +270,8 @@ const weight =
     type: "harvest",
     title: `Panen ${areaName}`,
 
-description: `${weight}kg berhasil dicatat`,
+description:
+  `${weight}kg berhasil dicatat • ${relatedArea}`,
     time: formatRelativeTime(activityDate),
   });
 
