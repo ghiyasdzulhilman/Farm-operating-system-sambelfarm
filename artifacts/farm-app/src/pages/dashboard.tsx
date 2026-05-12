@@ -1,4 +1,9 @@
-import { useState, useMemo, useRef } from "react";
+import {
+  useState,
+  useMemo,
+  useRef,
+  useEffect,
+} from "react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 import {
@@ -80,6 +85,69 @@ const [activeSection, setActiveSection] =
   const insightRef =
     useRef<HTMLDivElement>(null);
 
+useEffect(() => {
+
+  const sections = [
+    {
+      key: "financial",
+      ref: financialRef,
+    },
+    {
+      key: "production",
+      ref: productionRef,
+    },
+    {
+      key: "operational",
+      ref: operationalRef,
+    },
+    {
+      key: "insight",
+      ref: insightRef,
+    },
+  ];
+
+  const observer =
+    new IntersectionObserver(
+      (entries) => {
+
+        entries.forEach((entry) => {
+
+          if (entry.isIntersecting) {
+
+            const section =
+              sections.find(
+                (s) =>
+                  s.ref.current ===
+                  entry.target
+              );
+
+            if (section) {
+              setActiveSection(
+                section.key as any
+              );
+            }
+          }
+        });
+      },
+      {
+        threshold: 0.3,
+      }
+    );
+
+  sections.forEach((section) => {
+
+    if (section.ref.current) {
+      observer.observe(
+        section.ref.current
+      );
+    }
+  });
+
+  return () => {
+    observer.disconnect();
+  };
+
+}, []);
   const {
     data: connectionStatus,
     isLoading: isLoadingConnection,
