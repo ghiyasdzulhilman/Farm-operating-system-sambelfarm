@@ -285,7 +285,6 @@ const expenseActivities =
     top-14
     z-20
     mb-4
-    pt-2
   "
 >
   <div
