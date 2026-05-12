@@ -42,9 +42,8 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-} 
+} from "recharts";
 import { OperationalSection } from "@/components/OperationalSection";
-from "recharts";
 export function DashboardPage() {
   const queryClient = useQueryClient();
   const [selectedAreaId, setSelectedAreaId] = useState<string>("all");
