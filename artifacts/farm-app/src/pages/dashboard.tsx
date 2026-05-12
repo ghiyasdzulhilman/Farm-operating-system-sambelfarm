@@ -125,8 +125,9 @@ useEffect(() => {
         });
       },
       {
-        threshold: 0.3,
-      }
+  threshold: 0.15,
+  rootMargin: "-20% 0px -60% 0px",
+}
     );
 
   sections.forEach((section) => {
