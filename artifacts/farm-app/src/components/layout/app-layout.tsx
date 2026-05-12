@@ -1,6 +1,6 @@
 import { ReactNode, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { useAuth, UserButton } from "@clerk/react";
+import { useAuth } from "@clerk/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   LayoutDashboard, 
@@ -38,13 +38,41 @@ export function AppLayout({ children }: { children: ReactNode }) {
       {/* HEADER: Profil User */}
       <header className="sticky top-0 z-40 w-full border-b border-border bg-background/80 backdrop-blur-md">
         <div className="container flex h-14 items-center justify-between px-4 max-w-5xl mx-auto">
-          <div className="flex items-center gap-2">
-            <Tractor className="h-5 w-5 text-primary" />
-            <span className="font-bold text-lg tracking-tight text-foreground">
-              Sambel Farm
-            </span>
-          </div>
-          <UserButton afterSignOutUrl="/" />
+          <div className="flex items-center justify-between w-full">
+
+  <div className="flex items-center gap-2">
+
+    <Tractor className="h-5 w-5 text-primary" />
+
+    <span className="font-bold text-lg tracking-tight text-foreground">
+      Farmlytics
+    </span>
+
+  </div>
+
+  <button
+    className="
+      inline-flex
+      items-center
+      gap-2
+      text-xs
+      text-emerald-600
+      font-medium
+      bg-emerald-50
+      px-3
+      py-1
+      rounded-full
+      border
+      border-emerald-200
+      w-fit
+    "
+  >
+    <div className="w-2 h-2 rounded-full bg-emerald-500" />
+
+    Connected
+  </button>
+
+</div>
         </div>
       </header>
 
