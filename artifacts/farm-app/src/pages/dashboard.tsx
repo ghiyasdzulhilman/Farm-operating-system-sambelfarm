@@ -278,7 +278,7 @@ const expenseActivities =
     (a: any) => a.type === "expense"
   ) || [];
   return (
-    <div className="space-y-3 pb-10">
+    <div className="space-y-1 pb-10">
       <div
   className={`
     absolute
