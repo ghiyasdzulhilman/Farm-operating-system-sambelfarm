@@ -272,7 +272,39 @@ const expenseActivities =
   ) || [];
   return (
     <div className="space-y-8 pb-10">
-      <h1 className="text-3xl font-bold tracking-tight">Dashboard Finansial</h1>
+      <div className="space-y-1">
+
+  <p className="text-sm text-muted-foreground font-medium">
+    Farmlytics
+  </p>
+
+  <h1 className="text-2xl font-bold tracking-tight">
+    Dashboard
+  </h1>
+
+  <button
+    className="
+      inline-flex
+      items-center
+      gap-2
+      text-xs
+      text-emerald-600
+      font-medium
+      bg-emerald-50
+      px-3
+      py-1
+      rounded-full
+      border
+      border-emerald-200
+      w-fit
+    "
+  >
+    <div className="w-2 h-2 rounded-full bg-emerald-500" />
+
+    Notion Connected
+  </button>
+
+</div>
 <div className="sticky top-14 z-20 bg-background/95 backdrop-blur border-b mb-6">
   <div className="flex gap-2 overflow-x-auto py-3 scrollbar-hide">
 
