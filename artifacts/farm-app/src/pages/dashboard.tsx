@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 import {
@@ -47,16 +47,34 @@ import { OperationalSection } from "@/components/OperationalSection";
 import { FinancialSection } from "@/components/FinancialSection";
 import { ProductionSection } from "@/components/ProductionSection";
 import { InsightSection } from "@/components/InsightSection";
+
 export function DashboardPage() {
+
   const queryClient = useQueryClient();
-  const [selectedAreaId, setSelectedAreaId] = useState<string>("all");
-const [activeSection, setActiveSection] = useState<
-  "overview" |
-  "financial" |
-  "production" |
-  "operational" |
-  "insight"
->("overview");
+
+  const [selectedAreaId, setSelectedAreaId] =
+    useState<string>("all");
+
+  const [activeSection, setActiveSection] = useState<
+    "overview" |
+    "financial" |
+    "production" |
+    "operational" |
+    "insight"
+  >("overview");
+
+  const financialRef =
+    useRef<HTMLDivElement>(null);
+
+  const productionRef =
+    useRef<HTMLDivElement>(null);
+
+  const operationalRef =
+    useRef<HTMLDivElement>(null);
+
+  const insightRef =
+    useRef<HTMLDivElement>(null);
+
   const {
     data: connectionStatus,
     isLoading: isLoadingConnection,
@@ -226,38 +244,65 @@ const expenseActivities =
           </Select>
         </div>
       </div>
+
 {(activeSection === "overview" ||
   activeSection === "financial") && (
-  <FinancialSection
-    displayData={displayData}
-    formatCurrency={formatCurrency}
-    profitChartData={profitChartData}
-  />
+
+  <div ref={financialRef}>
+
+    <FinancialSection
+      displayData={displayData}
+      formatCurrency={formatCurrency}
+      profitChartData={profitChartData}
+    />
+
+  </div>
 )}
+
 {(activeSection === "overview" ||
   activeSection === "production") && (
-  <ProductionSection
-    displayData={displayData}
-    areas={areas}
-  />
+
+  <div ref={productionRef}>
+
+    <ProductionSection
+      displayData={displayData}
+      areas={areas}
+    />
+
+  </div>
+
 )}
+
 {(activeSection === "overview" ||
   activeSection === "operational") && (
-  <OperationalSection
-    harvestActivities={harvestActivities}
-    expenseActivities={expenseActivities}
-  />
+
+  <div ref={operationalRef}>
+
+    <OperationalSection
+      harvestActivities={harvestActivities}
+      expenseActivities={expenseActivities}
+    />
+
+  </div>
+
 )}
 
 {(activeSection === "overview" ||
   activeSection === "insight") && (
-  <InsightSection
-    displayData={displayData}
-    localBusinessStatus={localBusinessStatus}
-    localRecommendation={localRecommendation}
-    formatCurrency={formatCurrency}
-  />
+
+  <div ref={insightRef}>
+
+    <InsightSection
+      displayData={displayData}
+      localBusinessStatus={localBusinessStatus}
+      localRecommendation={localRecommendation}
+      formatCurrency={formatCurrency}
+    />
+
+  </div>
+
 )}
+
     </div>
   );
 }
