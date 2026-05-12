@@ -293,33 +293,26 @@ for (const page of expenseData.results) {
     titleProp?.title?.[0]?.plain_text ||
     "Pengeluaran";
 
-  const amountProp = Object.values(
+  const formulaAmountProp = Object.values(
   page.properties
 ).find(
   (p: any) =>
-    p.type === "formula" ||
-    p.type === "number"
+    p.type === "formula" &&
+    p.formula?.type === "number"
 ) as any;
 
-let amount = 0;
-console.log(
-  Object.values(page.properties).map(
-    (p: any) => ({
-      type: p.type,
-      number: p.number,
-      formula: p.formula,
-      id: p.id,
-    })
-  )
-);
-if (amountProp?.type === "formula") {
-  amount =
-    Number(amountProp?.formula?.number) || 0;
-}
+const numberAmountProp = Object.values(
+  page.properties
+).find(
+  (p: any) =>
+    p.type === "number" &&
+    typeof p.number === "number"
+) as any;
 
-if (amountProp?.type === "number") {
-  amount =
-    Number(amountProp?.number) || 0;
+const amount =
+  formulaAmountProp?.formula?.number ??
+  numberAmountProp?.number ??
+  0;
 }
 
   activities.push({
