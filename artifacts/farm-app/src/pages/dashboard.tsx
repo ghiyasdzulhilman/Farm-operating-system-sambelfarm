@@ -311,8 +311,8 @@ const expenseActivities =
     relative
     top-1
     z-20
-    mb-4
-    pt-1
+    mb-2
+    pt-0
   "
 >
   <div
@@ -468,6 +468,7 @@ const expenseActivities =
       mt-2
       flex
       items-center
+      justify-end
       gap-2
     "
   >
