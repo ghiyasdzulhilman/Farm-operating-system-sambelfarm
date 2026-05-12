@@ -66,11 +66,6 @@ export function FinancialSection({
   >
     {formatCurrency(displayData.modal)}
   </div>
-
-<div className="mt-2 text-sm opacity-0">
-  placeholder
-</div>
-
 </CardContent>
       </Card>
 
@@ -109,11 +104,6 @@ export function FinancialSection({
 >
             {formatCurrency(displayData.pendapatan)}
           </div>
-
-<div className="mt-2 text-sm opacity-0">
-  placeholder
-</div>
-
         </CardContent>
       </Card>
 
@@ -164,7 +154,15 @@ export function FinancialSection({
     shadow-sm
   "
 >
-        <CardHeader className="pb-2 space-y-1">
+        <CardHeader
+  className="
+    pb-2
+    flex
+    flex-row
+    items-center
+    justify-between
+  "
+>
           <CardTitle
   className="
     text-[11px]
@@ -176,6 +174,21 @@ export function FinancialSection({
 >
             Net Profit
           </CardTitle>
+<div
+  className={`
+    text-sm
+    font-medium
+
+    ${
+      displayData.margin >= 0
+        ? "text-emerald-600"
+        : "text-rose-600"
+    }
+  `}
+>
+  {displayData.margin >= 0 ? "+" : ""}
+  {displayData.margin.toFixed(1)}%
+</div>
         </CardHeader>
 
 <CardContent>
@@ -194,23 +207,6 @@ export function FinancialSection({
     `}
   >
     {formatCurrency(displayData.profit)}
-  </div>
-
-  <div
-    className={`
-      mt-2
-      text-sm
-      font-medium
-
-      ${
-        displayData.margin >= 0
-          ? "text-emerald-600"
-          : "text-rose-600"
-      }
-    `}
-  >
-    {displayData.margin >= 0 ? "+" : ""}
-    {displayData.margin.toFixed(1)}%
   </div>
 
 </CardContent>
