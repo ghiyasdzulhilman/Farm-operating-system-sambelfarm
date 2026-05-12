@@ -86,7 +86,10 @@ async function queryLabaRugi(accessToken: string, databaseId: string, mappings: 
     totalPengeluaran += pengeluaran;
 
     const profit = pendapatan - pengeluaran;
-    const margin = modalAwal > 0 ? (profit / modalAwal) * 100 : 0;
+    const margin =
+  pendapatan > 0
+    ? (profit / pendapatan) * 100
+    : 0;
 
     areas.push({
       id: page.id, // Ini krusial: Kita butuh Page ID Laba Rugi buat nyocokin relasi panen nanti
@@ -101,7 +104,10 @@ async function queryLabaRugi(accessToken: string, databaseId: string, mappings: 
   }
 
   const profitGlobal = totalPendapatan - totalPengeluaran;
-  const marginTotal = totalModal > 0 ? (profitGlobal / totalModal) * 100 : 0;
+  const marginTotal =
+  totalPendapatan > 0
+    ? (profitGlobal / totalPendapatan) * 100
+    : 0;
 
   return { totalModal, totalPendapatan, totalPengeluaran, marginTotal, areas };
 }
