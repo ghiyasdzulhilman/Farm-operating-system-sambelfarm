@@ -272,40 +272,47 @@ const expenseActivities =
   <div className="flex gap-2 overflow-x-auto py-3 scrollbar-hide">
 
     {[
-      { key: "financial", label: "Finansial" },
-      { key: "production", label: "Produksi" },
-      { key: "operational", label: "Operasional" },
-      { key: "insight", label: "Insight" },
-    ].map((tab) => (
-      <button
-        key={tab.key}
-        onClick={() => {
+  { key: "financial", label: "Finansial" },
+  { key: "production", label: "Produksi" },
+  { key: "operational", label: "Operasional" },
+  { key: "insight", label: "Insight" },
+].map((tab) => (
 
-  setActiveSection(tab.key as any);
+  <button
+    key={tab.key}
 
-  const sectionMap = {
-    financial: financialRef,
-    production: productionRef,
-    operational: operationalRef,
-    insight: insightRef,
-  };
+    onClick={() => {
 
-  sectionMap[
-    tab.key as keyof typeof sectionMap
-  ]?.current?.scrollIntoView({
-    behavior: "smooth",
-    block: "start",
-  });
-}}
-        className={`px-4 py-2 rounded-full text-sm whitespace-nowrap transition-all ${
-          activeSection === tab.key
-            ? "bg-primary text-primary-foreground"
-            : "bg-muted text-muted-foreground"
-        }`}
-      >
-        {tab.label}
-      </button>
-    ))}
+      setActiveSection(
+        tab.key as any
+      );
+
+      const sectionMap = {
+        financial: financialRef,
+        production: productionRef,
+        operational: operationalRef,
+        insight: insightRef,
+      };
+
+      sectionMap[
+        tab.key as keyof typeof sectionMap
+      ]?.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+
+    }}
+
+    className={`px-4 py-2 rounded-full text-sm whitespace-nowrap transition-all ${
+      activeSection === tab.key
+        ? "bg-primary text-primary-foreground"
+        : "bg-muted text-muted-foreground"
+    }`}
+  >
+    {tab.label}
+  </button>
+
+))}
 
   </div>
 </div>
