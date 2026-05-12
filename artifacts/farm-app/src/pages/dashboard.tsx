@@ -60,11 +60,6 @@ export function DashboardPage() {
   const [selectedAreaId, setSelectedAreaId] =
     useState<string>("all");
 
-  const [pageMode, setPageMode] =
-  useState<"overview" | "single">(
-    "overview"
-  );
-
 const [activeSection, setActiveSection] =
   useState<
     "financial" |
@@ -277,7 +272,6 @@ const expenseActivities =
   <div className="flex gap-2 overflow-x-auto py-3 scrollbar-hide">
 
     {[
-      { key: "overview", label: "Overview" },
       { key: "financial", label: "Finansial" },
       { key: "production", label: "Produksi" },
       { key: "operational", label: "Operasional" },
@@ -286,20 +280,6 @@ const expenseActivities =
       <button
         key={tab.key}
         onClick={() => {
-
-  if (tab.key === "overview") {
-
-  setPageMode("overview");
-
-  setActiveSection("financial");
-
-  window.scrollTo({
-    top: 0,
-    behavior: "smooth",
-  });
-
-  return;
-}
 
   setActiveSection(tab.key as any);
 
@@ -353,61 +333,50 @@ const expenseActivities =
         </div>
       </div>
 
-{(pageMode === "overview" ||
-  activeSection === "financial") && (
 
   <div ref={financialRef}>
 
-    <FinancialSection
-      displayData={displayData}
-      formatCurrency={formatCurrency}
-      profitChartData={profitChartData}
-    />
+  <FinancialSection
+    displayData={displayData}
+    formatCurrency={formatCurrency}
+    profitChartData={profitChartData}
+  />
 
-  </div>
+</div>
 )}
-
-{(pageMode === "overview" ||
-  activeSection === "production") && (
 
   <div ref={productionRef}>
 
-    <ProductionSection
-      displayData={displayData}
-      areas={areas}
-    />
+  <ProductionSection
+    displayData={displayData}
+    areas={areas}
+  />
 
-  </div>
+</div>
 
 )}
-
-{(pageMode === "overview" ||
-  activeSection === "operational") && (
 
   <div ref={operationalRef}>
 
-    <OperationalSection
-      harvestActivities={harvestActivities}
-      expenseActivities={expenseActivities}
-    />
+  <OperationalSection
+    harvestActivities={harvestActivities}
+    expenseActivities={expenseActivities}
+  />
 
-  </div>
+</div>
 
 )}
 
-{(pageMode === "overview" ||
-  activeSection === "insight") && (
-
   <div ref={insightRef}>
 
-    <InsightSection
-      displayData={displayData}
-      localBusinessStatus={localBusinessStatus}
-      localRecommendation={localRecommendation}
-      formatCurrency={formatCurrency}
-    />
+  <InsightSection
+    displayData={displayData}
+    localBusinessStatus={localBusinessStatus}
+    localRecommendation={localRecommendation}
+    formatCurrency={formatCurrency}
+  />
 
-  </div>
+</div>
 
 )}
 
