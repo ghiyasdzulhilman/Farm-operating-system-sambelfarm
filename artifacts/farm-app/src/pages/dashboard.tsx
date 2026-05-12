@@ -427,7 +427,7 @@ const expenseActivities =
     <SelectTrigger
       className="
   h-6
-  w-[145px]
+  w-[130px]
   bg-background
   text-xs
 "
