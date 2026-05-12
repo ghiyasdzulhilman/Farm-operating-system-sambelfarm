@@ -278,7 +278,7 @@ const expenseActivities =
     (a: any) => a.type === "expense"
   ) || [];
   return (
-    <div className="space-y-0 pb-10">
+    <div className="space-y-3 pb-10">
       <div
   className={`
     absolute
@@ -295,125 +295,174 @@ const expenseActivities =
     ${
       isHeaderHidden
         ? "max-h-0 opacity-0"
-        : "max-h-16 opacity-100"
+        : "max-h-20 opacity-100"
     }
   `}
 >
 
-  <h1
-  className="
-    text-2xl
-    font-bold
-    tracking-tight
-    leading-none
-    mb-0
-  "
->
+  <h1 className="text-2xl font-bold tracking-tight">
     Dashboard
   </h1>
 
+</div>
 <div
   className="
     sticky
+    relative
     top-1
     z-20
     mb-2
+    pt-0
+  "
+>
+  <div
+  className="
+    flex
+    gap-2
+    overflow-x-auto
+    scrollbar-hide
+
+    rounded-2xl
+    border
+    border-border/50
+
+    bg-background/70
+    backdrop-blur-xl
+
+    p-2
+
+    shadow-sm
   "
 >
 
-  {/* SEGMENTED */}
-  <div
+    {[
+  { key: "financial", label: "Finansial" },
+  { key: "production", label: "Produksi" },
+  { key: "operational", label: "Operasional" },
+  { key: "insight", label: "Insight" },
+].map((tab) => (
+
+  <button
+    key={tab.key}
+
+    onClick={() => {
+
+      setActiveSection(
+        tab.key as any
+      );
+
+      const sectionMap = {
+        financial: financialRef,
+        production: productionRef,
+        operational: operationalRef,
+        insight: insightRef,
+      };
+
+      sectionMap[
+        tab.key as keyof typeof sectionMap
+      ]?.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+
+    }}
+
+    className={`
+  px-4
+  py-2
+
+  rounded-xl
+
+  text-sm
+  font-medium
+
+  whitespace-nowrap
+
+  transition-all
+  duration-200
+
+  ${
+    activeSection === tab.key
+      ? `
+        bg-primary
+        text-primary-foreground
+        shadow-sm
+      `
+      : `
+        text-muted-foreground
+        hover:bg-muted/60
+        hover:text-foreground
+      `
+  }
+`}
+  >
+    {tab.label}
+  </button>
+
+))}
+
+</div>
+
+<div className="mt-2 flex justify-end">
+
+  <button
+    onClick={() =>
+      setShowControls(!showControls)
+    }
     className="
+      h-7
+      w-7
+
       flex
-      gap-2
-      overflow-x-auto
-      scrollbar-hide
-      rounded-2xl
+      items-center
+      justify-center
+
+      rounded-lg
       border
       border-border/50
-      bg-background/70
-      backdrop-blur-xl
-      p-2
-      shadow-sm
+
+      bg-background/80
+
+      text-muted-foreground
+
+      transition-all
+      duration-200
+
+      hover:text-foreground
+      hover:bg-muted/50
     "
   >
 
-    {[
-      {
-        key: "financial",
-        label: "Finansial",
-      },
-      {
-        key: "production",
-        label: "Produksi",
-      },
-      {
-        key: "operational",
-        label: "Operasional",
-      },
-      {
-        key: "insight",
-        label: "Insight",
-      },
-    ].map((tab) => (
+    <SlidersHorizontal
+      className="h-3.5 w-3.5"
+    />
 
-      <button
-        key={tab.key}
-        onClick={() => {
+  </button>
 
-          setActiveSection(
-            tab.key as any
-          );
+</div>
 
-          const sectionMap = {
-            financial: financialRef,
-            production: productionRef,
-            operational: operationalRef,
-            insight: insightRef,
-          };
+<div
+  className={`
+    overflow-hidden
+    transition-all
+    duration-300
 
-          sectionMap[
-            tab.key as keyof typeof sectionMap
-          ]?.current?.scrollIntoView({
-            behavior: "smooth",
-            block: "start",
-          });
+    ${
+  showControls
+    ? `
+      opacity-100
+      translate-y-0
+      pointer-events-auto
+    `
+    : `
+      opacity-0
+      -translate-y-2
+      pointer-events-none
+    `
+}
+  `}
+>
 
-        }}
-
-        className={`
-          px-4
-          py-2
-          rounded-xl
-          text-sm
-          font-medium
-          whitespace-nowrap
-          transition-all
-          duration-200
-
-          ${
-            activeSection === tab.key
-              ? `
-                bg-primary
-                text-primary-foreground
-                shadow-sm
-              `
-              : `
-                text-muted-foreground
-                hover:bg-muted/60
-                hover:text-foreground
-              `
-          }
-        `}
-      >
-        {tab.label}
-      </button>
-
-    ))}
-
-  </div>
-
-  {/* TOOLBAR */}
   <div
     className="
       mt-2
@@ -424,134 +473,67 @@ const expenseActivities =
     "
   >
 
-    {/* CONTROLS */}
-    <div
-      className={`
-        flex
-        items-center
-        gap-2
-        overflow-hidden
-        transition-all
-        duration-300
-
-        ${
-          showControls
-            ? `
-              max-w-[220px]
-              opacity-100
-            `
-            : `
-              max-w-0
-              opacity-0
-              pointer-events-none
-            `
-        }
-      `}
-    >
-
-      <Button
-        variant="outline"
-        size="icon"
-        className="
-          h-7
-          w-7
-          bg-background
-          shrink-0
-        "
-        onClick={handleRefreshSummary}
-        disabled={isFetching}
-      >
-
-        <RefreshCcw
-          className={`
-            h-3
-            w-3
-            ${
-              isFetching
-                ? "animate-spin"
-                : ""
-            }
-          `}
-        />
-
-      </Button>
-
-      <Select
-        value={selectedAreaId}
-        onValueChange={setSelectedAreaId}
-      >
-
-        <SelectTrigger
-          className="
-            h-7
-            w-[140px]
-            bg-background
-            text-xs
-          "
-        >
-          <SelectValue />
-        </SelectTrigger>
-
-        <SelectContent>
-
-          <SelectItem value="all">
-            Semua Area
-          </SelectItem>
-
-          {areas.map((area: any) => (
-
-            <SelectItem
-              key={area.id}
-              value={area.id}
-            >
-              {area.name}
-            </SelectItem>
-
-          ))}
-
-        </SelectContent>
-
-      </Select>
-
-    </div>
-
-    {/* BUTTON FILTER */}
-    <button
-      onClick={() =>
-        setShowControls(
-          !showControls
-        )
-      }
-
+    <Button
+      variant="outline"
+      size="icon"
       className="
-        h-7
-        w-7
-
-        flex
-        items-center
-        justify-center
-
-        rounded-lg
-        border
-        border-border/50
-
-        bg-background/80
-
-        text-muted-foreground
-
-        transition-all
-        duration-200
-
-        hover:text-foreground
-        hover:bg-muted/50
+        h-5
+        w-5
+        bg-background
+        shrink-0
       "
+      onClick={handleRefreshSummary}
+      disabled={isFetching}
     >
 
-      <SlidersHorizontal
-        className="h-3.5 w-3.5"
+      <RefreshCcw
+        className={`
+          h-3
+          w-3
+          ${
+            isFetching
+              ? "animate-spin"
+              : ""
+          }
+        `}
       />
 
-    </button>
+    </Button>
+
+    <Select
+      value={selectedAreaId}
+      onValueChange={setSelectedAreaId}
+    >
+
+      <SelectTrigger
+        className="
+          h-6
+          w-[130px]
+          bg-background
+          text-xs
+        "
+      >
+        <SelectValue />
+      </SelectTrigger>
+
+      <SelectContent>
+
+        <SelectItem value="all">
+          Semua Area
+        </SelectItem>
+
+        {areas.map((area: any) => (
+          <SelectItem
+            key={area.id}
+            value={area.id}
+          >
+            {area.name}
+          </SelectItem>
+        ))}
+
+      </SelectContent>
+
+    </Select>
 
   </div>
 
@@ -610,6 +592,7 @@ const expenseActivities =
   />
 
 </section>
+
 
     </div>
   );
