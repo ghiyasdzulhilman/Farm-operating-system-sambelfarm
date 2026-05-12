@@ -357,7 +357,10 @@ const expenseActivities =
       </div>
 
 
-  <div ref={financialRef}>
+  <section
+  ref={financialRef}
+  className="scroll-mt-32 space-y-4"
+>
 
   <FinancialSection
     displayData={displayData}
@@ -365,28 +368,37 @@ const expenseActivities =
     profitChartData={profitChartData}
   />
 
-</div>
+</section>
 
 
-  <div ref={productionRef}>
+  <section
+  ref={productionRef}
+  className="scroll-mt-32 space-y-4"
+>
 
   <ProductionSection
     displayData={displayData}
     areas={areas}
   />
 
-</div>
+</section>
 
-  <div ref={operationalRef}>
+  <section
+  ref={operationalRef}
+  className="scroll-mt-32 space-y-4"
+>
 
   <OperationalSection
     harvestActivities={harvestActivities}
     expenseActivities={expenseActivities}
   />
 
-</div>
+</section>
 
-  <div ref={insightRef}>
+  <section
+  ref={insightRef}
+  className="scroll-mt-32 space-y-4"
+>
 
   <InsightSection
     displayData={displayData}
@@ -395,7 +407,7 @@ const expenseActivities =
     formatCurrency={formatCurrency}
   />
 
-</div>
+</section>
 
 
     </div>
