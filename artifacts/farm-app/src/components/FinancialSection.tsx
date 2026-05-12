@@ -159,8 +159,8 @@ export function FinancialSection({
     pb-2
     flex
     flex-row
-    items-center
-    justify-between
+    items-baseline
+    gap-2
   "
 >
           <CardTitle
