@@ -159,7 +159,7 @@ export function FinancialSection({
     pb-2
     flex
     flex-row
-    items-center
+    items-start
     justify-between
   "
 >
@@ -172,12 +172,13 @@ export function FinancialSection({
     text-muted-foreground
   "
 >
-            Net
+            Net Profit
           </CardTitle>
 <div
   className={`
-    text-sm
-    font-medium
+  text-xs
+  leading-none
+  font-medium
 
     ${
       displayData.margin >= 0
