@@ -448,10 +448,18 @@ const expenseActivities =
     duration-300
 
     ${
-      showControls
-        ? "max-h-20 opacity-100 mt-2"
-        : "max-h-0 opacity-0"
-    }
+  showControls
+    ? `
+      opacity-100
+      translate-y-0
+      pointer-events-auto
+    `
+    : `
+      opacity-0
+      -translate-y-2
+      pointer-events-none
+    `
+}
   `}
 >
 
