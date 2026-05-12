@@ -96,7 +96,7 @@ export function FinancialSection({
         <CardContent>
           <div
   className="
-    text-[clamp(1.8rem,5vw,3rem)]
+    text-[clamp(1rem,3.2vw,1.6rem)]
     font-bold
     tracking-tight
     leading-none
@@ -134,7 +134,7 @@ export function FinancialSection({
         <CardContent>
           <div
   className="
-    text-[clamp(1.8rem,5vw,3rem)]
+    text-[clamp(1rem,3.2vw,1.6rem)]
     font-bold
     tracking-tight
     leading-none
@@ -172,7 +172,7 @@ export function FinancialSection({
         <CardContent>
           <div
   className={`
-    text-[clamp(1.8rem,5vw,3rem)]
+    text-[clamp(1rem,3.2vw,1.6rem)]
     font-bold
     tracking-tight
     leading-none
