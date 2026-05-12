@@ -102,33 +102,52 @@ useEffect(() => {
   ];
 
   const observer =
-    new IntersectionObserver(
-      (entries) => {
+  new IntersectionObserver(
 
-        entries.forEach((entry) => {
+    (entries) => {
 
-          if (entry.isIntersecting) {
+      const visibleSections =
+        entries.filter(
+          (entry) =>
+            entry.isIntersecting
+        );
 
-            const section =
-              sections.find(
-                (s) =>
-                  s.ref.current ===
-                  entry.target
-              );
+      if (!visibleSections.length)
+        return;
 
-            if (section) {
-              setActiveSection(
-                section.key as any
-              );
-            }
-          }
-        });
-      },
-      {
-  threshold: 0.15,
-  rootMargin: "-20% 0px -60% 0px",
-}
-    );
+      const mostVisible =
+        visibleSections.reduce(
+          (prev, current) =>
+
+            prev.intersectionRatio >
+            current.intersectionRatio
+              ? prev
+              : current
+        );
+
+      const section =
+        sections.find(
+          (s) =>
+            s.ref.current ===
+            mostVisible.target
+        );
+
+      if (section) {
+
+        setActiveSection(
+          section.key as any
+        );
+
+      }
+    },
+
+    {
+      threshold: 0.15,
+      rootMargin:
+        "-20% 0px -60% 0px",
+    }
+
+  );
 
   sections.forEach((section) => {
 
