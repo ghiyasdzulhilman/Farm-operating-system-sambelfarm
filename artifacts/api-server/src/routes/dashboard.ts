@@ -313,7 +313,6 @@ const amount =
   formulaAmountProp?.formula?.number ??
   numberAmountProp?.number ??
   0;
-}
 
   activities.push({
     type: "expense",
