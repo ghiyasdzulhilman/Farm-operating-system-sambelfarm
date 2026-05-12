@@ -444,6 +444,7 @@ const expenseActivities =
   </Select>
 
 </div>
+</div>
 
   <section
   ref={financialRef}
