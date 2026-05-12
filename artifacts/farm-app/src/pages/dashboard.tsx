@@ -343,7 +343,7 @@ const expenseActivities =
   />
 
 </div>
-)}
+
 
   <div ref={productionRef}>
 
@@ -354,8 +354,6 @@ const expenseActivities =
 
 </div>
 
-)}
-
   <div ref={operationalRef}>
 
   <OperationalSection
@@ -364,8 +362,6 @@ const expenseActivities =
   />
 
 </div>
-
-)}
 
   <div ref={insightRef}>
 
@@ -378,7 +374,6 @@ const expenseActivities =
 
 </div>
 
-)}
 
     </div>
   );
