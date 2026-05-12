@@ -411,7 +411,16 @@ const expenseActivities =
 
 </div>
 
-<div className="mt-2 flex justify-end">
+<div
+  className="
+    mt-2
+
+    flex
+    items-center
+    justify-end
+    gap-2
+  "
+>
 
   <button
     onClick={() =>
