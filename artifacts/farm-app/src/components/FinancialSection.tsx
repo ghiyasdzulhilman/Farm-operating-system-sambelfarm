@@ -31,16 +31,20 @@ export function FinancialSection({
         </CardHeader>
 
         <CardContent>
-          className="
-  text-3xl
-  md:text-4xl
-  font-bold
-  tracking-tight
-  leading-none
-"
-            {formatCurrency(displayData.modal)}
-          </div>
-        </CardContent>
+
+  <div
+    className="
+      text-3xl
+      md:text-4xl
+      font-bold
+      tracking-tight
+      leading-none
+    "
+  >
+    {formatCurrency(displayData.modal)}
+  </div>
+
+</CardContent>
       </Card>
 
       <Card>
