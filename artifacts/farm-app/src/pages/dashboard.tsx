@@ -408,7 +408,7 @@ const expenseActivities =
     bg-background
     shrink-0
   "
->
+
     onClick={handleRefreshSummary}
     disabled={isFetching}
   >
@@ -418,7 +418,6 @@ const expenseActivities =
       }`}
     />
 
-    
   </Button>
 
   <Select
