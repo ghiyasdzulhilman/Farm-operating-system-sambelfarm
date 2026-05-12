@@ -314,6 +314,7 @@ for (const page of expenseData.results) {
   const expenseName =
     titleProp?.title?.[0]?.plain_text ||
     "Pengeluaran";
+let relatedArea = "Area Tidak Diketahui";
 const dateProp = Object.values(
   page.properties
 ).find(
@@ -353,13 +354,31 @@ const amount =
   formulaAmountProp?.formula?.number ??
   numberAmountProp?.number ??
   0;
+const relationPropId =
+  expensesMappings?.labaRugi?.propertyId;
 
+const relationProp = relationPropId
+  ? Object.values(page.properties).find(
+      (p: any) =>
+        p.id === relationPropId
+    ) as any
+  : null;
+
+const relationId =
+  relationProp?.relation?.[0]?.id;
+
+if (relationId) {
+  relatedArea =
+    areaMap[relationId] ||
+    "Area Tidak Diketahui";
+}
   activities.push({
     type: "expense",
 
     title: expenseName,
 
-    description: `Pengeluaran Rp${amount.toLocaleString("id-ID")}`,
+    description:
+  `Pengeluaran Rp${amount.toLocaleString("id-ID")} • ${relatedArea}`,
 
     time: formatRelativeTime(activityDate),
   });
