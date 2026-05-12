@@ -285,7 +285,7 @@ const expenseActivities =
         </div>
       </div>
 
-(activeSection === "overview" ||
+{(activeSection === "overview" ||
   activeSection === "financial")
 
   <div ref={financialRef}>
@@ -299,7 +299,7 @@ const expenseActivities =
   </div>
 )}
 
-(pageMode === "overview" ||
+{(pageMode === "overview" ||
   activeSection === "production")
 
   <div ref={productionRef}>
@@ -313,7 +313,7 @@ const expenseActivities =
 
 )}
 
-(pageMode === "overview" ||
+{(pageMode === "overview" ||
   activeSection === "operational")
 
   <div ref={operationalRef}>
@@ -327,7 +327,7 @@ const expenseActivities =
 
 )}
 
-(pageMode === "overview" ||
+{(pageMode === "overview" ||
   activeSection === "insight")
 
   <div ref={insightRef}>
