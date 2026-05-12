@@ -147,24 +147,22 @@ async function queryHarvestByArea(accessToken: string, databaseId: string, mappi
          if (prop) weight = prop.number ?? 0;
       }
 
-      weightMap.global += weight;
 
       // 2. Ekstrak Area ID dari Relasi (Biar tau ini panen punya blok mana)
       let relatedIds: string[] = [];
       if (labaRugiRelationId) {
         const relProp = Object.values(page.properties).find((p: any) => p.id === labaRugiRelationId) as any;
         if (relProp?.relation) relatedIds = relProp.relation.map((r: any) => r.id);
-      } else {
-        // Fallback: Kalau belum di-mapping sempurna, kumpulin aja semua ID relasinya.
-        // Nanti bakal otomatis cocok sama ID Laba Rugi yang kita cari.
-        for (const prop of Object.values(page.properties) as any[]) {
-          if (prop.type === "relation" && prop.relation) {
-            prop.relation.forEach((r: any) => relatedIds.push(r.id));
-          }
-        }
-      }
+      } if (!labaRugiRelationId) {
+  continue;
+}
 
       // Masukin beratnya ke masing-masing ID Blok
+if (relatedIds.length > 0) {
+
+  weightMap.global += weight;
+
+}
       for (const relId of relatedIds) {
         weightMap[relId] = (weightMap[relId] || 0) + weight;
       }
