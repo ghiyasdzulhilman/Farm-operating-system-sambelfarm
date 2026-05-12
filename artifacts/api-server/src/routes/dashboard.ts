@@ -301,10 +301,17 @@ for (const page of expenseData.results) {
     p.type === "number"
 ) as any;
 
-const amount =
-  amountProp?.type === "formula"
-    ? amountProp?.formula?.number || 0
-    : amountProp?.number || 0;
+let amount = 0;
+
+if (amountProp?.type === "formula") {
+  amount =
+    Number(amountProp?.formula?.number) || 0;
+}
+
+if (amountProp?.type === "number") {
+  amount =
+    Number(amountProp?.number) || 0;
+}
 
   activities.push({
     type: "expense",
