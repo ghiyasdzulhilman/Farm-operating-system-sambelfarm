@@ -50,6 +50,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   </div>
 
+  <Link href="/settings">
+
   <button
     className="
       inline-flex
@@ -65,12 +67,16 @@ export function AppLayout({ children }: { children: ReactNode }) {
       border
       border-emerald-200
       w-fit
+      transition-all
+      hover:bg-emerald-100
     "
   >
     <div className="w-2 h-2 rounded-full bg-emerald-500" />
 
     Connected
   </button>
+
+</Link>
 
 </div>
         </div>
