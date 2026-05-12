@@ -50,7 +50,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   </div>
 
-  <Link href="/settings">
+  <Link href="/connect">
 
   <button
     className="
