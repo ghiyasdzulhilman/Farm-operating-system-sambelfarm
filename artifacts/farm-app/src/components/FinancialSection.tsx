@@ -129,7 +129,15 @@ export function FinancialSection({
         </CardHeader>
 
         <CardContent>
-          <div className="text-2xl font-bold">
+          <div
+  className="
+    text-3xl
+    md:text-4xl
+    font-bold
+    tracking-tight
+    leading-none
+  "
+>
             {formatCurrency(
               displayData.pengeluaran /
                 (displayData.harvestWeight || 1)
