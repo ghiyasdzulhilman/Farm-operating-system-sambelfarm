@@ -292,7 +292,25 @@ for (const page of expenseData.results) {
   const expenseName =
     titleProp?.title?.[0]?.plain_text ||
     "Pengeluaran";
+const dateProp = Object.values(
+  page.properties
+).find(
+  (p: any) =>
+    p.type === "date" ||
+    p.type === "created_time"
+) as any;
 
+let activityDate = "";
+
+if (dateProp?.type === "date") {
+  activityDate =
+    dateProp.date?.start || "";
+}
+
+if (dateProp?.type === "created_time") {
+  activityDate =
+    dateProp.created_time || "";
+}
   const formulaAmountProp = Object.values(
   page.properties
 ).find(
@@ -321,7 +339,7 @@ const amount =
 
     description: `Pengeluaran Rp${amount.toLocaleString("id-ID")}`,
 
-    time: "Hari ini",
+    time: formatRelativeTime(activityDate),
   });
 
 }
