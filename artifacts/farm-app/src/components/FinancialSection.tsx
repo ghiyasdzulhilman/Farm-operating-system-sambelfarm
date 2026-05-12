@@ -58,8 +58,7 @@ export function FinancialSection({
 
   <div
     className="
-      text-3xl
-      md:text-4xl
+      text-[clamp(1.8rem,5vw,3rem)]
       font-bold
       tracking-tight
       leading-none
@@ -97,8 +96,7 @@ export function FinancialSection({
         <CardContent>
           <div
   className="
-    text-3xl
-    md:text-4xl
+    text-[clamp(1.8rem,5vw,3rem)]
     font-bold
     tracking-tight
     leading-none
@@ -136,8 +134,7 @@ export function FinancialSection({
         <CardContent>
           <div
   className="
-    text-3xl
-    md:text-4xl
+    text-[clamp(1.8rem,5vw,3rem)]
     font-bold
     tracking-tight
     leading-none
@@ -175,8 +172,7 @@ export function FinancialSection({
         <CardContent>
           <div
   className={`
-    text-2xl
-    md:text-3xl
+    text-[clamp(1.8rem,5vw,3rem)]
     font-bold
     tracking-tight
     leading-none
