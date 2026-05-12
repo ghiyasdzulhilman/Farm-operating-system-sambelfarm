@@ -283,10 +283,6 @@ const expenseActivities =
 
   setActiveSection(tab.key as any);
 
-  if (pageMode === "single") {
-    return;
-  }
-
   const sectionMap = {
     financial: financialRef,
     production: productionRef,
