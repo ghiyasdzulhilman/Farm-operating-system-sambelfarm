@@ -220,9 +220,18 @@ const expenseActivities =
         onClick={() => {
 
   if (tab.key === "overview") {
-    setPageMode("overview");
-    return;
-  }
+
+  setPageMode("overview");
+
+  setActiveSection("financial");
+
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth",
+  });
+
+  return;
+}
 
   setActiveSection(tab.key as any);
 
