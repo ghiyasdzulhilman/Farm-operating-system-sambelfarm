@@ -170,10 +170,12 @@ export function FinancialSection({
     uppercase
     tracking-[0.12em]
     text-muted-foreground
+    whitespace-nowrap
   "
 >
-            Net Profit
-          </CardTitle>
+  Net Profit
+</CardTitle>
+
 <div
   className={`
   text-xs
