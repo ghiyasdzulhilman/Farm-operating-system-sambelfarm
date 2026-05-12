@@ -55,13 +55,18 @@ export function DashboardPage() {
   const [selectedAreaId, setSelectedAreaId] =
     useState<string>("all");
 
-  const [activeSection, setActiveSection] = useState<
-    "overview" |
+  const [pageMode, setPageMode] =
+  useState<"overview" | "single">(
+    "overview"
+  );
+
+const [activeSection, setActiveSection] =
+  useState<
     "financial" |
     "production" |
     "operational" |
     "insight"
-  >("overview");
+  >("financial");
 
   const financialRef =
     useRef<HTMLDivElement>(null);
@@ -212,7 +217,33 @@ const expenseActivities =
     ].map((tab) => (
       <button
         key={tab.key}
-        onClick={() => setActiveSection(tab.key as any)}
+        onClick={() => {
+
+  if (tab.key === "overview") {
+    setPageMode("overview");
+    return;
+  }
+
+  setActiveSection(tab.key as any);
+
+  if (pageMode === "single") {
+    return;
+  }
+
+  const sectionMap = {
+    financial: financialRef,
+    production: productionRef,
+    operational: operationalRef,
+    insight: insightRef,
+  };
+
+  sectionMap[
+    tab.key as keyof typeof sectionMap
+  ]?.current?.scrollIntoView({
+    behavior: "smooth",
+    block: "start",
+  });
+}}
         className={`px-4 py-2 rounded-full text-sm whitespace-nowrap transition-all ${
           activeSection === tab.key
             ? "bg-primary text-primary-foreground"
