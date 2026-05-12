@@ -314,7 +314,8 @@ const expenseActivities =
 </Card>
   </>
 )}
-{activeSection === "production" && (
+{(activeSection === "overview" ||
+  activeSection === "production") && (
   <div className="space-y-4">
 
     <div className="grid gap-4 md:grid-cols-3">
@@ -382,7 +383,8 @@ const expenseActivities =
 
   </div>
 )}
-{activeSection === "operational" && (
+{(activeSection === "overview" ||
+  activeSection === "operational") && (
   <div className="space-y-4">
 
     <Card>
@@ -457,7 +459,8 @@ const expenseActivities =
   </div>
 )}
 
-{activeSection === "insight" && (
+{(activeSection === "overview" ||
+  activeSection === "insight") && (
   <div className="space-y-4">
 
     <Card className="border-emerald-200 bg-emerald-50/50">
