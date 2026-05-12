@@ -174,24 +174,20 @@ export function FinancialSection({
 
         <CardContent>
           <div
-            className={`
-  text-2xl
-  md:text-3xl
-  font-bold
-  tracking-tight
-  leading-none
+  className={`
+    text-2xl
+    md:text-3xl
+    font-bold
+    tracking-tight
+    leading-none
 
-  ${
-    displayData.profit >= 0
-      ? ""
-      : "text-rose-600"
-  }
-`}
-              displayData.profit >= 0
-                ? ""
-                : "text-rose-600"
-            }`}
-          >
+    ${
+      displayData.profit >= 0
+        ? ""
+        : "text-rose-600"
+    }
+  `}
+>
             {formatCurrency(displayData.profit)}
           </div>
 
