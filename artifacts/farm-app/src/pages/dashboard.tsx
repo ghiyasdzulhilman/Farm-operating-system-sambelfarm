@@ -311,7 +311,7 @@ const expenseActivities =
     relative
     top-1
     z-20
-    mb-2
+    mb-1
     pt-0
   "
 >
