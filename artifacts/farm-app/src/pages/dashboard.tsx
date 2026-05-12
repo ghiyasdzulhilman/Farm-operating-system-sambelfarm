@@ -416,8 +416,7 @@ const expenseActivities =
     sticky
     top-1
     z-20
-    mb-1
-    pt-0
+    mb-2
   "
 >
 
@@ -445,7 +444,7 @@ const expenseActivities =
     {[
       {
         key: "financial",
-        label: "Financial",
+        label: "Finansial",
       },
       {
         key: "production",
@@ -519,7 +518,8 @@ const expenseActivities =
       </button>
 
     ))}
-</div>
+
+  </div>
 
   {/* TOOLBAR */}
   <div
@@ -533,7 +533,7 @@ const expenseActivities =
     "
   >
 
-    {/* CONTROLS */}
+    {/* EXPANDABLE CONTROLS */}
     <div
       className={`
         flex
@@ -665,6 +665,8 @@ const expenseActivities =
     </button>
 
   </div>
+
+</div>
 
   <section
   ref={financialRef}
