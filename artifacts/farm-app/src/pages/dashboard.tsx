@@ -389,27 +389,62 @@ const expenseActivities =
 
 ))}
 
+<div
+  className="
+    mt-3
+    flex
+    items-center
+    gap-2
+  "
+>
+
+  <Button
+    variant="outline"
+    size="sm"
+    className="h-8 px-2 bg-background"
+    onClick={handleRefreshSummary}
+    disabled={isFetching}
+  >
+    <RefreshCcw
+      className={`h-3 w-3 mr-1 ${
+        isFetching ? "animate-spin" : ""
+      }`}
+    />
+
+    Refresh
+  </Button>
+
+  <Select
+    value={selectedAreaId}
+    onValueChange={setSelectedAreaId}
+  >
+    <SelectTrigger
+      className="w-[180px] h-8 bg-background"
+    >
+      <SelectValue />
+    </SelectTrigger>
+
+    <SelectContent>
+      <SelectItem value="all">
+        Semua Area (Global)
+      </SelectItem>
+
+      {areas.map((area: any) => (
+        <SelectItem
+          key={area.id}
+          value={area.id}
+        >
+          {area.name}
+        </SelectItem>
+      ))}
+    </SelectContent>
+  </Select>
+
+</div>
+
   </div>
 </div>
-      {/* Baris Filter & Refresh */}
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-muted/30 p-3 rounded-lg border border-border/50">
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <CalendarClock className="h-4 w-4" />
-          <span>Update: {formatDate(summary?.lastUpdated ?? null)}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="h-8 px-2 bg-background" onClick={handleRefreshSummary} disabled={isFetching}>
-            <RefreshCcw className={`h-3 w-3 mr-1 ${isFetching ? "animate-spin" : ""}`} /> Refresh
-          </Button>
-          <Select value={selectedAreaId} onValueChange={setSelectedAreaId}>
-            <SelectTrigger className="w-[180px] h-8 bg-background"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Semua Area (Global)</SelectItem>
-              {areas.map((area: any) => <SelectItem key={area.id} value={area.id}>{area.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+
 
 
   <section
