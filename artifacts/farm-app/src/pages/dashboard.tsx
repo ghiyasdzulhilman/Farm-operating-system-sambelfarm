@@ -312,7 +312,7 @@ const expenseActivities =
     Dashboard
   </h1>
 
-</div>
+<div
   className="
     sticky
     top-1
