@@ -403,8 +403,8 @@ const expenseActivities =
   variant="outline"
   size="icon"
   className="
-    h-7
-    w-7
+    h-5
+    w-5
     bg-background
     shrink-0
   "
