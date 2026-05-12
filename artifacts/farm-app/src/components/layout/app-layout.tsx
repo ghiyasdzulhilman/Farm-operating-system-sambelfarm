@@ -2,7 +2,7 @@ import {
   useState,
   useEffect,
 } from "react";
-import { ReactNode, useState } from "react";
+import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@clerk/react";
 import { motion, AnimatePresence } from "framer-motion";
