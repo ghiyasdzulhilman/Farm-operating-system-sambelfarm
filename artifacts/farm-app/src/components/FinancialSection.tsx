@@ -22,10 +22,34 @@ export function FinancialSection({
   return (
   <>
     {/* Main Cards */}
-    <div className="grid gap-4 md:grid-cols-4">
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">
+    <div
+  className="
+    grid
+    grid-cols-2
+    gap-4
+
+    lg:grid-cols-4
+  "
+>
+      <Card
+  className="
+    border-border/50
+    bg-background/80
+    backdrop-blur-sm
+    rounded-2xl
+    shadow-sm
+  "
+>
+        <CardHeader className="pb-2 space-y-1">
+          <CardTitle
+  className="
+    text-[11px]
+    font-medium
+    uppercase
+    tracking-[0.12em]
+    text-muted-foreground
+  "
+>
             Modal Awal
           </CardTitle>
         </CardHeader>
@@ -47,29 +71,79 @@ export function FinancialSection({
 </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="pb-2 text-emerald-600">
-          <CardTitle className="text-sm font-medium">
+      <Card
+  className="
+    border-border/50
+    bg-background/80
+    backdrop-blur-sm
+    rounded-2xl
+    shadow-sm
+  "
+>
+        <CardHeader className="pb-2 space-y-1">
+          <CardTitle
+  className="
+    text-[11px]
+    font-medium
+    uppercase
+    tracking-[0.12em]
+    text-muted-foreground
+  "
+>
             Pendapatan
           </CardTitle>
         </CardHeader>
 
         <CardContent>
-          <div className="text-2xl font-bold text-emerald-600">
+          <div
+  className="
+    text-3xl
+    md:text-4xl
+    font-bold
+    tracking-tight
+    leading-none
+    text-emerald-600
+  "
+>
             {formatCurrency(displayData.pendapatan)}
           </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="pb-2 text-rose-600">
-          <CardTitle className="text-sm font-medium">
+      <Card
+  className="
+    border-border/50
+    bg-background/80
+    backdrop-blur-sm
+    rounded-2xl
+    shadow-sm
+  "
+>
+        <CardHeader className="pb-2 space-y-1">
+          <CardTitle
+  className="
+    text-[11px]
+    font-medium
+    uppercase
+    tracking-[0.12em]
+    text-muted-foreground
+  "
+>
             Pengeluaran
           </CardTitle>
         </CardHeader>
 
         <CardContent>
-          <div className="text-2xl font-bold text-rose-600">
+          <div
+  className="
+    text-3xl
+    md:text-4xl
+    font-bold
+    tracking-tight
+    leading-none
+    text-rose-600
+  "
+>
             {formatCurrency(displayData.pengeluaran)}
           </div>
         </CardContent>
