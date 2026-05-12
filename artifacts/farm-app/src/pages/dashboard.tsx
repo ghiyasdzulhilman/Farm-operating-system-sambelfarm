@@ -281,7 +281,14 @@ const expenseActivities =
     <div className="space-y-3 pb-10">
       <div
   className={`
+    absolute
+    right-0
+    top-full
+
+    mt-2
+
     overflow-hidden
+
     transition-all
     duration-300
 
@@ -301,6 +308,7 @@ const expenseActivities =
 <div
   className="
     sticky
+    relative
     top-1
     z-20
     mb-4
