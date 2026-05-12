@@ -159,7 +159,7 @@ export function FinancialSection({
     pb-2
     flex
     flex-row
-    items-start
+    items-center
     justify-between
   "
 >
