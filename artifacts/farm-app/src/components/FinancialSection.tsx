@@ -92,9 +92,32 @@ export function FinancialSection({
 
     {/* HPP & BEP */}
     <div className="grid gap-4 md:grid-cols-2">
-      <Card className="border-primary/20 bg-primary/5">
+      <Card
+  className="
+    border-border/50
+    bg-background/80
+    backdrop-blur-sm
+
+    rounded-2xl
+
+    shadow-sm
+
+    transition-all
+    duration-200
+
+    hover:shadow-md
+  "
+>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">
+          <CardTitle
+  className="
+    text-xs
+    font-medium
+    uppercase
+    tracking-wide
+    text-muted-foreground
+  "
+>
             Harga Pokok Produksi (HPP)
           </CardTitle>
         </CardHeader>
@@ -117,7 +140,7 @@ export function FinancialSection({
       </Card>
 
       <Card>
-        <CardHeader className="pb-2">
+        <CardHeader className="pb-2 space-y-1">
           <CardTitle className="text-sm font-medium flex justify-between">
             <span>
               Progres Balik Modal (BEP)
