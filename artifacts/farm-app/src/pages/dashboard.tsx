@@ -720,6 +720,5 @@ const expenseActivities =
 
 </section>
 
-    </div>
   );
 }
