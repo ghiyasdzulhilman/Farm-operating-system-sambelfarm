@@ -192,7 +192,8 @@ async function queryRecentActivities(
   accessToken: string,
   panenDatabaseId: string,
   expensesDatabaseId: string,
-  expensesMappings: any
+  expensesMappings: any,
+  areaMap: Record<string, string>
 ) {
 
   const activities: any[] = [];
@@ -245,9 +246,13 @@ const relationProp = Object.values(
   (p: any) => p.type === "relation"
 ) as any;
 
-if (relationProp?.relation?.length) {
+const relationId =
+  relationProp?.relation?.[0]?.id;
+
+if (relationId) {
   relatedArea =
-    `Area ${relationProp.relation.length}`;
+    areaMap[relationId] ||
+    "Area Tidak Diketahui";
 }
 let activityDate = "";
 
@@ -429,7 +434,11 @@ console.log(
     ...area,
     harvestWeight: harvestMap[area.id] || 0 // Tarik data 75 kg untuk Blok B, dst.
   }));
+const areaMap: Record<string, string> = {};
 
+for (const area of finalAreas) {
+  areaMap[area.id] = area.name;
+}
   // Tembak balikan JSON ke Frontend Dashboard
   const totalProfit =
   resultLabaRugi.totalPendapatan -
@@ -494,7 +503,8 @@ activities:
   connection.accessToken,
   panenMapping.notionDatabaseId,
   expensesMapping?.notionDatabaseId || "",
-  expensesMapping?.mappings || {}
+  expensesMapping?.mappings || {},
+  areaMap
 )
     : [],
       
