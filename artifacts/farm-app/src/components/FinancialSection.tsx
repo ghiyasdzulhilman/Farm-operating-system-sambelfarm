@@ -165,7 +165,7 @@ export function FinancialSection({
     text-muted-foreground
   "
 >
-            Laba/Rugi Bersih
+            Net Profit
           </CardTitle>
         </CardHeader>
 
