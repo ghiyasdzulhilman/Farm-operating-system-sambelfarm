@@ -103,8 +103,7 @@ useEffect(() => {
       },
     ];
 
-    let currentSection =
-      "financial";
+    let currentSection = "financial";
 
     sections.forEach((section) => {
 
@@ -149,68 +148,6 @@ useEffect(() => {
 
 }, []);
 
-  const observer =
-  new IntersectionObserver(
-
-    (entries) => {
-
-      const visibleSections =
-        entries.filter(
-          (entry) =>
-            entry.isIntersecting
-        );
-
-      if (!visibleSections.length)
-        return;
-
-      const mostVisible =
-        visibleSections.reduce(
-          (prev, current) =>
-
-            prev.intersectionRatio >
-            current.intersectionRatio
-              ? prev
-              : current
-        );
-
-      const section =
-        sections.find(
-          (s) =>
-            s.ref.current ===
-            mostVisible.target
-        );
-
-      if (section) {
-
-        setActiveSection(
-          section.key as any
-        );
-
-      }
-    },
-
-    {
-      threshold: 0.15,
-      rootMargin:
-        "-20% 0px -60% 0px",
-    }
-
-  );
-
-  sections.forEach((section) => {
-
-    if (section.ref.current) {
-      observer.observe(
-        section.ref.current
-      );
-    }
-  });
-
-  return () => {
-    observer.disconnect();
-  };
-
-}, []);
   const {
     data: connectionStatus,
     isLoading: isLoadingConnection,
