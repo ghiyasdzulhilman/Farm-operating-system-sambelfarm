@@ -82,7 +82,24 @@ export function AppLayout({ children }: { children: ReactNode }) {
       </main>
 
       {/* BOTTOM NAVIGATION */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border pb-safe shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
+      <nav
+  className="
+    fixed
+    bottom-4
+    left-4
+    right-4
+    z-50
+    max-w-lg
+    mx-auto
+    rounded-3xl
+    border
+    border-border/50
+    bg-background/80
+    backdrop-blur-xl
+    shadow-2xl
+    pb-safe
+  "
+>
         <div className="relative max-w-lg mx-auto h-16 px-4">
           
           {/* CONTAINER JEMPOL */}
