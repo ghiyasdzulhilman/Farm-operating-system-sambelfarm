@@ -278,7 +278,7 @@ const expenseActivities =
     (a: any) => a.type === "expense"
   ) || [];
   return (
-    <div className="space-y-1 pb-10">
+    <div className="space-y-0 pb-10">
       <div
   className={`
     absolute
@@ -295,12 +295,20 @@ const expenseActivities =
     ${
       isHeaderHidden
         ? "max-h-0 opacity-0"
-        : "max-h-5 opacity-100"
+        : "max-h-16 opacity-100"
     }
   `}
 >
 
-  <h1 className="text-2xl font-bold tracking-tight">
+  <h1
+  className="
+    text-2xl
+    font-bold
+    tracking-tight
+    leading-none
+    mb-0
+  "
+>
     Dashboard
   </h1>
 
