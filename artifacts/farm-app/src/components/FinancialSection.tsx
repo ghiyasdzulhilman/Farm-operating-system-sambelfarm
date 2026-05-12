@@ -149,16 +149,44 @@ export function FinancialSection({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">
+      <Card
+  className="
+    border-border/50
+    bg-background/80
+    backdrop-blur-sm
+    rounded-2xl
+    shadow-sm
+  "
+>
+        <CardHeader className="pb-2 space-y-1">
+          <CardTitle
+  className="
+    text-[11px]
+    font-medium
+    uppercase
+    tracking-[0.12em]
+    text-muted-foreground
+  "
+>
             Laba/Rugi Bersih
           </CardTitle>
         </CardHeader>
 
         <CardContent>
           <div
-            className={`text-2xl font-bold ${
+            className={`
+  text-2xl
+  md:text-3xl
+  font-bold
+  tracking-tight
+  leading-none
+
+  ${
+    displayData.profit >= 0
+      ? ""
+      : "text-rose-600"
+  }
+`}
               displayData.profit >= 0
                 ? ""
                 : "text-rose-600"
@@ -223,7 +251,7 @@ export function FinancialSection({
             /kg
           </div>
 
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground mt-2">
             Berdasarkan total panen:
             {" "}
             {displayData.harvestWeight} kg
