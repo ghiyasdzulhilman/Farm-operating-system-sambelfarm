@@ -433,6 +433,8 @@ const expenseActivities =
 
 </div>
 
+{showControls && (
+
 <div
   className="
     mt-2
@@ -497,7 +499,7 @@ const expenseActivities =
   </Select>
 
 </div>
-</div>
+)}
 
   <section
   ref={financialRef}
