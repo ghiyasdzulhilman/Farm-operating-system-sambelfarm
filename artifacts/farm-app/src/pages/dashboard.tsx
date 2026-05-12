@@ -328,16 +328,12 @@ const expenseActivities =
       gap-2
       overflow-x-auto
       scrollbar-hide
-
       rounded-2xl
       border
       border-border/50
-
       bg-background/70
       backdrop-blur-xl
-
       p-2
-
       shadow-sm
     "
   >
@@ -363,7 +359,6 @@ const expenseActivities =
 
       <button
         key={tab.key}
-
         onClick={() => {
 
           setActiveSection(
@@ -389,14 +384,10 @@ const expenseActivities =
         className={`
           px-4
           py-2
-
           rounded-xl
-
           text-sm
           font-medium
-
           whitespace-nowrap
-
           transition-all
           duration-200
 
@@ -426,7 +417,6 @@ const expenseActivities =
   <div
     className="
       mt-2
-
       flex
       items-center
       justify-end
@@ -434,15 +424,13 @@ const expenseActivities =
     "
   >
 
-    {/* EXPANDABLE CONTROLS */}
+    {/* CONTROLS */}
     <div
       className={`
         flex
         items-center
         gap-2
-
         overflow-hidden
-
         transition-all
         duration-300
 
@@ -527,7 +515,7 @@ const expenseActivities =
 
     </div>
 
-    {/* SLIDER BUTTON */}
+    {/* BUTTON FILTER */}
     <button
       onClick={() =>
         setShowControls(
@@ -566,6 +554,8 @@ const expenseActivities =
     </button>
 
   </div>
+
+</div>
 
   <section
   ref={financialRef}
@@ -619,5 +609,6 @@ const expenseActivities =
 
 </section>
 
+    </div>
   );
 }
