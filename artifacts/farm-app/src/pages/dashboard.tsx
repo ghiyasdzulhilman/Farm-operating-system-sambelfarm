@@ -17,6 +17,7 @@ import {
   Map,
   TrendingUp,
   Filter,
+SlidersHorizontal,
 } from "lucide-react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
@@ -70,6 +71,9 @@ const [activeSection, setActiveSection] =
     "operational" |
     "insight"
   >("financial");
+
+const [showControls, setShowControls] =
+  useState(false);
 
   const financialRef =
     useRef<HTMLDivElement>(null);
@@ -390,6 +394,45 @@ const expenseActivities =
 ))}
 
 </div>
+
+<div className="mt-2 flex justify-end">
+
+  <button
+    onClick={() =>
+      setShowControls(!showControls)
+    }
+    className="
+      h-7
+      w-7
+
+      flex
+      items-center
+      justify-center
+
+      rounded-lg
+      border
+      border-border/50
+
+      bg-background/80
+
+      text-muted-foreground
+
+      transition-all
+      duration-200
+
+      hover:text-foreground
+      hover:bg-muted/50
+    "
+  >
+
+    <SlidersHorizontal
+      className="h-3.5 w-3.5"
+    />
+
+  </button>
+
+</div>
+
 <div
   className="
     mt-2
