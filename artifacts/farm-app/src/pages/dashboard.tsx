@@ -285,8 +285,8 @@ const expenseActivities =
         </div>
       </div>
 
-{(activeSection === "overview" ||
-  activeSection === "financial")
+{(pageMode === "overview" ||
+  activeSection === "financial") && (
 
   <div ref={financialRef}>
 
