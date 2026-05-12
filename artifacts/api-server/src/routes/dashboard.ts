@@ -303,7 +303,14 @@ for (const page of expenseData.results) {
 
 let amount = 0;
 console.log(
-  JSON.stringify(page.properties, null, 2)
+  Object.values(page.properties).map(
+    (p: any) => ({
+      type: p.type,
+      number: p.number,
+      formula: p.formula,
+      id: p.id,
+    })
+  )
 );
 if (amountProp?.type === "formula") {
   amount =
