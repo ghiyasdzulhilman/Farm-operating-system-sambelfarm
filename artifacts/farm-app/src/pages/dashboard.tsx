@@ -433,7 +433,19 @@ const expenseActivities =
 
 </div>
 
-{showControls && (
+<div
+  className={`
+    overflow-hidden
+    transition-all
+    duration-300
+
+    ${
+      showControls
+        ? "max-h-20 opacity-100 mt-2"
+        : "max-h-0 opacity-0"
+    }
+  `}
+>
 
   <div
     className="
@@ -508,7 +520,7 @@ const expenseActivities =
 
   </div>
 
-)}
+</div>
 
 </div>
 
