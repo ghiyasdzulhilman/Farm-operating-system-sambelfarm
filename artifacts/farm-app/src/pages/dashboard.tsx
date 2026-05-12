@@ -435,70 +435,79 @@ const expenseActivities =
 
 {showControls && (
 
-<div
-  className="
-    mt-2
-    flex
-    items-center
-    gap-2
-  "
->
-
-  <Button
-  variant="outline"
-  size="icon"
-  className="
-    h-5
-    w-5
-    bg-background
-    shrink-0
-  "
-
-    onClick={handleRefreshSummary}
-    disabled={isFetching}
+  <div
+    className="
+      mt-2
+      flex
+      items-center
+      gap-2
+    "
   >
-    <RefreshCcw
-      className={`h-3 w-3 mr-1 ${
-        isFetching ? "animate-spin" : ""
-      }`}
-    />
 
-  </Button>
-
-  <Select
-    value={selectedAreaId}
-    onValueChange={setSelectedAreaId}
-  >
-    <SelectTrigger
+    <Button
+      variant="outline"
+      size="icon"
       className="
-  h-6
-  w-[130px]
-  bg-background
-  text-xs
-"
+        h-5
+        w-5
+        bg-background
+        shrink-0
+      "
+      onClick={handleRefreshSummary}
+      disabled={isFetching}
     >
-      <SelectValue />
-    </SelectTrigger>
 
-    <SelectContent>
+      <RefreshCcw
+        className={`
+          h-3
+          w-3
+          ${
+            isFetching
+              ? "animate-spin"
+              : ""
+          }
+        `}
+      />
 
-      <SelectItem value="all">
-        Semua Area
-      </SelectItem>
+    </Button>
 
-      {areas.map((area: any) => (
-        <SelectItem
-          key={area.id}
-          value={area.id}
-        >
-          {area.name}
+    <Select
+      value={selectedAreaId}
+      onValueChange={setSelectedAreaId}
+    >
+
+      <SelectTrigger
+        className="
+          h-6
+          w-[130px]
+          bg-background
+          text-xs
+        "
+      >
+        <SelectValue />
+      </SelectTrigger>
+
+      <SelectContent>
+
+        <SelectItem value="all">
+          Semua Area
         </SelectItem>
-      ))}
 
-    </SelectContent>
-  </Select>
+        {areas.map((area: any) => (
+          <SelectItem
+            key={area.id}
+            value={area.id}
+          >
+            {area.name}
+          </SelectItem>
+        ))}
 
-</div>
+      </SelectContent>
+
+    </Select>
+
+  </div>
+
 )}
 
   <section
