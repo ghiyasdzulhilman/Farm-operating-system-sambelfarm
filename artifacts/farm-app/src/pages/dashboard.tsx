@@ -454,43 +454,7 @@ const expenseActivities =
       className="h-3.5 w-3.5"
     />
 
-  </button>
-
-</div>
-
-<div
-  className={`
-    overflow-hidden
-    transition-all
-    duration-300
-
-    ${
-  showControls
-    ? `
-      opacity-100
-      translate-y-0
-      pointer-events-auto
-    `
-    : `
-      opacity-0
-      -translate-y-2
-      pointer-events-none
-    `
-}
-  `}
->
-
-  <div
-    className="
-      mt-2
-      flex
-      items-center
-      justify-end
-      gap-2
-    "
-  >
-
-    <Button
+<Button
       variant="outline"
       size="icon"
       className="
@@ -551,6 +515,42 @@ const expenseActivities =
       </SelectContent>
 
     </Select>
+
+  </button>
+
+</div>
+
+<div
+  className={`
+    overflow-hidden
+    transition-all
+    duration-300
+
+    ${
+  showControls
+    ? `
+      opacity-100
+      translate-y-0
+      pointer-events-auto
+    `
+    : `
+      opacity-0
+      -translate-y-2
+      pointer-events-none
+    `
+}
+  `}
+>
+
+  <div
+    className="
+      mt-2
+      flex
+      items-center
+      justify-end
+      gap-2
+    "
+  >
 
   </div>
 
