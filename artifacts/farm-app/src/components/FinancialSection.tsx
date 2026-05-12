@@ -194,7 +194,7 @@ export function FinancialSection({
 </div>
         </CardHeader>
 
-<CardContent className="pt-1">
+<CardContent className="pt-0">
   <div
     className={`
       text-[clamp(1rem,3.2vw,1.6rem)]
