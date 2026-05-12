@@ -297,7 +297,7 @@ const expenseActivities =
 <div
   className="
     sticky
-    top-2
+    top-1
     z-20
     mb-4
     pt-1
