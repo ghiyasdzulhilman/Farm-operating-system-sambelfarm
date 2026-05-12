@@ -21,6 +21,8 @@ import {
 } from "@workspace/api-client-react";
 
 export function AppLayout({ children }: { children: ReactNode }) {
+const [isTopbarHidden, setIsTopbarHidden] =
+  useState(false);
   const [location] = useLocation();
   const { isSignedIn } = useAuth();
   const [isFabOpen, setIsFabOpen] = useState(false);
@@ -45,10 +47,56 @@ const {
     { href: "/settings", icon: Settings, label: "Setelan" },
   ];
 
+useEffect(() => {
+
+  const handleScroll = () => {
+
+    setIsTopbarHidden(
+      window.scrollY > 40
+    );
+
+  };
+
+  window.addEventListener(
+    "scroll",
+    handleScroll
+  );
+
+  return () => {
+
+    window.removeEventListener(
+      "scroll",
+      handleScroll
+    );
+
+  };
+
+}, []);
+
   return (
     <div className="min-h-screen bg-muted/20 pb-24 md:pb-0 font-sans">
       {/* HEADER: Profil User */}
-      <header className="sticky top-0 z-40 w-full border-b border-border bg-background/80 backdrop-blur-md">
+      <header
+  className={`
+    sticky
+    top-0
+    z-40
+    w-full
+    border-b
+    border-border
+    bg-background/80
+    backdrop-blur-md
+
+    transition-all
+    duration-300
+
+    ${
+      isTopbarHidden
+        ? "-translate-y-full opacity-0"
+        : "translate-y-0 opacity-100"
+    }
+  `}
+>
         <div className="container flex h-14 items-center justify-between px-4 max-w-5xl mx-auto">
           <div className="flex items-center justify-between w-full">
 
