@@ -60,6 +60,9 @@ export function DashboardPage() {
   const [selectedAreaId, setSelectedAreaId] =
     useState<string>("all");
 
+const [isHeaderHidden, setIsHeaderHidden] =
+  useState(false);
+
 const [activeSection, setActiveSection] =
   useState<
     "financial" |
@@ -83,7 +86,7 @@ const [activeSection, setActiveSection] =
 useEffect(() => {
 
   const handleScroll = () => {
-
+setIsHeaderHidden(window.scrollY > 40);
     const sections = [
       {
         key: "financial",
