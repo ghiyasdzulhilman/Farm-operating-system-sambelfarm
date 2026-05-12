@@ -403,7 +403,7 @@ const expenseActivities =
     (activity: any, index: number) => (
       <div
         key={index}
-        className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between" p-3 rounded-lg border border-emerald-200 bg-emerald-50/50"
+        className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between p-3 rounded-lg border border-emerald-200 bg-emerald-50/50"
       >
         <div>
           <p className="font-medium">
@@ -432,7 +432,7 @@ const expenseActivities =
     (activity: any, index: number) => (
       <div
         key={index}
-        className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between" p-3 rounded-lg border border-amber-200 bg-amber-50/50"
+        className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between p-3 rounded-lg border border-amber-200 bg-amber-50/50"
       >
         <div>
           <p className="font-medium">
