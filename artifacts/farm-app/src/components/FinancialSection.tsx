@@ -58,7 +58,7 @@ export function FinancialSection({
 
   <div
     className="
-      text-[clamp(1.8rem,5vw,3rem)]
+      text-[clamp(1.4rem,4vw,2.4rem)]
       font-bold
       tracking-tight
       leading-none
