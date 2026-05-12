@@ -189,7 +189,7 @@ export function FinancialSection({
 
   <div
     className={`
-      mt-4
+      mt-2
       text-sm
       font-medium
 
