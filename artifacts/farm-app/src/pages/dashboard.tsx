@@ -422,10 +422,69 @@ const expenseActivities =
   "
 >
 
+  <Button
+    variant="outline"
+    size="icon"
+    className="
+      h-5
+      w-5
+      bg-background
+      shrink-0
+    "
+    onClick={handleRefreshSummary}
+    disabled={isFetching}
+  >
+
+    <RefreshCcw
+      className={`
+        h-3
+        w-3
+        ${
+          isFetching
+            ? "animate-spin"
+            : ""
+        }
+      `}
+    />
+
+  </Button>
+
+  <Select
+    value={selectedAreaId}
+    onValueChange={setSelectedAreaId}
+  >
+
+    <SelectTrigger
+      className="
+        h-6
+        w-[130px]
+        bg-background
+        text-xs
+      "
+    >
+      <SelectValue />
+    </SelectTrigger>
+
+    <SelectContent>
+
+      <SelectItem value="all">
+        Semua Area
+      </SelectItem>
+
+      {areas.map((area: any) => (
+        <SelectItem
+          key={area.id}
+          value={area.id}
+        >
+          {area.name}
+        </SelectItem>
+      ))}
+
+    </SelectContent>
+
+  </Select>
+
   <button
-    onClick={() =>
-      setShowControls(!showControls)
-    }
     className="
       h-7
       w-7
@@ -453,68 +512,6 @@ const expenseActivities =
     <SlidersHorizontal
       className="h-3.5 w-3.5"
     />
-
-<Button
-      variant="outline"
-      size="icon"
-      className="
-        h-5
-        w-5
-        bg-background
-        shrink-0
-      "
-      onClick={handleRefreshSummary}
-      disabled={isFetching}
-    >
-
-      <RefreshCcw
-        className={`
-          h-3
-          w-3
-          ${
-            isFetching
-              ? "animate-spin"
-              : ""
-          }
-        `}
-      />
-
-    </Button>
-
-    <Select
-      value={selectedAreaId}
-      onValueChange={setSelectedAreaId}
-    >
-
-      <SelectTrigger
-        className="
-          h-6
-          w-[130px]
-          bg-background
-          text-xs
-        "
-      >
-        <SelectValue />
-      </SelectTrigger>
-
-      <SelectContent>
-
-        <SelectItem value="all">
-          Semua Area
-        </SelectItem>
-
-        {areas.map((area: any) => (
-          <SelectItem
-            key={area.id}
-            value={area.id}
-          >
-            {area.name}
-          </SelectItem>
-        ))}
-
-      </SelectContent>
-
-    </Select>
 
   </button>
 
