@@ -67,6 +67,10 @@ export function FinancialSection({
     {formatCurrency(displayData.modal)}
   </div>
 
+<div className="mt-2 text-sm opacity-0">
+  placeholder
+</div>
+
 </CardContent>
       </Card>
 
@@ -105,6 +109,11 @@ export function FinancialSection({
 >
             {formatCurrency(displayData.pendapatan)}
           </div>
+
+<div className="mt-2 text-sm opacity-0">
+  placeholder
+</div>
+
         </CardContent>
       </Card>
 
