@@ -392,7 +392,7 @@ const expenseActivities =
 </div>
 <div
   className="
-    mt-3
+    mt-2
     flex
     items-center
     gap-2
@@ -400,9 +400,15 @@ const expenseActivities =
 >
 
   <Button
-    variant="outline"
-    size="sm"
-    className="h-8 px-2 bg-background"
+  variant="outline"
+  size="icon"
+  className="
+    h-7
+    w-7
+    bg-background
+    shrink-0
+  "
+>
     onClick={handleRefreshSummary}
     disabled={isFetching}
   >
@@ -412,7 +418,7 @@ const expenseActivities =
       }`}
     />
 
-    Refresh
+    
   </Button>
 
   <Select
@@ -420,7 +426,12 @@ const expenseActivities =
     onValueChange={setSelectedAreaId}
   >
     <SelectTrigger
-      className="w-[180px] h-8 bg-background"
+      className="
+  h-6
+  w-[145px]
+  bg-background
+  text-xs
+"
     >
       <SelectValue />
     </SelectTrigger>
@@ -428,7 +439,7 @@ const expenseActivities =
     <SelectContent>
 
       <SelectItem value="all">
-        Semua Area (Global)
+        Semua Area
       </SelectItem>
 
       {areas.map((area: any) => (
