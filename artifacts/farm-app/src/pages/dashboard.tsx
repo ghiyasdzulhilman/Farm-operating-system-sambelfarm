@@ -295,7 +295,7 @@ const expenseActivities =
     ${
       isHeaderHidden
         ? "max-h-0 opacity-0"
-        : "max-h-20 opacity-100"
+        : "max-h-10 opacity-100"
     }
   `}
 >
