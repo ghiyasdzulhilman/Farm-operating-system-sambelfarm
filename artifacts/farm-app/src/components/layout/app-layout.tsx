@@ -24,23 +24,65 @@ import {
   getGetNotionConnectionStatusQueryKey,
 } from "@workspace/api-client-react";
 
-export function AppLayout({ children }: { children: ReactNode }) {
-const [isTopbarHidden, setIsTopbarHidden] =
-  useState(false);
+export function AppLayout({
+  children,
+}: {
+  children: ReactNode
+}) {
+
+  const [isTopbarHidden, setIsTopbarHidden] =
+    useState(false);
+
   const [location] = useLocation();
+
   const { isSignedIn } = useAuth();
-  const [isFabOpen, setIsFabOpen] = useState(false);
-const {
-  data: connectionStatus,
-} = useGetNotionConnectionStatus({
-  query: {
-    queryKey:
-      getGetNotionConnectionStatusQueryKey(),
-  },
-});
+
+  const [isFabOpen, setIsFabOpen] =
+    useState(false);
+
+  const {
+    data: connectionStatus,
+  } = useGetNotionConnectionStatus({
+    query: {
+      queryKey:
+        getGetNotionConnectionStatusQueryKey(),
+    },
+  });
+
+  useEffect(() => {
+
+    const handleScroll = () => {
+
+      setIsTopbarHidden(
+        window.scrollY > 40
+      );
+
+    };
+
+    window.addEventListener(
+      "scroll",
+      handleScroll
+    );
+
+    return () => {
+
+      window.removeEventListener(
+        "scroll",
+        handleScroll
+      );
+
+    };
+
+  }, []);
 
   if (!isSignedIn) {
-    return <main className="min-h-screen bg-background">{children}</main>;
+
+    return (
+      <main className="min-h-screen bg-background">
+        {children}
+      </main>
+    );
+
   }
 
   // Definisi navigasi (Cuma 4 item)
