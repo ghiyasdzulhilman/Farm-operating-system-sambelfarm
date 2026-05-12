@@ -302,7 +302,9 @@ for (const page of expenseData.results) {
 ) as any;
 
 let amount = 0;
-
+console.log(
+  JSON.stringify(page.properties, null, 2)
+);
 if (amountProp?.type === "formula") {
   amount =
     Number(amountProp?.formula?.number) || 0;
