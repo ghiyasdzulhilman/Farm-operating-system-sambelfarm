@@ -44,6 +44,7 @@ import {
   Tooltip,
 } from "recharts";
 import { OperationalSection } from "@/components/OperationalSection";
+import { FinancialSection } from "@/components/FinancialSection";
 export function DashboardPage() {
   const queryClient = useQueryClient();
   const [selectedAreaId, setSelectedAreaId] = useState<string>("all");
@@ -225,95 +226,11 @@ const expenseActivities =
       </div>
 {(activeSection === "overview" ||
   activeSection === "financial") && (
-  <>
-      {/* Main Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Modal Awal</CardTitle></CardHeader>
-        <CardContent><div className="text-2xl font-bold">{formatCurrency(displayData.modal)}</div></CardContent></Card>
-        
-        <Card><CardHeader className="pb-2 text-emerald-600"><CardTitle className="text-sm font-medium">Pendapatan</CardTitle></CardHeader>
-        <CardContent><div className="text-2xl font-bold text-emerald-600">{formatCurrency(displayData.pendapatan)}</div></CardContent></Card>
-
-        <Card><CardHeader className="pb-2 text-rose-600"><CardTitle className="text-sm font-medium">Pengeluaran</CardTitle></CardHeader>
-        <CardContent><div className="text-2xl font-bold text-rose-600">{formatCurrency(displayData.pengeluaran)}</div></CardContent></Card>
-
-        <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Laba/Rugi Bersih</CardTitle></CardHeader>
-        <CardContent>
-          <div className={`text-2xl font-bold ${displayData.profit >= 0 ? "" : "text-rose-600"}`}>{formatCurrency(displayData.profit)}</div>
-          <div className="text-xs text-muted-foreground">Margin: {displayData.margin.toFixed(1)}%</div>
-        </CardContent></Card>
-      </div>
-
-      {/* SECTION INTELLIGENCE: HPP & BEP */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card className="border-primary/20 bg-primary/5">
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Harga Pokok Produksi (HPP)</CardTitle></CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {/* RUMUS FIX: Menggunakan harvestWeight yang sudah ter-filter */}
-              {formatCurrency(displayData.pengeluaran / (displayData.harvestWeight || 1))}/kg
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Berdasarkan total panen: {displayData.harvestWeight} kg
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium flex justify-between">
-            <span>Progres Balik Modal (BEP)</span>
-            <span>{Math.min((displayData.pendapatan / (displayData.modal || 1)) * 100, 100).toFixed(1)}%</span>
-          </CardTitle></CardHeader>
-          <CardContent>
-            <div className="h-3 w-full bg-muted rounded-full overflow-hidden">
-              <div className="h-full bg-primary transition-all duration-1000" style={{ width: `${Math.min((displayData.pendapatan / (displayData.modal || 1)) * 100, 100)}%` }} />
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              {displayData.pendapatan >= displayData.modal ? "Modal Balik!" : `Butuh ${formatCurrency(displayData.modal - displayData.pendapatan)} lagi.`}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-<Card>
-  <CardHeader>
-    <CardTitle>
-      Profit per Area
-    </CardTitle>
-  </CardHeader>
-
-  <CardContent>
-    <div className="h-[300px]">
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart
-  data={profitChartData}
-  margin={{
-    top: 10,
-    right: 10,
-    left: -20,
-    bottom: 10,
-  }}
->
-          <XAxis dataKey="name" />
-
-          <YAxis
-  tickFormatter={(value) =>
-    `${(value / 1000000).toFixed(0)}jt`
-  }
-/>
-
-          <Tooltip />
-
-          <Bar
-  dataKey="profit"
-  fill="#16a34a"
-  radius={[6, 6, 0, 0]}
-/>
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  </CardContent>
-</Card>
-  </>
+  <FinancialSection
+    displayData={displayData}
+    formatCurrency={formatCurrency}
+    profitChartData={profitChartData}
+  />
 )}
 {(activeSection === "overview" ||
   activeSection === "production") && (
