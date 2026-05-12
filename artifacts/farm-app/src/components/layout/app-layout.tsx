@@ -15,11 +15,23 @@ import {
 // Import komponen dialog input lu (Pastiin path-nya sesuai)
 import { AddHarvestDialog } from "@/components/harvest/add-harvest-dialog";
 import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog";
+import {
+  useGetNotionConnectionStatus,
+  getGetNotionConnectionStatusQueryKey,
+} from "@workspace/api-client-react";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const { isSignedIn } = useAuth();
   const [isFabOpen, setIsFabOpen] = useState(false);
+const {
+  data: connectionStatus,
+} = useGetNotionConnectionStatus({
+  query: {
+    queryKey:
+      getGetNotionConnectionStatusQueryKey(),
+  },
+});
 
   if (!isSignedIn) {
     return <main className="min-h-screen bg-background">{children}</main>;
@@ -53,27 +65,53 @@ export function AppLayout({ children }: { children: ReactNode }) {
   <Link href="/connect">
 
   <button
-    className="
-      inline-flex
-      items-center
-      gap-2
-      text-xs
-      text-emerald-600
-      font-medium
-      bg-emerald-50
-      px-3
-      py-1
-      rounded-full
-      border
-      border-emerald-200
-      w-fit
-      transition-all
-      hover:bg-emerald-100
-    "
-  >
-    <div className="w-2 h-2 rounded-full bg-emerald-500" />
+    className={`
+  inline-flex
+  items-center
+  gap-2
+  text-xs
+  font-medium
+  px-3
+  py-1
+  rounded-full
+  border
+  w-fit
+  transition-all
 
-    Connected
+  ${
+    connectionStatus?.connected
+      ? `
+        text-emerald-600
+        bg-emerald-50
+        border-emerald-200
+        hover:bg-emerald-100
+      `
+      : `
+        text-rose-600
+        bg-rose-50
+        border-rose-200
+        hover:bg-rose-100
+      `
+  }
+`}
+  >
+    <div
+  className={`
+    w-2
+    h-2
+    rounded-full
+
+    ${
+      connectionStatus?.connected
+        ? "bg-emerald-500"
+        : "bg-rose-500"
+    }
+  `}
+/>
+
+    {connectionStatus?.connected
+  ? "Connected"
+  : "Disconnected"}
   </button>
 
 </Link>
