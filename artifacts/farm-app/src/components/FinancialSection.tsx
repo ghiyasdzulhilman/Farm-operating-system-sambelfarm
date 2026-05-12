@@ -187,12 +187,22 @@ export function FinancialSection({
             {formatCurrency(displayData.profit)}
           </div>
 
-          <div className="text-xs text-muted-foreground">
-            Margin: {displayData.margin.toFixed(1)}%
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+          <div
+  className={`
+    mt-4
+    text-sm
+    font-medium
+
+    ${
+      displayData.margin >= 0
+        ? "text-emerald-600"
+        : "text-rose-600"
+    }
+  `}
+>
+  {displayData.margin >= 0 ? "+" : ""}
+  {displayData.margin.toFixed(1)}%
+</div>
 
     {/* HPP & BEP */}
     <div className="grid gap-4 md:grid-cols-2">
