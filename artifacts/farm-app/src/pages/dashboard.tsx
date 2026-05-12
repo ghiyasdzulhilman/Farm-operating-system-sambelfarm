@@ -555,6 +555,8 @@ const expenseActivities =
 
   </div>
 
+</div>
+
   <section
   ref={financialRef}
   className="scroll-mt-32 space-y-4"
