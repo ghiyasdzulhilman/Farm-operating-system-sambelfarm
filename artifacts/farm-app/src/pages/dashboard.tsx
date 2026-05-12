@@ -271,8 +271,8 @@ const expenseActivities =
     (a: any) => a.type === "expense"
   ) || [];
   return (
-    <div className="space-y-8 pb-10">
-      <div className="space-y-1">
+    <div className="space-y-5 pb-10">
+      <div className="space-y-0">
 
   <h1 className="text-2xl font-bold tracking-tight">
     Dashboard
@@ -284,7 +284,7 @@ const expenseActivities =
     sticky
     top-14
     z-20
-    mb-8
+    mb-4
     pt-2
   "
 >
