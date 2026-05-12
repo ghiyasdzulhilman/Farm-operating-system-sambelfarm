@@ -93,32 +93,6 @@ export function AppLayout({
     { href: "/settings", icon: Settings, label: "Setelan" },
   ];
 
-useEffect(() => {
-
-  const handleScroll = () => {
-
-    setIsTopbarHidden(
-      window.scrollY > 40
-    );
-
-  };
-
-  window.addEventListener(
-    "scroll",
-    handleScroll
-  );
-
-  return () => {
-
-    window.removeEventListener(
-      "scroll",
-      handleScroll
-    );
-
-  };
-
-}, []);
-
   return (
     <div className="min-h-screen bg-muted/20 pb-24 md:pb-0 font-sans">
       {/* HEADER: Profil User */}
