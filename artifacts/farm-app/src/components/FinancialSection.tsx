@@ -172,7 +172,7 @@ export function FinancialSection({
     text-muted-foreground
   "
 >
-            Net Profit
+            Net
           </CardTitle>
 <div
   className={`
