@@ -193,7 +193,8 @@ async function queryRecentActivities(
   panenDatabaseId: string,
   expensesDatabaseId: string,
   expensesMappings: any,
-  areaMap: Record<string, string>
+  areaMap: Record<string, string>,
+  panenMappings: any
 ) {
 
   const activities: any[] = [];
@@ -240,13 +241,15 @@ const dateProp = Object.values(
 ) as any;
 let relatedArea = "Area Tidak Diketahui";
 
-const relationProp = Object.values(
-  page.properties
-).find(
-  (p: any) =>
-    p.type === "relation" &&
-    p.relation?.length
-) as any;
+const relationPropId =
+  panenMappings?.labaRugi?.propertyId;
+
+const relationProp = relationPropId
+  ? Object.values(page.properties).find(
+      (p: any) =>
+        p.id === relationPropId
+    ) as any
+  : null;
 
 const relationId =
   relationProp?.relation?.[0]?.id;
@@ -506,7 +509,8 @@ activities:
   panenMapping.notionDatabaseId,
   expensesMapping?.notionDatabaseId || "",
   expensesMapping?.mappings || {},
-  areaMap
+  areaMap,
+  panenMapping?.mappings || {}
 )
     : [],
       
