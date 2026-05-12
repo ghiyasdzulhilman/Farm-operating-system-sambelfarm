@@ -169,40 +169,42 @@ export function FinancialSection({
           </CardTitle>
         </CardHeader>
 
-        <CardContent>
-          <div
-  className={`
-    text-[clamp(1rem,3.2vw,1.6rem)]
-    font-bold
-    tracking-tight
-    leading-none
+<CardContent>
+  <div
+    className={`
+      text-[clamp(1rem,3.2vw,1.6rem)]
+      font-bold
+      tracking-tight
+      leading-none
 
-    ${
-      displayData.profit >= 0
-        ? ""
-        : "text-rose-600"
-    }
-  `}
->
-            {formatCurrency(displayData.profit)}
-          </div>
+      ${
+        displayData.profit >= 0
+          ? ""
+          : "text-rose-600"
+      }
+    `}
+  >
+    {formatCurrency(displayData.profit)}
+  </div>
 
-          <div
-  className={`
-    mt-4
-    text-sm
-    font-medium
+  <div
+    className={`
+      mt-4
+      text-sm
+      font-medium
 
-    ${
-      displayData.margin >= 0
-        ? "text-emerald-600"
-        : "text-rose-600"
-    }
-  `}
->
-  {displayData.margin >= 0 ? "+" : ""}
-  {displayData.margin.toFixed(1)}%
-</div>
+      ${
+        displayData.margin >= 0
+          ? "text-emerald-600"
+          : "text-rose-600"
+      }
+    `}
+  >
+    {displayData.margin >= 0 ? "+" : ""}
+    {displayData.margin.toFixed(1)}%
+  </div>
+
+</CardContent>
 
     {/* HPP & BEP */}
     <div className="grid gap-4 md:grid-cols-2">
