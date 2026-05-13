@@ -256,6 +256,11 @@ const profitChartData = areas.map((area: any) => ({
   };
 
   if (isLoadingConnection) {
+
+  // Tambahin 2 baris ini tepat di atas return (
+  const harvestActivities = summary?.activities?.filter((a: any) => a.type === "harvest") || [];
+  const expenseActivities = summary?.activities?.filter((a: any) => a.type === "expense") || [];
+
           return (
     <div className="space-y-0 pb-24">
       {/* HEADER: Smooth Collapse (Anti Gajleg-Gajleg) */}
