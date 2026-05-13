@@ -1,12 +1,12 @@
 import {
   ArrowDownRight,
   ArrowUpRight,
+  BadgePercent,
   Banknote,
-  CircleDollarSign,
-  LineChart,
-  PieChart,
+  Landmark,
+  ReceiptText,
   Target,
-  WalletCards,
+  Wallet,
 } from "lucide-react";
 
 import {
@@ -19,183 +19,17 @@ import {
   YAxis,
 } from "recharts";
 
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+
 interface FinancialSectionProps {
   displayData: any;
   formatCurrency: (amount: number) => string;
   profitChartData: any[];
-}
-
-const metricAccent = {
-  modal:
-    "from-slate-900 to-slate-700 text-white",
-
-  pendapatan:
-    "from-emerald-500 to-teal-600 text-white",
-
-  pengeluaran:
-    "from-amber-500 to-orange-600 text-white",
-
-  profit:
-    "from-lime-500 to-emerald-600 text-white",
-
-  margin:
-    "from-cyan-500 to-blue-600 text-white",
-
-  hpp:
-    "from-stone-700 to-zinc-900 text-white",
-};
-
-function MetricCard({
-  label,
-  value,
-  caption,
-  icon: Icon,
-  accent,
-  status,
-}: any) {
-
-  const StatusIcon =
-    status === "down"
-      ? ArrowDownRight
-      : ArrowUpRight;
-
-  return (
-
-    <Card
-      className="
-        overflow-hidden
-        rounded-[1.75rem]
-
-        border-white/60
-
-        bg-white/75
-
-        backdrop-blur-2xl
-
-        shadow-[0_18px_60px_rgba(15,23,42,0.07)]
-      "
-    >
-
-      <CardContent
-        className="
-          relative
-          p-4
-        "
-      >
-
-        <div
-          className="
-            flex
-            items-start
-            justify-between
-            gap-3
-          "
-        >
-
-          <div className="space-y-2">
-
-            <p
-              className="
-                text-[10px]
-                font-black
-                uppercase
-                tracking-[0.18em]
-                text-muted-foreground
-              "
-            >
-              {label}
-            </p>
-
-            <div>
-
-              <p
-                className="
-                  text-xl
-                  font-black
-                  tracking-[-0.05em]
-                "
-              >
-                {value}
-              </p>
-
-              <p
-                className="
-                  text-xs
-                  text-muted-foreground
-                "
-              >
-                {caption}
-              </p>
-
-            </div>
-
-          </div>
-
-          <div
-            className={`
-              rounded-2xl
-              bg-gradient-to-br
-              p-3
-              shadow-lg
-
-              ${metricAccent[accent]}
-            `}
-          >
-
-            <Icon
-              className="
-                h-4
-                w-4
-              "
-            />
-
-          </div>
-
-        </div>
-
-        <div
-          className="
-            mt-4
-            inline-flex
-            items-center
-            gap-1
-
-            rounded-full
-
-            bg-muted/70
-
-            px-2.5
-            py-1
-
-            text-[11px]
-            font-bold
-            text-muted-foreground
-          "
-        >
-
-          <StatusIcon
-            className={`
-              h-3
-              w-3
-
-              ${
-                status === "down"
-                  ? "text-rose-500"
-                  : "text-emerald-500"
-              }
-            `}
-          />
-
-          live indicator
-
-        </div>
-
-      </CardContent>
-
-    </Card>
-
-  );
 }
 
 export function FinancialSection({
@@ -203,13 +37,11 @@ export function FinancialSection({
   formatCurrency,
   profitChartData,
 }: FinancialSectionProps) {
+  const hpp =
+    displayData.pengeluaran /
+    (displayData.harvestWeight || 1);
 
-const hpp =
-  displayData.pengeluaran /
-  (displayData.harvestWeight || 1);
-
-const bepProgress =
-  Math.min(
+  const bepProgress = Math.min(
     (
       displayData.pendapatan /
       (displayData.modal || 1)
@@ -217,431 +49,410 @@ const bepProgress =
     100
   );
 
- return (
-  <div className="space-y-4 md:space-y-5">
+  const metrics = [
+    {
+      label: "Modal",
+      value: formatCurrency(displayData.modal),
+      helper: "Committed capital",
+      icon: Landmark,
+      tone:
+        "from-slate-900/8 to-slate-500/5 dark:from-white/10 dark:to-white/5",
+      indicator: "bg-slate-500",
+    },
 
-    <div
-      className="
-        flex
-        items-end
-        justify-between
-        gap-4
-      "
-    >
+    {
+      label: "Pendapatan",
+      value: formatCurrency(displayData.pendapatan),
+      helper: "+ cash-in",
+      icon: ArrowUpRight,
+      tone: "from-emerald-500/15 to-teal-500/5",
+      indicator: "bg-emerald-500",
+    },
 
-      <div>
+    {
+      label: "Pengeluaran",
+      value: formatCurrency(displayData.pengeluaran),
+      helper: "operational burn",
+      icon: ArrowDownRight,
+      tone: "from-rose-500/14 to-orange-500/5",
+      indicator: "bg-rose-500",
+    },
 
-        <p
-          className="
-            text-xs
-            font-black
-            uppercase
-            tracking-[0.22em]
+    {
+      label: "Profit",
+      value: formatCurrency(displayData.profit),
+      helper: `${
+        displayData.margin >= 0 ? "+" : ""
+      }${displayData.margin.toFixed(1)}% margin`,
+      icon: Wallet,
+      tone: "from-amber-500/16 to-emerald-500/5",
+      indicator:
+        displayData.profit >= 0
+          ? "bg-emerald-500"
+          : "bg-rose-500",
+    },
+  ];
 
-            text-emerald-700
-          "
-        >
-          Financial Analytics
-        </p>
+  return (
+    <div className="space-y-4">
 
-        <h2
-          className="
-            mt-1
-            text-2xl
-            font-black
-            tracking-[-0.05em]
-          "
-        >
-          Fintech-grade farm economics
-        </h2>
+      {/* METRIC CARDS */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {metrics.map((metric) => {
+          const Icon = metric.icon;
 
+          return (
+            <Card
+              key={metric.label}
+              className={`
+                group
+                overflow-hidden
+                rounded-[1.6rem]
+                border-white/60
+                bg-gradient-to-br
+                ${metric.tone}
+                shadow-[0_18px_50px_rgba(15,23,42,0.08)]
+                backdrop-blur-xl
+                transition-all
+                duration-300
+                hover:-translate-y-0.5
+                hover:shadow-[0_24px_70px_rgba(15,23,42,0.12)]
+                dark:border-white/10
+              `}
+            >
+              <CardContent className="p-4 md:p-5">
+                <div className="flex items-start justify-between gap-3">
+
+                  <div className="min-w-0">
+                    <p
+                      className="
+                        text-[10px]
+                        font-bold
+                        uppercase
+                        tracking-[0.18em]
+                        text-muted-foreground
+                      "
+                    >
+                      {metric.label}
+                    </p>
+
+                    <p
+                      className="
+                        mt-3
+                        truncate
+                        text-[clamp(1.05rem,3.4vw,1.65rem)]
+                        font-black
+                        tracking-[-0.05em]
+                      "
+                    >
+                      {metric.value}
+                    </p>
+                  </div>
+
+                  <div
+                    className="
+                      flex
+                      h-9
+                      w-9
+                      shrink-0
+                      items-center
+                      justify-center
+                      rounded-2xl
+                      border
+                      border-white/60
+                      bg-white/70
+                      shadow-sm
+                      dark:border-white/10
+                      dark:bg-white/10
+                    "
+                  >
+                    <Icon className="h-4 w-4" />
+                  </div>
+                </div>
+
+                <div className="mt-4 flex items-center justify-between gap-2">
+                  <span className="text-xs font-medium text-muted-foreground">
+                    {metric.helper}
+                  </span>
+
+                  <span
+                    className={`
+                      h-2
+                      w-2
+                      rounded-full
+                      ${metric.indicator}
+                      shadow-[0_0_18px_currentColor]
+                    `}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
-      <span
-        className="
-          hidden
-          md:inline-flex
+      {/* HPP + CHART */}
+      <div className="grid gap-3 lg:grid-cols-[0.95fr_1.05fr]">
 
-          rounded-full
-
-          border
-          border-emerald-500/20
-
-          bg-emerald-500/10
-
-          px-3
-          py-1
-
-          text-xs
-          font-bold
-
-          text-emerald-700
-        "
-      >
-
-        Margin {displayData.margin.toFixed(1)}%
-
-      </span>
-
-    </div>
-
-<div
-  className="
-    grid
-    grid-cols-2
-    gap-3
-
-    lg:grid-cols-6
-  "
->
-
-  <MetricCard
-    label="Modal"
-    value={formatCurrency(displayData.modal)}
-    caption="capital deployed"
-    icon={WalletCards}
-    accent="modal"
-    status="neutral"
-  />
-
-  <MetricCard
-    label="Pendapatan"
-    value={formatCurrency(displayData.pendapatan)}
-    caption="gross revenue"
-    icon={Banknote}
-    accent="pendapatan"
-    status="up"
-  />
-
-  <MetricCard
-    label="Pengeluaran"
-    value={formatCurrency(displayData.pengeluaran)}
-    caption="farm opex"
-    icon={ArrowDownRight}
-    accent="pengeluaran"
-    status="down"
-  />
-
-  <MetricCard
-    label="Profit"
-    value={formatCurrency(displayData.profit)}
-    caption="net result"
-    icon={CircleDollarSign}
-    accent="profit"
-    status={
-      displayData.profit >= 0
-        ? "up"
-        : "down"
-    }
-  />
-
-  <MetricCard
-    label="Margin"
-    value={`${displayData.margin.toFixed(1)}%`}
-    caption="profitability ratio"
-    icon={PieChart}
-    accent="margin"
-    status={
-      displayData.margin >= 0
-        ? "up"
-        : "down"
-    }
-  />
-<MetricCard
-  label="HPP"
-  value={`${formatCurrency(hpp)}/kg`}
-  caption="cost per kg"
-  icon={LineChart}
-  accent="hpp"
-  status="neutral"
-/>
-
-
-</div>
-
-<Card
-  className="
-    overflow-hidden
-
-    rounded-[1.75rem]
-
-    border-white/60
-
-    bg-slate-950
-
-    text-white
-
-    shadow-2xl
-  "
->
-
-  <CardContent
-    className="
-      relative
-      space-y-5
-      p-5
-    "
-  >
-
-    <div
-      className="
-        absolute
-        -right-12
-        -top-12
-
-        h-40
-        w-40
-
-        rounded-full
-
-        bg-emerald-400/30
-
-        blur-3xl
-      "
-    />
-
-    <div
-      className="
-        relative
-
-        flex
-        items-start
-        justify-between
-      "
-    >
-
-      <div>
-
-        <p
+        {/* UNIT ECONOMICS */}
+        <Card
           className="
-            text-xs
-            font-bold
-            uppercase
-            tracking-[0.18em]
-
-            text-white/45
+            overflow-hidden
+            rounded-[1.75rem]
+            border-white/60
+            bg-white/70
+            shadow-[0_18px_60px_rgba(15,23,42,0.08)]
+            backdrop-blur-xl
+            dark:border-white/10
+            dark:bg-white/[0.06]
           "
         >
-          BEP runway
-        </p>
+          <CardHeader className="pb-3">
+            <CardTitle
+              className="
+                flex
+                items-center
+                gap-2
+                text-base
+                font-black
+                tracking-[-0.03em]
+              "
+            >
+              <ReceiptText className="h-5 w-5 text-emerald-600" />
+              Unit economics
+            </CardTitle>
+          </CardHeader>
 
-        <h3
+          <CardContent className="space-y-4">
+
+            {/* HPP */}
+            <div
+              className="
+                rounded-3xl
+                border
+                border-border/60
+                bg-background/70
+                p-4
+              "
+            >
+              <div className="flex items-center justify-between gap-3">
+
+                <div>
+                  <p
+                    className="
+                      text-[11px]
+                      font-bold
+                      uppercase
+                      tracking-[0.16em]
+                      text-muted-foreground
+                    "
+                  >
+                    HPP / kg
+                  </p>
+
+                  <p
+                    className="
+                      mt-2
+                      text-3xl
+                      font-black
+                      tracking-[-0.06em]
+                      md:text-4xl
+                    "
+                  >
+                    {formatCurrency(hpp)}
+                  </p>
+                </div>
+
+                <Banknote className="h-8 w-8 text-emerald-600" />
+              </div>
+
+              <p className="mt-3 text-xs leading-5 text-muted-foreground">
+                Berdasarkan {displayData.harvestWeight || 0} kg
+                panen tercatat dan seluruh pengeluaran area aktif.
+              </p>
+            </div>
+
+            {/* BEP */}
+            <div
+              className="
+                rounded-3xl
+                border
+                border-border/60
+                bg-background/70
+                p-4
+              "
+            >
+              <div className="flex items-center justify-between text-sm font-bold">
+
+                <span className="flex items-center gap-2">
+                  <Target className="h-4 w-4 text-amber-600" />
+                  BEP progress
+                </span>
+
+                <span>
+                  {bepProgress.toFixed(1)}%
+                </span>
+              </div>
+
+              <div
+                className="
+                  mt-3
+                  h-3
+                  overflow-hidden
+                  rounded-full
+                  bg-muted
+                "
+              >
+                <div
+                  className="
+                    h-full
+                    rounded-full
+                    bg-gradient-to-r
+                    from-emerald-500
+                    via-lime-500
+                    to-amber-400
+                    shadow-[0_0_24px_rgba(34,197,94,0.45)]
+                    transition-all
+                    duration-1000
+                  "
+                  style={{
+                    width: `${bepProgress}%`,
+                  }}
+                />
+              </div>
+
+              <p className="mt-3 text-xs leading-5 text-muted-foreground">
+                {displayData.pendapatan >= displayData.modal
+                  ? "Modal sudah balik. Mode berikutnya: optimasi ekspansi profit."
+                  : `Butuh ${formatCurrency(
+                      displayData.modal -
+                        displayData.pendapatan
+                    )} lagi untuk balik modal.`}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* PROFIT CHART */}
+        <Card
           className="
-            mt-2
-            text-3xl
-            font-black
-            tracking-[-0.06em]
+            overflow-hidden
+            rounded-[1.75rem]
+            border-white/60
+            bg-white/70
+            shadow-[0_18px_60px_rgba(15,23,42,0.08)]
+            backdrop-blur-xl
+            dark:border-white/10
+            dark:bg-white/[0.06]
           "
         >
-          {bepProgress.toFixed(1)}%
-        </h3>
+          <CardHeader className="pb-2">
+
+            <div className="flex items-center justify-between gap-3">
+              <CardTitle
+                className="
+                  text-base
+                  font-black
+                  tracking-[-0.03em]
+                "
+              >
+                Profit per area
+              </CardTitle>
+
+              <BadgePercent className="h-5 w-5 text-emerald-600" />
+            </div>
+          </CardHeader>
+
+          <CardContent>
+            <div className="h-[270px] md:h-[320px]">
+
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={profitChartData}
+                  margin={{
+                    top: 12,
+                    right: 8,
+                    left: -18,
+                    bottom: 0,
+                  }}
+                >
+                  <defs>
+                    <linearGradient
+                      id="profitGradient"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop
+                        offset="0%"
+                        stopColor="#10b981"
+                        stopOpacity={0.95}
+                      />
+
+                      <stop
+                        offset="100%"
+                        stopColor="#84cc16"
+                        stopOpacity={0.55}
+                      />
+                    </linearGradient>
+                  </defs>
+
+                  <CartesianGrid
+                    vertical={false}
+                    stroke="hsl(var(--border))"
+                    strokeDasharray="4 8"
+                    opacity={0.6}
+                  />
+
+                  <XAxis
+                    dataKey="name"
+                    tickLine={false}
+                    axisLine={false}
+                    fontSize={11}
+                    dy={8}
+                  />
+
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    fontSize={11}
+                    tickFormatter={(value) =>
+                      `${(Number(value) / 1000000).toFixed(0)}jt`
+                    }
+                  />
+
+                  <Tooltip
+                    cursor={{
+                      fill: "hsl(var(--muted))",
+                      opacity: 0.45,
+                    }}
+                    formatter={(value: number) =>
+                      formatCurrency(value)
+                    }
+                    contentStyle={{
+                      borderRadius: 18,
+                      border: "1px solid hsl(var(--border))",
+                      background:
+                        "hsl(var(--background) / 0.92)",
+                      backdropFilter: "blur(16px)",
+                    }}
+                  />
+
+                  <Bar
+                    dataKey="profit"
+                    fill="url(#profitGradient)"
+                    radius={[12, 12, 6, 6]}
+                    maxBarSize={54}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+
+            </div>
+          </CardContent>
+        </Card>
 
       </div>
-
-      <div
-        className="
-          rounded-2xl
-          bg-white/10
-          p-3
-        "
-      >
-
-        <Target
-          className="
-            h-5
-            w-5
-            text-emerald-300
-          "
-        />
-
-      </div>
-
     </div>
-
-    <div
-      className="
-        relative
-        h-3
-
-        overflow-hidden
-
-        rounded-full
-
-        bg-white/10
-      "
-    >
-
-      <div
-        className="
-          h-full
-          rounded-full
-
-          bg-gradient-to-r
-          from-emerald-300
-          via-lime-300
-          to-amber-200
-
-          transition-all
-          duration-1000
-        "
-        style={{
-          width: `${bepProgress}%`
-        }}
-      />
-
-    </div>
-
-    <p
-      className="
-        relative
-        text-sm
-        leading-6
-        text-white/62
-      "
-    >
-
-      {
-        displayData.pendapatan >=
-        displayData.modal
-
-          ? "Modal sudah balik. Sistem merekomendasikan ekspansi area."
-
-          : `Butuh ${formatCurrency(
-              displayData.modal -
-              displayData.pendapatan
-            )} lagi untuk mencapai BEP.`
-      }
-
-    </p>
-
-  </CardContent>
-
-</Card>
-
-<Card
-  className="
-    rounded-[1.75rem]
-
-    border-white/60
-
-    bg-white/75
-
-    backdrop-blur-2xl
-
-    shadow-[0_18px_60px_rgba(15,23,42,0.07)]
-  "
->
-
-  <CardContent
-    className="
-      p-4
-      md:p-6
-    "
-  >
-
-    <div
-      className="
-        mb-4
-
-        flex
-        items-center
-        justify-between
-      "
-    >
-
-      <div>
-
-        <p
-          className="
-            text-xs
-            font-black
-            uppercase
-            tracking-[0.18em]
-
-            text-muted-foreground
-          "
-        >
-          Area Profitability
-        </p>
-
-        <h3
-          className="
-            text-xl
-            font-black
-            tracking-[-0.04em]
-          "
-        >
-          Profit per area
-        </h3>
-
-      </div>
-
-    </div>
-
-    <div className="h-[260px]">
-
-      <ResponsiveContainer
-        width="100%"
-        height="100%"
-      >
-
-        <BarChart
-          data={profitChartData}
-          margin={{
-            top: 12,
-            right: 8,
-            left: -24,
-            bottom: 4,
-          }}
-        >
-
-          <CartesianGrid
-            strokeDasharray="3 3"
-            vertical={false}
-            stroke="rgba(148,163,184,0.22)"
-          />
-
-          <XAxis
-            dataKey="name"
-            tickLine={false}
-            axisLine={false}
-            fontSize={12}
-          />
-
-          <YAxis
-            tickLine={false}
-            axisLine={false}
-            fontSize={12}
-            tickFormatter={(value) =>
-              `${(
-                value / 1000000
-              ).toFixed(0)}jt`
-            }
-          />
-
-          <Tooltip
-            formatter={(value: any) =>
-              formatCurrency(Number(value))
-            }
-          />
-
-          <Bar
-            dataKey="profit"
-            fill="#10b981"
-            radius={[12, 12, 4, 4]}
-            maxBarSize={54}
-          />
-
-        </BarChart>
-
-      </ResponsiveContainer>
-
-    </div>
-
-  </CardContent>
-
-</Card>
-
-</div>
-);
+  );
 }
