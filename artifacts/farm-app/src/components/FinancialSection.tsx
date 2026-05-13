@@ -518,6 +518,130 @@ const bepProgress =
 
 </Card>
 
+<Card
+  className="
+    rounded-[1.75rem]
+
+    border-white/60
+
+    bg-white/75
+
+    backdrop-blur-2xl
+
+    shadow-[0_18px_60px_rgba(15,23,42,0.07)]
+  "
+>
+
+  <CardContent
+    className="
+      p-4
+      md:p-6
+    "
+  >
+
+    <div
+      className="
+        mb-4
+
+        flex
+        items-center
+        justify-between
+      "
+    >
+
+      <div>
+
+        <p
+          className="
+            text-xs
+            font-black
+            uppercase
+            tracking-[0.18em]
+
+            text-muted-foreground
+          "
+        >
+          Area Profitability
+        </p>
+
+        <h3
+          className="
+            text-xl
+            font-black
+            tracking-[-0.04em]
+          "
+        >
+          Profit per area
+        </h3>
+
+      </div>
+
+    </div>
+
+    <div className="h-[260px]">
+
+      <ResponsiveContainer
+        width="100%"
+        height="100%"
+      >
+
+        <BarChart
+          data={profitChartData}
+          margin={{
+            top: 12,
+            right: 8,
+            left: -24,
+            bottom: 4,
+          }}
+        >
+
+          <CartesianGrid
+            strokeDasharray="3 3"
+            vertical={false}
+            stroke="rgba(148,163,184,0.22)"
+          />
+
+          <XAxis
+            dataKey="name"
+            tickLine={false}
+            axisLine={false}
+            fontSize={12}
+          />
+
+          <YAxis
+            tickLine={false}
+            axisLine={false}
+            fontSize={12}
+            tickFormatter={(value) =>
+              `${(
+                value / 1000000
+              ).toFixed(0)}jt`
+            }
+          />
+
+          <Tooltip
+            formatter={(value: any) =>
+              formatCurrency(Number(value))
+            }
+          />
+
+          <Bar
+            dataKey="profit"
+            fill="#10b981"
+            radius={[12, 12, 4, 4]}
+            maxBarSize={54}
+          />
+
+        </BarChart>
+
+      </ResponsiveContainer>
+
+    </div>
+
+  </CardContent>
+
+</Card>
+
 </div>
 );
 }
