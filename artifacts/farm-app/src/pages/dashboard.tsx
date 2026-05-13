@@ -1,38 +1,36 @@
-import {
-  useState,
-  useMemo,
-  useRef,
-  useEffect,
-} from "react";
-import { Link } from "wouter";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
+
 import {
-  AlertCircle,
-  ArrowDownCircle,
-  ArrowUpCircle,
-  DollarSign,
-  RefreshCcw,
-  CalendarClock,
-  Wallet,
-  Map,
-  TrendingUp,
+  Activity,
+  BarChart3,
+  BrainCircuit,
+  CheckCircle2,
   Filter,
-SlidersHorizontal,
+  Leaf,
+  RefreshCcw,
+  SlidersHorizontal,
+  Sparkles,
+  TrendingUp,
+  WalletCards,
 } from "lucide-react";
+
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+
 import {
-  useGetNotionConnectionStatus,
-  getGetNotionConnectionStatusQueryKey,
   getGetDashboardSummaryQueryKey,
+  getGetNotionConnectionStatusQueryKey,
+  useGetNotionConnectionStatus,
 } from "@workspace/api-client-react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
+import { Button } from "@/components/ui/button";
+
+import { Card, CardContent } from "@/components/ui/card";
 
 import {
   Select,
@@ -41,51 +39,129 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-} from "recharts";
-import { OperationalSection } from "@/components/OperationalSection";
+
+import { Skeleton } from "@/components/ui/skeleton";
+
 import { FinancialSection } from "@/components/FinancialSection";
-import { ProductionSection } from "@/components/ProductionSection";
+
 import { InsightSection } from "@/components/InsightSection";
+
+import { OperationalSection } from "@/components/OperationalSection";
+
+import { ProductionSection } from "@/components/ProductionSection";
+
+type DashboardSection =
+  | "financial"
+  | "production"
+  | "operational"
+  | "insight";
+
+const sections = [
+  {
+    key: "financial",
+    label: "Financial",
+    icon: WalletCards,
+  },
+
+  {
+    key: "production",
+    label: "Production",
+    icon: BarChart3,
+  },
+
+  {
+    key: "operational",
+    label: "Ops",
+    icon: Activity,
+  },
+
+  {
+    key: "insight",
+    label: "Insight",
+    icon: BrainCircuit,
+  },
+];
+
+const emptyDisplayData = {
+  modal: 0,
+  pendapatan: 0,
+  pengeluaran: 0,
+  profit: 0,
+  margin: 0,
+  harvestWeight: 0,
+};
 
 export function DashboardPage() {
 
   const queryClient = useQueryClient();
 
   const [selectedAreaId, setSelectedAreaId] =
-    useState<string>("all");
-
-const [isHeaderHidden, setIsHeaderHidden] =
-  useState(false);
+  useState<string>("all");
 
 const [activeSection, setActiveSection] =
-  useState<
-    "financial" |
-    "production" |
-    "operational" |
-    "insight"
-  >("financial");
+  useState<DashboardSection>("financial");
 
 const [showControls, setShowControls] =
   useState(false);
 
-  const financialRef =
-    useRef<HTMLDivElement>(null);
+const financialRef =
+  useRef<HTMLDivElement>(null);
 
-  const productionRef =
-    useRef<HTMLDivElement>(null);
+const productionRef =
+  useRef<HTMLDivElement>(null);
 
-  const operationalRef =
-    useRef<HTMLDivElement>(null);
+const operationalRef =
+  useRef<HTMLDivElement>(null);
 
-  const insightRef =
-    useRef<HTMLDivElement>(null);
+const insightRef =
+  useRef<HTMLDivElement>(null);
+
+const sectionRefs = useMemo(
+  () => ({
+    financial: financialRef,
+    production: productionRef,
+    operational: operationalRef,
+    insight: insightRef,
+  }),
+  [],
+);
+
+useEffect(() => {
+  const handleScroll = () => {
+    let currentSection: DashboardSection =
+      "financial";
+
+    sections.forEach((section) => {
+      const element =
+        sectionRefs[section.key].current;
+
+      if (!element) return;
+
+      const rect =
+        element.getBoundingClientRect();
+
+      if (rect.top <= 180) {
+        currentSection = section.key;
+      }
+    });
+
+    setActiveSection(currentSection);
+  };
+
+  window.addEventListener(
+    "scroll",
+    handleScroll,
+    { passive: true },
+  );
+
+  handleScroll();
+
+  return () =>
+    window.removeEventListener(
+      "scroll",
+      handleScroll,
+    );
+}, [sectionRefs]);
 
 useEffect(() => {
 
@@ -183,8 +259,7 @@ setIsHeaderHidden(window.scrollY > 40);
 
   // LOGIC FILTER: Sekarang sudah include harvestWeight per area
   const displayData = useMemo(() => {
-    if (!summary) return { modal: 0, pendapatan: 0, pengeluaran: 0, profit: 0, margin: 0, harvestWeight: 0 };
-
+    if (!summary) return emptyDisplayData;
     if (selectedAreaId === "all") {
   return {
     modal: summary.financial?.totalModal || 0,
@@ -218,6 +293,14 @@ setIsHeaderHidden(window.scrollY > 40);
       harvestWeight: area.harvestWeight || 0, // Gunakan 75 kg (untuk Blok B)
     };
   }, [summary, selectedAreaId, areas]);
+
+const selectedAreaName =
+  selectedAreaId === "all"
+    ? "All growing areas"
+    : areas.find(
+        (area: any) =>
+          area.id === selectedAreaId
+      )?.name || "Selected area";
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat("id-ID", {
@@ -254,6 +337,19 @@ const profitChartData = areas.map((area: any) => ({
     queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
     refetch();
   };
+
+const scrollToSection = (
+  section: DashboardSection
+) => {
+  setActiveSection(section);
+
+  sectionRefs[
+    section
+  ].current?.scrollIntoView({
+    behavior: "smooth",
+    block: "start",
+  });
+};
 
   if (isLoadingConnection) {
     return (
