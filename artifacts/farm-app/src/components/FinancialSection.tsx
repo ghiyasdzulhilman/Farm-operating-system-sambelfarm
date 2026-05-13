@@ -4,7 +4,7 @@ import {
   Banknote,
   CircleDollarSign,
   LineChart,
-  PieChart,
+  PieChart as PieChartIcon,
   Target,
   WalletCards,
 } from "lucide-react";
@@ -356,7 +356,7 @@ const totalProfit =
     label="Margin"
     value={`${displayData.margin.toFixed(1)}%`}
     caption="profitability ratio"
-    icon={PieChart}
+    icon={PieChartIcon}
     accent="margin"
     status={
       displayData.margin >= 0
