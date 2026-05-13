@@ -209,7 +209,72 @@ const hpp =
   (displayData.harvestWeight || 1);
 
  return (
-<div className="space-y-4">
+  <div className="space-y-4 md:space-y-5">
+
+    <div
+      className="
+        flex
+        items-end
+        justify-between
+        gap-4
+      "
+    >
+
+      <div>
+
+        <p
+          className="
+            text-xs
+            font-black
+            uppercase
+            tracking-[0.22em]
+
+            text-emerald-700
+          "
+        >
+          Financial Analytics
+        </p>
+
+        <h2
+          className="
+            mt-1
+            text-2xl
+            font-black
+            tracking-[-0.05em]
+          "
+        >
+          Fintech-grade farm economics
+        </h2>
+
+      </div>
+
+      <span
+        className="
+          hidden
+          md:inline-flex
+
+          rounded-full
+
+          border
+          border-emerald-500/20
+
+          bg-emerald-500/10
+
+          px-3
+          py-1
+
+          text-xs
+          font-bold
+
+          text-emerald-700
+        "
+      >
+
+        Margin {displayData.margin.toFixed(1)}%
+
+      </span>
+
+    </div>
 
 <div
   className="
