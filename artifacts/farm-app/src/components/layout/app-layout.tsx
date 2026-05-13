@@ -12,7 +12,7 @@ import {
   Plus, 
   FlaskConical, 
   Settings, 
-  Tractor,
+  Wheat,
   ClipboardList
 } from "lucide-react";
 
@@ -94,7 +94,17 @@ export function AppLayout({
   ];
 
   return (
-    <div className="min-h-screen bg-muted/20 pb-24 md:pb-0 font-sans">
+    <div
+  className="
+    min-h-screen
+
+    bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.12),transparent_32%),linear-gradient(180deg,hsl(var(--background)),hsl(var(--muted)))]
+
+    pb-24
+
+    font-sans
+  "
+>
       {/* HEADER: Profil User */}
       <header
   className={`
@@ -103,9 +113,10 @@ export function AppLayout({
     z-40
     w-full
     border-b
-    border-border
-    bg-background/80
-    backdrop-blur-md
+    border-white/50
+    bg-background/75
+    backdrop-blur-2xl
+    dark:border-white/10
 
     transition-all
     duration-300
@@ -122,10 +133,10 @@ export function AppLayout({
 
   <div className="flex items-center gap-2">
 
-    <Tractor className="h-5 w-5 text-primary" />
+    <Wheat className="h-5 w-5 text-primary" />
 
     <span className="font-bold text-lg tracking-tight text-foreground">
-      Farmlytics
+      Sambel Farm
     </span>
 
   </div>
@@ -189,7 +200,7 @@ export function AppLayout({
       </header>
 
       {/* AREA KONTEN UTAMA */}
-      <main className="container p-4 md:p-6 mx-auto max-w-5xl">
+      <main className="container p-4 md:p-6 mx-auto max-w-7xl">
         {children}
       </main>
 
