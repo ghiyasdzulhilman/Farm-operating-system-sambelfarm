@@ -403,111 +403,61 @@ const expenseActivities =
 
 </div>
 
-<div className="mt-2 flex justify-end">
+{/* --- TOOLBAR SECTION (HORIZONTAL SLIDE FIX) --- */}
+<div className="mt-2 flex items-center justify-end gap-2">
 
-  <button
-    onClick={() =>
-      setShowControls(!showControls)
-    }
-    className="
-      h-7
-      w-7
-
-      flex
-      items-center
-      justify-center
-
-      rounded-lg
-      border
-      border-border/50
-
-      bg-background/80
-
-      text-muted-foreground
-
-      transition-all
-      duration-200
-
-      hover:text-foreground
-      hover:bg-muted/50
-    "
-  >
-
-    <SlidersHorizontal
-      className="h-3.5 w-3.5"
-    />
-
-  </button>
-
-</div>
-
-<div
-  className={`
-    overflow-hidden
-    transition-all
-    duration-300
-
-    ${
-  showControls
-    ? `
-      opacity-100
-      translate-y-0
-      pointer-events-auto
-    `
-    : `
-      opacity-0
-      -translate-y-2
-      pointer-events-none
-    `
-}
-  `}
->
-
+  {/* EXPANDABLE CONTROLS (Dropdown & Refresh) */}
   <div
-    className="
-      mt-2
+    className={`
       flex
       items-center
-      justify-end
       gap-2
-    "
-  >
+      overflow-hidden
+      transition-all
+      duration-300
+      ease-in-out
 
+      ${
+        showControls
+          ? `
+            max-w-[200px]
+            opacity-100
+            translate-x-0
+            pointer-events-auto
+          `
+          : `
+            max-w-0
+            opacity-0
+            translate-x-4
+            pointer-events-none
+          `
+      }
+    `}
+  >
     <Button
       variant="outline"
       size="icon"
       className="
-        h-5
-        w-5
+        h-7
+        w-7
         bg-background
         shrink-0
       "
       onClick={handleRefreshSummary}
       disabled={isFetching}
     >
-
       <RefreshCcw
-        className={`
-          h-3
-          w-3
-          ${
-            isFetching
-              ? "animate-spin"
-              : ""
-          }
-        `}
+        className={`h-3 w-3 ${isFetching ? "animate-spin" : ""}`}
       />
-
     </Button>
 
     <Select
       value={selectedAreaId}
       onValueChange={setSelectedAreaId}
     >
-
       <SelectTrigger
         className="
-          h-6
+          h-7
           w-[130px]
           bg-background
           text-xs
@@ -515,31 +465,43 @@ const expenseActivities =
       >
         <SelectValue />
       </SelectTrigger>
-
       <SelectContent>
-
-        <SelectItem value="all">
-          Semua Area
-        </SelectItem>
-
+        <SelectItem value="all">Semua Area</SelectItem>
         {areas.map((area: any) => (
-          <SelectItem
-            key={area.id}
-            value={area.id}
-          >
+          <SelectItem key={area.id} value={area.id}>
             {area.name}
           </SelectItem>
         ))}
-
       </SelectContent>
-
     </Select>
-
   </div>
 
-</div>
+  {/* BUTTON TOGGLE FILTER (Stay di Kanan) */}
+  <button
+    onClick={() => setShowControls(!showControls)}
+    className="
+      h-7
+      w-7
+      flex
+      items-center
+      justify-center
+      shrink-0
+      rounded-lg
+      border
+      border-border/50
+      bg-background/80
+      text-muted-foreground
+      transition-all
+      duration-200
+      hover:text-foreground
+      hover:bg-muted/50
+    "
+  >
+    <SlidersHorizontal className="h-3.5 w-3.5" />
+  </button>
 
 </div>
+{/* --- END TOOLBAR SECTION --- */}
 
   <section
   ref={financialRef}
