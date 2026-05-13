@@ -379,33 +379,7 @@ const expenseActivities =
     (a: any) => a.type === "expense"
   ) || [];
   return (
-    <div className="space-y-3 pb-10">
-      <div
-  className={`
-    absolute
-    right-0
-    top-full
 
-    mt-2
-
-    overflow-hidden
-
-    transition-all
-    duration-300
-
-    ${
-      isHeaderHidden
-        ? "max-h-0 opacity-0"
-        : "max-h-20 opacity-100"
-    }
-  `}
->
-
-  <h1 className="text-2xl font-bold tracking-tight">
-    Dashboard
-  </h1>
-
-</div>
 <div
   className="
     sticky
