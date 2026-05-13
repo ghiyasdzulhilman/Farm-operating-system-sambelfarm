@@ -247,13 +247,14 @@ export function DashboardPage() {
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_15%_0%,rgba(35,116,83,0.18),transparent_34%),radial-gradient(circle_at_86%_8%,rgba(202,138,4,0.12),transparent_30%),linear-gradient(180deg,hsl(var(--background)),hsl(var(--muted))/0.45)]" />
 
       <div className="mx-auto max-w-6xl space-y-5 md:space-y-7">
+        
         <motion.header
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, ease: "easeOut" }}
           className="overflow-hidden rounded-[2rem] border border-white/50 bg-white/70 p-5 shadow-[0_24px_80px_rgba(20,83,45,0.12)] backdrop-blur-2xl dark:border-white/10 dark:bg-white/[0.06] md:p-7"
         >
-          <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div className="space-y-4">
               <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/15 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
                 <span className="relative flex h-2 w-2">
@@ -262,19 +263,6 @@ export function DashboardPage() {
                 </span>
                 Live Notion Database API
               </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Smart farming operating system
-                </p>
-                <h1 className="mt-1 text-3xl font-black tracking-[-0.06em] text-foreground md:text-6xl">
-                  Sambel Farm
-                </h1>
-              </div>
-              <p className="max-w-2xl text-sm leading-6 text-muted-foreground md:text-base">
-                Satu dashboard kontinyu untuk membaca kesehatan finansial,
-                produktivitas, ritme operasional, dan rekomendasi cerdas tanpa
-                kepadatan ERP tradisional.
-              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-2 md:w-[360px]">
