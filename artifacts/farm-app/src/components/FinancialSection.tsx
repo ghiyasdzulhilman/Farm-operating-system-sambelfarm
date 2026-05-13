@@ -10,13 +10,11 @@ import {
 } from "lucide-react";
 
 import {
-  Bar,
-  BarChart,
-  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
-  XAxis,
-  YAxis,
 } from "recharts";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -215,6 +213,25 @@ const bepProgress =
       (displayData.modal || 1)
     ) * 100,
     100
+  );
+
+const donutData = profitChartData.map(
+  (item, index) => ({
+    ...item,
+    value: Math.abs(item.profit),
+    color: [
+      "#10b981",
+      "#84cc16",
+      "#14b8a6",
+      "#22c55e",
+    ][index % 4],
+  })
+);
+
+const totalProfit =
+  profitChartData.reduce(
+    (acc, item) => acc + item.profit,
+    0
   );
 
  return (
@@ -578,63 +595,89 @@ const bepProgress =
 
     </div>
 
-    <div className="h-[260px]">
+    <div
+  className="
+    relative
+    h-[270px]
+    md:h-[320px]
+  "
+>
 
       <ResponsiveContainer
         width="100%"
         height="100%"
       >
 
-        <BarChart
-          data={profitChartData}
-          margin={{
-            top: 12,
-            right: 8,
-            left: -24,
-            bottom: 4,
-          }}
-        >
+      <PieChart>
 
-          <CartesianGrid
-            strokeDasharray="3 3"
-            vertical={false}
-            stroke="rgba(148,163,184,0.22)"
-          />
+  <Pie
+    data={donutData}
+    dataKey="value"
+    nameKey="name"
+    innerRadius={70}
+    outerRadius={100}
+    paddingAngle={4}
+    strokeWidth={0}
+  >
+    {donutData.map((entry, index) => (
+      <Cell
+        key={`cell-${index}`}
+        fill={entry.color}
+      />
+    ))}
+  </Pie>
 
-          <XAxis
-            dataKey="name"
-            tickLine={false}
-            axisLine={false}
-            fontSize={12}
-          />
+  <Tooltip
+    formatter={(value: number) =>
+      formatCurrency(value)
+    }
+    contentStyle={{
+      borderRadius: 18,
+      border: "1px solid hsl(var(--border))",
+      background:
+        "hsl(var(--background) / 0.92)",
+      backdropFilter: "blur(16px)",
+    }}
+  />
 
-          <YAxis
-            tickLine={false}
-            axisLine={false}
-            fontSize={12}
-            tickFormatter={(value) =>
-              `${(
-                value / 1000000
-              ).toFixed(0)}jt`
-            }
-          />
-
-          <Tooltip
-            formatter={(value: any) =>
-              formatCurrency(Number(value))
-            }
-          />
-
-          <Bar
-            dataKey="profit"
-            fill="#10b981"
-            radius={[12, 12, 4, 4]}
-            maxBarSize={54}
-          />
-
-        </BarChart>
+</PieChart>
 
       </ResponsiveContainer>
+
+<div
+  className="
+    pointer-events-none
+    absolute
+    inset-0
+    flex
+    flex-col
+    items-center
+    justify-center
+  "
+>
+  <p
+    className="
+      text-xs
+      font-bold
+      uppercase
+      tracking-[0.18em]
+      text-muted-foreground
+    "
+  >
+    Total Profit
+  </p>
+
+  <p
+    className="
+      mt-2
+      text-2xl
+      font-black
+      tracking-[-0.05em]
+    "
+  >
+    {formatCurrency(totalProfit)}
+  </p>
+</div>
 
     </div>
 
