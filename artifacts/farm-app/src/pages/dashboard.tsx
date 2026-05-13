@@ -256,30 +256,29 @@ const profitChartData = areas.map((area: any) => ({
   };
 
   if (isLoadingConnection) {
-        return (
-    <div className="space-y-3 pb-24">
-      {/* HEADER: Efek Fade-in & Slide dari samping */}
+          return (
+    <div className="space-y-0 pb-24">
+      {/* HEADER: Smooth Collapse (Anti Gajleg-Gajleg) */}
       <motion.div
-        initial={{ opacity: 0, x: -20 }}
+        initial={false}
         animate={{ 
-          opacity: isHeaderHidden ? 0 : 1, 
-          x: isHeaderHidden ? -20 : 0,
-          display: isHeaderHidden ? "none" : "block"
+          height: isHeaderHidden ? 0 : "auto",
+          opacity: isHeaderHidden ? 0 : 1,
+          y: isHeaderHidden ? -10 : 0
         }}
-        transition={{ duration: 0.3 }}
-        className="pt-2"
+        transition={{ duration: 0.3, ease: "easeInOut" }}
+        className="overflow-hidden px-1"
       >
-        <h1 className="text-2xl font-bold tracking-tight px-1">
+        <h1 className="text-2xl font-bold tracking-tight pt-2 pb-2">
           Dashboard
         </h1>
       </motion.div>
 
-      <div className="sticky top-1 z-20 mb-2 pt-0">
-        {/* NAV TABS: Animasi muncul dari bawah */}
+      <div className="sticky top-2 z-20 mb-4 pt-0">
+        {/* NAV TABS: Muncul lebih cepat & ringan */}
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: 5 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
           className="flex gap-2 overflow-x-auto scrollbar-hide rounded-2xl border border-border/50 bg-background/70 backdrop-blur-xl p-2 shadow-sm"
         >
           {[
@@ -314,7 +313,7 @@ const profitChartData = areas.map((area: any) => ({
           ))}
         </motion.div>
 
-        {/* TOOLBAR: Horizontal Slide */}
+        {/* TOOLBAR: Tetap Horizontal Slide */}
         <div className="mt-2 flex items-center justify-end gap-2 px-1">
           <div
             className={`flex items-center gap-2 overflow-hidden transition-all duration-300 ease-in-out ${
@@ -353,14 +352,14 @@ const profitChartData = areas.map((area: any) => ({
         </div>
       </div>
 
-      {/* SECTIONS: Efek Staggered Entry */}
+      {/* SECTIONS: Animasi dipercepat & ditrigger lebih awal (margin: -10%) */}
       <div className="space-y-6">
         <motion.section
           ref={financialRef}
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 15 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.1 }}
+          viewport={{ once: true, margin: "0px 0px -5% 0px" }}
+          transition={{ duration: 0.4 }}
           className="scroll-mt-32"
         >
           <FinancialSection
@@ -372,10 +371,10 @@ const profitChartData = areas.map((area: any) => ({
 
         <motion.section
           ref={productionRef}
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 15 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.15 }}
+          viewport={{ once: true, margin: "0px 0px -5% 0px" }}
+          transition={{ duration: 0.4 }}
           className="scroll-mt-32"
         >
           <ProductionSection
@@ -386,10 +385,10 @@ const profitChartData = areas.map((area: any) => ({
 
         <motion.section
           ref={operationalRef}
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 15 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.2 }}
+          viewport={{ once: true, margin: "0px 0px -5% 0px" }}
+          transition={{ duration: 0.4 }}
           className="scroll-mt-32"
         >
           <OperationalSection
@@ -400,10 +399,10 @@ const profitChartData = areas.map((area: any) => ({
 
         <motion.section
           ref={insightRef}
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 15 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.25 }}
+          viewport={{ once: true, margin: "0px 0px -5% 0px" }}
+          transition={{ duration: 0.4 }}
           className="scroll-mt-32"
         >
           <InsightSection
@@ -416,5 +415,6 @@ const profitChartData = areas.map((area: any) => ({
       </div>
     </div>
   );
+
 }
 }
