@@ -1,18 +1,50 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  Banknote,
+  CircleDollarSign,
+  LineChart,
+  PieChart,
+  Target,
+  WalletCards,
+} from "lucide-react";
 
 import {
-  ResponsiveContainer,
-  BarChart,
   Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  Tooltip,
 } from "recharts";
+
+import { Card, CardContent } from "@/components/ui/card";
 interface FinancialSectionProps {
   displayData: any;
   formatCurrency: (amount: number) => string;
   profitChartData: any[];
 }
+
+const metricAccent = {
+  modal:
+    "from-slate-900 to-slate-700 text-white",
+
+  pendapatan:
+    "from-emerald-500 to-teal-600 text-white",
+
+  pengeluaran:
+    "from-amber-500 to-orange-600 text-white",
+
+  profit:
+    "from-lime-500 to-emerald-600 text-white",
+
+  margin:
+    "from-cyan-500 to-blue-600 text-white",
+
+  hpp:
+    "from-stone-700 to-zinc-900 text-white",
+};
 
 export function FinancialSection({
   displayData,
