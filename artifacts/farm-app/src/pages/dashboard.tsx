@@ -578,7 +578,6 @@ const expenseActivities =
 </div>
 {/* --- END TOOLBAR SECTION --- */}
 
-</div>
 <div className="space-y-3 pb-10">
 
   <section
