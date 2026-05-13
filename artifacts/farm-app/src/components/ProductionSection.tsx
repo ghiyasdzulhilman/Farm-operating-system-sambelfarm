@@ -27,7 +27,7 @@ export function ProductionSection({
   displayData,
   areas,
   formatCurrency,
-}: ProductionSectionProps)
+}: ProductionSectionProps){
 
 const averagePrice =
   displayData.harvestWeight > 0
