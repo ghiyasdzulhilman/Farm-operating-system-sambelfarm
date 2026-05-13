@@ -400,7 +400,7 @@ export function DashboardPage() {
           <SectionEyebrow
             icon={BarChart3}
             label="Production intelligence"
-            description="Statistik panen, produktivitas area, dan visual kg yang ringan untuk layar kecil."
+  
           />
           <ProductionSection
             displayData={displayData}
