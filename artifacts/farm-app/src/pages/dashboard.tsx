@@ -416,5 +416,5 @@ const profitChartData = areas.map((area: any) => ({
       </div>
     </div>
   );
-
+}
 }
