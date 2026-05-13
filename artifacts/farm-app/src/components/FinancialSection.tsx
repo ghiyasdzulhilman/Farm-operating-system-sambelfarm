@@ -205,199 +205,70 @@ export function FinancialSection({
 }: FinancialSectionProps) {
   return (
   <>
-    {/* Main Cards */}
-    <div
+
+<div
   className="
     grid
     grid-cols-2
-    gap-4
+    gap-3
 
-    lg:grid-cols-4
+    lg:grid-cols-6
   "
 >
-      <Card
-  className="
-    border-border/50
-    bg-background/80
-    backdrop-blur-sm
-    rounded-2xl
-    shadow-sm
-  "
->
-        <CardHeader className="pb-2 space-y-1">
-          <CardTitle
-  className="
-    text-[11px]
-    font-medium
-    uppercase
-    tracking-[0.12em]
-    text-muted-foreground
-  "
->
-            Modal Awal
-          </CardTitle>
-        </CardHeader>
 
-        <CardContent>
+  <MetricCard
+    label="Modal"
+    value={formatCurrency(displayData.modal)}
+    caption="capital deployed"
+    icon={WalletCards}
+    accent="modal"
+    status="neutral"
+  />
 
-  <div
-    className="
-      text-[clamp(1rem,3.2vw,1.6rem)]
-      font-bold
-      tracking-tight
-      leading-none
-    "
-  >
-    {formatCurrency(displayData.modal)}
-  </div>
-</CardContent>
-      </Card>
+  <MetricCard
+    label="Pendapatan"
+    value={formatCurrency(displayData.pendapatan)}
+    caption="gross revenue"
+    icon={Banknote}
+    accent="pendapatan"
+    status="up"
+  />
 
-      <Card
-  className="
-    border-border/50
-    bg-background/80
-    backdrop-blur-sm
-    rounded-2xl
-    shadow-sm
-  "
->
-        <CardHeader className="pb-2 space-y-1">
-          <CardTitle
-  className="
-    text-[11px]
-    font-medium
-    uppercase
-    tracking-[0.12em]
-    text-muted-foreground
-  "
->
-            Pendapatan
-          </CardTitle>
-        </CardHeader>
+  <MetricCard
+    label="Pengeluaran"
+    value={formatCurrency(displayData.pengeluaran)}
+    caption="farm opex"
+    icon={ArrowDownRight}
+    accent="pengeluaran"
+    status="down"
+  />
 
-        <CardContent>
-          <div
-  className="
-    text-[clamp(1rem,3.2vw,1.6rem)]
-    font-bold
-    tracking-tight
-    leading-none
-    text-emerald-600
-  "
->
-            {formatCurrency(displayData.pendapatan)}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card
-  className="
-    border-border/50
-    bg-background/80
-    backdrop-blur-sm
-    rounded-2xl
-    shadow-sm
-  "
->
-        <CardHeader className="pb-2 space-y-1">
-          <CardTitle
-  className="
-    text-[11px]
-    font-medium
-    uppercase
-    tracking-[0.12em]
-    text-muted-foreground
-  "
->
-            Pengeluaran
-          </CardTitle>
-        </CardHeader>
-
-        <CardContent>
-          <div
-  className="
-    text-[clamp(1rem,3.2vw,1.6rem)]
-    font-bold
-    tracking-tight
-    leading-none
-    text-rose-600
-  "
->
-            {formatCurrency(displayData.pengeluaran)}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card
-  className="
-    border-border/50
-    bg-background/80
-    backdrop-blur-sm
-    rounded-2xl
-    shadow-sm
-  "
->
-        <CardHeader
-  className="
-    pb-2
-    flex
-    flex-row
-    items-baseline
-    gap-2
-  "
->
-          <CardTitle
-  className="
-    text-[11px]
-    font-medium
-    uppercase
-    tracking-[0.12em]
-    text-muted-foreground
-    whitespace-nowrap
-  "
->
-  Net Profit
-</CardTitle>
-
-<div
-  className={`
-  text-xs
-  leading-none
-  font-medium
-
-    ${
-      displayData.margin >= 0
-        ? "text-emerald-600"
-        : "text-rose-600"
+  <MetricCard
+    label="Profit"
+    value={formatCurrency(displayData.profit)}
+    caption="net result"
+    icon={CircleDollarSign}
+    accent="profit"
+    status={
+      displayData.profit >= 0
+        ? "up"
+        : "down"
     }
-  `}
->
-  {displayData.margin >= 0 ? "+" : ""}
-  {displayData.margin.toFixed(1)}%
-</div>
-        </CardHeader>
+  />
 
-<CardContent className="-mt-2">
-  <div
-    className={`
-      text-[clamp(1rem,3.2vw,1.6rem)]
-      font-bold
-      tracking-tight
-      leading-none
+  <MetricCard
+    label="Margin"
+    value={`${displayData.margin.toFixed(1)}%`}
+    caption="profitability ratio"
+    icon={PieChart}
+    accent="margin"
+    status={
+      displayData.margin >= 0
+        ? "up"
+        : "down"
+    }
+  />
 
-      ${
-        displayData.profit >= 0
-          ? ""
-          : "text-rose-600"
-      }
-    `}
-  >
-    {formatCurrency(displayData.profit)}
-  </div>
-
-</CardContent>
-</Card>
 </div>
 
     {/* HPP & BEP */}
