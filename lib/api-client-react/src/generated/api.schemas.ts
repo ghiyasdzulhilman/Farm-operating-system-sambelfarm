@@ -26,6 +26,8 @@ export interface NotionConnectionStatus {
   workspaceIcon: string | null;
   /** @nullable */
   connectedAt: string | null;
+  /** @nullable */
+  tokenStatus: string | null;
 }
 
 export interface NotionOption {

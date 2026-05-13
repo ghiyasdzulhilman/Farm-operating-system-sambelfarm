@@ -48,6 +48,7 @@ export const GetNotionConnectionStatusResponse = zod.object({
   workspaceName: zod.string().nullable(),
   workspaceIcon: zod.string().nullable(),
   connectedAt: zod.string().nullable(),
+  tokenStatus: zod.string().nullable(),
 });
 
 /**
@@ -58,6 +59,7 @@ export const DisconnectNotionResponse = zod.object({
   workspaceName: zod.string().nullable(),
   workspaceIcon: zod.string().nullable(),
   connectedAt: zod.string().nullable(),
+  tokenStatus: zod.string().nullable(),
 });
 
 /**

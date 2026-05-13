@@ -142,57 +142,31 @@ export function AppLayout({
   </div>
 
   <Link href="/connect">
+  {(() => {
+    const isConnected = connectionStatus?.connected;
+    const isInvalid = isConnected && connectionStatus?.tokenStatus === "invalid";
 
-  <button
-    className={`
-  inline-flex
-  items-center
-  gap-2
-  text-xs
-  font-medium
-  px-3
-  py-1
-  rounded-full
-  border
-  w-fit
-  transition-all
+    const colorClass = isInvalid
+      ? "text-amber-600 bg-amber-50 border-amber-200 hover:bg-amber-100 dark:text-amber-400 dark:bg-amber-950/30 dark:border-amber-800/40"
+      : isConnected
+        ? "text-emerald-600 bg-emerald-50 border-emerald-200 hover:bg-emerald-100 dark:text-emerald-400 dark:bg-emerald-950/30 dark:border-emerald-800/40"
+        : "text-rose-600 bg-rose-50 border-rose-200 hover:bg-rose-100 dark:text-rose-400 dark:bg-rose-950/30 dark:border-rose-800/40";
 
-  ${
-    connectionStatus?.connected
-      ? `
-        text-emerald-600
-        bg-emerald-50
-        border-emerald-200
-        hover:bg-emerald-100
-      `
-      : `
-        text-rose-600
-        bg-rose-50
-        border-rose-200
-        hover:bg-rose-100
-      `
-  }
-`}
-  >
-    <div
-  className={`
-    w-2
-    h-2
-    rounded-full
-
-    ${
-      connectionStatus?.connected
+    const dotClass = isInvalid
+      ? "bg-amber-500 animate-pulse"
+      : isConnected
         ? "bg-emerald-500"
-        : "bg-rose-500"
-    }
-  `}
-/>
+        : "bg-rose-500";
 
-    {connectionStatus?.connected
-  ? "Connected"
-  : "Disconnected"}
-  </button>
+    const label = isInvalid ? "Token Invalid" : isConnected ? "Connected" : "Disconnected";
 
+    return (
+      <button className={`inline-flex items-center gap-2 text-xs font-medium px-3 py-1 rounded-full border w-fit transition-all ${colorClass}`}>
+        <div className={`w-2 h-2 rounded-full ${dotClass}`} />
+        {label}
+      </button>
+    );
+  })()}
 </Link>
 
 </div>

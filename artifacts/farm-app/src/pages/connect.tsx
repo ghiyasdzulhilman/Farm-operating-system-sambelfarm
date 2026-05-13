@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { LinkIcon, Unlink, ExternalLink, Loader2, Database } from "lucide-react";
+import { LinkIcon, Unlink, ExternalLink, Loader2, Database, AlertTriangle, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 
@@ -17,6 +17,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export function ConnectPage() {
   const { toast } = useToast();
@@ -35,7 +36,6 @@ export function ConnectPage() {
   const initiateOAuth = useInitiateNotionOAuth({
     mutation: {
       onSuccess: (data) => {
-        // Redirect to Notion OAuth URL
         window.location.href = data.url;
       },
       onError: () => {
@@ -86,6 +86,15 @@ export function ConnectPage() {
     }
   };
 
+  const isConnected = connectionStatus?.connected;
+  const isTokenInvalid = isConnected && connectionStatus?.tokenStatus === "invalid";
+
+  const barColor = isTokenInvalid
+    ? "bg-amber-500"
+    : isConnected
+      ? "bg-primary"
+      : "bg-muted";
+
   return (
     <div className="max-w-2xl mx-auto space-y-8">
       <div>
@@ -94,6 +103,23 @@ export function ConnectPage() {
           Kelola integrasi workspace Notion Anda dengan Sistem Manajemen Kebun.
         </p>
       </div>
+
+      {/* Banner peringatan token invalid */}
+      {isTokenInvalid && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Koneksi Notion Terputus</AlertTitle>
+            <AlertDescription>
+              Token akses Anda ke Notion tidak lagi valid, kemungkinan karena akses dicabut dari sisi Notion. 
+              Klik <strong>Hubungkan Ulang</strong> di bawah untuk memulihkan koneksi.
+            </AlertDescription>
+          </Alert>
+        </motion.div>
+      )}
 
       {isLoadingStatus ? (
         <Card>
@@ -111,25 +137,40 @@ export function ConnectPage() {
           animate={{ opacity: 1, y: 0 }}
         >
           <Card className="border-border overflow-hidden">
-            <div className={`h-2 w-full ${connectionStatus?.connected ? 'bg-primary' : 'bg-muted'}`} />
+            <div className={`h-2 w-full ${barColor}`} />
             
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Status Integrasi</CardTitle>
-                <Badge variant={connectionStatus?.connected ? "default" : "secondary"} className={connectionStatus?.connected ? "bg-primary" : ""}>
-                  {connectionStatus?.connected ? "Terhubung" : "Belum Terhubung"}
-                </Badge>
+                {isTokenInvalid ? (
+                  <Badge variant="destructive">
+                    Koneksi Bermasalah
+                  </Badge>
+                ) : (
+                  <Badge
+                    variant={isConnected ? "default" : "secondary"}
+                    className={isConnected ? "bg-primary" : ""}
+                  >
+                    {isConnected ? "Terhubung" : "Belum Terhubung"}
+                  </Badge>
+                )}
               </div>
               <CardDescription>
-                {connectionStatus?.connected 
-                  ? "Sistem sedang membaca database Laba Rugi dari workspace Anda." 
-                  : "Hubungkan akun Notion Anda agar sistem dapat membaca data operasional kebun."}
+                {isTokenInvalid
+                  ? "Token Notion Anda tidak valid. Hubungkan ulang untuk memulihkan akses data kebun."
+                  : isConnected
+                    ? "Sistem sedang membaca database Laba Rugi dari workspace Anda."
+                    : "Hubungkan akun Notion Anda agar sistem dapat membaca data operasional kebun."}
               </CardDescription>
             </CardHeader>
 
-            {connectionStatus?.connected ? (
+            {isConnected ? (
               <CardContent className="space-y-6">
-                <div className="bg-secondary/50 rounded-lg p-4 border border-border/50 flex items-start gap-4">
+                <div className={`rounded-lg p-4 border flex items-start gap-4 ${
+                  isTokenInvalid
+                    ? "bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-800/40"
+                    : "bg-secondary/50 border-border/50"
+                }`}>
                   <div className="h-12 w-12 bg-background rounded border flex items-center justify-center text-xl overflow-hidden shrink-0">
                     {connectionStatus.workspaceIcon ? (
                       <span role="img" aria-label="workspace icon">{connectionStatus.workspaceIcon}</span>
@@ -143,15 +184,20 @@ export function ConnectPage() {
                       {connectionStatus.workspaceName || "Unknown Workspace"}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Terhubung sejak: {formatDate(connectionStatus.connectedAt)}
+                      {isTokenInvalid
+                        ? <span className="text-amber-600 dark:text-amber-400 font-medium">⚠ Token tidak valid — hubungkan ulang untuk memulihkan</span>
+                        : <>Terhubung sejak: {formatDate(connectionStatus.connectedAt)}</>
+                      }
                     </p>
                   </div>
                 </div>
 
-                <div className="text-sm text-muted-foreground bg-muted p-4 rounded-md">
-                  <p className="font-medium text-foreground mb-1">Penting:</p>
-                  <p>Pastikan workspace Anda memiliki database dengan properti <strong>"Pendapatan"</strong> dan <strong>"Pengeluaran"</strong> berformat Number agar dapat terbaca di Dashboard.</p>
-                </div>
+                {!isTokenInvalid && (
+                  <div className="text-sm text-muted-foreground bg-muted p-4 rounded-md">
+                    <p className="font-medium text-foreground mb-1">Penting:</p>
+                    <p>Pastikan workspace Anda memiliki database dengan properti <strong>"Pendapatan"</strong> dan <strong>"Pengeluaran"</strong> berformat Number agar dapat terbaca di Dashboard.</p>
+                  </div>
+                )}
               </CardContent>
             ) : (
               <CardContent>
@@ -169,7 +215,36 @@ export function ConnectPage() {
             )}
 
             <CardFooter className="bg-muted/30 border-t px-6 py-4">
-              {connectionStatus?.connected ? (
+              {isTokenInvalid ? (
+                <div className="flex justify-between w-full gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={handleDisconnect}
+                    disabled={disconnect.isPending}
+                    className="text-muted-foreground"
+                    data-testid="button-disconnect-notion"
+                  >
+                    {disconnect.isPending ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Unlink className="mr-2 h-4 w-4" />
+                    )}
+                    Putuskan
+                  </Button>
+                  <Button
+                    onClick={handleConnect}
+                    disabled={isConnecting}
+                    data-testid="button-reconnect-notion"
+                  >
+                    {isConnecting ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                    )}
+                    Hubungkan Ulang Notion
+                  </Button>
+                </div>
+              ) : isConnected ? (
                 <div className="flex justify-end w-full">
                   <Button 
                     variant="destructive" 

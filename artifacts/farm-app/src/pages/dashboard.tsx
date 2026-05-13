@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { motion } from "framer-motion";
 import {
+  AlertTriangle,
   Bot,
   ChevronDown,
   Filter,
@@ -22,6 +23,7 @@ import { FinancialSection } from "@/components/FinancialSection";
 import { InsightSection } from "@/components/InsightSection";
 import { OperationalSection } from "@/components/OperationalSection";
 import { ProductionSection } from "@/components/ProductionSection";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -32,6 +34,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Link } from "wouter";
 
 type DashboardSection = "financial" | "production" | "operational" | "insight";
 
@@ -114,6 +117,7 @@ export function DashboardPage() {
     });
 
   const isConnected = connectionStatus?.connected;
+  const isTokenInvalid = isConnected && connectionStatus?.tokenStatus === "invalid";
 
   const {
     data: summary,
@@ -229,6 +233,29 @@ export function DashboardPage() {
     <div className="relative mx-auto max-w-7xl pb-10 overflow-x-clip px-4 md:px-6">
       {/* Background Gradient Effect */}
       <div className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-[420px] bg-[radial-gradient(circle_at_20%_10%,rgba(34,197,94,0.18),transparent_34%),radial-gradient(circle_at_85%_5%,rgba(245,158,11,0.18),transparent_30%)]" />
+
+      {/* Banner: Token Invalid */}
+      {isTokenInvalid && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-4"
+        >
+          <Alert variant="destructive" className="rounded-2xl border-destructive/40 bg-destructive/5">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Koneksi Notion Terputus</AlertTitle>
+            <AlertDescription className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <span>Token akses Notion Anda tidak valid. Data kebun tidak dapat dimuat.</span>
+              <Link href="/connect">
+                <button className="mt-2 sm:mt-0 inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-destructive px-4 py-1.5 text-xs font-semibold text-destructive-foreground hover:bg-destructive/90 transition-colors shrink-0">
+                  <AlertTriangle className="h-3 w-3" />
+                  Hubungkan Ulang
+                </button>
+              </Link>
+            </AlertDescription>
+          </Alert>
+        </motion.div>
+      )}
 
       {/* Header Baru: The Business Pulse */}
       <section className="relative overflow-hidden rounded-[2rem] border border-white/50 bg-white/70 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/60 md:p-8 mt-4 md:mt-6">
