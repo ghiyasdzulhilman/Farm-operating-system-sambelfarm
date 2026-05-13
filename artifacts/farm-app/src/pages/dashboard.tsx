@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-
 import {
   Activity,
   BarChart3,
@@ -14,12 +13,10 @@ import {
   TrendingUp,
   WalletCards,
 } from "lucide-react";
-
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-
 import {
   getGetDashboardSummaryQueryKey,
   getGetNotionConnectionStatusQueryKey,
@@ -27,16 +24,8 @@ import {
 } from "@workspace/api-client-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-
 import { Button } from "@/components/ui/button";
-
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -44,47 +33,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
 import { Skeleton } from "@/components/ui/skeleton";
-
 import { FinancialSection } from "@/components/FinancialSection";
-
 import { InsightSection } from "@/components/InsightSection";
-
 import { OperationalSection } from "@/components/OperationalSection";
-
 import { ProductionSection } from "@/components/ProductionSection";
 
-type DashboardSection =
-  | "financial"
-  | "production"
-  | "operational"
-  | "insight";
+type DashboardSection = "financial" | "production" | "operational" | "insight";
 
-const sections = [
-  {
-    key: "financial",
-    label: "Financial",
-    icon: WalletCards,
-  },
-
-  {
-    key: "production",
-    label: "Production",
-    icon: BarChart3,
-  },
-
-  {
-    key: "operational",
-    label: "Ops",
-    icon: Activity,
-  },
-
-  {
-    key: "insight",
-    label: "Insight",
-    icon: BrainCircuit,
-  },
+const sections: Array<{
+  key: DashboardSection;
+  label: string;
+  icon: typeof WalletCards;
+}> = [
+  { key: "financial", label: "Financial", icon: WalletCards },
+  { key: "production", label: "Production", icon: BarChart3 },
+  { key: "operational", label: "Ops", icon: Activity },
+  { key: "insight", label: "Insight", icon: BrainCircuit },
 ];
 
 const emptyDisplayData = {
@@ -97,151 +62,51 @@ const emptyDisplayData = {
 };
 
 export function DashboardPage() {
-
   const queryClient = useQueryClient();
+  const [selectedAreaId, setSelectedAreaId] = useState<string>("all");
+  const [activeSection, setActiveSection] = useState<DashboardSection>("financial");
+  const [showControls, setShowControls] = useState(false);
 
-  const [selectedAreaId, setSelectedAreaId] =
-  useState<string>("all");
+  const financialRef = useRef<HTMLDivElement>(null);
+  const productionRef = useRef<HTMLDivElement>(null);
+  const operationalRef = useRef<HTMLDivElement>(null);
+  const insightRef = useRef<HTMLDivElement>(null);
 
-const [activeSection, setActiveSection] =
-  useState<DashboardSection>("financial");
-
-const [showControls, setShowControls] =
-  useState(false);
-
-const financialRef =
-  useRef<HTMLDivElement>(null);
-
-const productionRef =
-  useRef<HTMLDivElement>(null);
-
-const operationalRef =
-  useRef<HTMLDivElement>(null);
-
-const insightRef =
-  useRef<HTMLDivElement>(null);
-
-const sectionRefs = useMemo(
-  () => ({
-    financial: financialRef,
-    production: productionRef,
-    operational: operationalRef,
-    insight: insightRef,
-  }),
-  [],
-);
-
-useEffect(() => {
-  const handleScroll = () => {
-    let currentSection: DashboardSection =
-      "financial";
-
-    sections.forEach((section) => {
-      const element =
-        sectionRefs[section.key].current;
-
-      if (!element) return;
-
-      const rect =
-        element.getBoundingClientRect();
-
-      if (rect.top <= 180) {
-        currentSection = section.key;
-      }
-    });
-
-    setActiveSection(currentSection);
-  };
-
-  window.addEventListener(
-    "scroll",
-    handleScroll,
-    { passive: true },
+  const sectionRefs = useMemo(
+    () => ({
+      financial: financialRef,
+      production: productionRef,
+      operational: operationalRef,
+      insight: insightRef,
+    }),
+    []
   );
 
-  handleScroll();
+  useEffect(() => {
+    const handleScroll = () => {
+      let currentSection: DashboardSection = "financial";
 
-  return () =>
-    window.removeEventListener(
-      "scroll",
-      handleScroll,
-    );
-}, [sectionRefs]);
+      sections.forEach((section) => {
+        const element = sectionRefs[section.key].current;
+        if (!element) return;
 
-useEffect(() => {
+        const rect = element.getBoundingClientRect();
+        if (rect.top <= 180) currentSection = section.key;
+      });
 
-  const handleScroll = () => {
-setIsHeaderHidden(window.scrollY > 40);
-    const sections = [
-      {
-        key: "financial",
-        ref: financialRef,
-      },
-      {
-        key: "production",
-        ref: productionRef,
-      },
-      {
-        key: "operational",
-        ref: operationalRef,
-      },
-      {
-        key: "insight",
-        ref: insightRef,
-      },
-    ];
+      setActiveSection(currentSection);
+    };
 
-    let currentSection = "financial";
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
 
-    sections.forEach((section) => {
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [sectionRefs]);
 
-      const element =
-        section.ref.current;
-
-      if (!element) return;
-
-      const rect =
-        element.getBoundingClientRect();
-
-      if (rect.top <= 140) {
-
-        currentSection =
-          section.key;
-
-      }
-
+  const { data: connectionStatus, isLoading: isLoadingConnection } =
+    useGetNotionConnectionStatus({
+      query: { queryKey: getGetNotionConnectionStatusQueryKey() },
     });
-
-    setActiveSection(
-      currentSection as any
-    );
-
-  };
-
-  window.addEventListener(
-    "scroll",
-    handleScroll
-  );
-
-  handleScroll();
-
-  return () => {
-
-    window.removeEventListener(
-      "scroll",
-      handleScroll
-    );
-
-  };
-
-}, []);
-
-  const {
-    data: connectionStatus,
-    isLoading: isLoadingConnection,
-  } = useGetNotionConnectionStatus({
-    query: { queryKey: getGetNotionConnectionStatusQueryKey() },
-  });
 
   const isConnected = connectionStatus?.connected;
 
@@ -251,7 +116,7 @@ setIsHeaderHidden(window.scrollY > 40);
     refetch,
     isFetching,
   } = useQuery({
-    queryKey: getGetDashboardSummaryQueryKey(), 
+    queryKey: getGetDashboardSummaryQueryKey(),
     enabled: !!isConnected,
     queryFn: async () => {
       const res = await fetch("/api/dashboard/summary");
@@ -262,50 +127,38 @@ setIsHeaderHidden(window.scrollY > 40);
 
   const areas = summary?.areas || [];
 
-  // LOGIC FILTER: Sekarang sudah include harvestWeight per area
   const displayData = useMemo(() => {
     if (!summary) return emptyDisplayData;
+
     if (selectedAreaId === "all") {
-  return {
-    modal: summary.financial?.totalModal || 0,
+      return {
+        modal: summary.financial?.totalModal || 0,
+        pendapatan: summary.financial?.totalPendapatan || 0,
+        pengeluaran: summary.financial?.totalPengeluaran || 0,
+        profit: summary.financial?.labaRugi || 0,
+        margin: summary.financial?.marginTotal || 0,
+        harvestWeight: summary.production?.totalHarvestWeight || 0,
+      };
+    }
 
-    pendapatan:
-      summary.financial?.totalPendapatan || 0,
-
-    pengeluaran:
-      summary.financial?.totalPengeluaran || 0,
-
-    profit:
-      summary.financial?.labaRugi || 0,
-
-    margin:
-      summary.financial?.marginTotal || 0,
-
-    harvestWeight:
-      summary.production?.totalHarvestWeight || 0,
-  };
-}
-
-    const area = areas.find((a: any) => a.id === selectedAreaId);
-    if (!area) return { modal: 0, pendapatan: 0, pengeluaran: 0, profit: 0, margin: 0, harvestWeight: 0 };
+    const area = areas.find((item: any) => item.id === selectedAreaId);
+    if (!area) return emptyDisplayData;
 
     return {
-      modal: area.modalAwal,
-      pendapatan: area.pendapatan,
-      pengeluaran: area.pengeluaran,
-      profit: area.profit,
-      margin: area.margin,
-      harvestWeight: area.harvestWeight || 0, // Gunakan 75 kg (untuk Blok B)
+      modal: area.modalAwal || 0,
+      pendapatan: area.pendapatan || 0,
+      pengeluaran: area.pengeluaran || 0,
+      profit: area.profit || 0,
+      margin: area.margin || 0,
+      harvestWeight: area.harvestWeight || 0,
     };
   }, [summary, selectedAreaId, areas]);
 
-const selectedAreaName =
-  selectedAreaId === "all"
-    ? "All growing areas"
-    : areas.find(
-        (area: any) =>
-          area.id === selectedAreaId
-      )?.name || "Selected area";
+  const selectedAreaName =
+    selectedAreaId === "all"
+      ? "All growing areas"
+      : areas.find((area: any) => area.id === selectedAreaId)?.name ||
+        "Selected area";
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat("id-ID", {
@@ -313,327 +166,315 @@ const selectedAreaName =
       currency: "IDR",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(amount);
+    }).format(amount || 0);
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "Belum pernah diperbarui";
     try {
-      return format(new Date(dateString), "dd MMMM yyyy, HH:mm", { locale: id });
+      return format(new Date(dateString), "dd MMM yyyy, HH:mm", { locale: id });
     } catch {
       return dateString;
     }
   };
-const localBusinessStatus =
-  displayData.margin > 0
-    ? "Profitable"
-    : "Developing";
 
-const localRecommendation =
-  displayData.margin < 0
-    ? "Usaha area ini masih merugi. Fokus efisiensi biaya operasional."
-    : displayData.margin < 15
-      ? "Margin area ini rendah. Perlu optimasi produksi."
-      : "Performa area dalam kondisi baik.";
-const profitChartData = areas.map((area: any) => ({
-  name: area.name,
-  profit: area.profit,
-}));
+  const localBusinessStatus = displayData.margin > 0 ? "Profitable" : "Developing";
+
+  const localRecommendation =
+    displayData.margin < 0
+      ? "Margin turun di bawah nol. Prioritaskan renegosiasi input dan cek aktivitas boros minggu ini."
+      : displayData.margin < 15
+        ? "Margin sehat tetapi tipis. Optimalkan HPP/kg dan dorong panen dari area produktif."
+        : "Performa area kuat. Pertahankan ritme panen dan simulasikan ekspansi area terbaik.";
+
+  const profitChartData = areas.map((area: any) => ({
+    name: area.name,
+    profit: area.profit,
+    pendapatan: area.pendapatan,
+    pengeluaran: area.pengeluaran,
+  }));
+
+  const harvestActivities =
+    summary?.activities?.filter((activity: any) => activity.type === "harvest") || [];
+
+  const expenseActivities =
+    summary?.activities?.filter((activity: any) => activity.type === "expense") || [];
+
   const handleRefreshSummary = () => {
-    queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
+    queryClient.invalidateQueries({
+      queryKey: getGetDashboardSummaryQueryKey(),
+    });
     refetch();
   };
 
-const scrollToSection = (
-  section: DashboardSection
-) => {
-  setActiveSection(section);
-
-  sectionRefs[
-    section
-  ].current?.scrollIntoView({
-    behavior: "smooth",
-    block: "start",
-  });
-};
+  const scrollToSection = (section: DashboardSection) => {
+    setActiveSection(section);
+    sectionRefs[section].current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  };
 
   if (isLoadingConnection) {
     return (
-      <div className="space-y-6">
-        <div><Skeleton className="h-9 w-48 mb-2" /><Skeleton className="h-5 w-64" /></div>
-        <div className="grid gap-4 md:grid-cols-4">
-          {[1, 2, 3, 4].map((i) => (
-            <Card key={i}><CardHeader className="pb-2"><Skeleton className="h-5 w-24" /></CardHeader>
-            <CardContent><Skeleton className="h-8 w-32" /></CardContent></Card>
+      <div className="mx-auto max-w-6xl space-y-6">
+        <Skeleton className="h-28 rounded-[2rem]" />
+        <div className="grid gap-3 md:grid-cols-4">
+          {[1, 2, 3, 4].map((item) => (
+            <Skeleton key={item} className="h-32 rounded-[1.5rem]" />
           ))}
         </div>
       </div>
     );
   }
-const harvestActivities =
-  summary?.activities?.filter(
-    (a: any) => a.type === "harvest"
-  ) || [];
 
-const expenseActivities =
-  summary?.activities?.filter(
-    (a: any) => a.type === "expense"
-  ) || [];
-  return (
-
-<div
-  className="
-    sticky
-    relative
-    top-1
-    z-20
-    mb-2
-    pt-0
-  "
->
-  <div
-  className="
-    flex
-    gap-2
-    overflow-x-auto
-    scrollbar-hide
-
-    rounded-2xl
-    border
-    border-border/50
-
-    bg-background/70
-    backdrop-blur-xl
-
-    p-2
-
-    shadow-sm
-  "
->
-
-    {[
-  { key: "financial", label: "Finansial" },
-  { key: "production", label: "Produksi" },
-  { key: "operational", label: "Operasional" },
-  { key: "insight", label: "Insight" },
-].map((tab) => (
-
-  <button
-    key={tab.key}
-
-    onClick={() => {
-
-      setActiveSection(
-        tab.key as any
-      );
-
-      const sectionMap = {
-        financial: financialRef,
-        production: productionRef,
-        operational: operationalRef,
-        insight: insightRef,
-      };
-
-      sectionMap[
-        tab.key as keyof typeof sectionMap
-      ]?.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-
-    }}
-
-    className={`
-  px-4
-  py-2
-
-  rounded-xl
-
-  text-sm
-  font-medium
-
-  whitespace-nowrap
-
-  transition-all
-  duration-200
-
-  ${
-    activeSection === tab.key
-      ? `
-        bg-primary
-        text-primary-foreground
-        shadow-sm
-      `
-      : `
-        text-muted-foreground
-        hover:bg-muted/60
-        hover:text-foreground
-      `
+  if (!isConnected) {
+    return (
+      <Alert className="mx-auto max-w-3xl rounded-3xl border-amber-200 bg-amber-50/70 p-6 text-amber-950 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-100">
+        <AlertTitle className="flex items-center gap-2 text-lg">
+          <Leaf className="h-5 w-5" /> Sambel Farm belum tersambung ke Notion
+        </AlertTitle>
+        <AlertDescription className="mt-2 text-sm text-amber-800 dark:text-amber-200/80">
+          Hubungkan database Notion terlebih dahulu agar dashboard finansial,
+          produksi, operasional, dan insight dapat membaca data terbaru.
+        </AlertDescription>
+      </Alert>
+    );
   }
-`}
-  >
-    {tab.label}
-  </button>
 
-))}
+  return (
+    <div className="sambel-dashboard relative mx-[calc(50%-50vw)] -mt-4 min-h-screen overflow-hidden px-4 pb-12 pt-4 md:-mt-6 md:px-6 md:pt-6">
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_15%_0%,rgba(35,116,83,0.18),transparent_34%),radial-gradient(circle_at_86%_8%,rgba(202,138,4,0.12),transparent_30%),linear-gradient(180deg,hsl(var(--background)),hsl(var(--muted))/0.45)]" />
 
-</div>
+      <div className="mx-auto max-w-6xl space-y-5 md:space-y-7">
+        <motion.header
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, ease: "easeOut" }}
+          className="overflow-hidden rounded-[2rem] border border-white/50 bg-white/70 p-5 shadow-[0_24px_80px_rgba(20,83,45,0.12)] backdrop-blur-2xl dark:border-white/10 dark:bg-white/[0.06] md:p-7"
+        >
+          <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+            <div className="space-y-4">
+              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/15 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                </span>
+                Live Notion Database API
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Smart farming operating system
+                </p>
+                <h1 className="mt-1 text-3xl font-black tracking-[-0.06em] text-foreground md:text-6xl">
+                  Sambel Farm
+                </h1>
+              </div>
+              <p className="max-w-2xl text-sm leading-6 text-muted-foreground md:text-base">
+                Satu dashboard kontinyu untuk membaca kesehatan finansial,
+                produktivitas, ritme operasional, dan rekomendasi cerdas tanpa
+                kepadatan ERP tradisional.
+              </p>
+            </div>
 
-{/* --- TOOLBAR SECTION (HORIZONTAL SLIDE FIX) --- */}
-<div className="mt-2 flex items-center justify-end gap-2">
+            <div className="grid grid-cols-2 gap-2 md:w-[360px]">
+              <div className="rounded-2xl border border-border/60 bg-background/70 p-3 backdrop-blur-xl">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  Area scope
+                </p>
+                <p className="mt-1 truncate text-sm font-bold">
+                  {selectedAreaName}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-border/60 bg-background/70 p-3 backdrop-blur-xl">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  Updated
+                </p>
+                <p className="mt-1 truncate text-sm font-bold">
+                  {formatDate(summary?.lastUpdated || null)}
+                </p>
+              </div>
+            </div>
+          </div>
+        </motion.header>
 
-  {/* EXPANDABLE CONTROLS (Dropdown & Refresh) */}
-  <div
-    className={`
-      flex
-      items-center
-      gap-2
-      overflow-hidden
-      transition-all
-      duration-300
-      ease-in-out
+        <div className="sticky top-2 z-30 space-y-2 md:top-3">
+          <nav className="rounded-[1.65rem] border border-white/60 bg-white/65 p-1.5 shadow-[0_18px_60px_rgba(15,23,42,0.10)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55">
+            <div className="grid grid-cols-4 gap-1">
+              {sections.map((section) => {
+                const Icon = section.icon;
+                const isActive = activeSection === section.key;
 
-      ${
-        showControls
-          ? `
-            max-w-[200px]
-            opacity-100
-            translate-x-0
-            pointer-events-auto
-          `
-          : `
-            max-w-0
-            opacity-0
-            translate-x-4
-            pointer-events-none
-          `
-      }
-    `}
-  >
-    <Button
-      variant="outline"
-      size="icon"
-      className="
-        h-7
-        w-7
-        bg-background
-        shrink-0
-      "
-      onClick={handleRefreshSummary}
-      disabled={isFetching}
-    >
-      <RefreshCcw
-        className={`h-3 w-3 ${isFetching ? "animate-spin" : ""}`}
-      />
-    </Button>
+                return (
+                  <button
+                    key={section.key}
+                    onClick={() => scrollToSection(section.key)}
+                    className="relative flex h-11 items-center justify-center rounded-2xl px-2 text-xs font-bold transition-colors duration-300 md:gap-2 md:text-sm"
+                  >
+                    {isActive && (
+                      <motion.span
+                        layoutId="sambel-active-section-pill"
+                        className="absolute inset-0 rounded-2xl bg-slate-950 shadow-[0_10px_26px_rgba(15,23,42,0.20)] dark:bg-white"
+                        transition={{
+                          type: "spring",
+                          stiffness: 420,
+                          damping: 34,
+                        }}
+                      />
+                    )}
+                    <Icon
+                      className={`relative h-4 w-4 ${isActive ? "text-white dark:text-slate-950" : "text-muted-foreground"}`}
+                    />
+                    <span
+                      className={`relative hidden sm:inline ${isActive ? "text-white dark:text-slate-950" : "text-muted-foreground"}`}
+                    >
+                      {section.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </nav>
 
-    <Select
-      value={selectedAreaId}
-      onValueChange={setSelectedAreaId}
-    >
-      <SelectTrigger
-        className="
-          h-7
-          w-[130px]
-          bg-background
-          text-xs
-        "
-      >
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="all">Semua Area</SelectItem>
-        {areas.map((area: any) => (
-          <SelectItem key={area.id} value={area.id}>
-            {area.name}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  </div>
+          <div className="flex justify-end">
+            <div className="flex items-center gap-2 rounded-2xl border border-white/60 bg-white/65 p-1.5 shadow-lg backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55">
+              <div
+                className={`flex items-center gap-2 overflow-hidden transition-all duration-300 ease-out ${
+                  showControls
+                    ? "max-w-[260px] translate-x-0 opacity-100"
+                    : "max-w-0 translate-x-4 opacity-0"
+                }`}
+              >
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 shrink-0 rounded-xl bg-background/70"
+                  onClick={handleRefreshSummary}
+                  disabled={isFetching || isLoadingSummary}
+                  aria-label="Refresh dashboard summary"
+                >
+                  <RefreshCcw
+                    className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`}
+                  />
+                </Button>
 
-  {/* BUTTON TOGGLE FILTER (Stay di Kanan) */}
-  <button
-    onClick={() => setShowControls(!showControls)}
-    className="
-      h-7
-      w-7
-      flex
-      items-center
-      justify-center
-      shrink-0
-      rounded-lg
-      border
-      border-border/50
-      bg-background/80
-      text-muted-foreground
-      transition-all
-      duration-200
-      hover:text-foreground
-      hover:bg-muted/50
-    "
-  >
-    <SlidersHorizontal className="h-3.5 w-3.5" />
-  </button>
+                <Select
+                  value={selectedAreaId}
+                  onValueChange={setSelectedAreaId}
+                >
+                  <SelectTrigger className="h-9 w-[168px] rounded-xl border-0 bg-background/70 text-xs font-semibold shadow-none">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua Area</SelectItem>
+                    {areas.map((area: any) => (
+                      <SelectItem key={area.id} value={area.id}>
+                        {area.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-</div>
-{/* --- END TOOLBAR SECTION --- */}
+              <button
+                onClick={() => setShowControls((value) => !value)}
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all duration-300 active:scale-95 ${
+                  showControls
+                    ? "bg-slate-950 text-white dark:bg-white dark:text-slate-950"
+                    : "bg-background/70 text-muted-foreground hover:text-foreground"
+                }`}
+                aria-label="Toggle contextual filters"
+              >
+                {showControls ? (
+                  <Filter className="h-4 w-4" />
+                ) : (
+                  <SlidersHorizontal className="h-4 w-4" />
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
 
-<div className="space-y-3 pb-10">
+        <section ref={financialRef} className="scroll-mt-36 space-y-4">
+          <SectionEyebrow
+            icon={WalletCards}
+            label="Financial analytics"
+            description="Modal, pendapatan, pengeluaran, profit, margin, HPP, dan BEP dalam bahasa operator."
+          />
+          <FinancialSection
+            displayData={displayData}
+            formatCurrency={formatCurrency}
+            profitChartData={profitChartData}
+          />
+        </section>
 
-  <section
-  ref={financialRef}
-  className="scroll-mt-32 space-y-4"
->
+        <section ref={productionRef} className="scroll-mt-36 space-y-4">
+          <SectionEyebrow
+            icon={BarChart3}
+            label="Production intelligence"
+            description="Statistik panen, produktivitas area, dan visual kg yang ringan untuk layar kecil."
+          />
+          <ProductionSection
+            displayData={displayData}
+            areas={areas}
+            formatCurrency={formatCurrency}
+          />
+        </section>
 
-  <FinancialSection
-    displayData={displayData}
-    formatCurrency={formatCurrency}
-    profitChartData={profitChartData}
-  />
+        <section ref={operationalRef} className="scroll-mt-36 space-y-4">
+          <SectionEyebrow
+            icon={Activity}
+            label="Operational pulse"
+            description="Feed aktivitas real-time dari pencatatan panen dan pengeluaran operasional."
+          />
+          <OperationalSection
+            harvestActivities={harvestActivities}
+            expenseActivities={expenseActivities}
+          />
+        </section>
 
-</section>
+        <section ref={insightRef} className="scroll-mt-36 space-y-4">
+          <SectionEyebrow
+            icon={Sparkles}
+            label="Smart recommendations"
+            description="Rekomendasi seperti asisten analitik untuk keputusan harian kebun."
+          />
+          <InsightSection
+            displayData={displayData}
+            localBusinessStatus={localBusinessStatus}
+            localRecommendation={localRecommendation}
+            formatCurrency={formatCurrency}
+          />
+        </section>
+      </div>
+    </div>
+  );
+}
 
-
-  <section
-  ref={productionRef}
-  className="scroll-mt-32 space-y-4"
->
-
-  <ProductionSection
-  displayData={displayData}
-  areas={areas}
-  formatCurrency={formatCurrency}
-/>
-
-</section>
-
-  <section
-  ref={operationalRef}
-  className="scroll-mt-32 space-y-4"
->
-
-  <OperationalSection
-    harvestActivities={harvestActivities}
-    expenseActivities={expenseActivities}
-  />
-
-</section>
-
-  <section
-  ref={insightRef}
-  className="scroll-mt-32 space-y-4"
->
-
-  <InsightSection
-    displayData={displayData}
-    localBusinessStatus={localBusinessStatus}
-    localRecommendation={localRecommendation}
-    formatCurrency={formatCurrency}
-  />
-
-</section>
-
-</div>
-    
+function SectionEyebrow({
+  icon: Icon,
+  label,
+  description,
+}: {
+  icon: typeof TrendingUp;
+  label: string;
+  description: string;
+}) {
+  return (
+    <div className="flex items-start gap-3 px-1 pt-1">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-emerald-500/15 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+        <Icon className="h-5 w-5" />
+      </div>
+      <div>
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-black tracking-[-0.03em] md:text-2xl">
+            {label}
+          </h2>
+          <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+        </div>
+        <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
+          {description}
+        </p>
+      </div>
+    </div>
   );
 }
