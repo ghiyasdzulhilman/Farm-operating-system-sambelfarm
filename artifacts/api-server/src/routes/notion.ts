@@ -110,6 +110,7 @@ async function handleNotionCallback(req: Request, res: Response): Promise<void> 
       workspaceName: tokenData.workspace_name ?? null,
       workspaceIcon: tokenData.workspace_icon ?? null,
       botId: tokenData.bot_id,
+      tokenStatus: "active",
     })
     .onConflictDoUpdate({
       target: notionConnectionsTable.userId,
@@ -119,6 +120,7 @@ async function handleNotionCallback(req: Request, res: Response): Promise<void> 
         workspaceName: tokenData.workspace_name ?? null,
         workspaceIcon: tokenData.workspace_icon ?? null,
         botId: tokenData.bot_id,
+        tokenStatus: "active",
         updatedAt: new Date(),
       },
     });
@@ -149,6 +151,7 @@ router.get("/notion/status", async (req, res): Promise<void> => {
     workspaceName: connection?.workspaceName ?? null,
     workspaceIcon: connection?.workspaceIcon ?? null,
     connectedAt: connection?.connectedAt?.toISOString() ?? null,
+    tokenStatus: connection?.tokenStatus ?? null,
   });
   res.json(data);
 });
@@ -167,6 +170,7 @@ router.post("/notion/disconnect", async (req, res): Promise<void> => {
     workspaceName: null,
     workspaceIcon: null,
     connectedAt: null,
+    tokenStatus: null,
   });
   res.json(data);
 });

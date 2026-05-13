@@ -9,6 +9,7 @@ export const notionConnectionsTable = pgTable("notion_connections", {
   workspaceName: text("workspace_name"),
   workspaceIcon: text("workspace_icon"),
   botId: text("bot_id").notNull(),
+  tokenStatus: text("token_status").notNull().default("active"),
   connectedAt: timestamp("connected_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

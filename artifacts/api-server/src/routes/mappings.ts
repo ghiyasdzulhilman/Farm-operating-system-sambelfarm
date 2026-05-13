@@ -1,9 +1,14 @@
 import { Router, type IRouter } from "express";
 import { getAuth } from "@clerk/express";
-import { db, notionConnectionsTable, fieldMappingsTable, type FieldMappingData } from "@workspace/db";
+import { db, fieldMappingsTable, type FieldMappingData } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
-// Note: Kalau API-Zod error gara-gara tipe data baru, bypass aja dulu atau update Zod schema-nya nanti
 import { SaveFieldMappingsBody } from "@workspace/api-zod";
+import {
+  getNotionConnection,
+  notionFetch,
+  handleNotionErrors,
+  NotionTokenInvalidError,
+} from "../lib/notionClient";
 
 const router: IRouter = Router();
 
@@ -12,7 +17,7 @@ const VALID_DB_TYPES = new Set([
   "panen",
   "expenses",
   "laba_rugi",
-  "kategori", // <-- INI YANG BARU DITAMBAHIN
+  "kategori",
   "pindah_tanam",
   "inspeksi",
   "pekerja",
@@ -22,7 +27,7 @@ const VALID_DB_TYPES = new Set([
   "riwayat_perawatan_gh",
   "pupuk_master",
   "pupuk_berat",
-  "pupuk_kombinasi"
+  "pupuk_kombinasi",
 ]);
 
 // Default names for backward-compat name search (anchor penamaan default)
@@ -30,7 +35,7 @@ const DEFAULT_DB_NAMES: Record<string, string> = {
   panen: "Panen",
   expenses: "Expenses",
   laba_rugi: "Laba Rugi",
-  kategori: "Kategori Pengeluaran", // <-- INI YANG BARU DITAMBAHIN
+  kategori: "Kategori Pengeluaran",
   pindah_tanam: "Pindah tanam",
   inspeksi: "Inspeksi tanaman",
   pekerja: "Data pekerja",
@@ -40,7 +45,7 @@ const DEFAULT_DB_NAMES: Record<string, string> = {
   riwayat_perawatan_gh: "Riwayat Perawatan Greenhouse",
   pupuk_master: "Master data",
   pupuk_berat: "kalkulator pupuk/berat",
-  pupuk_kombinasi: "kombinasi pupuk"
+  pupuk_kombinasi: "kombinasi pupuk",
 };
 
 // ---- Notion API types -------------------------------------------------------
@@ -66,7 +71,10 @@ interface NotionDatabaseRetrieveResponse {
 
 // ---- Helpers ----------------------------------------------------------------
 
-async function searchAllDatabases(accessToken: string): Promise<NotionSearchDatabase[]> {
+async function searchAllDatabases(
+  userId: string,
+  accessToken: string,
+): Promise<NotionSearchDatabase[]> {
   const all: NotionSearchDatabase[] = [];
   let startCursor: string | undefined;
 
@@ -77,28 +85,28 @@ async function searchAllDatabases(accessToken: string): Promise<NotionSearchData
     };
     if (startCursor) body.start_cursor = startCursor;
 
-    const response = await fetch("https://api.notion.com/v1/search", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-        "Notion-Version": "2022-06-28",
-      },
-      body: JSON.stringify(body),
-    });
-    if (!response.ok) break;
+    try {
+      const response = await notionFetch(userId, accessToken, "https://api.notion.com/v1/search", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+      if (!response.ok) break;
 
-    const data = (await response.json()) as {
-      results: NotionSearchDatabase[];
-      has_more: boolean;
-      next_cursor: string | null;
-    };
+      const data = (await response.json()) as {
+        results: NotionSearchDatabase[];
+        has_more: boolean;
+        next_cursor: string | null;
+      };
 
-    all.push(...data.results);
+      all.push(...data.results);
 
-    if (data.has_more && data.next_cursor) {
-      startCursor = data.next_cursor;
-    } else {
+      if (data.has_more && data.next_cursor) {
+        startCursor = data.next_cursor;
+      } else {
+        break;
+      }
+    } catch (err) {
+      if (err instanceof NotionTokenInvalidError) throw err;
       break;
     }
   } while (true);
@@ -106,8 +114,12 @@ async function searchAllDatabases(accessToken: string): Promise<NotionSearchData
   return all;
 }
 
-async function findDatabaseIdByName(accessToken: string, name: string): Promise<string | null> {
-  const results = await searchAllDatabases(accessToken);
+async function findDatabaseIdByName(
+  userId: string,
+  accessToken: string,
+  name: string,
+): Promise<string | null> {
+  const results = await searchAllDatabases(userId, accessToken);
   const found = results.find((r) =>
     r.title?.some((t) => t.plain_text.toLowerCase().includes(name.toLowerCase())),
   );
@@ -115,23 +127,26 @@ async function findDatabaseIdByName(accessToken: string, name: string): Promise<
 }
 
 async function retrieveDatabase(
+  userId: string,
   accessToken: string,
   databaseId: string,
 ): Promise<NotionDatabaseRetrieveResponse | null> {
-  const response = await fetch(`https://api.notion.com/v1/databases/${databaseId}`, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Notion-Version": "2022-06-28",
-    },
-  });
-  if (!response.ok) return null;
-  return response.json() as Promise<NotionDatabaseRetrieveResponse>;
+  try {
+    const response = await notionFetch(
+      userId,
+      accessToken,
+      `https://api.notion.com/v1/databases/${databaseId}`,
+      { method: "GET" },
+    );
+    if (!response.ok) return null;
+    return response.json() as Promise<NotionDatabaseRetrieveResponse>;
+  } catch (err) {
+    if (err instanceof NotionTokenInvalidError) throw err;
+    return null;
+  }
 }
 
-async function getSavedDatabaseId(
-  userId: string,
-  databaseType: string,
-): Promise<string | null> {
+async function getSavedDatabaseId(userId: string, databaseType: string): Promise<string | null> {
   const [row] = await db
     .select()
     .from(fieldMappingsTable)
@@ -152,27 +167,25 @@ router.get("/notion/list-databases", async (req, res): Promise<void> => {
     return;
   }
 
-  const [connection] = await db
-    .select()
-    .from(notionConnectionsTable)
-    .where(eq(notionConnectionsTable.userId, userId));
+  try {
+    const connection = await getNotionConnection(userId);
+    const raw = await searchAllDatabases(userId, connection.accessToken);
 
-  if (!connection) {
-    res.status(404).json({ error: "Notion tidak terhubung." });
-    return;
+    const databases = raw
+      .map((db) => ({
+        id: db.id,
+        name: db.title?.map((t) => t.plain_text).join("") || "(Tanpa Nama)",
+        iconEmoji: db.icon?.type === "emoji" ? (db.icon.emoji ?? null) : null,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    req.log.info({ userId, count: databases.length }, "Listed Notion databases");
+
+    res.json({ databases });
+  } catch (err) {
+    if (handleNotionErrors(res, err)) return;
+    throw err;
   }
-
-  const raw = await searchAllDatabases(connection.accessToken);
-
-  const databases = raw.map((db) => ({
-    id: db.id,
-    name: db.title?.map((t) => t.plain_text).join("") || "(Tanpa Nama)",
-    iconEmoji: db.icon?.type === "emoji" ? (db.icon.emoji ?? null) : null,
-  })).sort((a, b) => a.name.localeCompare(b.name));
-
-  req.log.info({ userId, count: databases.length }, "Listed Notion databases");
-
-  res.json({ databases });
 });
 
 // GET /notion/inspect-database?type=...
@@ -184,65 +197,59 @@ router.get("/notion/inspect-database", async (req, res): Promise<void> => {
   }
 
   const dbType = req.query.type as string;
-  // FIX KRUSIAL: Hapus blokir untuk laba_rugi
   if (!VALID_DB_TYPES.has(dbType)) {
     res.status(400).json({ error: "Parameter 'type' database tidak dikenali oleh sistem Sambel Farm." });
     return;
   }
 
-  const [connection] = await db
-    .select()
-    .from(notionConnectionsTable)
-    .where(eq(notionConnectionsTable.userId, userId));
+  try {
+    const connection = await getNotionConnection(userId);
+    const { accessToken } = connection;
 
-  if (!connection) {
-    res.status(404).json({ error: "Notion tidak terhubung." });
-    return;
+    const explicitId = req.query.databaseId as string | undefined;
+    const savedId = !explicitId ? await getSavedDatabaseId(userId, dbType) : null;
+    const fallbackName = DEFAULT_DB_NAMES[dbType];
+
+    const resolvedId =
+      explicitId ||
+      savedId ||
+      (await findDatabaseIdByName(userId, accessToken, fallbackName));
+
+    if (!resolvedId) {
+      res.status(404).json({
+        error: `Database tidak ditemukan. Pilih database terlebih dahulu di bagian 'Pilih Database'.`,
+      });
+      return;
+    }
+
+    const database = await retrieveDatabase(userId, accessToken, resolvedId);
+    if (!database) {
+      res.status(404).json({
+        error: `Gagal mengambil detail database dari Notion. Pastikan database masih ada dan integrasi memiliki akses.`,
+      });
+      return;
+    }
+
+    const databaseName = database.title?.[0]?.plain_text ?? fallbackName;
+
+    const properties = Object.values(database.properties)
+      .map((p) => ({
+        id: p.id,
+        name: p.name,
+        type: p.type,
+        relatedDatabaseId: p.relation?.database_id ?? null,
+      }))
+      .sort((a, b) => {
+        if (a.type === "title") return -1;
+        if (b.type === "title") return 1;
+        return a.name.localeCompare(b.name);
+      });
+
+    res.json({ databaseId: resolvedId, databaseName, properties });
+  } catch (err) {
+    if (handleNotionErrors(res, err)) return;
+    throw err;
   }
-
-  const { accessToken } = connection;
-
-  const explicitId = req.query.databaseId as string | undefined;
-  const savedId = !explicitId ? await getSavedDatabaseId(userId, dbType) : null;
-  const fallbackName = DEFAULT_DB_NAMES[dbType];
-
-  const resolvedId =
-    explicitId ||
-    savedId ||
-    (await findDatabaseIdByName(accessToken, fallbackName));
-
-  if (!resolvedId) {
-    res.status(404).json({
-      error: `Database tidak ditemukan. Pilih database terlebih dahulu di bagian 'Pilih Database'.`,
-    });
-    return;
-  }
-
-  const database = await retrieveDatabase(accessToken, resolvedId);
-  if (!database) {
-    res.status(404).json({
-      error: `Gagal mengambil detail database dari Notion. Pastikan database masih ada dan integrasi memiliki akses.`,
-    });
-    return;
-  }
-
-  const databaseName = database.title?.[0]?.plain_text ?? fallbackName;
-
-  // FIX KRUSIAL: Filter formula dan rollup dihapus supaya bisa di-mapping!
-  const properties = Object.values(database.properties)
-    .map((p) => ({
-      id: p.id,
-      name: p.name,
-      type: p.type,
-      relatedDatabaseId: p.relation?.database_id ?? null,
-    }))
-    .sort((a, b) => {
-      if (a.type === "title") return -1;
-      if (b.type === "title") return 1;
-      return a.name.localeCompare(b.name);
-    });
-
-  res.json({ databaseId: resolvedId, databaseName, properties });
 });
 
 // GET /notion/field-mappings
@@ -282,7 +289,6 @@ router.post("/notion/field-mappings", async (req, res): Promise<void> => {
     return;
   }
 
-  // Bypass Zod validation sementara buat tipe `kategori` kalau schema lu di `@workspace/api-zod` belum lu update
   const body = req.body;
   if (!body || !body.databaseType || !body.mappings) {
     res.status(400).json({ error: "Request tidak valid." });

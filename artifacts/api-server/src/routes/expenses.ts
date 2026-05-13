@@ -1,8 +1,14 @@
 import { Router, type IRouter } from "express";
 import { getAuth } from "@clerk/express";
-import { db, notionConnectionsTable, fieldMappingsTable, type FieldMappingData } from "@workspace/db";
+import { db, fieldMappingsTable, type FieldMappingData } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { AddExpenseBody, GetDropdownOptionsResponse } from "@workspace/api-zod";
+import {
+  getNotionConnection,
+  notionFetch,
+  handleNotionErrors,
+  NotionTokenInvalidError,
+} from "../lib/notionClient";
 
 const router: IRouter = Router();
 
@@ -22,47 +28,54 @@ interface NotionDatabase {
 
 // ---- Notion helpers ---------------------------------------------------------
 
-async function findDatabaseByName(accessToken: string, name: string): Promise<string | null> {
-  const response = await fetch("https://api.notion.com/v1/search", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-      "Notion-Version": "2022-06-28",
-    },
-    body: JSON.stringify({
-      query: name,
-      filter: { value: "database", property: "object" },
-    }),
-  });
-  if (!response.ok) return null;
-  const data = await response.json() as { results: NotionDatabase[] };
-  const found = data.results.find((r) =>
-    r.title?.some((t) => t.plain_text.toLowerCase().includes(name.toLowerCase()))
-  );
-  return found?.id ?? null;
+async function findDatabaseByName(
+  userId: string,
+  accessToken: string,
+  name: string,
+): Promise<string | null> {
+  try {
+    const response = await notionFetch(userId, accessToken, "https://api.notion.com/v1/search", {
+      method: "POST",
+      body: JSON.stringify({
+        query: name,
+        filter: { value: "database", property: "object" },
+      }),
+    });
+    if (!response.ok) return null;
+    const data = await response.json() as { results: NotionDatabase[] };
+    const found = data.results.find((r) =>
+      r.title?.some((t) => t.plain_text.toLowerCase().includes(name.toLowerCase()))
+    );
+    return found?.id ?? null;
+  } catch (err) {
+    if (err instanceof NotionTokenInvalidError) throw err;
+    return null;
+  }
 }
 
 async function queryAllPages(
+  userId: string,
   accessToken: string,
   databaseId: string,
 ): Promise<Array<{ id: string; name: string }>> {
-  const response = await fetch(`https://api.notion.com/v1/databases/${databaseId}/query`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-      "Notion-Version": "2022-06-28",
-    },
-    body: JSON.stringify({ page_size: 100 }),
-  });
-  if (!response.ok) return [];
-  const data = await response.json() as { results: NotionPage[] };
-  return data.results.map((page) => {
-    const titleProp = Object.values(page.properties).find((p) => p.type === "title");
-    const name = titleProp?.title?.[0]?.plain_text ?? "Tanpa Nama";
-    return { id: page.id, name };
-  });
+  try {
+    const response = await notionFetch(
+      userId,
+      accessToken,
+      `https://api.notion.com/v1/databases/${databaseId}/query`,
+      { method: "POST", body: JSON.stringify({ page_size: 100 }) },
+    );
+    if (!response.ok) return [];
+    const data = await response.json() as { results: NotionPage[] };
+    return data.results.map((page) => {
+      const titleProp = Object.values(page.properties).find((p) => p.type === "title");
+      const name = titleProp?.title?.[0]?.plain_text ?? "Tanpa Nama";
+      return { id: page.id, name };
+    });
+  } catch (err) {
+    if (err instanceof NotionTokenInvalidError) throw err;
+    return [];
+  }
 }
 
 // ---- Mapping helpers --------------------------------------------------------
@@ -102,42 +115,35 @@ router.get("/notion/dropdown-options", async (req, res): Promise<void> => {
     return;
   }
 
-  const [connection] = await db
-    .select()
-    .from(notionConnectionsTable)
-    .where(eq(notionConnectionsTable.userId, userId));
+  try {
+    const connection = await getNotionConnection(userId);
+    const { accessToken } = connection;
 
-  if (!connection) {
-    res.status(404).json({ error: "Notion tidak terhubung." });
-    return;
+    const mappingRow = await getMappingRow(userId, "expenses");
+    const mappings = mappingRow?.mappings;
+
+    const [kategoriDbId, areaDbId] = await Promise.all([
+      mappings?.kategori?.relatedDatabaseId
+        ? Promise.resolve(mappings.kategori.relatedDatabaseId)
+        : findDatabaseByName(userId, accessToken, "Kategori Pengeluaran"),
+      mappings?.labaRugi?.relatedDatabaseId
+        ? Promise.resolve(mappings.labaRugi.relatedDatabaseId)
+        : findDatabaseByName(userId, accessToken, "Laba Rugi"),
+    ]);
+
+    req.log.info({ userId, kategoriDbId, areaDbId }, "Expenses dropdown options resolved");
+
+    const [categories, areas] = await Promise.all([
+      kategoriDbId ? queryAllPages(userId, accessToken, kategoriDbId) : Promise.resolve([]),
+      areaDbId ? queryAllPages(userId, accessToken, areaDbId) : Promise.resolve([]),
+    ]);
+
+    const data = GetDropdownOptionsResponse.parse({ categories, areas });
+    res.json(data);
+  } catch (err) {
+    if (handleNotionErrors(res, err)) return;
+    throw err;
   }
-
-  const { accessToken } = connection;
-
-  // Load saved mapping — includes notionDatabaseId + property mappings
-  const mappingRow = await getMappingRow(userId, "expenses");
-  const mappings = mappingRow?.mappings;
-
-  // Resolve dropdown databases:
-  // KABEL DISAMBUNG: Ganti pencarian ke mappings.labaRugi
-  const [kategoriDbId, areaDbId] = await Promise.all([
-    mappings?.kategori?.relatedDatabaseId
-      ? Promise.resolve(mappings.kategori.relatedDatabaseId)
-      : findDatabaseByName(accessToken, "Kategori Pengeluaran"),
-    mappings?.labaRugi?.relatedDatabaseId
-      ? Promise.resolve(mappings.labaRugi.relatedDatabaseId)
-      : findDatabaseByName(accessToken, "Laba Rugi"),
-  ]);
-
-  req.log.info({ userId, kategoriDbId, areaDbId }, "Expenses dropdown options resolved");
-
-  const [categories, areas] = await Promise.all([
-    kategoriDbId ? queryAllPages(accessToken, kategoriDbId) : Promise.resolve([]),
-    areaDbId ? queryAllPages(accessToken, areaDbId) : Promise.resolve([]),
-  ]);
-
-  const data = GetDropdownOptionsResponse.parse({ categories, areas });
-  res.json(data);
 });
 
 // POST /notion/add-expense
@@ -156,97 +162,84 @@ router.post("/notion/add-expense", async (req, res): Promise<void> => {
 
   const { pengeluaran, date, qty, hargaPerPcs, kategoriId, areaId } = parsed.data;
 
-  const [connection] = await db
-    .select()
-    .from(notionConnectionsTable)
-    .where(eq(notionConnectionsTable.userId, userId));
+  try {
+    const connection = await getNotionConnection(userId);
+    const { accessToken } = connection;
 
-  if (!connection) {
-    res.status(404).json({ error: "Notion tidak terhubung." });
-    return;
-  }
+    const mappingRow = await getMappingRow(userId, "expenses");
+    const mappings = mappingRow?.mappings;
 
-  const { accessToken } = connection;
+    const expensesDbId =
+      mappingRow?.notionDatabaseId ||
+      (await findDatabaseByName(userId, accessToken, "Expenses"));
 
-  // Load full mapping row — includes notionDatabaseId + property mappings
-  const mappingRow = await getMappingRow(userId, "expenses");
-  const mappings = mappingRow?.mappings;
+    req.log.info(
+      { userId, expensesDbId, usingStoredId: !!mappingRow?.notionDatabaseId },
+      "Add expense: resolved Expenses database ID",
+    );
 
-  // Use stored notionDatabaseId if available, otherwise fall back to name search
-  const expensesDbId =
-    mappingRow?.notionDatabaseId ||
-    (await findDatabaseByName(accessToken, "Expenses"));
+    if (!expensesDbId) {
+      res.status(404).json({ error: "Database 'Expenses' tidak ditemukan. Pilih database di halaman Pengaturan." });
+      return;
+    }
 
-  req.log.info(
-    { userId, expensesDbId, usingStoredId: !!mappingRow?.notionDatabaseId },
-    "Add expense: resolved Expenses database ID",
-  );
-
-  if (!expensesDbId) {
-    res.status(404).json({ error: "Database 'Expenses' tidak ditemukan. Pilih database di halaman Pengaturan." });
-    return;
-  }
-
-  // Build Notion properties safely (hindari kirim relation kosong yang bikin error)
-  const properties: any = {
-    [pk(mappings, "pengeluaran", "Pengeluaran")]: {
-      title: [{ text: { content: pengeluaran } }],
-    },
-    [pk(mappings, "qty", "Qty")]: {
-      number: qty,
-    },
-    [pk(mappings, "hargaPerPcs", "Harga/pcs")]: {
-      number: hargaPerPcs,
-    },
-    [pk(mappings, "date", "Date")]: {
-      date: { start: date },
-    },
-  };
-
-  if (kategoriId) {
-    properties[pk(mappings, "kategori", "Kategori")] = {
-      relation: [{ id: kategoriId }],
+    const properties: any = {
+      [pk(mappings, "pengeluaran", "Pengeluaran")]: {
+        title: [{ text: { content: pengeluaran } }],
+      },
+      [pk(mappings, "qty", "Qty")]: {
+        number: qty,
+      },
+      [pk(mappings, "hargaPerPcs", "Harga/pcs")]: {
+        number: hargaPerPcs,
+      },
+      [pk(mappings, "date", "Date")]: {
+        date: { start: date },
+      },
     };
-  }
 
-  if (areaId) {
-    // KABEL DISAMBUNG: Pastikan pake kunci "labaRugi"
-    properties[pk(mappings, "labaRugi", "Area Laba Rugi")] = {
-      relation: [{ id: areaId }],
+    if (kategoriId) {
+      properties[pk(mappings, "kategori", "Kategori")] = {
+        relation: [{ id: kategoriId }],
+      };
+    }
+
+    if (areaId) {
+      properties[pk(mappings, "labaRugi", "Area Laba Rugi")] = {
+        relation: [{ id: areaId }],
+      };
+    }
+
+    const notionBody = {
+      parent: { database_id: expensesDbId },
+      properties,
     };
+
+    const response = await notionFetch(userId, accessToken, "https://api.notion.com/v1/pages", {
+      method: "POST",
+      body: JSON.stringify(notionBody),
+    });
+
+    if (!response.ok) {
+      const errBody = await response.text();
+      req.log.error({ statusCode: response.status, errBody }, "Notion rejected add-expense");
+      let userMessage = "Gagal menyimpan pengeluaran ke Notion.";
+      try {
+        const errParsed = JSON.parse(errBody) as { message?: string };
+        if (errParsed.message) userMessage = `Notion: ${errParsed.message}`;
+      } catch { /* keep default */ }
+      res.status(400).json({ error: userMessage });
+      return;
+    }
+
+    const created = await response.json() as { id: string };
+    req.log.info({ userId, pageId: created.id }, "Expense created in Notion");
+
+    res.status(201).json({ success: true, pageId: created.id });
+  } catch (err) {
+    if (handleNotionErrors(res, err)) return;
+    throw err;
   }
-
-  const notionBody = {
-    parent: { database_id: expensesDbId },
-    properties: properties,
-  };
-
-  const response = await fetch("https://api.notion.com/v1/pages", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-      "Notion-Version": "2022-06-28",
-    },
-    body: JSON.stringify(notionBody),
-  });
-
-  if (!response.ok) {
-    const errBody = await response.text();
-    req.log.error({ statusCode: response.status, errBody }, "Notion rejected add-expense");
-    let userMessage = "Gagal menyimpan pengeluaran ke Notion.";
-    try {
-      const errParsed = JSON.parse(errBody) as { message?: string };
-      if (errParsed.message) userMessage = `Notion: ${errParsed.message}`;
-    } catch { /* keep default */ }
-    res.status(400).json({ error: userMessage });
-    return;
-  }
-
-  const created = await response.json() as { id: string };
-  req.log.info({ userId, pageId: created.id }, "Expense created in Notion");
-
-  res.status(201).json({ success: true, pageId: created.id });
 });
 
 export default router;
