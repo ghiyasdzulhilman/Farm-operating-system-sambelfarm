@@ -216,10 +216,11 @@ export function AppLayout({
     mx-auto
     rounded-3xl
     border
-    border-border/50
-    bg-background/80
-    backdrop-blur-xl
-    shadow-2xl
+    border-white/50
+    bg-background/75
+    backdrop-blur-2xl
+    shadow-[0_24px_80px_rgba(15,23,42,0.18)]
+    dark:border-white/10
     pb-safe
   "
 >
@@ -236,7 +237,7 @@ export function AppLayout({
                 return (
                   <Link key={item.label} href={item.href}>
                     <a className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary transition-colors min-w-[60px]">
-                      <div className={`p-2 rounded-xl transition-all ${isActive ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}>
+                      <div className={`p-2 rounded-xl transition-all ${isActive ? "bg-primary/15 shadow-lg text-primary" : "text-muted-foreground"}`}>
                         <Icon className={`h-5 w-5 ${isActive ? "stroke-primary stroke-[2.5]" : ""}`} />
                       </div>
                       <span className={`text-[10px] font-semibold ${isActive ? "text-primary" : ""}`}>{item.label}</span>
