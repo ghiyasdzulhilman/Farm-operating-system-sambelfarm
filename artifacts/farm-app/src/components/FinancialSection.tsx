@@ -46,6 +46,158 @@ const metricAccent = {
     "from-stone-700 to-zinc-900 text-white",
 };
 
+function MetricCard({
+  label,
+  value,
+  caption,
+  icon: Icon,
+  accent,
+  status,
+}: any) {
+
+  const StatusIcon =
+    status === "down"
+      ? ArrowDownRight
+      : ArrowUpRight;
+
+  return (
+
+    <Card
+      className="
+        overflow-hidden
+        rounded-[1.75rem]
+
+        border-white/60
+
+        bg-white/75
+
+        backdrop-blur-2xl
+
+        shadow-[0_18px_60px_rgba(15,23,42,0.07)]
+      "
+    >
+
+      <CardContent
+        className="
+          relative
+          p-4
+        "
+      >
+
+        <div
+          className="
+            flex
+            items-start
+            justify-between
+            gap-3
+          "
+        >
+
+          <div className="space-y-2">
+
+            <p
+              className="
+                text-[10px]
+                font-black
+                uppercase
+                tracking-[0.18em]
+                text-muted-foreground
+              "
+            >
+              {label}
+            </p>
+
+            <div>
+
+              <p
+                className="
+                  text-xl
+                  font-black
+                  tracking-[-0.05em]
+                "
+              >
+                {value}
+              </p>
+
+              <p
+                className="
+                  text-xs
+                  text-muted-foreground
+                "
+              >
+                {caption}
+              </p>
+
+            </div>
+
+          </div>
+
+          <div
+            className={`
+              rounded-2xl
+              bg-gradient-to-br
+              p-3
+              shadow-lg
+
+              ${metricAccent[accent]}
+            `}
+          >
+
+            <Icon
+              className="
+                h-4
+                w-4
+              "
+            />
+
+          </div>
+
+        </div>
+
+        <div
+          className="
+            mt-4
+            inline-flex
+            items-center
+            gap-1
+
+            rounded-full
+
+            bg-muted/70
+
+            px-2.5
+            py-1
+
+            text-[11px]
+            font-bold
+            text-muted-foreground
+          "
+        >
+
+          <StatusIcon
+            className={`
+              h-3
+              w-3
+
+              ${
+                status === "down"
+                  ? "text-rose-500"
+                  : "text-emerald-500"
+              }
+            `}
+          />
+
+          live indicator
+
+        </div>
+
+      </CardContent>
+
+    </Card>
+
+  );
+}
+
 export function FinancialSection({
   displayData,
   formatCurrency,
