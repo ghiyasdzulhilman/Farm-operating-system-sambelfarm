@@ -256,9 +256,9 @@ const profitChartData = areas.map((area: any) => ({
   };
 
   if (isLoadingConnection) {
-      return (
+        return (
     <div className="space-y-3 pb-24">
-      {/* HEADER: Fade-in dari kiri */}
+      {/* HEADER: Efek Fade-in & Slide dari samping */}
       <motion.div
         initial={{ opacity: 0, x: -20 }}
         animate={{ 
@@ -275,7 +275,7 @@ const profitChartData = areas.map((area: any) => ({
       </motion.div>
 
       <div className="sticky top-1 z-20 mb-2 pt-0">
-        {/* NAV TABS: Muncul dengan delay kecil */}
+        {/* NAV TABS: Animasi muncul dari bawah */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -314,7 +314,7 @@ const profitChartData = areas.map((area: any) => ({
           ))}
         </motion.div>
 
-        {/* TOOLBAR: Slide Horizontal yang kita benerin tadi */}
+        {/* TOOLBAR: Horizontal Slide */}
         <div className="mt-2 flex items-center justify-end gap-2 px-1">
           <div
             className={`flex items-center gap-2 overflow-hidden transition-all duration-300 ease-in-out ${
@@ -346,14 +346,14 @@ const profitChartData = areas.map((area: any) => ({
 
           <button
             onClick={() => setShowControls(!showControls)}
-            className="h-7 w-7 flex items-center justify-center shrink-0 rounded-lg border border-border/50 bg-background/80 text-muted-foreground hover:text-foreground transition-all"
+            className="h-7 w-7 flex items-center justify-center shrink-0 rounded-lg border border-border/50 bg-background/80 text-muted-foreground hover:text-foreground transition-all duration-200 hover:bg-muted/50"
           >
             <SlidersHorizontal className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
 
-      {/* SECTIONS: Staggered Entry (Satu per satu dari bawah) */}
+      {/* SECTIONS: Efek Staggered Entry */}
       <div className="space-y-6">
         <motion.section
           ref={financialRef}
@@ -416,5 +416,5 @@ const profitChartData = areas.map((area: any) => ({
       </div>
     </div>
   );
-}
+
 }
