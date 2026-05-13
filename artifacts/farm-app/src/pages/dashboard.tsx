@@ -256,30 +256,9 @@ const profitChartData = areas.map((area: any) => ({
   };
 
   if (isLoadingConnection) {
-    return (
-      <div className="space-y-6">
-        <div><Skeleton className="h-9 w-48 mb-2" /><Skeleton className="h-5 w-64" /></div>
-        <div className="grid gap-4 md:grid-cols-4">
-          {[1, 2, 3, 4].map((i) => (
-            <Card key={i}><CardHeader className="pb-2"><Skeleton className="h-5 w-24" /></CardHeader>
-            <CardContent><Skeleton className="h-8 w-32" /></CardContent></Card>
-          ))}
-        </div>
-      </div>
-    );
-  }
-const harvestActivities =
-  summary?.activities?.filter(
-    (a: any) => a.type === "harvest"
-  ) || [];
-
-const expenseActivities =
-  summary?.activities?.filter(
-    (a: any) => a.type === "expense"
-  ) || [];
-    return (
+      return (
     <div className="space-y-3 pb-24">
-      {/* HEADER: Efek Fade-in & Slide dari samping */}
+      {/* HEADER: Fade-in dari kiri */}
       <motion.div
         initial={{ opacity: 0, x: -20 }}
         animate={{ 
@@ -296,7 +275,7 @@ const expenseActivities =
       </motion.div>
 
       <div className="sticky top-1 z-20 mb-2 pt-0">
-        {/* NAV TABS: Animasi muncul dari bawah */}
+        {/* NAV TABS: Muncul dengan delay kecil */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -335,7 +314,7 @@ const expenseActivities =
           ))}
         </motion.div>
 
-        {/* TOOLBAR: Horizontal Slide */}
+        {/* TOOLBAR: Slide Horizontal yang kita benerin tadi */}
         <div className="mt-2 flex items-center justify-end gap-2 px-1">
           <div
             className={`flex items-center gap-2 overflow-hidden transition-all duration-300 ease-in-out ${
@@ -367,14 +346,14 @@ const expenseActivities =
 
           <button
             onClick={() => setShowControls(!showControls)}
-            className="h-7 w-7 flex items-center justify-center shrink-0 rounded-lg border border-border/50 bg-background/80 text-muted-foreground hover:text-foreground transition-all duration-200 hover:bg-muted/50"
+            className="h-7 w-7 flex items-center justify-center shrink-0 rounded-lg border border-border/50 bg-background/80 text-muted-foreground hover:text-foreground transition-all"
           >
             <SlidersHorizontal className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
 
-      {/* SECTIONS: Efek Staggered Entry */}
+      {/* SECTIONS: Staggered Entry (Satu per satu dari bawah) */}
       <div className="space-y-6">
         <motion.section
           ref={financialRef}
