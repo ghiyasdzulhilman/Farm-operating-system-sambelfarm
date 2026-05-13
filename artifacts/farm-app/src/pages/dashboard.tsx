@@ -277,287 +277,165 @@ const expenseActivities =
   summary?.activities?.filter(
     (a: any) => a.type === "expense"
   ) || [];
-  return (
-    <div className="space-y-3 pb-10">
-      <div
-  className={`
-    absolute
-    right-0
-    top-full
-
-    mt-2
-
-    overflow-hidden
-
-    transition-all
-    duration-300
-
-    ${
-      isHeaderHidden
-        ? "max-h-0 opacity-0"
-        : "max-h-20 opacity-100"
-    }
-  `}
->
-
-  <h1 className="text-2xl font-bold tracking-tight">
-    Dashboard
-  </h1>
-
-</div>
-<div
-  className="
-    sticky
-    relative
-    top-1
-    z-20
-    mb-2
-    pt-0
-  "
->
-  <div
-  className="
-    flex
-    gap-2
-    overflow-x-auto
-    scrollbar-hide
-
-    rounded-2xl
-    border
-    border-border/50
-
-    bg-background/70
-    backdrop-blur-xl
-
-    p-2
-
-    shadow-sm
-  "
->
-
-    {[
-  { key: "financial", label: "Finansial" },
-  { key: "production", label: "Produksi" },
-  { key: "operational", label: "Operasional" },
-  { key: "insight", label: "Insight" },
-].map((tab) => (
-
-  <button
-    key={tab.key}
-
-    onClick={() => {
-
-      setActiveSection(
-        tab.key as any
-      );
-
-      const sectionMap = {
-        financial: financialRef,
-        production: productionRef,
-        operational: operationalRef,
-        insight: insightRef,
-      };
-
-      sectionMap[
-        tab.key as keyof typeof sectionMap
-      ]?.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-
-    }}
-
-    className={`
-  px-4
-  py-2
-
-  rounded-xl
-
-  text-sm
-  font-medium
-
-  whitespace-nowrap
-
-  transition-all
-  duration-200
-
-  ${
-    activeSection === tab.key
-      ? `
-        bg-primary
-        text-primary-foreground
-        shadow-sm
-      `
-      : `
-        text-muted-foreground
-        hover:bg-muted/60
-        hover:text-foreground
-      `
-  }
-`}
-  >
-    {tab.label}
-  </button>
-
-))}
-
-</div>
-
-{/* --- TOOLBAR SECTION (HORIZONTAL SLIDE FIX) --- */}
-<div className="mt-2 flex items-center justify-end gap-2">
-
-  {/* EXPANDABLE CONTROLS (Dropdown & Refresh) */}
-  <div
-    className={`
-      flex
-      items-center
-      gap-2
-      overflow-hidden
-      transition-all
-      duration-300
-      ease-in-out
-
-      ${
-        showControls
-          ? `
-            max-w-[200px]
-            opacity-100
-            translate-x-0
-            pointer-events-auto
-          `
-          : `
-            max-w-0
-            opacity-0
-            translate-x-4
-            pointer-events-none
-          `
-      }
-    `}
-  >
-    <Button
-      variant="outline"
-      size="icon"
-      className="
-        h-7
-        w-7
-        bg-background
-        shrink-0
-      "
-      onClick={handleRefreshSummary}
-      disabled={isFetching}
-    >
-      <RefreshCcw
-        className={`h-3 w-3 ${isFetching ? "animate-spin" : ""}`}
-      />
-    </Button>
-
-    <Select
-      value={selectedAreaId}
-      onValueChange={setSelectedAreaId}
-    >
-      <SelectTrigger
-        className="
-          h-7
-          w-[130px]
-          bg-background
-          text-xs
-        "
+    return (
+    <div className="space-y-3 pb-24">
+      {/* HEADER: Efek Fade-in & Slide dari samping */}
+      <motion.div
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ 
+          opacity: isHeaderHidden ? 0 : 1, 
+          x: isHeaderHidden ? -20 : 0,
+          display: isHeaderHidden ? "none" : "block"
+        }}
+        transition={{ duration: 0.3 }}
+        className="pt-2"
       >
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="all">Semua Area</SelectItem>
-        {areas.map((area: any) => (
-          <SelectItem key={area.id} value={area.id}>
-            {area.name}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  </div>
+        <h1 className="text-2xl font-bold tracking-tight px-1">
+          Dashboard
+        </h1>
+      </motion.div>
 
-  {/* BUTTON TOGGLE FILTER (Stay di Kanan) */}
-  <button
-    onClick={() => setShowControls(!showControls)}
-    className="
-      h-7
-      w-7
-      flex
-      items-center
-      justify-center
-      shrink-0
-      rounded-lg
-      border
-      border-border/50
-      bg-background/80
-      text-muted-foreground
-      transition-all
-      duration-200
-      hover:text-foreground
-      hover:bg-muted/50
-    "
-  >
-    <SlidersHorizontal className="h-3.5 w-3.5" />
-  </button>
+      <div className="sticky top-1 z-20 mb-2 pt-0">
+        {/* NAV TABS: Animasi muncul dari bawah */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="flex gap-2 overflow-x-auto scrollbar-hide rounded-2xl border border-border/50 bg-background/70 backdrop-blur-xl p-2 shadow-sm"
+        >
+          {[
+            { key: "financial", label: "Finansial" },
+            { key: "production", label: "Produksi" },
+            { key: "operational", label: "Operasional" },
+            { key: "insight", label: "Insight" },
+          ].map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => {
+                setActiveSection(tab.key as any);
+                const sectionMap = {
+                  financial: financialRef,
+                  production: productionRef,
+                  operational: operationalRef,
+                  insight: insightRef,
+                };
+                sectionMap[tab.key as keyof typeof sectionMap]?.current?.scrollIntoView({
+                  behavior: "smooth",
+                  block: "start",
+                });
+              }}
+              className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-200 ${
+                activeSection === tab.key
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </motion.div>
 
-</div>
-{/* --- END TOOLBAR SECTION --- */}
+        {/* TOOLBAR: Horizontal Slide */}
+        <div className="mt-2 flex items-center justify-end gap-2 px-1">
+          <div
+            className={`flex items-center gap-2 overflow-hidden transition-all duration-300 ease-in-out ${
+              showControls ? "max-w-[200px] opacity-100 translate-x-0" : "max-w-0 opacity-0 translate-x-4 pointer-events-none"
+            }`}
+          >
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-7 w-7 bg-background shrink-0"
+              onClick={handleRefreshSummary}
+              disabled={isFetching}
+            >
+              <RefreshCcw className={`h-3 w-3 ${isFetching ? "animate-spin" : ""}`} />
+            </Button>
 
-</div>
+            <Select value={selectedAreaId} onValueChange={setSelectedAreaId}>
+              <SelectTrigger className="h-7 w-[130px] bg-background text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Area</SelectItem>
+                {areas.map((area: any) => (
+                  <SelectItem key={area.id} value={area.id}>{area.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-  <section
-  ref={financialRef}
-  className="scroll-mt-32 space-y-4"
->
+          <button
+            onClick={() => setShowControls(!showControls)}
+            className="h-7 w-7 flex items-center justify-center shrink-0 rounded-lg border border-border/50 bg-background/80 text-muted-foreground hover:text-foreground transition-all duration-200 hover:bg-muted/50"
+          >
+            <SlidersHorizontal className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
 
-  <FinancialSection
-    displayData={displayData}
-    formatCurrency={formatCurrency}
-    profitChartData={profitChartData}
-  />
+      {/* SECTIONS: Efek Staggered Entry */}
+      <div className="space-y-6">
+        <motion.section
+          ref={financialRef}
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.1 }}
+          className="scroll-mt-32"
+        >
+          <FinancialSection
+            displayData={displayData}
+            formatCurrency={formatCurrency}
+            profitChartData={profitChartData}
+          />
+        </motion.section>
 
-</section>
+        <motion.section
+          ref={productionRef}
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.15 }}
+          className="scroll-mt-32"
+        >
+          <ProductionSection
+            displayData={displayData}
+            areas={areas}
+          />
+        </motion.section>
 
+        <motion.section
+          ref={operationalRef}
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.2 }}
+          className="scroll-mt-32"
+        >
+          <OperationalSection
+            harvestActivities={harvestActivities}
+            expenseActivities={expenseActivities}
+          />
+        </motion.section>
 
-  <section
-  ref={productionRef}
-  className="scroll-mt-32 space-y-4"
->
-
-  <ProductionSection
-    displayData={displayData}
-    areas={areas}
-  />
-
-</section>
-
-  <section
-  ref={operationalRef}
-  className="scroll-mt-32 space-y-4"
->
-
-  <OperationalSection
-    harvestActivities={harvestActivities}
-    expenseActivities={expenseActivities}
-  />
-
-</section>
-
-  <section
-  ref={insightRef}
-  className="scroll-mt-32 space-y-4"
->
-
-  <InsightSection
-    displayData={displayData}
-    localBusinessStatus={localBusinessStatus}
-    localRecommendation={localRecommendation}
-    formatCurrency={formatCurrency}
-  />
-
-</section>
-
-
+        <motion.section
+          ref={insightRef}
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.25 }}
+          className="scroll-mt-32"
+        >
+          <InsightSection
+            displayData={displayData}
+            localBusinessStatus={localBusinessStatus}
+            localRecommendation={localRecommendation}
+            formatCurrency={formatCurrency}
+          />
+        </motion.section>
+      </div>
     </div>
   );
+
 }
