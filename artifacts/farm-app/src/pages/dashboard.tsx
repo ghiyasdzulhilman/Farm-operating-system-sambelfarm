@@ -525,9 +525,10 @@ const expenseActivities =
 >
 
   <ProductionSection
-    displayData={displayData}
-    areas={areas}
-  />
+  displayData={displayData}
+  areas={areas}
+  formatCurrency={formatCurrency}
+/>
 
 </section>
 
