@@ -1,21 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { format } from "date-fns";
+import { id } from "date-fns/locale";
 import { motion } from "framer-motion";
 import {
-  Activity,
-  BarChart3,
-  BrainCircuit,
-  CheckCircle2,
+  Bot,
+  ChevronDown,
   Filter,
   Leaf,
   RefreshCcw,
-  SlidersHorizontal,
+  Satellite,
   Sparkles,
-  TrendingUp,
-  WalletCards,
 } from "lucide-react";
-import { format } from "date-fns";
-import { id } from "date-fns/locale";
-
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getGetDashboardSummaryQueryKey,
@@ -23,7 +18,10 @@ import {
   useGetNotionConnectionStatus,
 } from "@workspace/api-client-react";
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { FinancialSection } from "@/components/FinancialSection";
+import { InsightSection } from "@/components/InsightSection";
+import { OperationalSection } from "@/components/OperationalSection";
+import { ProductionSection } from "@/components/ProductionSection";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -34,25 +32,29 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FinancialSection } from "@/components/FinancialSection";
-import { InsightSection } from "@/components/InsightSection";
-import { OperationalSection } from "@/components/OperationalSection";
-import { ProductionSection } from "@/components/ProductionSection";
 
 type DashboardSection = "financial" | "production" | "operational" | "insight";
 
-const sections: Array<{
+type DisplayData = {
+  modal: number;
+  pendapatan: number;
+  pengeluaran: number;
+  profit: number;
+  margin: number;
+  harvestWeight: number;
+};
+
+const sectionItems: Array<{
   key: DashboardSection;
   label: string;
-  icon: typeof WalletCards;
 }> = [
-  { key: "financial", label: "Financial", icon: WalletCards },
-  { key: "production", label: "Production", icon: BarChart3 },
-  { key: "operational", label: "Ops", icon: Activity },
-  { key: "insight", label: "Insight", icon: BrainCircuit },
+  { key: "financial", label: "Financial" },
+  { key: "production", label: "Production" },
+  { key: "operational", label: "Operational" },
+  { key: "insight", label: "Insight" },
 ];
 
-const emptyDisplayData = {
+const emptyDisplayData: DisplayData = {
   modal: 0,
   pendapatan: 0,
   pengeluaran: 0,
@@ -63,7 +65,7 @@ const emptyDisplayData = {
 
 export function DashboardPage() {
   const queryClient = useQueryClient();
-  const [selectedAreaId, setSelectedAreaId] = useState<string>("all");
+  const [selectedAreaId, setSelectedAreaId] = useState("all");
   const [activeSection, setActiveSection] = useState<DashboardSection>("financial");
   const [showControls, setShowControls] = useState(false);
 
@@ -86,12 +88,15 @@ export function DashboardPage() {
     const handleScroll = () => {
       let currentSection: DashboardSection = "financial";
 
-      sections.forEach((section) => {
+      sectionItems.forEach((section) => {
         const element = sectionRefs[section.key].current;
         if (!element) return;
 
         const rect = element.getBoundingClientRect();
-        if (rect.top <= 280) currentSection = section.key;
+        // Cek posisi biar tab otomatis ganti
+        if (rect.top <= 156) {
+          currentSection = section.key;
+        }
       });
 
       setActiveSection(currentSection);
@@ -127,7 +132,7 @@ export function DashboardPage() {
 
   const areas = summary?.areas || [];
 
-  const displayData = useMemo(() => {
+  const displayData = useMemo<DisplayData>(() => {
     if (!summary) return emptyDisplayData;
 
     if (selectedAreaId === "all") {
@@ -154,12 +159,6 @@ export function DashboardPage() {
     };
   }, [summary, selectedAreaId, areas]);
 
-  const selectedAreaName =
-    selectedAreaId === "all"
-      ? "All growing areas"
-      : areas.find((area: any) => area.id === selectedAreaId)?.name ||
-        "Selected area";
-
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat("id-ID", {
       style: "currency",
@@ -169,7 +168,7 @@ export function DashboardPage() {
     }).format(amount || 0);
 
   const formatDate = (dateString: string | null) => {
-    if (!dateString) return "Belum pernah diperbarui";
+    if (!dateString) return "Belum tersinkron";
     try {
       return format(new Date(dateString), "dd MMM yyyy, HH:mm", { locale: id });
     } catch {
@@ -177,20 +176,10 @@ export function DashboardPage() {
     }
   };
 
-  const localBusinessStatus = displayData.margin > 0 ? "Profitable" : "Developing";
-
-  const localRecommendation =
-    displayData.margin < 0
-      ? "Margin turun di bawah nol. Prioritaskan renegosiasi input dan cek aktivitas boros minggu ini."
-      : displayData.margin < 15
-        ? "Margin sehat tetapi tipis. Optimalkan HPP/kg dan dorong panen dari area produktif."
-        : "Performa area kuat. Pertahankan ritme panen dan simulasikan ekspansi area terbaik.";
-
   const profitChartData = areas.map((area: any) => ({
     name: area.name,
-    profit: area.profit,
-    pendapatan: area.pendapatan,
-    pengeluaran: area.pengeluaran,
+    profit: area.profit || 0,
+    produksi: area.harvestWeight || 0,
   }));
 
   const harvestActivities =
@@ -199,10 +188,18 @@ export function DashboardPage() {
   const expenseActivities =
     summary?.activities?.filter((activity: any) => activity.type === "expense") || [];
 
+  const hpp = displayData.pengeluaran / (displayData.harvestWeight || 1);
+  const localBusinessStatus = displayData.margin > 0 ? "Profitable" : "Developing";
+  
+  const localRecommendation =
+    displayData.margin < 0
+      ? "Margin turun. Kurangi biaya variabel dan audit input area prioritas."
+      : displayData.margin < 15
+        ? "Margin tipis. Optimalkan HPP per kg dan jadwal panen bernilai tinggi."
+        : "Unit farming sehat. Scale area paling produktif sambil menjaga HPP.";
+
   const handleRefreshSummary = () => {
-    queryClient.invalidateQueries({
-      queryKey: getGetDashboardSummaryQueryKey(),
-    });
+    queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
     refetch();
   };
 
@@ -216,179 +213,165 @@ export function DashboardPage() {
 
   if (isLoadingConnection) {
     return (
-      <div className="mx-auto max-w-6xl space-y-6">
-        <Skeleton className="h-28 rounded-[2rem]" />
-        <div className="grid gap-3 md:grid-cols-4">
+      <div className="space-y-5 px-4 md:px-6 mt-4">
+        <Skeleton className="h-44 rounded-[2rem]" />
+        <Skeleton className="h-16 rounded-3xl" />
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {[1, 2, 3, 4].map((item) => (
-            <Skeleton key={item} className="h-32 rounded-[1.5rem]" />
+            <Skeleton key={item} className="h-36 rounded-[1.75rem]" />
           ))}
         </div>
       </div>
     );
   }
 
-  if (!isConnected) {
-    return (
-      <Alert className="mx-auto max-w-3xl rounded-3xl border-amber-200 bg-amber-50/70 p-6 text-amber-950 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-100">
-        <AlertTitle className="flex items-center gap-2 text-lg">
-          <Leaf className="h-5 w-5" /> Sambel Farm belum tersambung ke Notion
-        </AlertTitle>
-        <AlertDescription className="mt-2 text-sm text-amber-800 dark:text-amber-200/80">
-          Hubungkan database Notion terlebih dahulu agar dashboard finansial,
-          produksi, operasional, dan insight dapat membaca data terbaru.
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
   return (
-    <div className="sambel-dashboard relative mx-[calc(50%-50vw)] -mt-4 min-h-screen overflow-x-clip px-4 pb-12 pt-4 md:-mt-6 md:px-6 md:pt-6">
+    <div className="relative mx-auto max-w-7xl pb-10 overflow-x-clip px-4 md:px-6">
+      {/* Background Gradient Effect */}
+      <div className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-[420px] bg-[radial-gradient(circle_at_20%_10%,rgba(34,197,94,0.18),transparent_34%),radial-gradient(circle_at_85%_5%,rgba(245,158,11,0.18),transparent_30%)]" />
 
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_15%_0%,rgba(35,116,83,0.18),transparent_34%),radial-gradient(circle_at_86%_8%,rgba(202,138,4,0.12),transparent_30%),linear-gradient(180deg,hsl(var(--background)),hsl(var(--muted))/0.45)]" />
+      {/* Header Baru: The Business Pulse */}
+      <section className="relative overflow-hidden rounded-[2rem] border border-white/50 bg-white/70 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/60 md:p-8 mt-4 md:mt-6">
+        <div className="absolute -right-16 -top-20 h-52 w-52 rounded-full bg-emerald-300/30 blur-3xl" />
+        <div className="absolute -bottom-24 left-16 h-56 w-56 rounded-full bg-amber-300/20 blur-3xl" />
 
-      <div className="mx-auto max-w-6xl space-y-5 md:space-y-7">
-        
-        <motion.header
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, ease: "easeOut" }}
-          className="overflow-hidden rounded-[2rem] border border-white/50 bg-white/70 p-5 shadow-[0_24px_80px_rgba(20,83,45,0.12)] backdrop-blur-2xl dark:border-white/10 dark:bg-white/[0.06] md:p-7"
-        >
-          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div className="space-y-4">
-              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/15 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-                </span>
-                Live Notion Database API
-              </div>
+        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-2xl space-y-4">
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+              <Satellite className="h-3.5 w-3.5" />
+              Notion-powered smart farming OS
             </div>
 
-            <div className="grid grid-cols-2 gap-2 md:w-[360px]">
-              <div className="rounded-2xl border border-border/60 bg-background/70 p-3 backdrop-blur-xl">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                  Area scope
-                </p>
-                <p className="mt-1 truncate text-sm font-bold">
-                  {selectedAreaName}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-border/60 bg-background/70 p-3 backdrop-blur-xl">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                  Updated
-                </p>
-                <p className="mt-1 truncate text-sm font-bold">
-                  {formatDate(summary?.lastUpdated || null)}
-                </p>
-              </div>
+            <div className="space-y-2">
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+                Sambel Farm
+              </p>
+              <h1 className="text-3xl font-black tracking-[-0.06em] text-slate-950 dark:text-white md:text-6xl">
+                Farm intelligence, bukan sekadar pembukuan.
+              </h1>
+              <p className="max-w-xl text-sm leading-6 text-muted-foreground md:text-base">
+                Single continuous dashboard untuk finansial, produksi, operasi,
+                dan rekomendasi cerdas dalam satu alur mobile-first.
+              </p>
             </div>
           </div>
-        </motion.header>
 
-        <div className="sticky top-2 z-30 space-y-2 md:top-3">
-          <nav className="rounded-[1.65rem] border border-white/60 bg-white/65 p-1.5 shadow-[0_18px_60px_rgba(15,23,42,0.10)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55">
-            <div className="grid grid-cols-4 gap-1">
-              {sections.map((section) => {
-                const Icon = section.icon;
-                const isActive = activeSection === section.key;
-
-                return (
-                  <button
-                    key={section.key}
-                    onClick={() => scrollToSection(section.key)}
-                    className="relative flex h-11 items-center justify-center rounded-2xl px-2 text-xs font-bold transition-colors duration-300 md:gap-2 md:text-sm"
-                  >
-                    {isActive && (
-                      <motion.span
-                        layoutId="sambel-active-section-pill"
-                        className="absolute inset-0 rounded-2xl bg-slate-950 shadow-[0_10px_26px_rgba(15,23,42,0.20)] dark:bg-white"
-                        transition={{
-                          type: "spring",
-                          stiffness: 420,
-                          damping: 34,
-                        }}
-                      />
-                    )}
-                    <Icon
-                      className={`relative h-4 w-4 ${isActive ? "text-white dark:text-slate-950" : "text-muted-foreground"}`}
-                    />
-                    <span
-                      className={`relative hidden sm:inline ${isActive ? "text-white dark:text-slate-950" : "text-muted-foreground"}`}
-                    >
-                      {section.label}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </nav>
-
-          <div className="flex justify-end">
-            <div className="flex items-center gap-2 rounded-2xl border border-white/60 bg-white/65 p-1.5 shadow-lg backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55">
-              <div
-                className={`flex items-center gap-2 overflow-hidden transition-all duration-300 ease-out ${
-                  showControls
-                    ? "max-w-[260px] translate-x-0 opacity-100"
-                    : "max-w-0 translate-x-4 opacity-0"
-                }`}
-              >
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9 shrink-0 rounded-xl bg-background/70"
-                  onClick={handleRefreshSummary}
-                  disabled={isFetching || isLoadingSummary}
-                  aria-label="Refresh dashboard summary"
-                >
-                  <RefreshCcw
-                    className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`}
-                  />
-                </Button>
-
-                <Select
-                  value={selectedAreaId}
-                  onValueChange={setSelectedAreaId}
-                >
-                  <SelectTrigger className="h-9 w-[168px] rounded-xl border-0 bg-background/70 text-xs font-semibold shadow-none">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua Area</SelectItem>
-                    {areas.map((area: any) => (
-                      <SelectItem key={area.id} value={area.id}>
-                        {area.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+          <Card className="relative overflow-hidden rounded-[1.75rem] border-white/50 bg-slate-950 text-white shadow-2xl dark:border-white/10 md:min-w-80">
+            <CardContent className="space-y-4 p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-white/50">Business pulse</p>
+                  <p className="text-lg font-bold">{localBusinessStatus}</p>
+                </div>
+                <div className="rounded-2xl bg-white/10 p-3">
+                  <Bot className="h-5 w-5 text-emerald-300" />
+                </div>
               </div>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="rounded-2xl bg-white/10 p-3">
+                  <p className="text-white/50">Margin</p>
+                  <p className="text-2xl font-black">{displayData.margin.toFixed(1)}%</p>
+                </div>
+                <div className="rounded-2xl bg-white/10 p-3">
+                  <p className="text-white/50">HPP / kg</p>
+                  <p className="text-xl font-black">{formatCurrency(hpp)}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-white/55">
+                <Sparkles className="h-3.5 w-3.5 text-amber-200" />
+                Sync terakhir: {formatDate(summary?.lastUpdated || null)}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
 
+      {/* Navigasi Pill Segmented */}
+      <div className="sticky top-2 z-30 mt-4 space-y-3 md:top-4">
+        <div className="rounded-[1.55rem] border border-white/60 bg-white/72 p-1.5 shadow-[0_18px_50px_rgba(15,23,42,0.10)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/70">
+          <div className="grid grid-cols-4 gap-1">
+            {sectionItems.map((item) => (
               <button
-                onClick={() => setShowControls((value) => !value)}
-                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all duration-300 active:scale-95 ${
-                  showControls
-                    ? "bg-slate-950 text-white dark:bg-white dark:text-slate-950"
-                    : "bg-background/70 text-muted-foreground hover:text-foreground"
-                }`}
-                aria-label="Toggle contextual filters"
+                key={item.key}
+                onClick={() => scrollToSection(item.key)}
+                className="relative min-h-11 rounded-[1.15rem] px-2 text-xs font-bold text-muted-foreground transition-colors duration-300 hover:text-foreground md:text-sm"
               >
-                {showControls ? (
-                  <Filter className="h-4 w-4" />
-                ) : (
-                  <SlidersHorizontal className="h-4 w-4" />
+                {activeSection === item.key && (
+                  <motion.span
+                    layoutId="smart-section-pill"
+                    className="absolute inset-0 rounded-[1.15rem] bg-slate-950 shadow-lg dark:bg-white"
+                    transition={{ type: "spring", bounce: 0.18, duration: 0.55 }}
+                  />
                 )}
+                <span
+                  className={
+                    activeSection === item.key
+                      ? "relative z-10 text-white dark:text-slate-950"
+                      : "relative z-10"
+                  }
+                >
+                  {item.label}
+                </span>
               </button>
-            </div>
+            ))}
           </div>
         </div>
 
-        <section ref={financialRef} className="scroll-mt-36 space-y-4">
-          <SectionEyebrow
-            icon={WalletCards}
-            label="Financial analytics"
-            description="Modal, pendapatan, pengeluaran, profit, margin, HPP, dan BEP dalam bahasa operator."
-          />
+        {/* Toolbar Filter & Refresh Baru */}
+        <div className="flex justify-end">
+          <div className="flex items-center gap-2 rounded-full border border-white/60 bg-white/72 p-1.5 shadow-lg backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/70">
+            <div
+              className={`flex items-center gap-2 overflow-hidden transition-all duration-500 ease-out ${
+                showControls
+                  ? "max-w-[260px] translate-x-0 opacity-100"
+                  : "max-w-0 translate-x-4 opacity-0"
+              }`}
+            >
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 shrink-0 rounded-full bg-muted/70"
+                onClick={handleRefreshSummary}
+                disabled={isFetching || isLoadingSummary}
+              >
+                <RefreshCcw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+              </Button>
+
+              <Select value={selectedAreaId} onValueChange={setSelectedAreaId}>
+                <SelectTrigger className="h-10 w-[158px] rounded-full border-white/60 bg-background/80 text-xs font-semibold shadow-none dark:border-white/10">
+                  <Leaf className="mr-2 h-3.5 w-3.5 text-emerald-600" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Area</SelectItem>
+                  {areas.map((area: any) => (
+                    <SelectItem key={area.id} value={area.id}>
+                      {area.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <button
+              onClick={() => setShowControls((value) => !value)}
+              className="flex h-10 min-w-10 items-center justify-center gap-2 rounded-full bg-slate-950 px-3 text-white shadow-xl transition-all duration-300 active:scale-95 dark:bg-white dark:text-slate-950"
+              aria-label="Toggle dashboard filters"
+            >
+              <Filter className="h-4 w-4" />
+              <ChevronDown
+                className={`h-3.5 w-3.5 transition-transform duration-300 ${
+                  showControls ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Konten Utama */}
+      <div className="mt-5 space-y-5 md:mt-8 md:space-y-8">
+        <section ref={financialRef} className="scroll-mt-36">
           <FinancialSection
             displayData={displayData}
             formatCurrency={formatCurrency}
@@ -396,12 +379,7 @@ export function DashboardPage() {
           />
         </section>
 
-        <section ref={productionRef} className="scroll-mt-36 space-y-4">
-          <SectionEyebrow
-            icon={BarChart3}
-            label="Production intelligence"
-  
-          />
+        <section ref={productionRef} className="scroll-mt-36">
           <ProductionSection
             displayData={displayData}
             areas={areas}
@@ -409,24 +387,14 @@ export function DashboardPage() {
           />
         </section>
 
-        <section ref={operationalRef} className="scroll-mt-36 space-y-4">
-          <SectionEyebrow
-            icon={Activity}
-            label="Operational pulse"
-            description="Feed aktivitas real-time dari pencatatan panen dan pengeluaran operasional."
-          />
+        <section ref={operationalRef} className="scroll-mt-36">
           <OperationalSection
             harvestActivities={harvestActivities}
             expenseActivities={expenseActivities}
           />
         </section>
 
-        <section ref={insightRef} className="scroll-mt-36 space-y-4">
-          <SectionEyebrow
-            icon={Sparkles}
-            label="Smart recommendations"
-            description="Rekomendasi seperti asisten analitik untuk keputusan harian kebun."
-          />
+        <section ref={insightRef} className="scroll-mt-36">
           <InsightSection
             displayData={displayData}
             localBusinessStatus={localBusinessStatus}
@@ -434,35 +402,6 @@ export function DashboardPage() {
             formatCurrency={formatCurrency}
           />
         </section>
-      </div>
-    </div>
-  );
-}
-
-function SectionEyebrow({
-  icon: Icon,
-  label,
-  description,
-}: {
-  icon: typeof TrendingUp;
-  label: string;
-  description: string;
-}) {
-  return (
-    <div className="flex items-start gap-3 px-1 pt-1">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-emerald-500/15 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
-        <Icon className="h-5 w-5" />
-      </div>
-      <div>
-        <div className="flex items-center gap-2">
-          <h2 className="text-lg font-black tracking-[-0.03em] md:text-2xl">
-            {label}
-          </h2>
-          <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-        </div>
-        <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
-          {description}
-        </p>
       </div>
     </div>
   );
