@@ -579,6 +579,7 @@ const expenseActivities =
 {/* --- END TOOLBAR SECTION --- */}
 
 </div>
+<div className="space-y-3 pb-10">
 
   <section
   ref={financialRef}
@@ -633,7 +634,7 @@ const expenseActivities =
 
 </section>
 
-
-    </div>
+</div>
+    
   );
 }
