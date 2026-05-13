@@ -91,7 +91,7 @@ export function DashboardPage() {
         if (!element) return;
 
         const rect = element.getBoundingClientRect();
-        if (rect.top <= 180) currentSection = section.key;
+        if (rect.top <= 280) currentSection = section.key;
       });
 
       setActiveSection(currentSection);
@@ -242,7 +242,8 @@ export function DashboardPage() {
   }
 
   return (
-    <div className="sambel-dashboard relative mx-[calc(50%-50vw)] -mt-4 min-h-screen overflow-hidden px-4 pb-12 pt-4 md:-mt-6 md:px-6 md:pt-6">
+    <div className="sambel-dashboard relative mx-[calc(50%-50vw)] -mt-4 min-h-screen overflow-x-clip px-4 pb-12 pt-4 md:-mt-6 md:px-6 md:pt-6">
+
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_15%_0%,rgba(35,116,83,0.18),transparent_34%),radial-gradient(circle_at_86%_8%,rgba(202,138,4,0.12),transparent_30%),linear-gradient(180deg,hsl(var(--background)),hsl(var(--muted))/0.45)]" />
 
       <div className="mx-auto max-w-6xl space-y-5 md:space-y-7">
