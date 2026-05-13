@@ -203,6 +203,11 @@ export function FinancialSection({
   formatCurrency,
   profitChartData,
 }: FinancialSectionProps) {
+
+const hpp =
+  displayData.pengeluaran /
+  (displayData.harvestWeight || 1);
+
  return (
 <div className="space-y-4">
 
@@ -270,7 +275,7 @@ export function FinancialSection({
   />
 <MetricCard
   label="HPP"
-  value="Rp0/kg"
+  value={`${formatCurrency(hpp)}/kg`}
   caption="cost per kg"
   icon={LineChart}
   accent="hpp"
