@@ -208,6 +208,15 @@ const hpp =
   displayData.pengeluaran /
   (displayData.harvestWeight || 1);
 
+const bepProgress =
+  Math.min(
+    (
+      displayData.pendapatan /
+      (displayData.modal || 1)
+    ) * 100,
+    100
+  );
+
  return (
   <div className="space-y-4 md:space-y-5">
 
@@ -350,6 +359,164 @@ const hpp =
 
 </div>
 
+<Card
+  className="
+    overflow-hidden
+
+    rounded-[1.75rem]
+
+    border-white/60
+
+    bg-slate-950
+
+    text-white
+
+    shadow-2xl
+  "
+>
+
+  <CardContent
+    className="
+      relative
+      space-y-5
+      p-5
+    "
+  >
+
+    <div
+      className="
+        absolute
+        -right-12
+        -top-12
+
+        h-40
+        w-40
+
+        rounded-full
+
+        bg-emerald-400/30
+
+        blur-3xl
+      "
+    />
+
+    <div
+      className="
+        relative
+
+        flex
+        items-start
+        justify-between
+      "
+    >
+
+      <div>
+
+        <p
+          className="
+            text-xs
+            font-bold
+            uppercase
+            tracking-[0.18em]
+
+            text-white/45
+          "
+        >
+          BEP runway
+        </p>
+
+        <h3
+          className="
+            mt-2
+            text-3xl
+            font-black
+            tracking-[-0.06em]
+          "
+        >
+          {bepProgress.toFixed(1)}%
+        </h3>
+
+      </div>
+
+      <div
+        className="
+          rounded-2xl
+          bg-white/10
+          p-3
+        "
+      >
+
+        <Target
+          className="
+            h-5
+            w-5
+            text-emerald-300
+          "
+        />
+
+      </div>
+
+    </div>
+
+    <div
+      className="
+        relative
+        h-3
+
+        overflow-hidden
+
+        rounded-full
+
+        bg-white/10
+      "
+    >
+
+      <div
+        className="
+          h-full
+          rounded-full
+
+          bg-gradient-to-r
+          from-emerald-300
+          via-lime-300
+          to-amber-200
+
+          transition-all
+          duration-1000
+        "
+        style={{
+          width: `${bepProgress}%`
+        }}
+      />
+
+    </div>
+
+    <p
+      className="
+        relative
+        text-sm
+        leading-6
+        text-white/62
+      "
+    >
+
+      {
+        displayData.pendapatan >=
+        displayData.modal
+
+          ? "Modal sudah balik. Sistem merekomendasikan ekspansi area."
+
+          : `Butuh ${formatCurrency(
+              displayData.modal -
+              displayData.pendapatan
+            )} lagi untuk mencapai BEP.`
+      }
+
+    </p>
+
+  </CardContent>
+
+</Card>
 
 </div>
 );
