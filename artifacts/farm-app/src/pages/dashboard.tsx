@@ -364,7 +364,7 @@ export function DashboardPage() {
             </button>
           </div>
         </div>
-        </div>
+        
 
         {/* --- CARD BUSINESS PULSE & BEP SLIM (Sekarang di Bawah Navigasi) --- */}
         <div className="relative mt-4 overflow-hidden rounded-[2rem] bg-slate-950 p-5 text-white shadow-2xl md:mt-6 md:rounded-[2.5rem] md:p-6">
