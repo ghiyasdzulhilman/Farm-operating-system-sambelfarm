@@ -142,7 +142,7 @@ export function DashboardPage() {
 
         const rect = element.getBoundingClientRect();
         // Ubah angkanya jadi 112 biar sensornya pas sama landing baru
-        if (rect.top <= 92) {
+        if (rect.top <= 74) {
           currentSection = section.key;
         }
       });
