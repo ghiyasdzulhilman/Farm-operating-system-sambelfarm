@@ -238,7 +238,8 @@ export function DashboardPage() {
     refetch();
   };
 
-    const scrollToSection = (section: DashboardSection) => {
+  // --- PASTE MULAI DARI SINI ---
+  const scrollToSection = (section: DashboardSection) => {
     setActiveSection(section);
     sectionRefs[section].current?.scrollIntoView({
       behavior: "smooth",
@@ -246,10 +247,10 @@ export function DashboardPage() {
     });
   };
 
-  // 1. CEK LOADING (Posisinya harus paling atas sebelum hitungan)
+  // 1. CEK LOADING SCREEN
   if (isLoadingConnection) {
     return (
-      <div className="space-y-5 px-4 md:px-6 mt-4">
+      <div className="mt-4 space-y-5 px-4 md:px-6">
         <Skeleton className="h-44 rounded-[2rem]" />
         <Skeleton className="h-16 rounded-3xl" />
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -261,7 +262,7 @@ export function DashboardPage() {
     );
   }
 
-  // 2. HITUNG-HITUNGAN DATA (Aman dihitung karena loading udah selesai)
+  // 2. HITUNGAN VARIABEL (Hanya Dideklarasikan Sekali Di Sini)
   const hpp = displayData.pengeluaran / (displayData.harvestWeight || 1);
   
   const bepProgress = Math.min(
@@ -275,14 +276,14 @@ export function DashboardPage() {
     ? "Fokus turunkan HPP atau tingkatkan harga jual"
     : "Pertahankan margin, sistem mendeteksi tren positif";
 
-  // 3. UI DASHBOARD UTAMA
+  // 3. RENDER UI UTAMA
   return (
-    <div className="flex min-h-screen flex-col bg-[#F4F9F4] font-sans dark:bg-slate-950 pb-20">
+    <div className="flex min-h-screen flex-col bg-[#F4F9F4] pb-20 font-sans dark:bg-slate-950">
       
-      <main className="relative mx-auto w-full max-w-7xl overflow-x-clip px-4 md:px-6 pt-4">
+      <main className="relative mx-auto w-full max-w-7xl overflow-x-clip px-4 pt-4 md:px-6">
         
-        {/* --- BUSINESS PULSE CARD (Dengan BEP Baru) --- */}
-        <div className="relative overflow-hidden rounded-[2rem] bg-slate-950 p-5 text-white shadow-2xl md:p-6 md:rounded-[2.5rem]">
+        {/* --- CARD BUSINESS PULSE & BEP SLIM --- */}
+        <div className="relative overflow-hidden rounded-[2rem] bg-slate-950 p-5 text-white shadow-2xl md:rounded-[2.5rem] md:p-6">
           <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-emerald-400/20 blur-[80px]" />
           
           <div className="relative z-10">
@@ -320,7 +321,7 @@ export function DashboardPage() {
                 </div>
               </div>
 
-              {/* BEP RUNWAY BAR (Versi Slim) */}
+              {/* BEP Runway Bar (Slim Mode) */}
               <div className="mt-3 rounded-2xl border border-white/10 bg-white/5 p-3.5">
                 <div className="mb-2 flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.15em]">
                   <span className="text-white/50">BEP Runway</span>
@@ -351,7 +352,7 @@ export function DashboardPage() {
           </div>
         </div>
 
-        {/* --- NAVIGASI PILL & FILTER --- */}
+        {/* --- NAVIGASI PILL & FILTER KANAN --- */}
         <div className="sticky top-2 z-30 mt-3 flex flex-col gap-1.5 md:top-4 md:mt-4">
           <div className="w-full rounded-[1.55rem] border border-white/60 bg-white/72 p-1.5 shadow-[0_18px_50px_rgba(15,23,42,0.10)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/70">
             <div className="grid grid-cols-4 gap-1">
@@ -433,7 +434,7 @@ export function DashboardPage() {
           </div>
         </div>
 
-        {/* --- KONTEN SECTION --- */}
+        {/* --- SECTION KONTEN --- */}
         <div className="mt-1.5 space-y-4 md:mt-2 md:space-y-6">
           <section ref={financialRef} className="scroll-mt-32">
             <FinancialSection
@@ -467,8 +468,9 @@ export function DashboardPage() {
             />
           </section>
         </div>
+        
       </main>
     </div>
   );
 }
-
+// --- PASTE SAMPAI SINI SAJA ---
