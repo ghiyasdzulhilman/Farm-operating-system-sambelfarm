@@ -443,7 +443,7 @@ export function DashboardPage() {
 
                         {/* --- SECTION KONTEN --- */}
         <div className="mt-4 space-y-4 md:mt-6 md:space-y-6">
-          <section ref={financialRef} className="scroll-mt-[84px]">
+          <section ref={financialRef} className="scroll-mt-[80px]">
             <FinancialSection
               displayData={displayData}
               formatCurrency={formatCurrency}
@@ -451,7 +451,7 @@ export function DashboardPage() {
             />
           </section>
 
-          <section ref={productionRef} className="scroll-mt-[84px]">
+          <section ref={productionRef} className="scroll-mt-[80px]">
             <ProductionSection
               displayData={displayData}
               areas={areas}
@@ -459,14 +459,14 @@ export function DashboardPage() {
             />
           </section>
 
-          <section ref={operationalRef} className="scroll-mt-[84px]">
+          <section ref={operationalRef} className="scroll-mt-[80px]">
             <OperationalSection
               harvestActivities={harvestActivities}
               expenseActivities={expenseActivities}
             />
           </section>
 
-          <section ref={insightRef} className="scroll-mt-[84px]">
+          <section ref={insightRef} className="scroll-mt-[80px]">
             <InsightSection
               displayData={displayData}
               localBusinessStatus={localBusinessStatus}
