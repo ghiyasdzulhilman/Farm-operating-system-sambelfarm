@@ -315,45 +315,34 @@ export function FinancialSection({
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
 
-            <div className="relative h-[270px] md:h-[320px]">
+                        <div className="relative h-[270px] md:h-[320px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   
-                  {/* --- TAMBAHKAN BLOK DEFS INI DI SINI --- */}
+                  {/* --- DEFS UNTUK GRADASI WARNA --- */}
                   <defs>
-                    {/* Gradasi 1: Emerald (Mirip pangkal BEP) */}
                     <linearGradient id="gradEmerald" x1="0" y1="0" x2="1" y2="1">
                       <stop offset="0%" stopColor="#6ee7b7" /> 
                       <stop offset="100%" stopColor="#10b981" /> 
                     </linearGradient>
                     
-                    {/* Gradasi 2: Lime (Mirip tengah BEP) */}
                     <linearGradient id="gradLime" x1="0" y1="0" x2="1" y2="1">
                       <stop offset="0%" stopColor="#bef264" /> 
                       <stop offset="100%" stopColor="#84cc16" /> 
                     </linearGradient>
                     
-                    {/* Gradasi 3: Amber (Mirip ujung BEP) */}
                     <linearGradient id="gradAmber" x1="0" y1="0" x2="1" y2="1">
                       <stop offset="0%" stopColor="#fde68a" /> 
                       <stop offset="100%" stopColor="#f59e0b" /> 
                     </linearGradient>
                     
-                    {/* Gradasi 4: Orange (Buat jaga-jaga kalo ada area ke-4) */}
                     <linearGradient id="gradOrange" x1="0" y1="0" x2="1" y2="1">
                       <stop offset="0%" stopColor="#fdba74" /> 
                       <stop offset="100%" stopColor="#ea580c" /> 
                     </linearGradient>
                   </defs>
-                  {/* --- BATAS DEFS --- */}
 
-                  <Pie
-                    data={donutData}
-                    dataKey="value"
-                    nameKey="name"
-                    innerRadius={70}
-// ... sisa kode Pie tetep sama ke bawah
-
+                  {/* --- KOMPONEN PIE UTAMA --- */}
                   <Pie
                     data={donutData}
                     dataKey="value"
@@ -364,9 +353,13 @@ export function FinancialSection({
                     strokeWidth={0}
                   >
                     {donutData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={entry.color} 
+                      />
                     ))}
                   </Pie>
+
                   <Tooltip
                     formatter={(value: number) => formatCurrency(value)}
                     contentStyle={{
@@ -391,6 +384,7 @@ export function FinancialSection({
                 </p>
               </div>
             </div>
+
           </CardContent>
         </Card>
       </motion.div>
