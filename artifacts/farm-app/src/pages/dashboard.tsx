@@ -247,7 +247,7 @@ export function DashboardPage() {
     refetch();
   };
 
-  const scrollToSection = (section: DashboardSection) => {
+    const scrollToSection = (section: DashboardSection) => {
     setActiveSection(section);
     sectionRefs[section].current?.scrollIntoView({
       behavior: "smooth",
@@ -255,6 +255,7 @@ export function DashboardPage() {
     });
   };
 
+  // 1. CEK LOADING (Posisinya harus paling atas sebelum hitungan)
   if (isLoadingConnection) {
     return (
       <div className="space-y-5 px-4 md:px-6 mt-4">
@@ -269,43 +270,35 @@ export function DashboardPage() {
     );
   }
 
+  // 2. HITUNG-HITUNGAN DATA (Aman dihitung karena loading udah selesai)
+  const hpp = displayData.pengeluaran / (displayData.harvestWeight || 1);
+  
+  const bepProgress = Math.min(
+    (displayData.pendapatan / (displayData.modal || 1)) * 100,
+    100
+  );
+
+  const localBusinessStatus = displayData.margin > 0 ? "Profitable" : "Developing";
+  
+  const localRecommendation = displayData.margin < 0
+    ? "Fokus turunkan HPP atau tingkatkan harga jual"
+    : "Pertahankan margin, sistem mendeteksi tren positif";
+
+  // 3. UI DASHBOARD UTAMA
   return (
-    <div className="relative mx-auto max-w-7xl pb-10 overflow-x-clip px-4 md:px-6">
-      {/* Background Gradient Effect */}
-      <div className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-[420px] bg-[radial-gradient(circle_at_20%_10%,rgba(34,197,94,0.18),transparent_34%),radial-gradient(circle_at_85%_5%,rgba(245,158,11,0.18),transparent_30%)]" />
-
-      {/* Banner: Token Invalid */}
-      {isTokenInvalid && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-4"
-        >
-          <Alert variant="destructive" className="rounded-2xl border-destructive/40 bg-destructive/5">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Koneksi Notion Terputus</AlertTitle>
-            <AlertDescription className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <span>Token akses Notion Anda tidak valid. Data kebun tidak dapat dimuat.</span>
-              <Link href="/connect">
-                <button className="mt-2 sm:mt-0 inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-destructive px-4 py-1.5 text-xs font-semibold text-destructive-foreground hover:bg-destructive/90 transition-colors shrink-0">
-                  <AlertTriangle className="h-3 w-3" />
-                  Hubungkan Ulang
-                </button>
-              </Link>
-            </AlertDescription>
-          </Alert>
-        </motion.div>
-      )}
-
-              {/* Business pulse Card */}
-        <div className="relative mt-4 overflow-hidden rounded-[2rem] bg-slate-950 p-5 text-white shadow-2xl md:mt-6 md:p-6 md:rounded-[2.5rem]">
+    <div className="flex min-h-screen flex-col bg-[#F4F9F4] font-sans dark:bg-slate-950 pb-20">
+      
+      <main className="relative mx-auto w-full max-w-7xl overflow-x-clip px-4 md:px-6 pt-4">
+        
+        {/* --- BUSINESS PULSE CARD (Dengan BEP Baru) --- */}
+        <div className="relative overflow-hidden rounded-[2rem] bg-slate-950 p-5 text-white shadow-2xl md:p-6 md:rounded-[2.5rem]">
           <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-emerald-400/20 blur-[80px]" />
           
           <div className="relative z-10">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs font-bold text-white/50 mb-1">Business pulse</p>
-                <h2 className="text-2xl font-black md:text-3xl">Profitable</h2>
+                <p className="mb-1 text-xs font-bold text-white/50">Business pulse</p>
+                <h2 className="text-2xl font-black md:text-3xl">{localBusinessStatus}</h2>
               </div>
               <div className="rounded-2xl bg-white/10 p-3 backdrop-blur-md">
                 <Bot className="h-6 w-6 text-emerald-400" />
@@ -314,8 +307,8 @@ export function DashboardPage() {
 
             <div className="mt-5 md:mt-6">
               <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="rounded-2xl bg-white/5 p-4 border border-white/10">
-                  <p className="text-white/50 text-[10px] font-bold uppercase tracking-[0.15em] mb-1">Margin</p>
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-white/50">Margin</p>
                   <p className="text-2xl font-black">
                     <AnimatedNumber 
                       key={`margin-${selectedAreaId}-${summary?.lastUpdated}`}
@@ -324,8 +317,8 @@ export function DashboardPage() {
                     />
                   </p>
                 </div>
-                <div className="rounded-2xl bg-white/5 p-4 border border-white/10">
-                  <p className="text-white/50 text-[10px] font-bold uppercase tracking-[0.15em] mb-1">HPP / kg</p>
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-white/50">HPP / kg</p>
                   <p className="text-xl font-black">
                     <AnimatedNumber 
                       key={`hpp-${selectedAreaId}-${summary?.lastUpdated}`}
@@ -336,8 +329,8 @@ export function DashboardPage() {
                 </div>
               </div>
 
-              {/* --- INI DIA BEP SLIM BAR YANG BARU --- */}
-              <div className="mt-3 rounded-2xl bg-white/5 p-3.5 border border-white/10">
+              {/* BEP RUNWAY BAR (Versi Slim) */}
+              <div className="mt-3 rounded-2xl border border-white/10 bg-white/5 p-3.5">
                 <div className="mb-2 flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.15em]">
                   <span className="text-white/50">BEP Runway</span>
                   <span className="text-emerald-300">
@@ -367,139 +360,124 @@ export function DashboardPage() {
           </div>
         </div>
 
-
-
-            
-            <div className="flex items-center gap-2 text-xs text-white/55">
-              <Sparkles className="h-3.5 w-3.5 text-amber-200" />
-              Sync terakhir: {formatDate(summary?.lastUpdated || null)}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-                        {/* Navigasi Pill Segmented & Filter (Super Rapat) */}
-      <div className="sticky top-2 z-30 mt-3 flex flex-col gap-1.5 md:top-4 md:mt-4">
-        
-        {/* Segmented Pill (Lebar Full) */}
-        <div className="w-full rounded-[1.55rem] border border-white/60 bg-white/72 p-1.5 shadow-[0_18px_50px_rgba(15,23,42,0.10)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/70">
-          <div className="grid grid-cols-4 gap-1">
-            {sectionItems.map((item) => (
-              <button
-                key={item.key}
-                onClick={() => scrollToSection(item.key)}
-                className="relative min-h-11 rounded-[1.15rem] px-2 text-xs font-bold text-muted-foreground transition-colors duration-300 hover:text-foreground md:text-sm"
-              >
-                {activeSection === item.key && (
-                  <motion.span
-                    layoutId="smart-section-pill"
-                    className="absolute inset-0 rounded-[1.15rem] bg-slate-950 shadow-lg dark:bg-white"
-                    transition={{ type: "spring", bounce: 0.18, duration: 0.55 }}
-                  />
-                )}
-                <span
-                  className={
-                    activeSection === item.key
-                      ? "relative z-10 text-white dark:text-slate-950"
-                      : "relative z-10"
-                  }
+        {/* --- NAVIGASI PILL & FILTER --- */}
+        <div className="sticky top-2 z-30 mt-3 flex flex-col gap-1.5 md:top-4 md:mt-4">
+          <div className="w-full rounded-[1.55rem] border border-white/60 bg-white/72 p-1.5 shadow-[0_18px_50px_rgba(15,23,42,0.10)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/70">
+            <div className="grid grid-cols-4 gap-1">
+              {sectionItems.map((item) => (
+                <button
+                  key={item.key}
+                  onClick={() => scrollToSection(item.key)}
+                  className="relative min-h-11 rounded-[1.15rem] px-2 text-xs font-bold text-muted-foreground transition-colors duration-300 hover:text-foreground md:text-sm"
                 >
-                  {item.label}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Toolbar Filter Micro-UI (Murni Filter Rata Kanan) */}
-        <div className="flex w-full justify-end px-1">
-          <div className="flex items-center gap-1 rounded-full border border-white/60 bg-white/72 p-0.5 shadow-sm backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/70">
-            <div
-              className={`flex items-center gap-1 overflow-hidden transition-all duration-500 ease-out ${
-                showControls
-                  ? "max-w-[180px] translate-x-0 opacity-100"
-                  : "max-w-0 translate-x-4 opacity-0"
-              }`}
-            >
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 shrink-0 rounded-full bg-muted/60"
-                onClick={handleRefreshSummary}
-                disabled={isFetching || isLoadingSummary}
-              >
-                <RefreshCcw className={`h-3 w-3 ${isFetching ? "animate-spin" : ""}`} />
-              </Button>
-
-              <Select value={selectedAreaId} onValueChange={setSelectedAreaId}>
-                <SelectTrigger className="h-6 w-[110px] rounded-full border-none bg-background/60 px-2.5 text-[10px] font-bold shadow-none focus:ring-0 dark:bg-white/5">
-                  <Leaf className="mr-1.5 h-3 w-3 text-emerald-600" />
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all" className="text-[10px] font-semibold">Semua Area</SelectItem>
-                  {areas.map((area: any) => (
-                    <SelectItem key={area.id} value={area.id} className="text-[10px] font-semibold">
-                      {area.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                  {activeSection === item.key && (
+                    <motion.span
+                      layoutId="smart-section-pill"
+                      className="absolute inset-0 rounded-[1.15rem] bg-slate-950 shadow-lg dark:bg-white"
+                      transition={{ type: "spring", bounce: 0.18, duration: 0.55 }}
+                    />
+                  )}
+                  <span
+                    className={
+                      activeSection === item.key
+                        ? "relative z-10 text-white dark:text-slate-950"
+                        : "relative z-10"
+                    }
+                  >
+                    {item.label}
+                  </span>
+                </button>
+              ))}
             </div>
+          </div>
 
-            <button
-              onClick={() => setShowControls((value) => !value)}
-              className="flex h-6 min-w-[24px] items-center justify-center gap-1 rounded-full bg-slate-950 px-2 text-white shadow-sm transition-all duration-300 active:scale-95 dark:bg-white dark:text-slate-950"
-              aria-label="Toggle dashboard filters"
-            >
-              <Filter className="h-3 w-3" />
-              <ChevronDown
-                className={`h-2.5 w-2.5 transition-transform duration-300 ${
-                  showControls ? "rotate-180" : "hidden" 
+          <div className="flex w-full justify-end px-1">
+            <div className="flex items-center gap-1 rounded-full border border-white/60 bg-white/72 p-0.5 shadow-sm backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/70">
+              <div
+                className={`flex items-center gap-1 overflow-hidden transition-all duration-500 ease-out ${
+                  showControls
+                    ? "max-w-[180px] translate-x-0 opacity-100"
+                    : "max-w-0 translate-x-4 opacity-0"
                 }`}
-              />
-            </button>
+              >
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 shrink-0 rounded-full bg-muted/60"
+                  onClick={handleRefreshSummary}
+                  disabled={isFetching || isLoadingSummary}
+                >
+                  <RefreshCcw className={`h-3 w-3 ${isFetching ? "animate-spin" : ""}`} />
+                </Button>
+
+                <Select value={selectedAreaId} onValueChange={setSelectedAreaId}>
+                  <SelectTrigger className="h-6 w-[110px] rounded-full border-none bg-background/60 px-2.5 text-[10px] font-bold shadow-none focus:ring-0 dark:bg-white/5">
+                    <Leaf className="mr-1.5 h-3 w-3 text-emerald-600" />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all" className="text-[10px] font-semibold">Semua Area</SelectItem>
+                    {areas.map((area: any) => (
+                      <SelectItem key={area.id} value={area.id} className="text-[10px] font-semibold">
+                        {area.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <button
+                onClick={() => setShowControls((value) => !value)}
+                className="flex h-6 min-w-[24px] items-center justify-center gap-1 rounded-full bg-slate-950 px-2 text-white shadow-sm transition-all duration-300 active:scale-95 dark:bg-white dark:text-slate-950"
+                aria-label="Toggle dashboard filters"
+              >
+                <Filter className="h-3 w-3" />
+                <ChevronDown
+                  className={`h-2.5 w-2.5 transition-transform duration-300 ${
+                    showControls ? "rotate-180" : "hidden" 
+                  }`}
+                />
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Konten Utama (Jarak super rapet) */}
-      <div className="mt-1.5 space-y-4 md:mt-1.5 md:space-y-6">
+        {/* --- KONTEN SECTION --- */}
+        <div className="mt-1.5 space-y-4 md:mt-2 md:space-y-6">
+          <section ref={financialRef} className="scroll-mt-32">
+            <FinancialSection
+              displayData={displayData}
+              formatCurrency={formatCurrency}
+              profitChartData={profitChartData}
+            />
+          </section>
 
-        <section ref={financialRef} className="scroll-mt-32">
+          <section ref={productionRef} className="scroll-mt-32">
+            <ProductionSection
+              displayData={displayData}
+              areas={areas}
+              formatCurrency={formatCurrency}
+            />
+          </section>
 
+          <section ref={operationalRef} className="scroll-mt-32">
+            <OperationalSection
+              harvestActivities={harvestActivities}
+              expenseActivities={expenseActivities}
+            />
+          </section>
 
-          <FinancialSection
-            displayData={displayData}
-            formatCurrency={formatCurrency}
-            profitChartData={profitChartData}
-          />
-        </section>
-
-        <section ref={productionRef} className="scroll-mt-36">
-          <ProductionSection
-            displayData={displayData}
-            areas={areas}
-            formatCurrency={formatCurrency}
-          />
-        </section>
-
-        <section ref={operationalRef} className="scroll-mt-36">
-          <OperationalSection
-            harvestActivities={harvestActivities}
-            expenseActivities={expenseActivities}
-          />
-        </section>
-
-        <section ref={insightRef} className="scroll-mt-36">
-          <InsightSection
-            displayData={displayData}
-            localBusinessStatus={localBusinessStatus}
-            localRecommendation={localRecommendation}
-            formatCurrency={formatCurrency}
-          />
-        </section>
-      </div>
+          <section ref={insightRef} className="scroll-mt-32">
+            <InsightSection
+              displayData={displayData}
+              localBusinessStatus={localBusinessStatus}
+              localRecommendation={localRecommendation}
+              formatCurrency={formatCurrency}
+            />
+          </section>
+        </div>
+      </main>
     </div>
   );
 }
+
