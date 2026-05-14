@@ -193,57 +193,7 @@ export function FinancialSection({
   return (
     <div className="space-y-4 md:space-y-5">
       
-      {/* HEADER: Teks Fintech-grade dihapus, margin dirapihkan */}
-      <div
-        className="
-          flex
-          items-center
-          justify-between
-          gap-4
-          mb-1
-        "
-      >
-        <div>
-          <p
-            className="
-              text-xs
-              font-black
-              uppercase
-              tracking-[0.22em]
-
-              text-emerald-700
-            "
-          >
-            Financial Analytics
-          </p>
-        </div>
-
-        <span
-          className="
-            hidden
-            md:inline-flex
-
-            rounded-full
-
-            border
-            border-emerald-500/20
-
-            bg-emerald-500/10
-
-            px-3
-            py-1
-
-            text-xs
-            font-bold
-
-            text-emerald-700
-          "
-        >
-          Margin {displayData.margin.toFixed(1)}%
-        </span>
-      </div>
-
-      {/* GRID: Gap dikecilin dari gap-3 jadi gap-2 biar kartu melar ke samping */}
+      {/* HEADER DIHAPUS TOTAL - Langsung masuk ke Grid Card biar nempel ke atas */}
       <div
         className="
           grid
@@ -308,7 +258,7 @@ export function FinancialSection({
         />
       </div>
 
-      {/* SISA KODE DI BAWAHNYA (BEP Runway & Pie Chart) BISA LU BIARIN SAMA KAYAK SEBELUMNYA */}
+      {/* Sisa card BEP Runway & Pie Chart tetep biarin di sini... */}
 
 
 <Card
