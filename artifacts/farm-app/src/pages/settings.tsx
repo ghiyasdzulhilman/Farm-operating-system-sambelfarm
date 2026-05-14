@@ -694,227 +694,333 @@ export function SettingsPage() {
   }
 
   return (
-    <div
-  className="
-    min-h-screen
-    max-w-5xl
-    mx-auto
-    px-4
-    pb-24
-    pt-4
-    space-y-8
-
-    bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.16),transparent_30%),radial-gradient(circle_at_top_right,rgba(59,130,246,0.10),transparent_30%),linear-gradient(to_bottom,#020617,#0f172a)]
-  "
->
-      <motion.div
-  initial={{ opacity: 0, x: -20 }}
-  animate={{ opacity: 1, x: 0 }}
-  className="
-    sticky
-    top-0
-    z-40
-    backdrop-blur-xl
-    bg-slate-950/40
-    border-b
-    border-white/10
-    py-4
-  "
->
-
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Settings className="h-5 w-5 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Pengaturan</h1>
-            <p className="text-muted-foreground mt-0.5">Pilih database Notion Anda dan petakan kolom ke field aplikasi.</p>
-          </div>
-        </div>
-      </motion.div>
-
-<motion.div
-  initial={{ opacity: 0, y: 10 }}
-  animate={{ opacity: 1, y: 0 }}
-  transition={{ delay: 0.03 }}
->
-
- <Card
-  className="
-    rounded-[28px]
-    border
-    border-white/10
-    bg-white/[0.04]
-    backdrop-blur-2xl
-    shadow-[0_20px_80px_rgba(0,0,0,0.25)]
-  "
->
-
-    <CardContent
-
-      <div>
-
-        <p className="font-semibold">
-          Account
-        </p>
-
-        <p className="text-sm text-muted-foreground">
-          Manage your account and session
-        </p>
-
-      </div>
-
-      <UserButton afterSignOutUrl="/" />
-
-    </CardContent>
-
-  </Card>
-
-</motion.div>
-
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
-
-        <Card
-  className="
-    rounded-[28px]
-    border
-    border-white/10
-    bg-white/[0.04]
-    backdrop-blur-2xl
-    shadow-[0_20px_80px_rgba(0,0,0,0.25)]
-  "
->
-  <CardHeader>
-
-                <CardTitle className="flex items-center gap-2">
-                  <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">1</span>
-                  Pilih Database Notion
-                </CardTitle>
-                <CardDescription className="mt-1">Pilih database operasional utama.</CardDescription>
-              </div>
-              <Button variant="outline" size="sm" onClick={() => void refreshDbs()} disabled={isLoadingDbs} className="gap-2 flex-shrink-0">
-                {isLoadingDbs ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCcw className="h-3.5 w-3.5" />}
-                Perbarui Daftar
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <DbSelectRow label="Database Laba Rugi" hint="Untuk dashboard keuangan" value={dbSelections.labaRugi} onChange={(v) => setDbSelections((prev) => ({ ...prev, labaRugi: v }))} />
-            <DbSelectRow label="Database Panen" hint="Untuk input data hasil panen" value={dbSelections.panen} onChange={(v) => setDbSelections((prev) => ({ ...prev, panen: v }))} />
-            <DbSelectRow label="Database Pengeluaran" hint="Untuk input data pengeluaran" value={dbSelections.expenses} onChange={(v) => setDbSelections((prev) => ({ ...prev, expenses: v }))} />
-            {/* DITAMBAHKAN: Row untuk Kategori */}
-            <DbSelectRow label="Database Kategori" hint="Untuk master data kategori pengeluaran" value={dbSelections.kategori} onChange={(v) => setDbSelections((prev) => ({ ...prev, kategori: v }))} />
-
-            <div className="flex justify-end pt-5">
-              <Button onClick={handleSaveDatabaseSelections} disabled={isSavingDbs} className="gap-2">
-                {isSavingDbs ? <><Loader2 className="h-4 w-4 animate-spin" />Menyimpan...</> : <><Save className="h-4 w-4" />Simpan Pilihan Database</>}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
-
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-
-        <Card
-  className="
-    rounded-[28px]
-    border
-    border-white/10
-    bg-white/[0.04]
-    backdrop-blur-2xl
-    shadow-[0_20px_80px_rgba(0,0,0,0.25)]
-  "
->
-  <CardHeader>
-
-            <CardTitle className="flex items-center gap-2">
-              <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">2</span>
-              Pemetaan Kolom
-            </CardTitle>
-            <CardDescription>Petakan kolom Notion ke field aplikasi agar sistem membaca data yang tepat.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="laba_rugi">
-  <TabsList
+  <div
     className="
-      mb-6
-      flex
-      w-full
-      overflow-x-auto
-      whitespace-nowrap
-      rounded-2xl
-      bg-muted
-      p-1
-      gap-1
+      min-h-screen
+      max-w-5xl
+      mx-auto
+      px-4
+      pb-24
+      pt-4
+      space-y-8
+
+      bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.16),transparent_30%),radial-gradient(circle_at_top_right,rgba(59,130,246,0.10),transparent_30%),linear-gradient(to_bottom,#020617,#0f172a)]
     "
   >
-    <TabsTrigger
-      value="laba_rugi"
+    <motion.div
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
       className="
-        min-w-fit
-        px-5
-        rounded-xl
-        data-[state=active]:shadow-sm
+        sticky
+        top-0
+        z-40
+        backdrop-blur-xl
+        bg-slate-950/40
+        border-b
+        border-white/10
+        py-4
       "
     >
-      Laba Rugi
-    </TabsTrigger>
+      <div className="flex items-center gap-3">
+        <div className="h-11 w-11 rounded-2xl bg-emerald-500/20 flex items-center justify-center border border-emerald-400/20">
+          <Settings className="h-5 w-5 text-emerald-400" />
+        </div>
 
-    <TabsTrigger
-      value="panen"
-      className="
-        min-w-fit
-        px-5
-        rounded-xl
-        data-[state=active]:shadow-sm
-      "
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-white">
+            Pengaturan
+          </h1>
+
+          <p className="text-slate-400 mt-0.5">
+            Kelola database Notion dan sistem Sambel Farm.
+          </p>
+        </div>
+      </div>
+    </motion.div>
+
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.03 }}
     >
-      Panen
-    </TabsTrigger>
+      <Card
+        className="
+          rounded-[28px]
+          border
+          border-white/10
+          bg-white/[0.04]
+          backdrop-blur-2xl
+          shadow-[0_20px_80px_rgba(0,0,0,0.25)]
+        "
+      >
+        <CardContent className="flex items-center justify-between p-5">
+          <div>
+            <p className="font-semibold text-white">
+              Account
+            </p>
 
-    <TabsTrigger
-      value="expenses"
-      className="
-        min-w-fit
-        px-5
-        rounded-xl
-        data-[state=active]:shadow-sm
-      "
+            <p className="text-sm text-slate-400">
+              Manage your account and session
+            </p>
+          </div>
+
+          <UserButton afterSignOutUrl="/" />
+        </CardContent>
+      </Card>
+    </motion.div>
+
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.05 }}
     >
-      Pengeluaran
-    </TabsTrigger>
+      <Card
+        className="
+          rounded-[28px]
+          border
+          border-white/10
+          bg-white/[0.04]
+          backdrop-blur-2xl
+          shadow-[0_20px_80px_rgba(0,0,0,0.25)]
+        "
+      >
+        <CardHeader>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-white">
+                <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-emerald-500 text-black text-xs font-bold">
+                  1
+                </span>
 
-    <TabsTrigger
-      value="kategori"
-      className="
-        min-w-fit
-        px-5
-        rounded-xl
-        data-[state=active]:shadow-sm
-      "
+                Pilih Database Notion
+              </CardTitle>
+
+              <CardDescription className="mt-1 text-slate-400">
+                Pilih database operasional utama.
+              </CardDescription>
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void refreshDbs()}
+              disabled={isLoadingDbs}
+              className="
+                gap-2
+                rounded-full
+                border-white/10
+                bg-white/[0.04]
+                backdrop-blur-xl
+                text-white
+              "
+            >
+              {isLoadingDbs ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <RefreshCcw className="h-3.5 w-3.5" />
+              )}
+
+              Perbarui Daftar
+            </Button>
+          </div>
+        </CardHeader>
+
+        <CardContent>
+          <DbSelectRow
+            label="Database Laba Rugi"
+            hint="Untuk dashboard keuangan"
+            value={dbSelections.labaRugi}
+            onChange={(v) =>
+              setDbSelections((prev) => ({
+                ...prev,
+                labaRugi: v,
+              }))
+            }
+          />
+
+          <DbSelectRow
+            label="Database Panen"
+            hint="Untuk input data hasil panen"
+            value={dbSelections.panen}
+            onChange={(v) =>
+              setDbSelections((prev) => ({
+                ...prev,
+                panen: v,
+              }))
+            }
+          />
+
+          <DbSelectRow
+            label="Database Pengeluaran"
+            hint="Untuk input data pengeluaran"
+            value={dbSelections.expenses}
+            onChange={(v) =>
+              setDbSelections((prev) => ({
+                ...prev,
+                expenses: v,
+              }))
+            }
+          />
+
+          <DbSelectRow
+            label="Database Kategori"
+            hint="Untuk master data kategori pengeluaran"
+            value={dbSelections.kategori}
+            onChange={(v) =>
+              setDbSelections((prev) => ({
+                ...prev,
+                kategori: v,
+              }))
+            }
+          />
+
+          <div className="flex justify-end pt-5">
+            <Button
+              onClick={handleSaveDatabaseSelections}
+              disabled={isSavingDbs}
+              className="
+                gap-2
+                rounded-full
+                bg-emerald-500
+                hover:bg-emerald-400
+                text-black
+                font-semibold
+              "
+            >
+              {isSavingDbs ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Menyimpan...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4" />
+                  Simpan Pilihan Database
+                </>
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.1 }}
     >
-      Kategori
-    </TabsTrigger>
-  </TabsList>
+      <Card
+        className="
+          rounded-[28px]
+          border
+          border-white/10
+          bg-white/[0.04]
+          backdrop-blur-2xl
+          shadow-[0_20px_80px_rgba(0,0,0,0.25)]
+        "
+      >
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-white">
+            <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-emerald-500 text-black text-xs font-bold">
+              2
+            </span>
 
-              <TabsContent value="laba_rugi">
-                <MappingSection dbType="laba_rugi" fields={LABA_RUGI_FIELDS} dbLabel="Laba Rugi" selectedDbId={dbSelections.labaRugi} />
-              </TabsContent>
-              <TabsContent value="panen">
-                <MappingSection dbType="panen" fields={PANEN_FIELDS} dbLabel="Panen" selectedDbId={dbSelections.panen} />
-              </TabsContent>
-              <TabsContent value="expenses">
-                <MappingSection dbType="expenses" fields={EXPENSES_FIELDS} dbLabel="Pengeluaran" selectedDbId={dbSelections.expenses} />
-              </TabsContent>
-              {/* DITAMBAHKAN: Content Tab Kategori */}
-              <TabsContent value="kategori">
-                <MappingSection dbType="kategori" fields={KATEGORI_FIELDS} dbLabel="Kategori" selectedDbId={dbSelections.kategori} />
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-      </motion.div>
-    </div>
-  );
+            Pemetaan Kolom
+          </CardTitle>
+
+          <CardDescription className="text-slate-400">
+            Petakan kolom Notion ke field aplikasi agar sistem membaca data yang tepat.
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent>
+          <Tabs defaultValue="laba_rugi">
+            <TabsList
+              className="
+                mb-6
+                flex
+                w-full
+                overflow-x-auto
+                whitespace-nowrap
+                rounded-2xl
+
+                bg-white/[0.05]
+                border
+                border-white/10
+                backdrop-blur-xl
+
+                p-1
+                gap-1
+              "
+            >
+              <TabsTrigger
+                value="laba_rugi"
+                className="min-w-fit px-5 rounded-xl data-[state=active]:shadow-sm"
+              >
+                Laba Rugi
+              </TabsTrigger>
+
+              <TabsTrigger
+                value="panen"
+                className="min-w-fit px-5 rounded-xl data-[state=active]:shadow-sm"
+              >
+                Panen
+              </TabsTrigger>
+
+              <TabsTrigger
+                value="expenses"
+                className="min-w-fit px-5 rounded-xl data-[state=active]:shadow-sm"
+              >
+                Pengeluaran
+              </TabsTrigger>
+
+              <TabsTrigger
+                value="kategori"
+                className="min-w-fit px-5 rounded-xl data-[state=active]:shadow-sm"
+              >
+                Kategori
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="laba_rugi">
+              <MappingSection
+                dbType="laba_rugi"
+                fields={LABA_RUGI_FIELDS}
+                dbLabel="Laba Rugi"
+                selectedDbId={dbSelections.labaRugi}
+              />
+            </TabsContent>
+
+            <TabsContent value="panen">
+              <MappingSection
+                dbType="panen"
+                fields={PANEN_FIELDS}
+                dbLabel="Panen"
+                selectedDbId={dbSelections.panen}
+              />
+            </TabsContent>
+
+            <TabsContent value="expenses">
+              <MappingSection
+                dbType="expenses"
+                fields={EXPENSES_FIELDS}
+                dbLabel="Pengeluaran"
+                selectedDbId={dbSelections.expenses}
+              />
+            </TabsContent>
+
+            <TabsContent value="kategori">
+              <MappingSection
+                dbType="kategori"
+                fields={KATEGORI_FIELDS}
+                dbLabel="Kategori"
+                selectedDbId={dbSelections.kategori}
+              />
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+    </motion.div>
+  </div>
+);
 }
