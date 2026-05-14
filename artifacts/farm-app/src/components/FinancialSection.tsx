@@ -47,7 +47,7 @@ const metricAccent = {
 function MetricCard({
   label,
   value,
-  caption, // Tetap ada di parameter biar ga error, tapi ga kita pake di UI
+  caption,
   icon: Icon,
   accent,
   status,
@@ -59,7 +59,7 @@ function MetricCard({
       className="
         relative
         overflow-hidden
-        rounded-[1.75rem]
+        rounded-[1.5rem]
 
         border-white/60
 
@@ -73,42 +73,42 @@ function MetricCard({
       <CardContent
         className="
           flex
-          min-h-[140px]
+          min-h-[120px]
           flex-col
           justify-between
-          p-4
+          p-3
         "
       >
-        {/* IKON: Absolute Kanan Atas biar anti-geser */}
+        {/* IKON: Dikecilin dan dipepetin ke pojok kanan atas */}
         <div
           className={`
             absolute
-            right-3
-            top-3
-            rounded-2xl
+            right-2.5
+            top-2.5
+            rounded-xl
             bg-gradient-to-br
-            p-3
-            shadow-lg
+            p-2
+            shadow-sm
 
             ${metricAccent[accent]}
           `}
         >
           <Icon
             className="
-              h-4
-              w-4
+              h-3.5
+              w-3.5
             "
           />
         </div>
 
-        {/* LABEL: Kiri Atas */}
-        <div className="pr-12">
+        {/* LABEL */}
+        <div className="pr-8">
           <p
             className="
-              text-[10px]
+              text-[9px]
               font-black
               uppercase
-              tracking-[0.18em]
+              tracking-[0.15em]
               text-muted-foreground
             "
           >
@@ -116,26 +116,25 @@ function MetricCard({
           </p>
         </div>
 
-        {/* ANGKA: Flex 1 buat neken ke tengah layar */}
-        <div className="flex flex-1 items-center justify-center py-2">
+        {/* ANGKA: Rata kiri, tracking di-rapatkan biar muat banyak */}
+        <div className="flex flex-1 items-center justify-start py-1.5 mt-1">
           <p
             className="
               w-full
               truncate
-              text-center
-              text-xl
+              text-left
+              text-[17px]
               font-black
-              tracking-[-0.05em]
+              tracking-tighter
               sm:text-lg
-              md:text-xl
             "
-            title={value} // Kalau text kepotong (truncate), hover kursor bakal nampilin full angkanya
+            title={value}
           >
             {value}
           </p>
         </div>
 
-        {/* LIVE INDICATOR: Kiri Bawah (DIKEMBALIKAN) */}
+        {/* LIVE INDICATOR */}
         <div>
           <div
             className="
@@ -147,10 +146,10 @@ function MetricCard({
 
               bg-muted/70
 
-              px-2.5
+              px-2
               py-1
 
-              text-[11px]
+              text-[10px]
               font-bold
               text-muted-foreground
             "
@@ -176,180 +175,141 @@ export function FinancialSection({
   formatCurrency,
   profitChartData,
 }: FinancialSectionProps) {
+  const hpp = displayData.pengeluaran / (displayData.harvestWeight || 1);
 
-const hpp =
-  displayData.pengeluaran /
-  (displayData.harvestWeight || 1);
-
-const bepProgress =
-  Math.min(
-    (
-      displayData.pendapatan /
-      (displayData.modal || 1)
-    ) * 100,
+  const bepProgress = Math.min(
+    (displayData.pendapatan / (displayData.modal || 1)) * 100,
     100
   );
 
-const donutData = profitChartData.map(
-  (item, index) => ({
+  const donutData = profitChartData.map((item, index) => ({
     ...item,
     value: Math.abs(item.profit),
-    color: [
-      "#10b981",
-      "#84cc16",
-      "#14b8a6",
-      "#22c55e",
-    ][index % 4],
-  })
-);
+    color: ["#10b981", "#84cc16", "#14b8a6", "#22c55e"][index % 4],
+  }));
 
-const totalProfit =
-  profitChartData.reduce(
-    (acc, item) => acc + item.profit,
-    0
-  );
+  const totalProfit = profitChartData.reduce((acc, item) => acc + item.profit, 0);
 
- return (
-  <div className="space-y-4 md:space-y-5">
+  return (
+    <div className="space-y-4 md:space-y-5">
+      
+      {/* HEADER: Teks Fintech-grade dihapus, margin dirapihkan */}
+      <div
+        className="
+          flex
+          items-center
+          justify-between
+          gap-4
+          mb-1
+        "
+      >
+        <div>
+          <p
+            className="
+              text-xs
+              font-black
+              uppercase
+              tracking-[0.22em]
 
-    <div
-      className="
-        flex
-        items-end
-        justify-between
-        gap-4
-      "
-    >
+              text-emerald-700
+            "
+          >
+            Financial Analytics
+          </p>
+        </div>
 
-      <div>
-
-        <p
+        <span
           className="
+            hidden
+            md:inline-flex
+
+            rounded-full
+
+            border
+            border-emerald-500/20
+
+            bg-emerald-500/10
+
+            px-3
+            py-1
+
             text-xs
-            font-black
-            uppercase
-            tracking-[0.22em]
+            font-bold
 
             text-emerald-700
           "
         >
-          Financial Analytics
-        </p>
-
-        <h2
-          className="
-            mt-1
-            text-2xl
-            font-black
-            tracking-[-0.05em]
-          "
-        >
-          Fintech-grade farm economics
-        </h2>
-
+          Margin {displayData.margin.toFixed(1)}%
+        </span>
       </div>
 
-      <span
+      {/* GRID: Gap dikecilin dari gap-3 jadi gap-2 biar kartu melar ke samping */}
+      <div
         className="
-          hidden
-          md:inline-flex
+          grid
+          grid-cols-2
+          gap-2
 
-          rounded-full
-
-          border
-          border-emerald-500/20
-
-          bg-emerald-500/10
-
-          px-3
-          py-1
-
-          text-xs
-          font-bold
-
-          text-emerald-700
+          lg:grid-cols-6
         "
       >
+        <MetricCard
+          label="Modal"
+          value={formatCurrency(displayData.modal)}
+          caption="capital deployed"
+          icon={WalletCards}
+          accent="modal"
+          status="neutral"
+        />
 
-        Margin {displayData.margin.toFixed(1)}%
+        <MetricCard
+          label="Pendapatan"
+          value={formatCurrency(displayData.pendapatan)}
+          caption="gross revenue"
+          icon={Banknote}
+          accent="pendapatan"
+          status="up"
+        />
 
-      </span>
+        <MetricCard
+          label="Pengeluaran"
+          value={formatCurrency(displayData.pengeluaran)}
+          caption="farm opex"
+          icon={ArrowDownRight}
+          accent="pengeluaran"
+          status="down"
+        />
 
-    </div>
+        <MetricCard
+          label="Profit"
+          value={formatCurrency(displayData.profit)}
+          caption="net result"
+          icon={CircleDollarSign}
+          accent="profit"
+          status={displayData.profit >= 0 ? "up" : "down"}
+        />
 
-<div
-  className="
-    grid
-    grid-cols-2
-    gap-3
+        <MetricCard
+          label="Margin"
+          value={`${displayData.margin.toFixed(1)}%`}
+          caption="profitability ratio"
+          icon={PieChartIcon}
+          accent="margin"
+          status={displayData.margin >= 0 ? "up" : "down"}
+        />
+        
+        <MetricCard
+          label="HPP"
+          value={`${formatCurrency(hpp)}/kg`}
+          caption="cost per kg"
+          icon={LineChart}
+          accent="hpp"
+          status="neutral"
+        />
+      </div>
 
-    lg:grid-cols-6
-  "
->
+      {/* SISA KODE DI BAWAHNYA (BEP Runway & Pie Chart) BISA LU BIARIN SAMA KAYAK SEBELUMNYA */}
 
-  <MetricCard
-    label="Modal"
-    value={formatCurrency(displayData.modal)}
-    caption="capital deployed"
-    icon={WalletCards}
-    accent="modal"
-    status="neutral"
-  />
-
-  <MetricCard
-    label="Pendapatan"
-    value={formatCurrency(displayData.pendapatan)}
-    caption="gross revenue"
-    icon={Banknote}
-    accent="pendapatan"
-    status="up"
-  />
-
-  <MetricCard
-    label="Pengeluaran"
-    value={formatCurrency(displayData.pengeluaran)}
-    caption="farm opex"
-    icon={ArrowDownRight}
-    accent="pengeluaran"
-    status="down"
-  />
-
-  <MetricCard
-    label="Profit"
-    value={formatCurrency(displayData.profit)}
-    caption="net result"
-    icon={CircleDollarSign}
-    accent="profit"
-    status={
-      displayData.profit >= 0
-        ? "up"
-        : "down"
-    }
-  />
-
-  <MetricCard
-    label="Margin"
-    value={`${displayData.margin.toFixed(1)}%`}
-    caption="profitability ratio"
-    icon={PieChartIcon}
-    accent="margin"
-    status={
-      displayData.margin >= 0
-        ? "up"
-        : "down"
-    }
-  />
-<MetricCard
-  label="HPP"
-  value={`${formatCurrency(hpp)}/kg`}
-  caption="cost per kg"
-  icon={LineChart}
-  accent="hpp"
-  status="neutral"
-/>
-
-
-</div>
 
 <Card
   className="
