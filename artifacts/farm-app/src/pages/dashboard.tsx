@@ -428,7 +428,8 @@ export function DashboardPage() {
       </div>
 
       {/* Konten Utama (Jarak super rapet) */}
-      <div className="mt-1.5 space-y-4 md:mt-2 md:space-y-6">
+      <div className="mt-1.5 space-y-4 md:mt-1.5 md:space-y-6">
+
         <section ref={financialRef} className="scroll-mt-32">
 
 
