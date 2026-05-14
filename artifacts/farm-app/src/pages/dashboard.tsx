@@ -224,9 +224,6 @@ export function DashboardPage() {
   const expenseActivities =
     summary?.activities?.filter((activity: any) => activity.type === "expense") || [];
 
-    // HPP
-  const hpp = displayData.pengeluaran / (displayData.harvestWeight || 1);
-  
   // HITUNG BEP
   const bepProgress = Math.min(
     (displayData.pendapatan / (displayData.modal || 1)) * 100,
