@@ -47,21 +47,17 @@ const metricAccent = {
 function MetricCard({
   label,
   value,
-  caption,
+  caption, // Tetap ada di parameter biar ga error, tapi ga kita pake di UI
   icon: Icon,
   accent,
   status,
 }: any) {
-
-  const StatusIcon =
-    status === "down"
-      ? ArrowDownRight
-      : ArrowUpRight;
+  const StatusIcon = status === "down" ? ArrowDownRight : ArrowUpRight;
 
   return (
-
     <Card
       className="
+        relative
         overflow-hidden
         rounded-[1.75rem]
 
@@ -74,125 +70,104 @@ function MetricCard({
         shadow-[0_18px_60px_rgba(15,23,42,0.07)]
       "
     >
-
       <CardContent
         className="
-          relative
+          flex
+          min-h-[140px]
+          flex-col
+          justify-between
           p-4
         "
       >
-
+        {/* IKON: Absolute Kanan Atas biar anti-geser */}
         <div
-          className="
-            flex
-            items-start
-            justify-between
-            gap-3
-          "
+          className={`
+            absolute
+            right-3
+            top-3
+            rounded-2xl
+            bg-gradient-to-br
+            p-3
+            shadow-lg
+
+            ${metricAccent[accent]}
+          `}
         >
-
-          <div className="space-y-2">
-
-            <p
-              className="
-                text-[10px]
-                font-black
-                uppercase
-                tracking-[0.18em]
-                text-muted-foreground
-              "
-            >
-              {label}
-            </p>
-
-            <div>
-
-              <p
-                className="
-                  text-xl
-                  font-black
-                  tracking-[-0.05em]
-                "
-              >
-                {value}
-              </p>
-
-              <p
-                className="
-                  text-xs
-                  text-muted-foreground
-                "
-              >
-                {caption}
-              </p>
-
-            </div>
-
-          </div>
-
-          <div
-            className={`
-              rounded-2xl
-              bg-gradient-to-br
-              p-3
-              shadow-lg
-
-              ${metricAccent[accent]}
-            `}
-          >
-
-            <Icon
-              className="
-                h-4
-                w-4
-              "
-            />
-
-          </div>
-
-        </div>
-
-        <div
-          className="
-            mt-4
-            inline-flex
-            items-center
-            gap-1
-
-            rounded-full
-
-            bg-muted/70
-
-            px-2.5
-            py-1
-
-            text-[11px]
-            font-bold
-            text-muted-foreground
-          "
-        >
-
-          <StatusIcon
-            className={`
-              h-3
-              w-3
-
-              ${
-                status === "down"
-                  ? "text-rose-500"
-                  : "text-emerald-500"
-              }
-            `}
+          <Icon
+            className="
+              h-4
+              w-4
+            "
           />
-
-          live indicator
-
         </div>
 
+        {/* LABEL: Kiri Atas */}
+        <div className="pr-12">
+          <p
+            className="
+              text-[10px]
+              font-black
+              uppercase
+              tracking-[0.18em]
+              text-muted-foreground
+            "
+          >
+            {label}
+          </p>
+        </div>
+
+        {/* ANGKA: Flex 1 buat neken ke tengah layar */}
+        <div className="flex flex-1 items-center justify-center py-2">
+          <p
+            className="
+              w-full
+              truncate
+              text-center
+              text-xl
+              font-black
+              tracking-[-0.05em]
+              sm:text-lg
+              md:text-xl
+            "
+            title={value} // Kalau text kepotong (truncate), hover kursor bakal nampilin full angkanya
+          >
+            {value}
+          </p>
+        </div>
+
+        {/* LIVE INDICATOR: Kiri Bawah (DIKEMBALIKAN) */}
+        <div>
+          <div
+            className="
+              inline-flex
+              items-center
+              gap-1
+
+              rounded-full
+
+              bg-muted/70
+
+              px-2.5
+              py-1
+
+              text-[11px]
+              font-bold
+              text-muted-foreground
+            "
+          >
+            <StatusIcon
+              className={`
+                h-3
+                w-3
+
+                ${status === "down" ? "text-rose-500" : "text-emerald-500"}
+              `}
+            />
+            live indicator
+          </div>
+        </div>
       </CardContent>
-
     </Card>
-
   );
 }
 
