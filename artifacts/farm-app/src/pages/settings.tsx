@@ -694,8 +694,34 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="space-y-8 max-w-4xl">
-      <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+    <div
+  className="
+    min-h-screen
+    max-w-5xl
+    mx-auto
+    px-4
+    pb-24
+    pt-4
+    space-y-8
+
+    bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.16),transparent_30%),radial-gradient(circle_at_top_right,rgba(59,130,246,0.10),transparent_30%),linear-gradient(to_bottom,#020617,#0f172a)]
+  "
+>
+      <motion.div
+  initial={{ opacity: 0, x: -20 }}
+  animate={{ opacity: 1, x: 0 }}
+  className="
+    sticky
+    top-0
+    z-40
+    backdrop-blur-xl
+    bg-slate-950/40
+    border-b
+    border-white/10
+    py-4
+  "
+>
+
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
             <Settings className="h-5 w-5 text-primary" />
@@ -713,16 +739,18 @@ export function SettingsPage() {
   transition={{ delay: 0.03 }}
 >
 
-  <Card>
+ <Card
+  className="
+    rounded-[28px]
+    border
+    border-white/10
+    bg-white/[0.04]
+    backdrop-blur-2xl
+    shadow-[0_20px_80px_rgba(0,0,0,0.25)]
+  "
+>
 
     <CardContent
-      className="
-        flex
-        items-center
-        justify-between
-        p-5
-      "
-    >
 
       <div>
 
@@ -745,10 +773,19 @@ export function SettingsPage() {
 </motion.div>
 
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div>
+
+        <Card
+  className="
+    rounded-[28px]
+    border
+    border-white/10
+    bg-white/[0.04]
+    backdrop-blur-2xl
+    shadow-[0_20px_80px_rgba(0,0,0,0.25)]
+  "
+>
+  <CardHeader>
+
                 <CardTitle className="flex items-center gap-2">
                   <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">1</span>
                   Pilih Database Notion
@@ -778,8 +815,19 @@ export function SettingsPage() {
       </motion.div>
 
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-        <Card>
-          <CardHeader>
+
+        <Card
+  className="
+    rounded-[28px]
+    border
+    border-white/10
+    bg-white/[0.04]
+    backdrop-blur-2xl
+    shadow-[0_20px_80px_rgba(0,0,0,0.25)]
+  "
+>
+  <CardHeader>
+
             <CardTitle className="flex items-center gap-2">
               <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">2</span>
               Pemetaan Kolom
