@@ -179,7 +179,7 @@ export function AppLayout({
       </main>
 
       {/* BOTTOM NAVIGATION */}
-      <nav
+            <nav
   className="
     fixed
     bottom-4
@@ -190,14 +190,15 @@ export function AppLayout({
     mx-auto
     rounded-3xl
     border
-    border-white/50
+    border-white/60
     bg-background/75
     backdrop-blur-2xl
-    shadow-[0_24px_80px_rgba(15,23,42,0.18)]
+    shadow-[0_22px_70px_rgba(15,23,42,0.18)]
     dark:border-white/10
     pb-safe
   "
 >
+
         <div className="relative max-w-lg mx-auto h-16 px-4">
           
           {/* CONTAINER JEMPOL */}
@@ -290,15 +291,18 @@ export function AppLayout({
               </div>
             </motion.div>
 
-            {/* Tombol Plus Tengah */}
+                        {/* Tombol Plus Tengah */}
             <button
               onClick={() => setIsFabOpen(!isFabOpen)}
               className={`flex h-16 w-16 items-center justify-center rounded-full shadow-2xl text-white transition-all duration-300 ease-in-out active:scale-95 ${
-                isFabOpen ? "bg-rose-500 rotate-45 scale-90" : "bg-primary hover:bg-primary/95"
+                isFabOpen 
+                  ? "bg-rose-500 rotate-45 scale-90" 
+                  : "bg-gradient-to-br from-emerald-600 to-lime-500 hover:from-emerald-500 hover:to-lime-400"
               }`}
             >
               <Plus className="h-8 w-8" />
             </button>
+
           </div>
         </div>
       </nav>
