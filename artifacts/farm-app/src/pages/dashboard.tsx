@@ -119,7 +119,7 @@ export function DashboardPage() {
     []
   );
 
-    useEffect(() => {
+      useEffect(() => {
     const handleScroll = () => {
       let currentSection: DashboardSection = "financial";
 
@@ -128,8 +128,8 @@ export function DashboardPage() {
         if (!element) return;
 
         const rect = element.getBoundingClientRect();
-        // Ubah angka 156 jadi 160 biar deteksinya pas sama margin baru
-        if (rect.top <= 160) {
+        // Ubah angkanya jadi 112 biar sensornya pas sama landing baru
+        if (rect.top <= 112) {
           currentSection = section.key;
         }
       });
@@ -428,10 +428,9 @@ export function DashboardPage() {
           </div>
         </div>
 
-                {/* --- SECTION KONTEN --- */}
+                        {/* --- SECTION KONTEN --- */}
         <div className="mt-4 space-y-4 md:mt-6 md:space-y-6">
-          {/* Ganti semua scroll-mt-32 jadi scroll-mt-40 */}
-          <section ref={financialRef} className="scroll-mt-40">
+          <section ref={financialRef} className="scroll-mt-[108px]">
             <FinancialSection
               displayData={displayData}
               formatCurrency={formatCurrency}
@@ -439,7 +438,7 @@ export function DashboardPage() {
             />
           </section>
 
-          <section ref={productionRef} className="scroll-mt-40">
+          <section ref={productionRef} className="scroll-mt-[108px]">
             <ProductionSection
               displayData={displayData}
               areas={areas}
@@ -447,14 +446,14 @@ export function DashboardPage() {
             />
           </section>
 
-          <section ref={operationalRef} className="scroll-mt-40">
+          <section ref={operationalRef} className="scroll-mt-[108px]">
             <OperationalSection
               harvestActivities={harvestActivities}
               expenseActivities={expenseActivities}
             />
           </section>
 
-          <section ref={insightRef} className="scroll-mt-40">
+          <section ref={insightRef} className="scroll-mt-[108px]">
             <InsightSection
               displayData={displayData}
               localBusinessStatus={localBusinessStatus}
