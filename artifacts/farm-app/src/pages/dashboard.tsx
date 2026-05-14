@@ -142,7 +142,7 @@ export function DashboardPage() {
 
         const rect = element.getBoundingClientRect();
         // Ubah angkanya jadi 112 biar sensornya pas sama landing baru
-        if (rect.top <= 74) {
+        if (rect.top <= 92) {
           currentSection = section.key;
         }
       });
@@ -457,7 +457,7 @@ export function DashboardPage() {
                                 {/* --- SECTION KONTEN --- */}
         <div className="mt-4 space-y-8 md:mt-6 md:space-y-12">
           
-          <section ref={financialRef} className="scroll-mt-[116px]">
+          <section ref={financialRef} className="scroll-mt-[74px]">
             <motion.div
               initial="hidden"
               whileInView="visible"
@@ -472,7 +472,7 @@ export function DashboardPage() {
             </motion.div>
           </section>
 
-          <section ref={productionRef} className="scroll-mt-[116px]">
+          <section ref={productionRef} className="scroll-mt-[74px]">
             <motion.div
               initial="hidden"
               whileInView="visible"
@@ -487,7 +487,7 @@ export function DashboardPage() {
             </motion.div>
           </section>
 
-          <section ref={operationalRef} className="scroll-mt-[116px]">
+          <section ref={operationalRef} className="scroll-mt-[74px]">
             <motion.div
               initial="hidden"
               whileInView="visible"
@@ -501,7 +501,7 @@ export function DashboardPage() {
             </motion.div>
           </section>
 
-          <section ref={insightRef} className="scroll-mt-[116px]">
+          <section ref={insightRef} className="scroll-mt-[74px]">
             <motion.div
               initial="hidden"
               whileInView="visible"
