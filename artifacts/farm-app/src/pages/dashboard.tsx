@@ -443,7 +443,7 @@ export function DashboardPage() {
 
                         {/* --- SECTION KONTEN --- */}
         <div className="mt-4 space-y-4 md:mt-6 md:space-y-6">
-          <section ref={financialRef} className="scroll-mt-[78px]">
+          <section ref={financialRef} className="scroll-mt-[80px]">
             <FinancialSection
               displayData={displayData}
               formatCurrency={formatCurrency}
