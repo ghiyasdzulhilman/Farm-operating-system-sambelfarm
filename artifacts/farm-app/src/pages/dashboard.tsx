@@ -129,7 +129,7 @@ export function DashboardPage() {
 
         const rect = element.getBoundingClientRect();
         // Ubah angkanya jadi 112 biar sensornya pas sama landing baru
-        if (rect.top <= 85) {
+        if (rect.top <= 96) {
           currentSection = section.key;
         }
       });
@@ -443,7 +443,7 @@ export function DashboardPage() {
 
                         {/* --- SECTION KONTEN --- */}
         <div className="mt-4 space-y-4 md:mt-6 md:space-y-6">
-          <section ref={financialRef} className="scroll-mt-[85px]">
+          <section ref={financialRef} className="scroll-mt-[92px]">
             <FinancialSection
               displayData={displayData}
               formatCurrency={formatCurrency}
@@ -451,7 +451,7 @@ export function DashboardPage() {
             />
           </section>
 
-          <section ref={productionRef} className="scroll-mt-[108px]">
+          <section ref={productionRef} className="scroll-mt-[92px]">
             <ProductionSection
               displayData={displayData}
               areas={areas}
@@ -459,14 +459,14 @@ export function DashboardPage() {
             />
           </section>
 
-          <section ref={operationalRef} className="scroll-mt-[108px]">
+          <section ref={operationalRef} className="scroll-mt-[92px]">
             <OperationalSection
               harvestActivities={harvestActivities}
               expenseActivities={expenseActivities}
             />
           </section>
 
-          <section ref={insightRef} className="scroll-mt-[108px]">
+          <section ref={insightRef} className="scroll-mt-[92px]">
             <InsightSection
               displayData={displayData}
               localBusinessStatus={localBusinessStatus}
