@@ -129,7 +129,7 @@ export function DashboardPage() {
 
         const rect = element.getBoundingClientRect();
         // Ubah angkanya jadi 112 biar sensornya pas sama landing baru
-        if (rect.top <= 112) {
+        if (rect.top <= 84) {
           currentSection = section.key;
         }
       });
@@ -276,10 +276,12 @@ export function DashboardPage() {
       
       <main className="relative mx-auto w-full max-w-7xl overflow-x-clip px-4 pt-4 md:px-6">
         
-        {/* --- NAVIGASI PILL & FILTER KANAN (Sekarang Paling Atas) --- */}
-        <div className="sticky top-2 z-30 flex flex-col gap-1.5 md:top-4">
-          <div className="w-full rounded-[1.55rem] border border-white/60 bg-white/72 p-1.5 shadow-[0_18px_50px_rgba(15,23,42,0.10)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/70">
-            <div className="grid grid-cols-4 gap-1">
+                {/* --- NAVIGASI PILL & FILTER (Versi Drawer / Pull-Tab) --- */}
+        <div className="sticky top-2 z-30 flex flex-col md:top-4">
+          <div className="w-full overflow-hidden rounded-[1.55rem] border border-white/60 bg-white/72 p-1.5 shadow-[0_18px_50px_rgba(15,23,42,0.10)] backdrop-blur-2xl transition-all duration-500 ease-out dark:border-white/10 dark:bg-slate-950/70">
+            
+            {/* Baris 1: Segmented Control (Tetap Clean) */}
+            <div className="relative z-20 grid grid-cols-4 gap-1">
               {sectionItems.map((item) => (
                 <button
                   key={item.key}
@@ -289,7 +291,7 @@ export function DashboardPage() {
                   {activeSection === item.key && (
                     <motion.span
                       layoutId="smart-section-pill"
-                      className="absolute inset-0 rounded-[1.15rem] bg-slate-950 shadow-lg dark:bg-white"
+                      className="absolute inset-0 rounded-[1.15rem] bg-slate-950 shadow-md dark:bg-white"
                       transition={{ type: "spring", bounce: 0.18, duration: 0.55 }}
                     />
                   )}
@@ -305,57 +307,63 @@ export function DashboardPage() {
                 </button>
               ))}
             </div>
-          </div>
 
-          <div className="flex w-full justify-end px-1">
-            <div className="flex items-center gap-1 rounded-full border border-white/60 bg-white/72 p-0.5 shadow-sm backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/70">
-              <div
-                className={`flex items-center gap-1 overflow-hidden transition-all duration-500 ease-out ${
-                  showControls
-                    ? "max-w-[180px] translate-x-0 opacity-100"
-                    : "max-w-0 translate-x-4 opacity-0"
-                }`}
-              >
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 shrink-0 rounded-full bg-muted/60"
-                  onClick={handleRefreshSummary}
-                  disabled={isFetching || isLoadingSummary}
-                >
-                  <RefreshCcw className={`h-3 w-3 ${isFetching ? "animate-spin" : ""}`} />
-                </Button>
+            {/* Baris 2: Area Filter (Nyumput di sini) */}
+            <div
+              className={`transition-all duration-500 ease-in-out ${
+                showControls ? "mt-2 max-h-20 opacity-100" : "max-h-0 opacity-0"
+              }`}
+            >
+              <div className="flex items-center justify-between rounded-2xl bg-white/40 px-3 py-2 dark:bg-black/20">
+                <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  <Filter className="h-3 w-3" /> Filter Data
+                </span>
+                
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 rounded-full bg-white shadow-sm dark:bg-slate-900"
+                    onClick={handleRefreshSummary}
+                    disabled={isFetching || isLoadingSummary}
+                  >
+                    <RefreshCcw className={`h-3 w-3 ${isFetching ? "animate-spin" : ""}`} />
+                  </Button>
 
-                <Select value={selectedAreaId} onValueChange={setSelectedAreaId}>
-                  <SelectTrigger className="h-6 w-[110px] rounded-full border-none bg-background/60 px-2.5 text-[10px] font-bold shadow-none focus:ring-0 dark:bg-white/5">
-                    <Leaf className="mr-1.5 h-3 w-3 text-emerald-600" />
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all" className="text-[10px] font-semibold">Semua Area</SelectItem>
-                    {areas.map((area: any) => (
-                      <SelectItem key={area.id} value={area.id} className="text-[10px] font-semibold">
-                        {area.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <Select value={selectedAreaId} onValueChange={setSelectedAreaId}>
+                    <SelectTrigger className="h-7 w-[120px] rounded-full border-none bg-white px-3 text-[10px] font-bold shadow-sm focus:ring-0 dark:bg-slate-900">
+                      <Leaf className="mr-1.5 h-3 w-3 text-emerald-600" />
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all" className="text-[10px] font-semibold">Semua Area</SelectItem>
+                      {areas.map((area: any) => (
+                        <SelectItem key={area.id} value={area.id} className="text-[10px] font-semibold">
+                          {area.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-
-              <button
-                onClick={() => setShowControls((value) => !value)}
-                className="flex h-6 min-w-[24px] items-center justify-center gap-1 rounded-full bg-slate-950 px-2 text-white shadow-sm transition-all duration-300 active:scale-95 dark:bg-white dark:text-slate-950"
-                aria-label="Toggle dashboard filters"
-              >
-                <Filter className="h-3 w-3" />
-                <ChevronDown
-                  className={`h-2.5 w-2.5 transition-transform duration-300 ${
-                    showControls ? "rotate-180" : "hidden" 
-                  }`}
-                />
-              </button>
             </div>
           </div>
+
+          {/* Tombol Panah Kecil (Pull-Tab) di tengah bawah */}
+          <div className="relative z-10 -mt-1 flex w-full justify-center">
+            <button
+              onClick={() => setShowControls(!showControls)}
+              className="flex h-5 w-12 items-center justify-center rounded-b-xl border-x border-b border-white/60 bg-white/72 shadow-[0_4px_10px_rgba(0,0,0,0.05)] backdrop-blur-2xl transition-colors hover:bg-white dark:border-white/10 dark:bg-slate-950/70"
+              aria-label="Toggle dashboard filters"
+            >
+              <ChevronDown
+                className={`h-3 w-3 text-muted-foreground transition-transform duration-500 ${
+                  showControls ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+          </div>
+        </div>
         </div>
 
         {/* --- CARD BUSINESS PULSE & BEP SLIM (Sekarang di Bawah Navigasi) --- */}
@@ -430,7 +438,7 @@ export function DashboardPage() {
 
                         {/* --- SECTION KONTEN --- */}
         <div className="mt-4 space-y-4 md:mt-6 md:space-y-6">
-          <section ref={financialRef} className="scroll-mt-[108px]">
+          <section ref={financialRef} className="scroll-mt-[80px]">
             <FinancialSection
               displayData={displayData}
               formatCurrency={formatCurrency}
