@@ -457,7 +457,7 @@ export function DashboardPage() {
                                 {/* --- SECTION KONTEN --- */}
         <div className="mt-4 space-y-8 md:mt-6 md:space-y-12">
           
-          <section ref={financialRef} className="scroll-mt-[74px]">
+          <section ref={financialRef} className="scroll-mt-[80px]">
             <motion.div
               initial="hidden"
               whileInView="visible"
