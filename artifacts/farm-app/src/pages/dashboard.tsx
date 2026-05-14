@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence, animate } from "framer-motion";
 import {
   AlertTriangle,
   Bot,
@@ -65,6 +65,33 @@ const emptyDisplayData: DisplayData = {
   margin: 0,
   harvestWeight: 0,
 };
+
+function AnimatedNumber({ 
+  value, 
+  formatFn 
+}: { 
+  value: number; 
+  formatFn: (val: number) => string 
+}) {
+  const [displayValue, setDisplayValue] = useState(formatFn(0));
+
+  useEffect(() => {
+    // Bikin animasi gerak dari 0 ke target 'value' selama 1.2 detik
+    const controls = animate(0, value, {
+      duration: 1.2,
+      ease: "easeOut",
+      onUpdate: (latest) => {
+        setDisplayValue(formatFn(latest));
+      },
+    });
+
+    // Cleanup pas komponen unmount atau angka berubah
+    return () => controls.stop();
+  }, [value, formatFn]);
+
+  return <span>{displayValue}</span>;
+}
+
 
 export function DashboardPage() {
   const queryClient = useQueryClient();
@@ -275,16 +302,29 @@ export function DashboardPage() {
               </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div className="grid grid-cols-2 gap-3 text-sm">
               <div className="rounded-2xl bg-white/5 p-4 border border-white/10">
                 <p className="text-white/50 text-[10px] font-bold uppercase tracking-[0.15em] mb-1">Margin</p>
-                <p className="text-2xl font-black">{displayData.margin.toFixed(1)}%</p>
+                <p className="text-2xl font-black">
+                  {/* Animasi untuk Margin */}
+                  <AnimatedNumber 
+                    value={displayData.margin} 
+                    formatFn={(val) => `${val.toFixed(1)}%`} 
+                  />
+                </p>
               </div>
               <div className="rounded-2xl bg-white/5 p-4 border border-white/10">
                 <p className="text-white/50 text-[10px] font-bold uppercase tracking-[0.15em] mb-1">HPP / kg</p>
-                <p className="text-xl font-black">{formatCurrency(hpp)}</p>
+                <p className="text-xl font-black">
+                  {/* Animasi untuk HPP */}
+                  <AnimatedNumber 
+                    value={hpp} 
+                    formatFn={(val) => formatCurrency(val)} 
+                  />
+                </p>
               </div>
             </div>
+
             
             <div className="flex items-center gap-2 text-xs text-white/55">
               <Sparkles className="h-3.5 w-3.5 text-amber-200" />
