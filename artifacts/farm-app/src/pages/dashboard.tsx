@@ -255,9 +255,6 @@ export function DashboardPage() {
     });
   };
 
-return (
-  
-
   if (isLoadingConnection) {
     return (
       <div className="space-y-5 px-4 md:px-6 mt-4">
