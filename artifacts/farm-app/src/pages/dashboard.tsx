@@ -75,22 +75,27 @@ function AnimatedNumber({
 }) {
   const [displayValue, setDisplayValue] = useState(formatFn(0));
 
+  // Trik biar animasi ga ke-trigger cuma gara-gara buka/tutup menu filter
+  const formatRef = useRef(formatFn);
   useEffect(() => {
-    // Bikin animasi gerak dari 0 ke target 'value' selama 1.2 detik
+    formatRef.current = formatFn;
+  }, [formatFn]);
+
+  useEffect(() => {
     const controls = animate(0, value, {
       duration: 1.2,
       ease: "easeOut",
       onUpdate: (latest) => {
-        setDisplayValue(formatFn(latest));
+        setDisplayValue(formatRef.current(latest));
       },
     });
 
-    // Cleanup pas komponen unmount atau angka berubah
     return () => controls.stop();
-  }, [value, formatFn]);
+  }, [value]); // Kunci utama: Animasi cuma ngulang kalo 'value' nya berubah
 
   return <span>{displayValue}</span>;
 }
+
 
 
 export function DashboardPage() {
@@ -302,12 +307,13 @@ export function DashboardPage() {
               </div>
             </div>
             
-                        <div className="grid grid-cols-2 gap-3 text-sm">
+                                    <div className="grid grid-cols-2 gap-3 text-sm">
               <div className="rounded-2xl bg-white/5 p-4 border border-white/10">
                 <p className="text-white/50 text-[10px] font-bold uppercase tracking-[0.15em] mb-1">Margin</p>
                 <p className="text-2xl font-black">
-                  {/* Animasi untuk Margin */}
+                  {/* Tambahin key di sini */}
                   <AnimatedNumber 
+                    key={`margin-${selectedAreaId}-${summary?.lastUpdated}`}
                     value={displayData.margin} 
                     formatFn={(val) => `${val.toFixed(1)}%`} 
                   />
@@ -316,14 +322,16 @@ export function DashboardPage() {
               <div className="rounded-2xl bg-white/5 p-4 border border-white/10">
                 <p className="text-white/50 text-[10px] font-bold uppercase tracking-[0.15em] mb-1">HPP / kg</p>
                 <p className="text-xl font-black">
-                  {/* Animasi untuk HPP */}
+                  {/* Tambahin key di sini juga */}
                   <AnimatedNumber 
+                    key={`hpp-${selectedAreaId}-${summary?.lastUpdated}`}
                     value={hpp} 
                     formatFn={(val) => formatCurrency(val)} 
                   />
                 </p>
               </div>
             </div>
+
 
             
             <div className="flex items-center gap-2 text-xs text-white/55">
