@@ -224,12 +224,6 @@ export function DashboardPage() {
   const expenseActivities =
     summary?.activities?.filter((activity: any) => activity.type === "expense") || [];
 
-  // HITUNG BEP
-  const bepProgress = Math.min(
-    (displayData.pendapatan / (displayData.modal || 1)) * 100,
-    100
-  );
-
   const localBusinessStatus = displayData.margin > 0 ? "Profitable" : "Developing";
   
   const localRecommendation =
