@@ -258,46 +258,6 @@ export function FinancialSection({
         </motion.div>
       </div>
 
-      <motion.div variants={fadeSlideItem}>
-        <Card className="overflow-hidden rounded-[1.75rem] border-white/60 bg-slate-950 text-white shadow-2xl">
-          <CardContent className="relative space-y-5 p-5">
-            <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-emerald-400/30 blur-3xl" />
-            <div className="relative flex items-start justify-between">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/45">
-                  BEP runway
-                </p>
-                <h3 className="mt-2 text-3xl font-black tracking-[-0.06em]">
-                  <SubtleAnimatedNumber 
-                    value={bepProgress} 
-                    formatFn={(val) => `${val.toFixed(1)}%`} 
-                  />
-                </h3>
-              </div>
-              <div className="rounded-2xl bg-white/10 p-3">
-                <Target className="h-5 w-5 text-emerald-300" />
-              </div>
-            </div>
-
-            <div className="relative h-3 overflow-hidden rounded-full bg-white/10">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${bepProgress}%` }}
-                transition={{ duration: 1.5, ease: "easeOut", delay: 0.5 }}
-                className="h-full rounded-full bg-gradient-to-r from-emerald-300 via-lime-300 to-amber-200"
-              />
-            </div>
-
-            <p className="relative text-sm leading-6 text-white/62">
-              {displayData.pendapatan >= displayData.modal
-                ? "Modal sudah balik. Sistem merekomendasikan ekspansi area."
-                : `Butuh ${formatCurrency(displayData.modal - displayData.pendapatan)} lagi untuk mencapai BEP.`}
-            </p>
-          </CardContent>
-        </Card>
-      </motion.div>
-
-      
                           <motion.div variants={fadeSlideItem}>
         <Card className="rounded-[1.75rem] border-white/60 bg-white/75 backdrop-blur-2xl shadow-[0_18px_60px_rgba(15,23,42,0.07)]">
           <CardContent className="p-4 md:p-6">
