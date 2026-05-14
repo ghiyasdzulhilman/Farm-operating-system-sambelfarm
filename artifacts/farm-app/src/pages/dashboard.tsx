@@ -38,6 +38,19 @@ import { Link } from "wouter";
 
 type DashboardSection = "financial" | "production" | "operational" | "insight";
 
+const scrollReveal = {
+  hidden: { opacity: 0, y: 40, filter: "blur(10px)" },
+  visible: { 
+    opacity: 1, 
+    y: 0, 
+    filter: "blur(0px)",
+    transition: { 
+      duration: 0.8, 
+      ease: [0.21, 1.11, 0.81, 0.99] // Efek spring yang smooth
+    } 
+  }
+};
+
 type DisplayData = {
   modal: number;
   pendapatan: number;
@@ -441,41 +454,70 @@ export function DashboardPage() {
           </div>
         </div>
 
-                        {/* --- SECTION KONTEN --- */}
-        <div className="mt-4 space-y-4 md:mt-6 md:space-y-6">
-          <section ref={financialRef} className="scroll-mt-[80px]">
-            <FinancialSection
-              displayData={displayData}
-              formatCurrency={formatCurrency}
-              profitChartData={profitChartData}
-            />
+                                {/* --- SECTION KONTEN --- */}
+        <div className="mt-4 space-y-8 md:mt-6 md:space-y-12">
+          
+          <section ref={financialRef} className="scroll-mt-[116px]">
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-100px" }}
+              variants={scrollReveal}
+            >
+              <FinancialSection
+                displayData={displayData}
+                formatCurrency={formatCurrency}
+                profitChartData={profitChartData}
+              />
+            </motion.div>
           </section>
 
-          <section ref={productionRef} className="scroll-mt-[74px]">
-            <ProductionSection
-              displayData={displayData}
-              areas={areas}
-              formatCurrency={formatCurrency}
-            />
+          <section ref={productionRef} className="scroll-mt-[116px]">
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-100px" }}
+              variants={scrollReveal}
+            >
+              <ProductionSection
+                displayData={displayData}
+                areas={areas}
+                formatCurrency={formatCurrency}
+              />
+            </motion.div>
           </section>
 
-          <section ref={operationalRef} className="scroll-mt-[74px]">
-            <OperationalSection
-              harvestActivities={harvestActivities}
-              expenseActivities={expenseActivities}
-            />
+          <section ref={operationalRef} className="scroll-mt-[116px]">
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-100px" }}
+              variants={scrollReveal}
+            >
+              <OperationalSection
+                harvestActivities={harvestActivities}
+                expenseActivities={expenseActivities}
+              />
+            </motion.div>
           </section>
 
-          <section ref={insightRef} className="scroll-mt-[74px]">
-            <InsightSection
-              displayData={displayData}
-              localBusinessStatus={localBusinessStatus}
-              localRecommendation={localRecommendation}
-              formatCurrency={formatCurrency}
-            />
+          <section ref={insightRef} className="scroll-mt-[116px]">
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-100px" }}
+              variants={scrollReveal}
+            >
+              <InsightSection
+                displayData={displayData}
+                localBusinessStatus={localBusinessStatus}
+                localRecommendation={localRecommendation}
+                formatCurrency={formatCurrency}
+              />
+            </motion.div>
           </section>
         </div>
-        
+
       </main>
     </div>
   );
