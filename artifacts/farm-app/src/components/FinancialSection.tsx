@@ -1,5 +1,35 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, animate } from "framer-motion";
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  Banknote,
+  CircleDollarSign,
+  LineChart,
+  PieChart as PieChartIcon,
+  Target,
+  WalletCards,
+} from "lucide-react";
+
+import {
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+} from "recharts";
+
+import { Card, CardContent } from "@/components/ui/card";
+
+// Interface untuk properti section
+interface FinancialSectionProps {
+  displayData: any;
+  formatCurrency: (amount: number) => string;
+  profitChartData: any[];
+}
+
+// ... (lanjut ke const metricAccent = { ... } dan kode komponen yang tadi)
+
 
 // --- KOMPONEN ANIMASI ANGKA HALUS ---
 function SubtleAnimatedNumber({ 
