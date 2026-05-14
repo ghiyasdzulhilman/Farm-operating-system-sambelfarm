@@ -224,8 +224,6 @@ export function DashboardPage() {
   const expenseActivities =
     summary?.activities?.filter((activity: any) => activity.type === "expense") || [];
 
-);
-
   const localBusinessStatus = displayData.margin > 0 ? "Profitable" : "Developing";
   
   const localRecommendation =
