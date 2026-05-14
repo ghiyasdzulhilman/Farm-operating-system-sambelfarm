@@ -342,7 +342,7 @@ export function DashboardPage() {
         </Card>
       </div>
 
-                  {/* Navigasi Pill Segmented & Filter (Super Rapat) */}
+                        {/* Navigasi Pill Segmented & Filter (Super Rapat) */}
       <div className="sticky top-2 z-30 mt-3 flex flex-col gap-1.5 md:top-4 md:mt-4">
         
         {/* Segmented Pill (Lebar Full) */}
@@ -375,15 +375,8 @@ export function DashboardPage() {
           </div>
         </div>
 
-        {/* BARIS BARU: Judul Dinamis & Filter Sejajar */}
-        <div className="flex w-full items-center justify-between px-1">
-          
-          {/* Teks Analytics Dinamis (Otomatis ganti nama pas di-scroll) */}
-          <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-emerald-700">
-            {activeSection} Analytics
-          </p>
-
-          {/* Toolbar Filter Micro-UI */}
+        {/* Toolbar Filter Micro-UI (Murni Filter Rata Kanan) */}
+        <div className="flex w-full justify-end px-1">
           <div className="flex items-center gap-1 rounded-full border border-white/60 bg-white/72 p-0.5 shadow-sm backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/70">
             <div
               className={`flex items-center gap-1 overflow-hidden transition-all duration-500 ease-out ${
@@ -434,7 +427,7 @@ export function DashboardPage() {
         </div>
       </div>
 
-      {/* Konten Utama (Jarak mt-1.5 persis sama dengan gap navigasi) */}
+      {/* Konten Utama (Jarak super rapet) */}
       <div className="mt-1.5 space-y-4 md:mt-2 md:space-y-6">
         <section ref={financialRef} className="scroll-mt-32">
 
