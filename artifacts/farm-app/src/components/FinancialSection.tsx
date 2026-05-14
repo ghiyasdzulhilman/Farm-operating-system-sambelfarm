@@ -297,7 +297,8 @@ export function FinancialSection({
         </Card>
       </motion.div>
 
-      <motion.div variants={fadeSlideItem}>
+      
+                    <motion.div variants={fadeSlideItem}>
         <Card className="rounded-[1.75rem] border-white/60 bg-white/75 backdrop-blur-2xl shadow-[0_18px_60px_rgba(15,23,42,0.07)]">
           <CardContent className="p-4 md:p-6">
             <div className="mb-4 flex items-center justify-between">
@@ -312,10 +313,6 @@ export function FinancialSection({
             </div>
 
             <div className="relative h-[270px] md:h-[320px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-
-                        <div className="relative h-[270px] md:h-[320px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   
@@ -342,7 +339,6 @@ export function FinancialSection({
                     </linearGradient>
                   </defs>
 
-                  {/* --- KOMPONEN PIE UTAMA --- */}
                   <Pie
                     data={donutData}
                     dataKey="value"
@@ -384,7 +380,6 @@ export function FinancialSection({
                 </p>
               </div>
             </div>
-
           </CardContent>
         </Card>
       </motion.div>
@@ -392,3 +387,4 @@ export function FinancialSection({
     </motion.div>
   );
 }
+
