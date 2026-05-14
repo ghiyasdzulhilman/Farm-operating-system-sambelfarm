@@ -270,12 +270,6 @@ export function DashboardPage() {
     100
   );
 
-  const localBusinessStatus = displayData.margin > 0 ? "Profitable" : "Developing";
-  
-  const localRecommendation = displayData.margin < 0
-    ? "Fokus turunkan HPP atau tingkatkan harga jual"
-    : "Pertahankan margin, sistem mendeteksi tren positif";
-
   // 3. RENDER UI UTAMA
   return (
     <div className="flex min-h-screen flex-col bg-[#F4F9F4] pb-20 font-sans dark:bg-slate-950">
