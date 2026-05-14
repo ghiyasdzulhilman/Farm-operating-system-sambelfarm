@@ -298,7 +298,7 @@ export function FinancialSection({
       </motion.div>
 
       
-                    <motion.div variants={fadeSlideItem}>
+                          <motion.div variants={fadeSlideItem}>
         <Card className="rounded-[1.75rem] border-white/60 bg-white/75 backdrop-blur-2xl shadow-[0_18px_60px_rgba(15,23,42,0.07)]">
           <CardContent className="p-4 md:p-6">
             <div className="mb-4 flex items-center justify-between">
@@ -312,9 +312,10 @@ export function FinancialSection({
               </div>
             </div>
 
-            <div className="relative h-[270px] md:h-[320px]">
+            <div className="relative h-[250px] md:h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
+                {/* Tambahin margin biar tooltip ga kepotong pas minggir */}
+                <PieChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                   
                   {/* --- DEFS UNTUK GRADASI WARNA --- */}
                   <defs>
@@ -343,8 +344,8 @@ export function FinancialSection({
                     data={donutData}
                     dataKey="value"
                     nameKey="name"
-                    innerRadius={70}
-                    outerRadius={100}
+                    innerRadius={65} // Dikecilin dikit biar ruang tengah lega
+                    outerRadius={95}
                     paddingAngle={4}
                     strokeWidth={0}
                   >
@@ -358,21 +359,29 @@ export function FinancialSection({
 
                   <Tooltip
                     formatter={(value: number) => formatCurrency(value)}
+                    offset={40} // <-- Ini yang bikin tooltip minggir menjauh dari jari
+                    wrapperStyle={{ zIndex: 100 }}
                     contentStyle={{
-                      borderRadius: 18,
-                      border: "1px solid hsl(var(--border))",
-                      background: "hsl(var(--background) / 0.92)",
+                      borderRadius: "1rem",
+                      border: "none",
+                      boxShadow: "0 10px 40px -10px rgba(0,0,0,0.15)",
+                      background: "rgba(255, 255, 255, 0.95)",
                       backdropFilter: "blur(16px)",
+                      padding: "8px 12px",
+                      fontSize: "12px",
+                      fontWeight: "bold",
                     }}
+                    itemStyle={{ color: "#0f172a", fontWeight: "900" }}
                   />
                 </PieChart>
               </ResponsiveContainer>
 
               <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                <p className="text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/80">
                   Total Profit
                 </p>
-                <p className="mt-2 text-2xl font-black tracking-[-0.05em]">
+                {/* Teks total profit dikecilin jadi text-lg biar ga nabrak */}
+                <p className="mt-0.5 text-lg font-black tracking-tighter text-slate-900">
                   <SubtleAnimatedNumber 
                     value={totalProfit} 
                     formatFn={formatCurrency} 
@@ -387,4 +396,5 @@ export function FinancialSection({
     </motion.div>
   );
 }
+
 
