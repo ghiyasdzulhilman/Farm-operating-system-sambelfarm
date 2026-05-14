@@ -257,64 +257,45 @@ export function DashboardPage() {
         </motion.div>
       )}
 
-      {/* Header Baru: The Business Pulse */}
-      <section className="relative overflow-hidden rounded-[2rem] border border-white/50 bg-white/70 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/60 md:p-8 mt-4 md:mt-6">
-        <div className="absolute -right-16 -top-20 h-52 w-52 rounded-full bg-emerald-300/30 blur-3xl" />
-        <div className="absolute -bottom-24 left-16 h-56 w-56 rounded-full bg-amber-300/20 blur-3xl" />
-
-        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-2xl space-y-4">
-            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
-              <Satellite className="h-3.5 w-3.5" />
-              Notion-powered smart farming OS
+      {/* Header Baru: Kotak Hitam Saja (Super Clean) */}
+      <div className="mt-4 md:mt-6">
+        <Card className="relative overflow-hidden rounded-[1.75rem] border-white/50 bg-slate-950 text-white shadow-2xl dark:border-white/10 w-full">
+          {/* Subtle Glow di dalam kartu */}
+          <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-emerald-500/20 blur-[40px] pointer-events-none" />
+          <div className="absolute -bottom-12 -left-12 h-40 w-40 rounded-full bg-amber-500/10 blur-[40px] pointer-events-none" />
+          
+          <CardContent className="relative space-y-4 p-5 md:p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-white/50">Business pulse</p>
+                <p className="text-lg font-bold">{localBusinessStatus}</p>
+              </div>
+              <div className="rounded-2xl bg-white/10 p-3 shadow-inner">
+                <Bot className="h-5 w-5 text-emerald-300" />
+              </div>
             </div>
-
-            <div className="space-y-2">
-              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-                Sambel Farm
-              </p>
-              <h1 className="text-3xl font-black tracking-[-0.06em] text-slate-950 dark:text-white md:text-6xl">
-                Farm intelligence, bukan sekadar pembukuan.
-              </h1>
-              <p className="max-w-xl text-sm leading-6 text-muted-foreground md:text-base">
-                Single continuous dashboard untuk finansial, produksi, operasi,
-                dan rekomendasi cerdas dalam satu alur mobile-first.
-              </p>
+            
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="rounded-2xl bg-white/5 p-4 border border-white/10">
+                <p className="text-white/50 text-[10px] font-bold uppercase tracking-[0.15em] mb-1">Margin</p>
+                <p className="text-2xl font-black">{displayData.margin.toFixed(1)}%</p>
+              </div>
+              <div className="rounded-2xl bg-white/5 p-4 border border-white/10">
+                <p className="text-white/50 text-[10px] font-bold uppercase tracking-[0.15em] mb-1">HPP / kg</p>
+                <p className="text-xl font-black">{formatCurrency(hpp)}</p>
+              </div>
             </div>
-          </div>
-
-          <Card className="relative overflow-hidden rounded-[1.75rem] border-white/50 bg-slate-950 text-white shadow-2xl dark:border-white/10 md:min-w-80">
-            <CardContent className="space-y-4 p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-white/50">Business pulse</p>
-                  <p className="text-lg font-bold">{localBusinessStatus}</p>
-                </div>
-                <div className="rounded-2xl bg-white/10 p-3">
-                  <Bot className="h-5 w-5 text-emerald-300" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="rounded-2xl bg-white/10 p-3">
-                  <p className="text-white/50">Margin</p>
-                  <p className="text-2xl font-black">{displayData.margin.toFixed(1)}%</p>
-                </div>
-                <div className="rounded-2xl bg-white/10 p-3">
-                  <p className="text-white/50">HPP / kg</p>
-                  <p className="text-xl font-black">{formatCurrency(hpp)}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-white/55">
-                <Sparkles className="h-3.5 w-3.5 text-amber-200" />
-                Sync terakhir: {formatDate(summary?.lastUpdated || null)}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
+            
+            <div className="flex items-center gap-2 text-xs text-white/55">
+              <Sparkles className="h-3.5 w-3.5 text-amber-200" />
+              Sync terakhir: {formatDate(summary?.lastUpdated || null)}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Navigasi Pill Segmented */}
-      <div className="sticky top-2 z-30 mt-4 space-y-3 md:top-4">
+      <div className="sticky top-2 z-30 mt-4 space-y-2 md:top-4">
         <div className="rounded-[1.55rem] border border-white/60 bg-white/72 p-1.5 shadow-[0_18px_50px_rgba(15,23,42,0.10)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/70">
           <div className="grid grid-cols-4 gap-1">
             {sectionItems.map((item) => (
@@ -344,35 +325,35 @@ export function DashboardPage() {
           </div>
         </div>
 
-        {/* Toolbar Filter & Refresh Baru */}
+        {/* Toolbar Filter & Refresh Baru (Versi Mini/Ringkas) */}
         <div className="flex justify-end">
-          <div className="flex items-center gap-2 rounded-full border border-white/60 bg-white/72 p-1.5 shadow-lg backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/70">
+          <div className="flex items-center gap-1.5 rounded-full border border-white/60 bg-white/72 p-1 shadow-md backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/70">
             <div
-              className={`flex items-center gap-2 overflow-hidden transition-all duration-500 ease-out ${
+              className={`flex items-center gap-1.5 overflow-hidden transition-all duration-500 ease-out ${
                 showControls
-                  ? "max-w-[260px] translate-x-0 opacity-100"
+                  ? "max-w-[210px] translate-x-0 opacity-100"
                   : "max-w-0 translate-x-4 opacity-0"
               }`}
             >
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-10 w-10 shrink-0 rounded-full bg-muted/70"
+                className="h-8 w-8 shrink-0 rounded-full bg-muted/70"
                 onClick={handleRefreshSummary}
                 disabled={isFetching || isLoadingSummary}
               >
-                <RefreshCcw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+                <RefreshCcw className={`h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`} />
               </Button>
 
               <Select value={selectedAreaId} onValueChange={setSelectedAreaId}>
-                <SelectTrigger className="h-10 w-[158px] rounded-full border-white/60 bg-background/80 text-xs font-semibold shadow-none dark:border-white/10">
-                  <Leaf className="mr-2 h-3.5 w-3.5 text-emerald-600" />
+                <SelectTrigger className="h-8 w-[130px] rounded-full border-white/60 bg-background/80 text-[11px] font-semibold shadow-none dark:border-white/10">
+                  <Leaf className="mr-1.5 h-3.5 w-3.5 text-emerald-600" />
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Semua Area</SelectItem>
+                  <SelectItem value="all" className="text-[11px]">Semua Area</SelectItem>
                   {areas.map((area: any) => (
-                    <SelectItem key={area.id} value={area.id}>
+                    <SelectItem key={area.id} value={area.id} className="text-[11px]">
                       {area.name}
                     </SelectItem>
                   ))}
@@ -382,12 +363,12 @@ export function DashboardPage() {
 
             <button
               onClick={() => setShowControls((value) => !value)}
-              className="flex h-10 min-w-10 items-center justify-center gap-2 rounded-full bg-slate-950 px-3 text-white shadow-xl transition-all duration-300 active:scale-95 dark:bg-white dark:text-slate-950"
+              className="flex h-8 min-w-8 items-center justify-center gap-1 rounded-full bg-slate-950 px-3 text-white shadow-sm transition-all duration-300 active:scale-95 dark:bg-white dark:text-slate-950"
               aria-label="Toggle dashboard filters"
             >
-              <Filter className="h-4 w-4" />
+              <Filter className="h-3.5 w-3.5" />
               <ChevronDown
-                className={`h-3.5 w-3.5 transition-transform duration-300 ${
+                className={`h-3 w-3 transition-transform duration-300 ${
                   showControls ? "rotate-180" : ""
                 }`}
               />
@@ -397,7 +378,7 @@ export function DashboardPage() {
       </div>
 
       {/* Konten Utama */}
-      <div className="mt-5 space-y-5 md:mt-8 md:space-y-8">
+      <div className="mt-4 space-y-5 md:mt-8 md:space-y-8">
         <section ref={financialRef} className="scroll-mt-36">
           <FinancialSection
             displayData={displayData}
