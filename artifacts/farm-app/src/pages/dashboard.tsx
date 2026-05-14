@@ -233,9 +233,6 @@ export function DashboardPage() {
     100
   );
 
-  return (
-    // ...
-
   const localBusinessStatus = displayData.margin > 0 ? "Profitable" : "Developing";
   
   const localRecommendation =
@@ -257,6 +254,9 @@ export function DashboardPage() {
       block: "start",
     });
   };
+
+return (
+  
 
   if (isLoadingConnection) {
     return (
