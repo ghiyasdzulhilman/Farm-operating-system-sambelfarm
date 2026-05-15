@@ -5,11 +5,9 @@ import {
   Database,
   FlaskConical,
   Leaf,
-  Loader2,
   RefreshCcw,
-  Save,
   ServerCog,
-  Sparkles,
+  Settings,
   Users2,
   Workflow,
   ChevronRight,
@@ -200,7 +198,7 @@ export function SettingsPage() {
 }
 
 // ---------------------------------------------------------------------------
-// 📦 3. SCHEMA CONTROL CARD (Pull-Tab Integration)
+// 📦 3. SCHEMA CONTROL CARD
 // ---------------------------------------------------------------------------
 function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) {
   const { toast } = useToast();
@@ -241,7 +239,7 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
 
   // 4. Logic: Smart Map (Fuzzy Matching)
   const handleSmartMap = () => {
-    if (!props.length) return toast({ variant: "destructive", title: "Kolom Kosong", description: "Klik Load Cols dulu bro." });
+    if (!props.length) return toast({ variant: "destructive", title: "Kolom Kosong", description: "Klik Load dulu bro." });
     const nextMap: Record<string, string> = { ...fieldMappings };
     let count = 0;
     const normalize = (str: string) => str.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -258,11 +256,11 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
     });
 
     setFieldMappings(nextMap);
-    toast({ title: "Smart Map Selesai", description: `${count} kolom berhasil dicocokkan.` });
+    toast({ title: "Auto Map Selesai", description: `${count} kolom berhasil dicocokkan.` });
   };
 
-  // 5. Logic: Atomic Save
-  const handleAtomicSave = async () => {
+  // 5. Logic: Save
+  const handleSave = async () => {
     if (!linkedIds.length) return toast({ variant: "destructive", title: "DB Belum Dipilih", description: "Pilih minimal 1 database." });
 
     const mappingsToSave: Record<string, FieldMappingEntry> = {};
@@ -287,9 +285,7 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
 
   return (
     <Card className={cn(glassCard, "relative overflow-hidden transition-all duration-300", isExpanded && "ring-2 ring-emerald-500/40")}>
-      {/* BAGIAN ATAS (DB SELECTOR) 
-        pb-5 dikurangin buat ngasih ruang ke pull-tab di bawahnya
-      */}
+      {/* BAGIAN ATAS (DB SELECTOR) */}
       <div className="p-4 sm:p-5 sm:pb-3">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex flex-1 items-start gap-4 min-w-0">
@@ -335,9 +331,7 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
         </div>
       </div>
 
-      {/* PULL-TAB BUTTON
-        Gaya presisi ala Sambel Farm Dashboard
-      */}
+      {/* PULL-TAB BUTTON */}
       <div className="relative z-10 -mt-2 mb-2 flex w-full justify-center">
         <button
           onClick={onToggle}
@@ -348,8 +342,7 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
         </button>
       </div>
 
-      {/* BAGIAN BAWAH (COLLAPSIBLE MAPPING) 
-      */}
+      {/* BAGIAN BAWAH (COLLAPSIBLE MAPPING) */}
       <AnimatePresence>
         {isExpanded && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
@@ -359,14 +352,14 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
                 <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <h4 className="text-xs font-black uppercase tracking-widest text-emerald-700 dark:text-emerald-400">Schema Mapping</h4>
                   <div className="flex flex-wrap gap-2">
-                    <Button variant="secondary" size="sm" onClick={() => inspect()} disabled={isInspecting || !masterId} className="h-8 rounded-full text-[11px] font-bold">
-                      <RefreshCcw className={cn("mr-1.5 h-3 w-3", isInspecting && "animate-spin")} /> Load Cols
+                    <Button variant="secondary" size="sm" onClick={() => inspect()} disabled={isInspecting || !masterId} className="h-8 rounded-full px-4 text-[11px] font-bold">
+                      {isInspecting ? "Loading..." : "Load"}
                     </Button>
-                    <Button variant="secondary" size="sm" onClick={handleSmartMap} disabled={!props.length} className="h-8 rounded-full text-[11px] font-bold">
-                      <Sparkles className="mr-1.5 h-3 w-3 text-amber-500" /> Smart Map
+                    <Button variant="secondary" size="sm" onClick={handleSmartMap} disabled={!props.length} className="h-8 rounded-full px-4 text-[11px] font-bold">
+                      Auto map
                     </Button>
-                    <Button size="sm" onClick={handleAtomicSave} disabled={isSaving} className="h-8 rounded-full bg-emerald-600 px-4 text-[11px] font-bold text-white hover:bg-emerald-700">
-                      {isSaving ? <Loader2 className="mr-1.5 h-3 w-3 animate-spin" /> : <Save className="mr-1.5 h-3 w-3" />} Atomic Save
+                    <Button size="sm" onClick={handleSave} disabled={isSaving} className="h-8 rounded-full bg-slate-900 px-5 text-[11px] font-bold text-white shadow-sm transition-colors hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white">
+                      {isSaving ? "Saving..." : "Save"}
                     </Button>
                   </div>
                 </div>
