@@ -159,7 +159,7 @@ router.post("/staging/save", async (req, res): Promise<void> => {
   res.status(201).json({ success: true, stagingId: record.id, status: "pending" });
 });
 
-// GET /api/staging/list
+// GET /api/staging/list  — returns only 'pending' records for this user
 router.get("/staging/list", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
   if (!userId) {
@@ -170,7 +170,10 @@ router.get("/staging/list", async (req, res): Promise<void> => {
   const records = await db
     .select()
     .from(stagingDataTable)
-    .where(eq(stagingDataTable.userId, userId));
+    .where(and(
+      eq(stagingDataTable.userId, userId),
+      eq(stagingDataTable.status, "pending"),
+    ));
 
   res.json({ records });
 });
@@ -209,12 +212,13 @@ router.post("/staging/sync", async (req, res): Promise<void> => {
         const databaseId = await resolveNotionDatabaseId(userId, accessToken, record.databaseType);
 
         if (!databaseId) {
+          const errMsg = `Database '${record.databaseType}' tidak ditemukan di Notion.`;
           await db
             .update(stagingDataTable)
-            .set({ status: "failed" })
+            .set({ status: "failed", errorMessage: errMsg })
             .where(eq(stagingDataTable.id, record.id));
           failed++;
-          errors.push({ stagingId: record.id, error: `Database '${record.databaseType}' tidak ditemukan di Notion.` });
+          errors.push({ stagingId: record.id, error: errMsg });
           continue;
         }
 
@@ -229,31 +233,33 @@ router.post("/staging/sync", async (req, res): Promise<void> => {
 
         if (!response.ok) {
           const errText = await response.text();
+          const errMsg = `Notion error: ${errText.slice(0, 255)}`;
           await db
             .update(stagingDataTable)
-            .set({ status: "failed" })
+            .set({ status: "failed", errorMessage: errMsg })
             .where(eq(stagingDataTable.id, record.id));
           failed++;
-          errors.push({ stagingId: record.id, error: `Notion error: ${errText.slice(0, 120)}` });
+          errors.push({ stagingId: record.id, error: errMsg });
           continue;
         }
 
         const created = await response.json() as { id: string };
         await db
           .update(stagingDataTable)
-          .set({ status: "synced" })
+          .set({ status: "synced", errorMessage: null })
           .where(eq(stagingDataTable.id, record.id));
 
         req.log.info({ userId, stagingId: record.id, notionPageId: created.id }, "Staging: synced to Notion");
         synced++;
       } catch (err) {
         if (err instanceof NotionTokenInvalidError) throw err;
+        const errMsg = err instanceof Error ? err.message.slice(0, 255) : "Kesalahan tidak terduga.";
         await db
           .update(stagingDataTable)
-          .set({ status: "failed" })
+          .set({ status: "failed", errorMessage: errMsg })
           .where(eq(stagingDataTable.id, record.id));
         failed++;
-        errors.push({ stagingId: record.id, error: "Kesalahan tidak terduga." });
+        errors.push({ stagingId: record.id, error: errMsg });
       }
     }
 
