@@ -179,7 +179,7 @@ export function SettingsPage() {
         {/* MAIN CONTENT */}
         <main className="space-y-4">
           <AnimatePresence mode="wait">
-            <motion.div key={activeDomain} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className="space-y-4">
+            <motion.div key={activeDomain} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className="space-y-3">
               {DOMAINS.find(d => d.id === activeDomain)?.schemas.map((schema: any) => (
                 <SchemaControlCard 
                   key={schema.id} 
@@ -198,7 +198,7 @@ export function SettingsPage() {
 }
 
 // ---------------------------------------------------------------------------
-// 📦 3. SCHEMA CONTROL CARD
+// 📦 3. SCHEMA CONTROL CARD (Compact Edition)
 // ---------------------------------------------------------------------------
 function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) {
   const { toast } = useToast();
@@ -286,19 +286,20 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
   return (
     <Card className={cn(glassCard, "relative overflow-hidden transition-all duration-300", isExpanded && "ring-2 ring-emerald-500/40")}>
       
-      {/* BAGIAN ATAS (DB SELECTOR & PILLS) */}
-      <div className="p-4 sm:p-5 sm:pb-3">
-        <div className="flex flex-col gap-4">
+      {/* BAGIAN ATAS (DB SELECTOR & PILLS - COMPACT VERSION) */}
+      {/* Padding diperkecil, gap diperkecil */}
+      <div className="p-3 sm:p-4 sm:pb-2">
+        <div className="flex flex-col gap-2.5">
           
           {/* Baris 1: Ikon + Judul + Tombol Link DB */}
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-1 items-center gap-4 min-w-0">
-              <div className={cn("shrink-0 rounded-2xl p-3 text-emerald-600 transition-colors", isExpanded ? "bg-emerald-100 dark:bg-emerald-900/40" : "bg-slate-100 dark:bg-slate-800")}>
-                {schema.isMultiInstance ? <Workflow className="h-5 w-5" /> : <Database className="h-5 w-5" />}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-1 items-center gap-3 min-w-0">
+              <div className={cn("shrink-0 rounded-[1rem] p-2 text-emerald-600 transition-colors", isExpanded ? "bg-emerald-100 dark:bg-emerald-900/40" : "bg-slate-100 dark:bg-slate-800")}>
+                {schema.isMultiInstance ? <Workflow className="h-4 w-4" /> : <Database className="h-4 w-4" />}
               </div>
               <div className="min-w-0 flex-1">
-                <h3 className="text-base font-black truncate sm:text-lg">{schema.label}</h3>
-                <p className="text-xs text-muted-foreground truncate">{schema.hint}</p>
+                <h3 className="text-sm font-black truncate sm:text-base">{schema.label}</h3>
+                <p className="text-[11px] text-muted-foreground truncate">{schema.hint}</p>
               </div>
             </div>
 
@@ -307,42 +308,44 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
                 <Select onValueChange={(val) => {
                   if (!linkedIds.includes(val)) setLinkedIds(prev => schema.isMultiInstance ? [...prev, val] : [val]);
                 }}>
-                  <SelectTrigger className="h-11 w-full flex-1 rounded-full border-white/60 bg-white/50 font-bold shadow-sm backdrop-blur dark:bg-slate-900/50 sm:w-[160px]">
-                    <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400"><Plus className="h-4 w-4"/> Link DB</div>
+                  {/* Select button lebih kecil: h-9 */}
+                  <SelectTrigger className="h-9 w-full flex-1 rounded-full border-white/60 bg-white/50 text-xs font-bold shadow-sm backdrop-blur dark:bg-slate-900/50 sm:w-[130px]">
+                    <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400"><Plus className="h-3.5 w-3.5"/> Link DB</div>
                   </SelectTrigger>
                   <SelectContent className="max-h-[300px]">
-                    {allDatabases.map(db => <SelectItem key={db.id} value={db.id}>{db.iconEmoji} {db.name}</SelectItem>)}
+                    {allDatabases.map(db => <SelectItem key={db.id} value={db.id} className="text-xs">{db.iconEmoji} {db.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               )}
             </div>
           </div>
 
-          {/* Baris 2: Pills (Full width, Centered 100%) */}
-          <div className="flex w-full flex-wrap items-center justify-center gap-2 min-h-[30px]">
+          {/* Baris 2: Pills (Full width, Centered 100%, nempel teks) */}
+          {/* Min-h disesuaikan biar gak ada space kosong kalo pill-nya ga ada */}
+          <div className="flex w-full flex-wrap items-center justify-center gap-1.5 min-h-[26px]">
             <AnimatePresence mode="popLayout">
               {linkedIds.map(id => (
                 <motion.div key={id} layout initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} transition={{ type: "spring", stiffness: 300, damping: 25 }}>
-                  <Badge variant="secondary" className="gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
-                    <span className="truncate max-w-[140px] text-[11px] font-semibold">
+                  <Badge variant="secondary" className="gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                    <span className="truncate max-w-[140px] text-[10px] font-semibold">
                       {allDatabases.find(d => d.id === id)?.iconEmoji} {allDatabases.find(d => d.id === id)?.name || id}
                     </span>
-                    <X className="h-3.5 w-3.5 cursor-pointer opacity-50 transition-colors hover:opacity-100 hover:text-red-500" onClick={() => handleRemoveDb(id)} />
+                    <X className="h-3 w-3 cursor-pointer opacity-50 transition-colors hover:opacity-100 hover:text-red-500" onClick={() => handleRemoveDb(id)} />
                   </Badge>
                 </motion.div>
               ))}
             </AnimatePresence>
-            {linkedIds.length === 0 && <span className="text-[11px] text-muted-foreground opacity-60">Belum ada database terpilih</span>}
+            {linkedIds.length === 0 && <span className="text-[10px] text-muted-foreground opacity-60">Belum ada database terpilih</span>}
           </div>
 
         </div>
       </div>
 
-      {/* PULL-TAB BUTTON */}
-      <div className="relative z-10 -mt-2 mb-2 flex w-full justify-center">
+      {/* PULL-TAB BUTTON (Lebih presisi) */}
+      <div className="relative z-10 -mt-1 mb-1 flex w-full justify-center">
         <button
           onClick={onToggle}
-          className="flex h-5 w-14 items-center justify-center rounded-b-xl border border-t-0 border-white/60 bg-white/50 shadow-[0_4px_10px_rgba(0,0,0,0.03)] backdrop-blur-md transition-colors hover:bg-white dark:border-white/10 dark:bg-slate-900/50 dark:hover:bg-slate-800"
+          className="flex h-4 w-12 items-center justify-center rounded-b-xl border border-t-0 border-white/60 bg-white/50 shadow-[0_4px_10px_rgba(0,0,0,0.03)] backdrop-blur-md transition-colors hover:bg-white dark:border-white/10 dark:bg-slate-900/50 dark:hover:bg-slate-800"
           aria-label="Toggle mapping config"
         >
           <ChevronDown className={cn("h-3 w-3 text-muted-foreground transition-transform duration-300", isExpanded && "rotate-180")} />
@@ -353,50 +356,51 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
       <AnimatePresence>
         {isExpanded && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-            <div className="px-4 pb-4 sm:px-5 sm:pb-5">
-              <div className="border-t border-dashed border-slate-200 pt-5 dark:border-slate-800">
+            <div className="px-3 pb-3 sm:px-4 sm:pb-4">
+              <div className="border-t border-dashed border-slate-200 pt-4 dark:border-slate-800">
                 
-                {/* RATA TENGAH: 3 Tombol Aksi - Warna hijau selaras dengan Pills */}
-                <div className="mb-6 flex flex-col items-center justify-center gap-3">
-                  <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Mapping Controls</h4>
-                  <div className="flex flex-wrap items-center justify-center gap-2">
+                {/* RATA TENGAH: 3 Tombol Aksi */}
+                <div className="mb-4 flex flex-col items-center justify-center gap-2.5">
+                  <h4 className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Mapping Controls</h4>
+                  <div className="flex flex-wrap items-center justify-center gap-1.5">
                     <Button size="sm" onClick={() => inspect()} disabled={isInspecting || !masterId} 
-                      className="h-8 rounded-full px-5 text-[11px] font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/40 dark:text-emerald-300 dark:hover:bg-emerald-800/80">
+                      className="h-8 rounded-full px-4 text-[10px] font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/40 dark:text-emerald-300 dark:hover:bg-emerald-800/80">
                       {isInspecting ? "Loading..." : "Load"}
                     </Button>
                     <Button size="sm" onClick={handleAutoMap} disabled={!props.length} 
-                      className="h-8 rounded-full px-5 text-[11px] font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/40 dark:text-emerald-300 dark:hover:bg-emerald-800/80">
+                      className="h-8 rounded-full px-4 text-[10px] font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/40 dark:text-emerald-300 dark:hover:bg-emerald-800/80">
                       Auto map
                     </Button>
                     <Button size="sm" onClick={handleSave} disabled={isSaving} 
-                      className="h-8 rounded-full px-6 text-[11px] font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 shadow-sm transition-colors dark:bg-emerald-900/40 dark:text-emerald-300 dark:hover:bg-emerald-800/80">
+                      className="h-8 rounded-full bg-primary px-5 text-[10px] font-bold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90">
                       {isSaving ? "Saving..." : "Save"}
                     </Button>
                   </div>
                 </div>
 
-                <div className="grid gap-3">
+                <div className="grid gap-2"> {/* Gap grid row diperkecil */}
                   {schema.fields.map((field: any) => {
                     const isMapped = !!fieldMappings[field.key];
                     const pType = field.expectedType.split('|')[0];
                     return (
-                      <div key={field.key} className={cn("flex flex-col gap-3 rounded-[1.15rem] border p-3 transition-colors sm:flex-row sm:items-center sm:justify-between", isMapped ? "bg-emerald-50/50 border-emerald-100 dark:bg-emerald-950/20 dark:border-emerald-900/30" : "bg-slate-50/50 border-transparent dark:bg-slate-900/40")}>
+                      <div key={field.key} className={cn("flex flex-col gap-2 rounded-xl border p-2.5 transition-colors sm:flex-row sm:items-center sm:justify-between", isMapped ? "bg-emerald-50/50 border-emerald-100 dark:bg-emerald-950/20 dark:border-emerald-900/30" : "bg-slate-50/50 border-transparent dark:bg-slate-900/40")}>
                         
-                        <div className="flex flex-1 items-center gap-3 min-w-0">
-                           <Badge variant="outline" className="rounded-full bg-white text-[10px] font-black uppercase dark:bg-slate-950">{pType}</Badge>
+                        <div className="flex flex-1 items-center gap-2.5 min-w-0">
+                           <Badge variant="outline" className="rounded-full bg-white text-[9px] font-black uppercase dark:bg-slate-950">{pType}</Badge>
                            <div className="min-w-0 flex-1">
-                             <p className="truncate text-sm font-bold tracking-tight text-slate-900 dark:text-white">{field.label}</p>
+                             <p className="truncate text-xs font-bold tracking-tight text-slate-900 dark:text-white">{field.label}</p>
                            </div>
                         </div>
 
+                        {/* Dropdown Select lebih compact: h-9 */}
                         <Select value={fieldMappings[field.key] || ""} onValueChange={(val) => setFieldMappings(prev => ({...prev, [field.key]: val}))} disabled={!props.length}>
-                          <SelectTrigger className="h-10 w-full shrink-0 rounded-xl bg-white/80 text-xs font-semibold shadow-sm dark:bg-slate-950/80 sm:w-[240px]">
+                          <SelectTrigger className="h-9 w-full shrink-0 rounded-lg bg-white/80 text-[11px] font-semibold shadow-sm dark:bg-slate-950/80 sm:w-[220px]">
                             <SelectValue placeholder="Pilih kolom..." className="truncate" />
                           </SelectTrigger>
                           <SelectContent>
                             {props.length === 0 && <div className="p-2 text-center text-xs text-muted-foreground">Load cols dulu</div>}
                             {props.map((p: any) => (
-                              <SelectItem key={p.id} value={p.id} className="text-xs">
+                              <SelectItem key={p.id} value={p.id} className="text-[11px]">
                                 <span className="font-medium">{p.name}</span> <span className="ml-1 opacity-50">({p.type})</span>
                               </SelectItem>
                             ))}
