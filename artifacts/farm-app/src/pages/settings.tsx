@@ -8,7 +8,6 @@ import {
   Loader2,
   RefreshCcw,
   ServerCog,
-  Users2,
   Workflow,
   ChevronRight,
   ChevronDown,
@@ -224,10 +223,13 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
     }
   }, [savedData]);
 
-  // 2. Inspection (Fetch Columns)
+  // 2. Inspection (Fetch Columns) - FIX: Auto enable if masterId exists!
   const { data: inspected, isFetching: isInspecting, refetch: inspect } = useInspectDatabase(
     { type: schema.id, databaseId: masterId || undefined },
-    { query: { enabled: false, queryKey: getInspectDatabaseQueryKey({ type: schema.id, databaseId: masterId }) } }
+    { query: { 
+        enabled: !!masterId, // <-- INI KUNCI FIX-NYA BRO! Langsung load pas ada DB
+        queryKey: getInspectDatabaseQueryKey({ type: schema.id, databaseId: masterId }) 
+    } }
   );
   const props = inspected?.properties ?? [];
 
@@ -239,7 +241,7 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
 
   // 4. Logic: Auto Map (Fuzzy Matching)
   const handleAutoMap = () => {
-    if (!props.length) return toast({ variant: "destructive", title: "Kolom Kosong", description: "Klik Load dulu bro." });
+    if (!props.length) return toast({ variant: "destructive", title: "Kolom Kosong", description: "Tunggu loading beres dulu bro." });
     const nextMap: Record<string, string> = { ...fieldMappings };
     let count = 0;
     const normalize = (str: string) => str.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -287,7 +289,6 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
     <Card className={cn(glassCard, "relative overflow-hidden transition-all duration-300", isExpanded && "ring-2 ring-emerald-500/40")}>
       
       {/* BAGIAN ATAS (DB SELECTOR & PILLS - COMPACT VERSION) */}
-      {/* Padding diperkecil, gap diperkecil */}
       <div className="p-3 sm:p-4 sm:pb-2">
         <div className="flex flex-col gap-2.5">
           
@@ -308,7 +309,6 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
                 <Select onValueChange={(val) => {
                   if (!linkedIds.includes(val)) setLinkedIds(prev => schema.isMultiInstance ? [...prev, val] : [val]);
                 }}>
-                  {/* Select button lebih kecil: h-9 */}
                   <SelectTrigger className="h-9 w-full flex-1 rounded-full border-white/60 bg-white/50 text-xs font-bold shadow-sm backdrop-blur dark:bg-slate-900/50 sm:w-[130px]">
                     <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400"><Plus className="h-3.5 w-3.5"/> Link DB</div>
                   </SelectTrigger>
@@ -320,8 +320,7 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
             </div>
           </div>
 
-          {/* Baris 2: Pills (Full width, Centered 100%, nempel teks) */}
-          {/* Min-h disesuaikan biar gak ada space kosong kalo pill-nya ga ada */}
+          {/* Baris 2: Pills */}
           <div className="flex w-full flex-wrap items-center justify-center gap-1.5 min-h-[26px]">
             <AnimatePresence mode="popLayout">
               {linkedIds.map(id => (
@@ -341,7 +340,7 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
         </div>
       </div>
 
-      {/* PULL-TAB BUTTON (Lebih presisi) */}
+      {/* PULL-TAB BUTTON */}
       <div className="relative z-10 -mt-1 mb-1 flex w-full justify-center">
         <button
           onClick={onToggle}
@@ -378,7 +377,7 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
                   </div>
                 </div>
 
-                <div className="grid gap-2"> {/* Gap grid row diperkecil */}
+                <div className="grid gap-2">
                   {schema.fields.map((field: any) => {
                     const isMapped = !!fieldMappings[field.key];
                     const pType = field.expectedType.split('|')[0];
@@ -392,13 +391,13 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
                            </div>
                         </div>
 
-                        {/* Dropdown Select lebih compact: h-9 */}
-                        <Select value={fieldMappings[field.key] || ""} onValueChange={(val) => setFieldMappings(prev => ({...prev, [field.key]: val}))} disabled={!props.length}>
+                        <Select value={fieldMappings[field.key] || ""} onValueChange={(val) => setFieldMappings(prev => ({...prev, [field.key]: val}))} disabled={!props.length && !isInspecting}>
                           <SelectTrigger className="h-9 w-full shrink-0 rounded-lg bg-white/80 text-[11px] font-semibold shadow-sm dark:bg-slate-950/80 sm:w-[220px]">
-                            <SelectValue placeholder="Pilih kolom..." className="truncate" />
+                            {/* FIX: Tambahan feedback UI kalau lagi loading API */}
+                            <SelectValue placeholder={isInspecting ? "Memuat kolom..." : "Pilih kolom..."} className="truncate" />
                           </SelectTrigger>
                           <SelectContent>
-                            {props.length === 0 && <div className="p-2 text-center text-xs text-muted-foreground">Load cols dulu</div>}
+                            {props.length === 0 && <div className="p-2 text-center text-xs text-muted-foreground">{isInspecting ? "Loading..." : "Load cols dulu"}</div>}
                             {props.map((p: any) => (
                               <SelectItem key={p.id} value={p.id} className="text-[11px]">
                                 <span className="font-medium">{p.name}</span> <span className="ml-1 opacity-50">({p.type})</span>
