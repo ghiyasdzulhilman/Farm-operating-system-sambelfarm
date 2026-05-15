@@ -5,6 +5,7 @@ import expensesRouter from "./expenses";
 import harvestRouter from "./harvest";
 import mappingsRouter from "./mappings";
 import dashboardRouter from "./dashboard";
+import stagingRouter from "./staging";
 
 const router: IRouter = Router();
 
@@ -14,5 +15,6 @@ router.use(expensesRouter);
 router.use(harvestRouter);
 router.use(mappingsRouter);
 router.use(dashboardRouter);
+router.use(stagingRouter);
 
 export default router;

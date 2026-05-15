@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { getAuth } from "@clerk/express";
-import { db, fieldMappingsTable } from "@workspace/db";
+import { db, fieldMappingsTable, stagingDataTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -355,12 +355,40 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
       return;
     }
 
-    const [resultLabaRugi, harvestMap] = await Promise.all([
+    const [resultLabaRugi, harvestMap, stagingRecords] = await Promise.all([
       queryLabaRugi(userId, connection.accessToken, dbLabaRugiId, mappingsLabaRugi),
       panenMapping?.notionDatabaseId
         ? queryHarvestByArea(userId, connection.accessToken, panenMapping.notionDatabaseId, panenMapping.mappings || {})
         : Promise.resolve({ global: 0 } as Record<string, number>),
+      db
+        .select()
+        .from(stagingDataTable)
+        .where(and(
+          eq(stagingDataTable.userId, userId),
+          eq(stagingDataTable.status, "pending"),
+        )),
     ]);
+
+    // Augment harvestMap with pending panen staging data
+    let stagingHarvestWeight = 0;
+    let stagingPengeluaran = 0;
+
+    for (const record of stagingRecords) {
+      const data = record.data as Record<string, unknown>;
+      if (record.databaseType === "panen") {
+        const weight = Number(data.jumlahPanen ?? 0);
+        stagingHarvestWeight += weight;
+        harvestMap.global = (harvestMap.global || 0) + weight;
+        const labaRugiId = data.labaRugiId as string | undefined;
+        if (labaRugiId) {
+          harvestMap[labaRugiId] = (harvestMap[labaRugiId] || 0) + weight;
+        }
+      } else if (record.databaseType === "expenses") {
+        stagingPengeluaran += Number(data.qty ?? 0) * Number(data.hargaPerPcs ?? 0);
+      }
+    }
+
+    const adjustedPengeluaran = resultLabaRugi.totalPengeluaran + stagingPengeluaran;
 
     const finalAreas = resultLabaRugi.areas.map((area) => ({
       ...area,
@@ -372,8 +400,8 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
       areaMap[area.id] = area.name;
     }
 
-    const totalProfit = resultLabaRugi.totalPendapatan - resultLabaRugi.totalPengeluaran;
-    const hpp = resultLabaRugi.totalPengeluaran / (harvestMap.global || 1);
+    const totalProfit = resultLabaRugi.totalPendapatan - adjustedPengeluaran;
+    const hpp = adjustedPengeluaran / (harvestMap.global || 1);
     const bepProgress = (resultLabaRugi.totalPendapatan / (resultLabaRugi.totalModal || 1)) * 100;
 
     const activities = panenMapping?.notionDatabaseId
@@ -392,7 +420,7 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
       financial: {
         totalModal: resultLabaRugi.totalModal,
         totalPendapatan: resultLabaRugi.totalPendapatan,
-        totalPengeluaran: resultLabaRugi.totalPengeluaran,
+        totalPengeluaran: adjustedPengeluaran,
         labaRugi: totalProfit,
         marginTotal: resultLabaRugi.marginTotal,
         bepProgress,
@@ -401,6 +429,11 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
         totalHarvestWeight: harvestMap.global,
         hpp,
         averageRevenuePerKg: resultLabaRugi.totalPendapatan / (harvestMap.global || 1),
+      },
+      staging: {
+        pendingCount: stagingRecords.length,
+        pendingHarvestWeight: stagingHarvestWeight,
+        pendingPengeluaran: stagingPengeluaran,
       },
       operational: {
         totalAreas: finalAreas.length,

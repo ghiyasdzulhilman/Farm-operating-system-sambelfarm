@@ -1,0 +1,31 @@
+Tolong bantu saya mengimplementasikan sistem 'Staging Area' menggunakan Drizzle ORM dan Express. Tujuannya agar data input user masuk ke database internal dulu sebelum dikirim ke Notion. Berikut spesifikasinya:
+
+1. Database Schema (Drizzle): 
+Buat tabel baru bernama staging_data yang menyimpan: id (uuid), userld (string), databaseType (enum: panen, expenses, dll), data (jsonb/json untuk menyimpan field input), dan status (default: 'pending').
+
+2. Logic Dashboard Summary: 
+Modifikasi endpoint GET /dashboard/summary. Sebelum mengembalikan JSON, query tabel staging_data untuk mengambil semua data yang statusnya 'pending'. Tambahkan/ jumlahkan nilai dari staging data ini ke hasil perhitungan yang ditarik dari Notion API, sehingga dashboard selalu menampilkan data paling update (Notion + staging)
+
+3. New Endpoint (Save to Staging): Buat
+endpoint POST (api/staging/save untuk menyimpan input baru dari user ke tabel staging_data.
+
+4. Sync Logic: 
+Buat endpoint POST /api/staging/sync. Endpoint ini akan:
+• Mengambil semua data 'pending' dari staging_data.
+• Mengirimkan data tersebut ke Notion API
+sesuai databaseType-nya.
+• Jika berhasil, hapus data tersebut dari tabel staging_data atau ubah statusnya menjadi 'synced'
+
+Pastikan semua query menggunakan filter userId dari Clerk Auth agar data antar user tidak tercampur.
+
+"Tambahkan fitur Auto-Purge (Data
+Retention) pada sistem staging ini:
+
+1. Timestamp: 
+Pastikan tabel staging_data punya kolom updated_at yang otomatis ter-update setiap kali status berubah jadi 'synced'.
+
+2. Cleanup Job: 
+Buat sebuah fungsi (atau cron job sederhana) yang berjalan setiap hari untuk menghapus record di tabel staging_data yang memenuhi kriteria: status = 'synced' DAN updated_at sudah lebih dari 30 hari yang lalu.
+
+3. Manual Trigger (Optional): 
+Buat satu endpoint admin DELETE /api/staging/clean-old-data yang bisa dipanggil untuk membersihkan data lama secara manual jika diperlukan. Pastikan query penghapusan ini tetap menggunakan filter userld (opsional, tergantung apakah job ini berjalan global atau per user session)."
