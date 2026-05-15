@@ -93,7 +93,8 @@ const DOMAINS: any[] = [
         { key: "area", label: "Area/Blok", expectedType: "title", aliases: ALIASES.area },
         { key: "waktu_tanam", label: "Waktu Tanam", expectedType: "date", aliases: ALIASES.tanggal },
       ]},
-      { id: "treatment", label: "Riwayat Perawatan (Multi-Blok)", hint: "Mapping 1x, terapkan ke banyak blok", isMultiInstance: true, fields: [
+      // FIX ID: Dikembalikan ke "treatment_blocks" agar lolos validasi enum backend
+      { id: "treatment_blocks", label: "Riwayat Perawatan (Multi-Blok)", hint: "Mapping 1x, terapkan ke banyak blok", isMultiInstance: true, fields: [
         { key: "kegiatan", label: "Kegiatan", expectedType: "title", aliases: ALIASES.kegiatan },
         { key: "tanggal", label: "Tanggal", expectedType: "date", aliases: ALIASES.tanggal },
         { key: "hst", label: "HST", expectedType: "formula|rollup|number" },
@@ -211,12 +212,17 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
   const masterId = linkedIds[0] || "";
 
   // 1. Fetching Initial Data
-  const { data: savedData } = useGetFieldMappings({ type: schema.id }, { query: { queryKey: getGetFieldMappingsQueryKey({ type: schema.id }) } });
+  // FIX: Multi-instance harus nge-fetch schema_0 supaya database pertama kedetect!
+  const fetchType = schema.isMultiInstance ? `${schema.id}_0` : schema.id;
+  const { data: savedData } = useGetFieldMappings(
+    { type: fetchType as any }, 
+    { query: { queryKey: getGetFieldMappingsQueryKey({ type: fetchType as any }) } }
+  );
 
   useEffect(() => {
     if (savedData) {
-      if (savedData.notionDatabaseId && !linkedIds.includes(savedData.notionDatabaseId)) {
-        setLinkedIds([savedData.notionDatabaseId]);
+      if (savedData.notionDatabaseId) {
+        setLinkedIds(prev => prev.includes(savedData.notionDatabaseId!) ? prev : [...prev, savedData.notionDatabaseId!]);
       }
       const mapped: Record<string, string> = {};
       Object.entries(savedData.mappings ?? {}).forEach(([k, v]: any) => { if (v?.propertyId) mapped[k] = v.propertyId; });
@@ -224,12 +230,14 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
     }
   }, [savedData]);
 
-  // 2. Inspection (Fetch Columns) - FIX: Auto enable if masterId exists!
+  // 2. Inspection (Fetch Columns)
+  // FIX: Mengirim masterId kosong jika belum ada agar tidak error undefined di query parameter
+  const inspectType = schema.id as any;
   const { data: inspected, isFetching: isInspecting, refetch: inspect } = useInspectDatabase(
-    { type: schema.id, databaseId: masterId || undefined },
+    { type: inspectType, databaseId: masterId || "" },
     { query: { 
-        enabled: !!masterId, // <-- INI KUNCI FIX-NYA BRO! Langsung load pas ada DB
-        queryKey: getInspectDatabaseQueryKey({ type: schema.id, databaseId: masterId }) 
+        enabled: !!masterId,
+        queryKey: getInspectDatabaseQueryKey({ type: inspectType, databaseId: masterId || "" }) 
     } }
   );
   const props = inspected?.properties ?? [];
@@ -281,19 +289,18 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
         }
       })));
       toast({ title: "Schema Saved", description: `Berhasil disimpan ke ${linkedIds.length} database.` });
-      queryClient.invalidateQueries({ queryKey: getGetFieldMappingsQueryKey({ type: schema.id }) });
+      queryClient.invalidateQueries({ queryKey: getGetFieldMappingsQueryKey({ type: fetchType as any }) });
       onToggle(); 
-    } catch (e) { toast({ variant: "destructive", title: "Gagal Simpan", description: "Terjadi kesalahan sistem." }); }
+    } catch (e) { toast({ variant: "destructive", title: "Gagal Simpan", description: "Terjadi kesalahan saat sinkronisasi API." }); }
   };
 
   return (
     <Card className={cn(glassCard, "relative overflow-hidden transition-all duration-300", isExpanded && "ring-2 ring-emerald-500/40")}>
       
-      {/* BAGIAN ATAS (DB SELECTOR & PILLS - COMPACT VERSION) */}
+      {/* BAGIAN ATAS (DB SELECTOR & PILLS) */}
       <div className="p-3 sm:p-4 sm:pb-2">
         <div className="flex flex-col gap-2.5">
           
-          {/* Baris 1: Ikon + Judul + Tombol Link DB */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-1 items-center gap-3 min-w-0">
               <div className={cn("shrink-0 rounded-[1rem] p-2 text-emerald-600 transition-colors", isExpanded ? "bg-emerald-100 dark:bg-emerald-900/40" : "bg-slate-100 dark:bg-slate-800")}>
@@ -321,7 +328,6 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
             </div>
           </div>
 
-          {/* Baris 2: Pills */}
           <div className="flex w-full flex-wrap items-center justify-center gap-1.5 min-h-[26px]">
             <AnimatePresence mode="popLayout">
               {linkedIds.map(id => (
@@ -359,7 +365,6 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
             <div className="px-3 pb-3 sm:px-4 sm:pb-4">
               <div className="border-t border-dashed border-slate-200 pt-4 dark:border-slate-800">
                 
-                {/* RATA TENGAH: 3 Tombol Aksi */}
                 <div className="mb-4 flex flex-col items-center justify-center gap-2.5">
                   <h4 className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Mapping Controls</h4>
                   <div className="flex flex-wrap items-center justify-center gap-1.5">
@@ -392,13 +397,13 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
                            </div>
                         </div>
 
-                        <Select value={fieldMappings[field.key] || ""} onValueChange={(val) => setFieldMappings(prev => ({...prev, [field.key]: val}))} disabled={!props.length && !isInspecting}>
+                        {/* FIX: Status `disabled` dicabut. Dropdown tidak akan pernah terkunci! */}
+                        <Select value={fieldMappings[field.key] || ""} onValueChange={(val) => setFieldMappings(prev => ({...prev, [field.key]: val}))}>
                           <SelectTrigger className="h-9 w-full shrink-0 rounded-lg bg-white/80 text-[11px] font-semibold shadow-sm dark:bg-slate-950/80 sm:w-[220px]">
-                            {/* FIX: Tambahan feedback UI kalau lagi loading API */}
-                            <SelectValue placeholder={isInspecting ? "Memuat kolom..." : "Pilih kolom..."} className="truncate" />
+                            <SelectValue placeholder={isInspecting ? "Memuat kolom..." : (props.length ? "Pilih kolom..." : "Kolom belum di-load")} className="truncate" />
                           </SelectTrigger>
                           <SelectContent>
-                            {props.length === 0 && <div className="p-2 text-center text-xs text-muted-foreground">{isInspecting ? "Loading..." : "Load cols dulu"}</div>}
+                            {props.length === 0 && <div className="p-2 text-center text-xs text-muted-foreground">{isInspecting ? "Loading..." : "Tekan Load Cols dulu"}</div>}
                             {props.map((p: any) => (
                               <SelectItem key={p.id} value={p.id} className="text-[11px]">
                                 <span className="font-medium">{p.name}</span> <span className="ml-1 opacity-50">({p.type})</span>
