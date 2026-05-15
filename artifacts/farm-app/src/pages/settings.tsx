@@ -60,7 +60,7 @@ const DOMAINS: any[] = [
     icon: ServerCog,
     description: "Laba rugi, harvest revenue, & expense tracking",
     schemas: [
-      { id: "laba_rugi", label: "Laba Rugi & Unit Economics", hint: "Rekap keuangan per area", fields: [
+      { id: "laba_rugi", label: "Laba Rugi & Unit Economics", hint: "Rekap keuangan kebun", fields: [
         { key: "area", label: "Nama Area/Blok", expectedType: "title", aliases: ALIASES.area },
         { key: "modalAwal", label: "Modal Awal", expectedType: "number" },
         { key: "pendapatan", label: "Total Pendapatan", expectedType: "rollup|formula|number" },
@@ -73,7 +73,7 @@ const DOMAINS: any[] = [
         { key: "hargaJualPerKg", label: "Harga Jual per Kg", expectedType: "number", aliases: ALIASES.harga },
         { key: "labaRugi", label: "Area Laba Rugi", expectedType: "relation", aliases: ALIASES.area },
       ]},
-      { id: "expenses", label: "Pengeluaran Operasional", hint: "Biaya input, pupuk, gaji", fields: [
+      { id: "expenses", label: "Pengeluaran Operasional", hint: "Biaya Pupuk, pestisida, upah dll", fields: [
         { key: "pengeluaran", label: "Nama Pengeluaran", expectedType: "title" },
         { key: "date", label: "Tanggal", expectedType: "date|created_time", aliases: ALIASES.tanggal },
         { key: "qty", label: "Qty / Jumlah", expectedType: "number", aliases: ALIASES.qty },
@@ -89,7 +89,7 @@ const DOMAINS: any[] = [
     icon: Leaf,
     description: "Perawatan, inspeksi, dan kegiatan umum",
     schemas: [
-      { id: "pindah_tanam", label: "Pindah Tanam (Anchor)", hint: "Master data waktu tanam untuk rumus HST", fields: [
+      { id: "pindah_tanam", label: "Pindah Tanam", hint: "Patokan hari pindah tanam", fields: [
         { key: "area", label: "Area/Blok", expectedType: "title", aliases: ALIASES.area },
         { key: "waktu_tanam", label: "Waktu Tanam", expectedType: "date", aliases: ALIASES.tanggal },
       ]},
@@ -101,14 +101,14 @@ const DOMAINS: any[] = [
         { key: "petugas", label: "Petugas Lapangan", expectedType: "relation" },
         { key: "area", label: "Area Pindah Tanam", expectedType: "relation", aliases: ALIASES.area },
       ]},
-      { id: "inspeksi", label: "Inspeksi Rutin Mingguan", hint: "Pencatatan hama dan penyakit", fields: [
+      { id: "inspeksi", label: "Inspeksi Rutin", hint: "Pencatatan hama dan penyakit", fields: [
         { key: "kegiatan", label: "Kegiatan", expectedType: "title", aliases: ALIASES.kegiatan },
         { key: "tanggal", label: "Tanggal", expectedType: "date|created_time", aliases: ALIASES.tanggal },
         { key: "hama", label: "Hama", expectedType: "multi_select", aliases: ALIASES.hama },
         { key: "penyakit", label: "Penyakit", expectedType: "multi_select", aliases: ALIASES.penyakit },
         { key: "area", label: "Area", expectedType: "relation", aliases: ALIASES.area },
       ]},
-      { id: "operasional", label: "Kegiatan Operasional Umum", hint: "Task perbaikan, babat rumput, dll", fields: [
+      { id: "operasional", label: "Kegiatan Operasional Umum", hint: "Tugas harian", fields: [
         { key: "kegiatan", label: "Task", expectedType: "title", aliases: ALIASES.kegiatan },
         { key: "tanggal", label: "Tanggal", expectedType: "date", aliases: ALIASES.tanggal },
         { key: "keterangan", label: "Catatan", expectedType: "rich_text" },
@@ -311,7 +311,7 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
                   if (!linkedIds.includes(val)) setLinkedIds(prev => schema.isMultiInstance ? [...prev, val] : [val]);
                 }}>
                   <SelectTrigger className="h-9 w-full flex-1 rounded-full border-white/60 bg-white/50 text-xs font-bold shadow-sm backdrop-blur dark:bg-slate-900/50 sm:w-[130px]">
-                    <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400"><Plus className="h-3.5 w-3.5"/> Link DB</div>
+                    <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400"><Plus className="h-3.5 w-3.5"/>Pilih database</div>
                   </SelectTrigger>
                   <SelectContent className="max-h-[300px]">
                     {allDatabases.map(db => <SelectItem key={db.id} value={db.id} className="text-xs">{db.iconEmoji} {db.name}</SelectItem>)}
