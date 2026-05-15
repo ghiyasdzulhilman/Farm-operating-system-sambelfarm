@@ -16,8 +16,14 @@ const router: IRouter = Router();
 
 // ---- Helpers ----------------------------------------------------------------
 
-function pk(mappings: FieldMappingData | undefined, field: string, fallback: string): string {
-  return mappings?.[field]?.propertyId ?? fallback;
+/** Notion menyimpan propertyId dalam URL-encoded form (e.g. "%3ANMi" = ":NMi").
+ *  Decode ke bentuk aslinya sebelum dipakai sebagai key di Notion API. */
+function decodePropertyId(id: string): string {
+  try {
+    return decodeURIComponent(id);
+  } catch {
+    return id;
+  }
 }
 
 async function getMappingRow(userId: string, databaseType: string) {
@@ -72,62 +78,138 @@ async function resolveNotionDatabaseId(
   return findDatabaseByName(userId, accessToken, defaultName);
 }
 
+// ---- Dynamic property builder -----------------------------------------------
+
+/** Definisi field: mappingKey = key di tabel field_mappings,
+ *  dataKey = key di form data (default = mappingKey jika tidak diisi),
+ *  build = fungsi pembuat Notion property value,
+ *  optional = skip jika nilai kosong/null/undefined */
+interface FieldSpec {
+  mappingKey: string;
+  dataKey?: string;
+  build: (value: unknown) => unknown;
+  optional?: boolean;
+}
+
+/**
+ * Spesifikasi field per databaseType.
+ * Urutan = urutan pengecekan. Field tanpa mapping yang tersimpan di DB akan di-skip
+ * (tidak ada hardcoded fallback ke nama properti).
+ */
+const DB_FIELD_SPECS: Record<string, FieldSpec[]> = {
+  panen: [
+    {
+      mappingKey: "kegiatan",
+      build: (v) => ({ title: [{ text: { content: String(v ?? "") } }] }),
+    },
+    {
+      mappingKey: "tanggal",
+      build: (v) => ({ date: { start: String(v) } }),
+      optional: true,
+    },
+    {
+      mappingKey: "jumlahPanen",
+      build: (v) => ({ number: Number(v ?? 0) }),
+    },
+    {
+      mappingKey: "hargaJualPerKg",
+      build: (v) => ({ number: Number(v ?? 0) }),
+    },
+    {
+      mappingKey: "kualitas",
+      build: (v) => ({ select: { name: String(v) } }),
+      optional: true,
+    },
+    {
+      mappingKey: "channelPenjualan",
+      build: (v) => ({ select: { name: String(v) } }),
+      optional: true,
+    },
+    // Form mengirim "pindahTanamId" tapi mapping key-nya "areaPindahTanam"
+    {
+      mappingKey: "areaPindahTanam",
+      dataKey: "pindahTanamId",
+      build: (v) => ({ relation: [{ id: String(v) }] }),
+      optional: true,
+    },
+    // Form mengirim "labaRugiId" — mapping key juga "labaRugi"
+    {
+      mappingKey: "labaRugi",
+      dataKey: "labaRugiId",
+      build: (v) => ({ relation: [{ id: String(v) }] }),
+      optional: true,
+    },
+  ],
+
+  expenses: [
+    {
+      mappingKey: "pengeluaran",
+      build: (v) => ({ title: [{ text: { content: String(v ?? "") } }] }),
+    },
+    {
+      mappingKey: "qty",
+      build: (v) => ({ number: Number(v ?? 0) }),
+    },
+    {
+      mappingKey: "hargaPerPcs",
+      build: (v) => ({ number: Number(v ?? 0) }),
+    },
+    {
+      mappingKey: "date",
+      build: (v) => ({ date: { start: String(v) } }),
+    },
+    // Form mengirim "kategoriId" tapi mapping key-nya "kategori"
+    {
+      mappingKey: "kategori",
+      dataKey: "kategoriId",
+      build: (v) => ({ relation: [{ id: String(v) }] }),
+      optional: true,
+    },
+    // Form mengirim "areaId" tapi mapping key-nya "labaRugi"
+    {
+      mappingKey: "labaRugi",
+      dataKey: "areaId",
+      build: (v) => ({ relation: [{ id: String(v) }] }),
+      optional: true,
+    },
+  ],
+};
+
+/**
+ * Build Notion properties object dari data form + konfigurasi field_mappings.
+ *
+ * Aturan:
+ * - Field yang belum dikonfigurasi di field_mappings → di-skip (tidak ada hardcoded fallback)
+ * - propertyId di-decode dari URL encoding sebelum dipakai sebagai key Notion
+ * - Field optional → di-skip jika nilai kosong/null/undefined
+ */
 function buildNotionProperties(
   databaseType: string,
   data: Record<string, unknown>,
   mappings: FieldMappingData | undefined,
 ): Record<string, unknown> {
-  if (databaseType === "panen") {
-    const props: Record<string, unknown> = {
-      [pk(mappings, "kegiatan", "Kegiatan")]: {
-        title: [{ text: { content: String(data.kegiatan ?? "") } }],
-      },
-      [pk(mappings, "jumlahPanen", "Jumlah Panen (kg)")]: { number: Number(data.jumlahPanen ?? 0) },
-      [pk(mappings, "hargaJualPerKg", "Harga Jual per Kg")]: { number: Number(data.hargaJualPerKg ?? 0) },
-      [pk(mappings, "kualitas", "Kualitas")]: { select: { name: String(data.kualitas ?? "") } },
-      [pk(mappings, "channelPenjualan", "Channel Penjualan")]: {
-        select: { name: String(data.channelPenjualan ?? "") },
-      },
-    };
-    if (data.tanggal) {
-      props[pk(mappings, "tanggal", "Tanggal")] = { date: { start: String(data.tanggal) } };
+  const specs = DB_FIELD_SPECS[databaseType];
+  if (!specs || !mappings) return {};
+
+  const props: Record<string, unknown> = {};
+
+  for (const spec of specs) {
+    const mapping = mappings[spec.mappingKey];
+    if (!mapping) continue; // field ini belum dikonfigurasi user → skip
+
+    const value = data[spec.dataKey ?? spec.mappingKey];
+
+    // Skip optional field jika nilainya kosong
+    if (spec.optional && (value === undefined || value === null || value === "")) {
+      continue;
     }
-    if (data.pindahTanamId) {
-      props[pk(mappings, "areaPindahTanam", "Area Pindah Tanam")] = {
-        relation: [{ id: String(data.pindahTanamId) }],
-      };
-    }
-    if (data.labaRugiId) {
-      props[pk(mappings, "labaRugi", "Area Laba Rugi")] = {
-        relation: [{ id: String(data.labaRugiId) }],
-      };
-    }
-    return props;
+
+    // Decode propertyId dari URL-encoding (misal "%3ANMi" → ":NMi")
+    const notionKey = decodePropertyId(mapping.propertyId);
+    props[notionKey] = spec.build(value);
   }
 
-  if (databaseType === "expenses") {
-    const props: Record<string, unknown> = {
-      [pk(mappings, "pengeluaran", "Pengeluaran")]: {
-        title: [{ text: { content: String(data.pengeluaran ?? "") } }],
-      },
-      [pk(mappings, "qty", "Qty")]: { number: Number(data.qty ?? 0) },
-      [pk(mappings, "hargaPerPcs", "Harga/pcs")]: { number: Number(data.hargaPerPcs ?? 0) },
-      [pk(mappings, "date", "Date")]: { date: { start: String(data.date ?? "") } },
-    };
-    if (data.kategoriId) {
-      props[pk(mappings, "kategori", "Kategori")] = {
-        relation: [{ id: String(data.kategoriId) }],
-      };
-    }
-    if (data.areaId) {
-      props[pk(mappings, "labaRugi", "Area Laba Rugi")] = {
-        relation: [{ id: String(data.areaId) }],
-      };
-    }
-    return props;
-  }
-
-  return {};
+  return props;
 }
 
 // ---- Routes -----------------------------------------------------------------
