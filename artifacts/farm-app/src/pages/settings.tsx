@@ -8,6 +8,7 @@ import {
   Loader2,
   RefreshCcw,
   ServerCog,
+  Users,
   Workflow,
   ChevronRight,
   ChevronDown,
@@ -116,7 +117,7 @@ const DOMAINS: any[] = [
     ]
   },
   { id: "lab", label: "Lab & Tools", icon: FlaskConical, description: "Kalkulator nutrisi & pupuk", schemas: [] },
-  { id: "resource", label: "Resources", icon: Users2, description: "Manajemen data pekerja", schemas: [] },
+  { id: "resource", label: "Resources", icon: Users, description: "Manajemen data pekerja", schemas: [] },
 ];
 
 const glassCard = "rounded-[1.75rem] border border-white/60 bg-white/70 shadow-[0_8px_32px_rgba(15,23,42,0.05)] backdrop-blur-2xl dark:border-white/10 dark:bg-white/[0.05]";
