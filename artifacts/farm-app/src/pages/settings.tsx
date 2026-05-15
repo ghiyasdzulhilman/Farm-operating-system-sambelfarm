@@ -5,6 +5,7 @@ import {
   Database,
   FlaskConical,
   Leaf,
+  Loader2,
   RefreshCcw,
   ServerCog,
   Settings,
@@ -237,8 +238,8 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
     if (linkedIds.length <= 1) setFieldMappings({}); 
   };
 
-  // 4. Logic: Smart Map (Fuzzy Matching)
-  const handleSmartMap = () => {
+  // 4. Logic: Auto Map (Fuzzy Matching)
+  const handleAutoMap = () => {
     if (!props.length) return toast({ variant: "destructive", title: "Kolom Kosong", description: "Klik Load dulu bro." });
     const nextMap: Record<string, string> = { ...fieldMappings };
     let count = 0;
@@ -296,7 +297,8 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
               <h3 className="text-base font-black truncate sm:text-lg">{schema.label}</h3>
               <p className="text-xs text-muted-foreground truncate">{schema.hint}</p>
               
-              <div className="mt-2 flex flex-wrap gap-2 min-h-[30px] items-center">
+              {/* RATA TENGAH: Container pill database dipusatkan */}
+              <div className="mt-3 flex w-full flex-wrap items-center justify-center gap-2 min-h-[30px] sm:justify-start">
                 <AnimatePresence mode="popLayout">
                   {linkedIds.map(id => (
                     <motion.div key={id} layout initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} transition={{ type: "spring", stiffness: 300, damping: 25 }}>
@@ -304,22 +306,22 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
                         <span className="truncate max-w-[140px] text-[11px] font-semibold">
                           {allDatabases.find(d => d.id === id)?.iconEmoji} {allDatabases.find(d => d.id === id)?.name || id}
                         </span>
-                        <X className="h-3.5 w-3.5 cursor-pointer opacity-50 hover:opacity-100 hover:text-red-500 transition-colors" onClick={() => handleRemoveDb(id)} />
+                        <X className="h-3.5 w-3.5 cursor-pointer opacity-50 transition-colors hover:opacity-100 hover:text-red-500" onClick={() => handleRemoveDb(id)} />
                       </Badge>
                     </motion.div>
                   ))}
                 </AnimatePresence>
-                {linkedIds.length === 0 && <span className="text-xs text-muted-foreground opacity-60">Belum ada database terpilih</span>}
+                {linkedIds.length === 0 && <span className="text-[11px] text-muted-foreground opacity-60">Belum ada database terpilih</span>}
               </div>
             </div>
           </div>
 
-          <div className="flex shrink-0 w-full sm:w-auto">
+          <div className="flex w-full shrink-0 sm:w-auto">
             {(!schema.isMultiInstance && linkedIds.length > 0) ? null : (
               <Select onValueChange={(val) => {
                 if (!linkedIds.includes(val)) setLinkedIds(prev => schema.isMultiInstance ? [...prev, val] : [val]);
               }}>
-                <SelectTrigger className="h-11 w-full sm:w-[160px] flex-1 rounded-full border-white/60 bg-white/50 font-bold shadow-sm backdrop-blur dark:bg-slate-900/50">
+                <SelectTrigger className="h-11 w-full flex-1 rounded-full border-white/60 bg-white/50 font-bold shadow-sm backdrop-blur dark:bg-slate-900/50 sm:w-[160px]">
                   <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400"><Plus className="h-4 w-4"/> Link DB</div>
                 </SelectTrigger>
                 <SelectContent className="max-h-[300px]">
@@ -349,16 +351,18 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
             <div className="px-4 pb-4 sm:px-5 sm:pb-5">
               <div className="border-t border-dashed border-slate-200 pt-5 dark:border-slate-800">
                 
-                <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <h4 className="text-xs font-black uppercase tracking-widest text-emerald-700 dark:text-emerald-400">Schema Mapping</h4>
-                  <div className="flex flex-wrap gap-2">
-                    <Button variant="secondary" size="sm" onClick={() => inspect()} disabled={isInspecting || !masterId} className="h-8 rounded-full px-4 text-[11px] font-bold">
+                {/* RATA TENGAH: 3 Tombol Aksi dipusatkan */}
+                <div className="mb-6 flex flex-col items-center justify-center gap-3">
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Mapping Controls</h4>
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    <Button variant="secondary" size="sm" onClick={() => inspect()} disabled={isInspecting || !masterId} className="h-8 rounded-full px-5 text-[11px] font-bold">
                       {isInspecting ? "Loading..." : "Load"}
                     </Button>
-                    <Button variant="secondary" size="sm" onClick={handleSmartMap} disabled={!props.length} className="h-8 rounded-full px-4 text-[11px] font-bold">
+                    <Button variant="secondary" size="sm" onClick={handleAutoMap} disabled={!props.length} className="h-8 rounded-full px-5 text-[11px] font-bold">
                       Auto map
                     </Button>
-                    <Button size="sm" onClick={handleSave} disabled={isSaving} className="h-8 rounded-full bg-slate-900 px-5 text-[11px] font-bold text-white shadow-sm transition-colors hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white">
+                    {/* WARNA SAVE: Menggunakan warna primary bawaan tema */}
+                    <Button size="sm" onClick={handleSave} disabled={isSaving} className="h-8 rounded-full bg-primary px-6 text-[11px] font-bold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90">
                       {isSaving ? "Saving..." : "Save"}
                     </Button>
                   </div>
@@ -372,7 +376,7 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
                       <div key={field.key} className={cn("flex flex-col gap-3 rounded-[1.15rem] border p-3 transition-colors sm:flex-row sm:items-center sm:justify-between", isMapped ? "bg-emerald-50/50 border-emerald-100 dark:bg-emerald-950/20 dark:border-emerald-900/30" : "bg-slate-50/50 border-transparent dark:bg-slate-900/40")}>
                         
                         <div className="flex flex-1 items-center gap-3 min-w-0">
-                           <Badge variant="outline" className="rounded-full bg-white dark:bg-slate-950 text-[10px] font-black uppercase">{pType}</Badge>
+                           <Badge variant="outline" className="rounded-full bg-white text-[10px] font-black uppercase dark:bg-slate-950">{pType}</Badge>
                            <div className="min-w-0 flex-1">
                              <p className="truncate text-sm font-bold tracking-tight text-slate-900 dark:text-white">{field.label}</p>
                            </div>
@@ -383,7 +387,7 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
                             <SelectValue placeholder="Pilih kolom..." className="truncate" />
                           </SelectTrigger>
                           <SelectContent>
-                            {props.length === 0 && <div className="p-2 text-xs text-center text-muted-foreground">Load cols dulu</div>}
+                            {props.length === 0 && <div className="p-2 text-center text-xs text-muted-foreground">Load cols dulu</div>}
                             {props.map((p: any) => (
                               <SelectItem key={p.id} value={p.id} className="text-xs">
                                 <span className="font-medium">{p.name}</span> <span className="ml-1 opacity-50">({p.type})</span>
