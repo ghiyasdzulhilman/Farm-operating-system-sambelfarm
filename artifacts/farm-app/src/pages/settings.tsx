@@ -8,7 +8,6 @@ import {
   Loader2,
   RefreshCcw,
   ServerCog,
-  Settings,
   Users2,
   Workflow,
   ChevronRight,
@@ -286,50 +285,56 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
 
   return (
     <Card className={cn(glassCard, "relative overflow-hidden transition-all duration-300", isExpanded && "ring-2 ring-emerald-500/40")}>
-      {/* BAGIAN ATAS (DB SELECTOR) */}
+      
+      {/* BAGIAN ATAS (DB SELECTOR & PILLS) */}
       <div className="p-4 sm:p-5 sm:pb-3">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex flex-1 items-start gap-4 min-w-0">
-            <div className={cn("rounded-2xl p-3 text-emerald-600 transition-colors", isExpanded ? "bg-emerald-100 dark:bg-emerald-900/40" : "bg-slate-100 dark:bg-slate-800")}>
-              {schema.isMultiInstance ? <Workflow className="h-5 w-5" /> : <Database className="h-5 w-5" />}
-            </div>
-            <div className="min-w-0 flex-1">
-              <h3 className="text-base font-black truncate sm:text-lg">{schema.label}</h3>
-              <p className="text-xs text-muted-foreground truncate">{schema.hint}</p>
-              
-              {/* RATA TENGAH: Container pill database dipusatkan */}
-              <div className="mt-3 flex w-full flex-wrap items-center justify-center gap-2 min-h-[30px] sm:justify-start">
-                <AnimatePresence mode="popLayout">
-                  {linkedIds.map(id => (
-                    <motion.div key={id} layout initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} transition={{ type: "spring", stiffness: 300, damping: 25 }}>
-                      <Badge variant="secondary" className="gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
-                        <span className="truncate max-w-[140px] text-[11px] font-semibold">
-                          {allDatabases.find(d => d.id === id)?.iconEmoji} {allDatabases.find(d => d.id === id)?.name || id}
-                        </span>
-                        <X className="h-3.5 w-3.5 cursor-pointer opacity-50 transition-colors hover:opacity-100 hover:text-red-500" onClick={() => handleRemoveDb(id)} />
-                      </Badge>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-                {linkedIds.length === 0 && <span className="text-[11px] text-muted-foreground opacity-60">Belum ada database terpilih</span>}
+        <div className="flex flex-col gap-4">
+          
+          {/* Baris 1: Ikon + Judul + Tombol Link DB */}
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-1 items-center gap-4 min-w-0">
+              <div className={cn("shrink-0 rounded-2xl p-3 text-emerald-600 transition-colors", isExpanded ? "bg-emerald-100 dark:bg-emerald-900/40" : "bg-slate-100 dark:bg-slate-800")}>
+                {schema.isMultiInstance ? <Workflow className="h-5 w-5" /> : <Database className="h-5 w-5" />}
               </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-base font-black truncate sm:text-lg">{schema.label}</h3>
+                <p className="text-xs text-muted-foreground truncate">{schema.hint}</p>
+              </div>
+            </div>
+
+            <div className="flex shrink-0 w-full sm:w-auto">
+              {(!schema.isMultiInstance && linkedIds.length > 0) ? null : (
+                <Select onValueChange={(val) => {
+                  if (!linkedIds.includes(val)) setLinkedIds(prev => schema.isMultiInstance ? [...prev, val] : [val]);
+                }}>
+                  <SelectTrigger className="h-11 w-full flex-1 rounded-full border-white/60 bg-white/50 font-bold shadow-sm backdrop-blur dark:bg-slate-900/50 sm:w-[160px]">
+                    <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400"><Plus className="h-4 w-4"/> Link DB</div>
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    {allDatabases.map(db => <SelectItem key={db.id} value={db.id}>{db.iconEmoji} {db.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           </div>
 
-          <div className="flex w-full shrink-0 sm:w-auto">
-            {(!schema.isMultiInstance && linkedIds.length > 0) ? null : (
-              <Select onValueChange={(val) => {
-                if (!linkedIds.includes(val)) setLinkedIds(prev => schema.isMultiInstance ? [...prev, val] : [val]);
-              }}>
-                <SelectTrigger className="h-11 w-full flex-1 rounded-full border-white/60 bg-white/50 font-bold shadow-sm backdrop-blur dark:bg-slate-900/50 sm:w-[160px]">
-                  <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400"><Plus className="h-4 w-4"/> Link DB</div>
-                </SelectTrigger>
-                <SelectContent className="max-h-[300px]">
-                  {allDatabases.map(db => <SelectItem key={db.id} value={db.id}>{db.iconEmoji} {db.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            )}
+          {/* Baris 2: Pills (Full width, Centered 100%) */}
+          <div className="flex w-full flex-wrap items-center justify-center gap-2 min-h-[30px]">
+            <AnimatePresence mode="popLayout">
+              {linkedIds.map(id => (
+                <motion.div key={id} layout initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} transition={{ type: "spring", stiffness: 300, damping: 25 }}>
+                  <Badge variant="secondary" className="gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                    <span className="truncate max-w-[140px] text-[11px] font-semibold">
+                      {allDatabases.find(d => d.id === id)?.iconEmoji} {allDatabases.find(d => d.id === id)?.name || id}
+                    </span>
+                    <X className="h-3.5 w-3.5 cursor-pointer opacity-50 transition-colors hover:opacity-100 hover:text-red-500" onClick={() => handleRemoveDb(id)} />
+                  </Badge>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+            {linkedIds.length === 0 && <span className="text-[11px] text-muted-foreground opacity-60">Belum ada database terpilih</span>}
           </div>
+
         </div>
       </div>
 
@@ -351,18 +356,20 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
             <div className="px-4 pb-4 sm:px-5 sm:pb-5">
               <div className="border-t border-dashed border-slate-200 pt-5 dark:border-slate-800">
                 
-                {/* RATA TENGAH: 3 Tombol Aksi dipusatkan */}
+                {/* RATA TENGAH: 3 Tombol Aksi - Warna hijau selaras dengan Pills */}
                 <div className="mb-6 flex flex-col items-center justify-center gap-3">
                   <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Mapping Controls</h4>
                   <div className="flex flex-wrap items-center justify-center gap-2">
-                    <Button variant="secondary" size="sm" onClick={() => inspect()} disabled={isInspecting || !masterId} className="h-8 rounded-full px-5 text-[11px] font-bold">
+                    <Button size="sm" onClick={() => inspect()} disabled={isInspecting || !masterId} 
+                      className="h-8 rounded-full px-5 text-[11px] font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/40 dark:text-emerald-300 dark:hover:bg-emerald-800/80">
                       {isInspecting ? "Loading..." : "Load"}
                     </Button>
-                    <Button variant="secondary" size="sm" onClick={handleAutoMap} disabled={!props.length} className="h-8 rounded-full px-5 text-[11px] font-bold">
+                    <Button size="sm" onClick={handleAutoMap} disabled={!props.length} 
+                      className="h-8 rounded-full px-5 text-[11px] font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/40 dark:text-emerald-300 dark:hover:bg-emerald-800/80">
                       Auto map
                     </Button>
-                    {/* WARNA SAVE: Menggunakan warna primary bawaan tema */}
-                    <Button size="sm" onClick={handleSave} disabled={isSaving} className="h-8 rounded-full bg-primary px-6 text-[11px] font-bold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90">
+                    <Button size="sm" onClick={handleSave} disabled={isSaving} 
+                      className="h-8 rounded-full px-6 text-[11px] font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 shadow-sm transition-colors dark:bg-emerald-900/40 dark:text-emerald-300 dark:hover:bg-emerald-800/80">
                       {isSaving ? "Saving..." : "Save"}
                     </Button>
                   </div>
