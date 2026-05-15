@@ -9,11 +9,11 @@ import {
   RefreshCcw,
   Save,
   ServerCog,
-  Settings,
   Sparkles,
   Users2,
   Workflow,
   ChevronRight,
+  ChevronDown,
   X,
   Plus
 } from "lucide-react";
@@ -33,7 +33,7 @@ import {
 import type { FieldMappingEntry, SaveFieldMappingsBody } from "@workspace/api-client-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -200,7 +200,7 @@ export function SettingsPage() {
 }
 
 // ---------------------------------------------------------------------------
-// 📦 3. SCHEMA CONTROL CARD (Atomic & Multi-Instance)
+// 📦 3. SCHEMA CONTROL CARD (Pull-Tab Integration)
 // ---------------------------------------------------------------------------
 function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) {
   const { toast } = useToast();
@@ -217,11 +217,9 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
 
   useEffect(() => {
     if (savedData) {
-      // Setup DB Links
       if (savedData.notionDatabaseId && !linkedIds.includes(savedData.notionDatabaseId)) {
         setLinkedIds([savedData.notionDatabaseId]);
       }
-      // Setup Fields
       const mapped: Record<string, string> = {};
       Object.entries(savedData.mappings ?? {}).forEach(([k, v]: any) => { if (v?.propertyId) mapped[k] = v.propertyId; });
       setFieldMappings(mapped);
@@ -238,7 +236,7 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
   // 3. Logic: Remove DB Instance
   const handleRemoveDb = (id: string) => {
     setLinkedIds(prev => prev.filter(x => x !== id));
-    if (linkedIds.length <= 1) setFieldMappings({}); // Reset mapping jika semua DB dihapus
+    if (linkedIds.length <= 1) setFieldMappings({}); 
   };
 
   // 4. Logic: Smart Map (Fuzzy Matching)
@@ -283,15 +281,16 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
       })));
       toast({ title: "Schema Saved", description: `Berhasil disimpan ke ${linkedIds.length} database.` });
       queryClient.invalidateQueries({ queryKey: getGetFieldMappingsQueryKey({ type: schema.id }) });
-      onToggle(); // Tutup panel setelah save berhasil
+      onToggle(); 
     } catch (e) { toast({ variant: "destructive", title: "Gagal Simpan", description: "Terjadi kesalahan sistem." }); }
   };
 
   return (
-    <Card className={cn(glassCard, "overflow-hidden transition-all duration-300", isExpanded && "ring-2 ring-emerald-500/40")}>
-      <CardContent className="p-4 sm:p-5">
-        
-        {/* ROW 1: HEADER & LINKING */}
+    <Card className={cn(glassCard, "relative overflow-hidden transition-all duration-300", isExpanded && "ring-2 ring-emerald-500/40")}>
+      {/* BAGIAN ATAS (DB SELECTOR) 
+        pb-5 dikurangin buat ngasih ruang ke pull-tab di bawahnya
+      */}
+      <div className="p-4 sm:p-5 sm:pb-3">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex flex-1 items-start gap-4 min-w-0">
             <div className={cn("rounded-2xl p-3 text-emerald-600 transition-colors", isExpanded ? "bg-emerald-100 dark:bg-emerald-900/40" : "bg-slate-100 dark:bg-slate-800")}>
@@ -301,7 +300,6 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
               <h3 className="text-base font-black truncate sm:text-lg">{schema.label}</h3>
               <p className="text-xs text-muted-foreground truncate">{schema.hint}</p>
               
-              {/* FIXED: Smooth Pill Container */}
               <div className="mt-2 flex flex-wrap gap-2 min-h-[30px] items-center">
                 <AnimatePresence mode="popLayout">
                   {linkedIds.map(id => (
@@ -320,13 +318,12 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
             </div>
           </div>
 
-          {/* DB SELECTOR */}
-          <div className="flex shrink-0 gap-2 w-full sm:w-auto">
+          <div className="flex shrink-0 w-full sm:w-auto">
             {(!schema.isMultiInstance && linkedIds.length > 0) ? null : (
               <Select onValueChange={(val) => {
                 if (!linkedIds.includes(val)) setLinkedIds(prev => schema.isMultiInstance ? [...prev, val] : [val]);
               }}>
-                <SelectTrigger className="h-11 w-full sm:w-[160px] flex-1 rounded-full border-white/60 bg-white/50 font-bold backdrop-blur dark:bg-slate-900/50">
+                <SelectTrigger className="h-11 w-full sm:w-[160px] flex-1 rounded-full border-white/60 bg-white/50 font-bold shadow-sm backdrop-blur dark:bg-slate-900/50">
                   <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400"><Plus className="h-4 w-4"/> Link DB</div>
                 </SelectTrigger>
                 <SelectContent className="max-h-[300px]">
@@ -334,17 +331,30 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
                 </SelectContent>
               </Select>
             )}
-            <Button variant="outline" size="icon" onClick={onToggle} className={cn("h-11 w-11 shrink-0 rounded-full transition-transform", isExpanded && "rotate-180 bg-slate-950 text-white dark:bg-white dark:text-slate-950")}>
-              <Settings className="h-4 w-4" />
-            </Button>
           </div>
         </div>
+      </div>
 
-        {/* ROW 2: COLLAPSIBLE MAPPING (ANTI-OFFSIDE) */}
-        <AnimatePresence>
-          {isExpanded && (
-            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-              <div className="mt-5 border-t border-dashed border-slate-200 pt-5 dark:border-slate-800">
+      {/* PULL-TAB BUTTON
+        Gaya presisi ala Sambel Farm Dashboard
+      */}
+      <div className="relative z-10 -mt-2 mb-2 flex w-full justify-center">
+        <button
+          onClick={onToggle}
+          className="flex h-5 w-14 items-center justify-center rounded-b-xl border border-t-0 border-white/60 bg-white/50 shadow-[0_4px_10px_rgba(0,0,0,0.03)] backdrop-blur-md transition-colors hover:bg-white dark:border-white/10 dark:bg-slate-900/50 dark:hover:bg-slate-800"
+          aria-label="Toggle mapping config"
+        >
+          <ChevronDown className={cn("h-3 w-3 text-muted-foreground transition-transform duration-300", isExpanded && "rotate-180")} />
+        </button>
+      </div>
+
+      {/* BAGIAN BAWAH (COLLAPSIBLE MAPPING) 
+      */}
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+            <div className="px-4 pb-4 sm:px-5 sm:pb-5">
+              <div className="border-t border-dashed border-slate-200 pt-5 dark:border-slate-800">
                 
                 <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <h4 className="text-xs font-black uppercase tracking-widest text-emerald-700 dark:text-emerald-400">Schema Mapping</h4>
@@ -361,7 +371,6 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
                   </div>
                 </div>
 
-                {/* THE MAPPING ROWS - FLEX-COL ON MOBILE, FLEX-ROW ON DESKTOP */}
                 <div className="grid gap-3">
                   {schema.fields.map((field: any) => {
                     const isMapped = !!fieldMappings[field.key];
@@ -369,7 +378,6 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
                     return (
                       <div key={field.key} className={cn("flex flex-col gap-3 rounded-[1.15rem] border p-3 transition-colors sm:flex-row sm:items-center sm:justify-between", isMapped ? "bg-emerald-50/50 border-emerald-100 dark:bg-emerald-950/20 dark:border-emerald-900/30" : "bg-slate-50/50 border-transparent dark:bg-slate-900/40")}>
                         
-                        {/* Info Kiri */}
                         <div className="flex flex-1 items-center gap-3 min-w-0">
                            <Badge variant="outline" className="rounded-full bg-white dark:bg-slate-950 text-[10px] font-black uppercase">{pType}</Badge>
                            <div className="min-w-0 flex-1">
@@ -377,7 +385,6 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
                            </div>
                         </div>
 
-                        {/* Dropdown Kanan - w-full on HP */}
                         <Select value={fieldMappings[field.key] || ""} onValueChange={(val) => setFieldMappings(prev => ({...prev, [field.key]: val}))} disabled={!props.length}>
                           <SelectTrigger className="h-10 w-full shrink-0 rounded-xl bg-white/80 text-xs font-semibold shadow-sm dark:bg-slate-950/80 sm:w-[240px]">
                             <SelectValue placeholder="Pilih kolom..." className="truncate" />
@@ -397,11 +404,11 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
                 </div>
 
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      </CardContent>
     </Card>
   );
 }
