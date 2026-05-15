@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { UserButton, useUser } from "@clerk/react";
 import { motion } from "framer-motion";
 import {
@@ -8,7 +8,6 @@ import {
   CheckCircle2,
   CloudCog,
   CloudDownload,
-  Database,
   Download,
   Eye,
   Leaf,
@@ -16,7 +15,6 @@ import {
   Moon,
   RefreshCcw,
   Save,
-  Search,
   ServerCog,
   Settings,
   ShieldCheck,
@@ -41,7 +39,6 @@ import {
   useSaveFieldMappings,
 } from "@workspace/api-client-react";
 import type {
-  DatabaseListItem,
   DatabaseProperty,
   FieldMappingEntry,
   SaveFieldMappingsBody,
@@ -49,7 +46,6 @@ import type {
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -78,7 +74,7 @@ type DatabaseConfig = {
   label: string;
   shortLabel: string;
   hint: string;
-  icon: any; // Lucide Icon
+  icon: any;
   fields: RequiredField[];
 };
 
@@ -188,33 +184,15 @@ function HealthPill({ active, label }: { active: boolean; label: string }) {
       }`}
     >
       <span className="relative flex h-2 w-2">
-        {active && (
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-        )}
-        <span
-          className={`relative inline-flex h-2 w-2 rounded-full ${
-            active ? "bg-emerald-500" : "bg-amber-500"
-          }`}
-        />
+        {active && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />}
+        <span className={`relative inline-flex h-2 w-2 rounded-full ${active ? "bg-emerald-500" : "bg-amber-500"}`} />
       </span>
       {label}
     </span>
   );
 }
 
-function ToggleRow({
-  icon: Icon,
-  title,
-  description,
-  checked,
-  onCheckedChange,
-}: {
-  icon: any;
-  title: string;
-  description: string;
-  checked: boolean;
-  onCheckedChange: (checked: boolean) => void;
-}) {
+function ToggleRow({ icon: Icon, title, description, checked, onCheckedChange }: { icon: any; title: string; description: string; checked: boolean; onCheckedChange: (c: boolean) => void }) {
   return (
     <div className="flex items-center justify-between gap-4 rounded-[1.35rem] border border-border/55 bg-background/60 p-3 backdrop-blur">
       <div className="flex min-w-0 items-start gap-3">
@@ -223,9 +201,7 @@ function ToggleRow({
         </div>
         <div className="min-w-0">
           <p className="text-sm font-black tracking-[-0.01em]">{title}</p>
-          <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            {description}
-          </p>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>
         </div>
       </div>
       <Switch checked={checked} onCheckedChange={onCheckedChange} />
@@ -242,7 +218,6 @@ export function SettingsPage() {
   const { user } = useUser();
   const queryClient = useQueryClient();
 
-  const [databaseSearch, setDatabaseSearch] = useState("");
   const [selectedMappingType, setSelectedMappingType] = useState<DatabaseType>("laba_rugi");
   const [dbSelections, setDbSelections] = useState<Record<DatabaseType, string>>({
     laba_rugi: "",
@@ -254,17 +229,8 @@ export function SettingsPage() {
   const [isSavingDatabases, setIsSavingDatabases] = useState(false);
 
   // Dummy state for UI Toggles
-  const [automation, setAutomation] = useState({
-    smartInsights: true,
-    autoRefresh: true,
-    costAnomaly: true,
-    productionForecast: false,
-  });
-  const [notifications, setNotifications] = useState({
-    syncAlerts: true,
-    operationalAlerts: true,
-    inspectionReminders: false,
-  });
+  const [automation, setAutomation] = useState({ smartInsights: true, autoRefresh: true, costAnomaly: true, productionForecast: false });
+  const [notifications, setNotifications] = useState({ syncAlerts: true, operationalAlerts: true, inspectionReminders: false });
 
   // Data Fetching
   const { data: connectionStatus } = useGetNotionConnectionStatus({
@@ -273,7 +239,6 @@ export function SettingsPage() {
 
   const {
     data: databaseList,
-    isLoading: isLoadingDatabases,
     refetch: refreshDatabases,
     isFetching: isRefreshingDatabases,
   } = useListDatabases({
@@ -320,13 +285,6 @@ export function SettingsPage() {
     Object.keys(savedExpenses?.mappings ?? {}).length +
     Object.keys(savedKategori?.mappings ?? {}).length;
 
-  const filteredDatabases = useMemo(() => {
-    const normalizedSearch = databaseSearch.toLowerCase().trim();
-    return allDatabases.filter((database) =>
-      database.name.toLowerCase().includes(normalizedSearch),
-    );
-  }, [allDatabases, databaseSearch]);
-
   // Sync saved DB selection IDs to local state
   useEffect(() => {
     setDbSelections({
@@ -355,13 +313,8 @@ export function SettingsPage() {
     return allDatabases.find((db) => db.id === databaseId)?.name ?? databaseId;
   }
 
-  function getAssignedType(databaseId: string) {
-    return DATABASE_CONFIGS.find((config) => dbSelections[config.type] === databaseId);
-  }
-
   function typeMatches(expectedType: string, property?: DatabaseProperty) {
     if (!property) return false;
-    // Special rule for rollup/formula compatibility based on your original logic
     if (expectedType === "rollup" && ["formula", "number", "rollup"].includes(property.type)) return true;
     return expectedType.split("|").includes(property.type);
   }
@@ -376,34 +329,22 @@ export function SettingsPage() {
       const fieldName = normalized(field.label);
       const match = properties.find((property) => {
         const propertyName = normalized(property.name);
-        return (
-          typeMatches(field.expectedType, property) &&
-          (fieldName.includes(propertyName) || propertyName.includes(fieldName))
-        );
+        return typeMatches(field.expectedType, property) && (fieldName.includes(propertyName) || propertyName.includes(fieldName));
       });
 
       if (match) next[field.key] = match.id;
     }
 
     setFieldSelections((current) => ({ ...current, ...next }));
-    toast({
-      title: "Smart mapping selesai",
-      description: `${Object.keys(next).length} properti cocok dengan schema ${selectedConfig.shortLabel}.`,
-    });
+    toast({ title: "Smart mapping selesai", description: `${Object.keys(next).length} properti cocok dengan schema ${selectedConfig.shortLabel}.` });
   }
 
   async function handleSaveDatabaseSelections() {
     setIsSavingDatabases(true);
-
     try {
       await Promise.all(
         DATABASE_CONFIGS.map((config) => {
-          const saved =
-            config.type === "laba_rugi" ? savedFinance
-            : config.type === "panen" ? savedHarvest
-            : config.type === "expenses" ? savedExpenses
-            : savedKategori;
-
+          const saved = config.type === "laba_rugi" ? savedFinance : config.type === "panen" ? savedHarvest : config.type === "expenses" ? savedExpenses : savedKategori;
           return saveFieldMappings({
             data: {
               databaseType: config.type,
@@ -415,15 +356,9 @@ export function SettingsPage() {
       );
 
       toast({ title: "Database control plane disimpan" });
-      DATABASE_CONFIGS.forEach((config) => {
-        queryClient.invalidateQueries({ queryKey: getGetFieldMappingsQueryKey({ type: config.type }) });
-      });
+      DATABASE_CONFIGS.forEach((config) => queryClient.invalidateQueries({ queryKey: getGetFieldMappingsQueryKey({ type: config.type }) }));
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Gagal menyimpan database",
-        description: error instanceof Error ? error.message : "Terjadi kesalahan.",
-      });
+      toast({ variant: "destructive", title: "Gagal menyimpan", description: error instanceof Error ? error.message : "Terjadi kesalahan." });
     } finally {
       setIsSavingDatabases(false);
     }
@@ -445,11 +380,7 @@ export function SettingsPage() {
     }
 
     if (!Object.keys(mappings).length) {
-      toast({
-        variant: "destructive",
-        title: "Belum ada property mapping",
-        description: "Pilih minimal satu properti Notion untuk disimpan.",
-      });
+      toast({ variant: "destructive", title: "Belum ada mapping", description: "Pilih minimal satu properti." });
       return;
     }
 
@@ -462,50 +393,36 @@ export function SettingsPage() {
         },
       });
 
-      toast({ title: `Schema mapping ${selectedConfig.shortLabel} tersimpan` });
-      queryClient.invalidateQueries({
-        queryKey: getGetFieldMappingsQueryKey({ type: selectedMappingType }),
-      });
+      toast({ title: `Schema ${selectedConfig.shortLabel} tersimpan` });
+      queryClient.invalidateQueries({ queryKey: getGetFieldMappingsQueryKey({ type: selectedMappingType }) });
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Gagal menyimpan mapping",
-        description: error instanceof Error ? error.message : "Terjadi kesalahan.",
-      });
+      toast({ variant: "destructive", title: "Gagal menyimpan", description: error instanceof Error ? error.message : "Terjadi kesalahan." });
     }
   }
 
-  function assignDatabase(database: DatabaseListItem, type: DatabaseType) {
-    setDbSelections((current) => ({ ...current, [type]: database.id }));
-  }
-
   return (
-    <div className="relative -mx-4 -mt-4 min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.18),transparent_34%),radial-gradient(circle_at_90%_10%,rgba(15,23,42,0.10),transparent_28%),linear-gradient(180deg,hsl(var(--background)),hsl(var(--muted))/0.45)] px-4 pb-12 pt-4 md:-mx-6 md:-mt-6 md:px-6 md:pt-6">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[linear-gradient(120deg,rgba(15,23,42,0.08),transparent_42%,rgba(20,83,45,0.12))] dark:bg-[linear-gradient(120deg,rgba(16,185,129,0.08),transparent_44%,rgba(245,158,11,0.08))]" />
-
-      <div className="relative mx-auto max-w-6xl space-y-4 md:space-y-5">
+    // DI SINI FIX OFFSIDE: Hapus negative margin, pastikan max-w-6xl mx-auto
+    <div className="w-full min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.12),transparent_34%),radial-gradient(circle_at_90%_10%,rgba(15,23,42,0.06),transparent_28%),linear-gradient(180deg,hsl(var(--background)),hsl(var(--muted))/0.45)] pb-12 pt-6 overflow-x-hidden">
+      
+      <div className="relative mx-auto w-full max-w-6xl px-4 sm:px-6 space-y-4 md:space-y-6">
         
         {/* --- HEADER --- */}
         <motion.section
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, ease: "easeOut" }}
-          className="overflow-hidden rounded-[2rem] border border-white/60 bg-white/70 p-4 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-white/[0.06] md:p-6"
+          className="overflow-hidden rounded-[2rem] border border-white/60 bg-white/70 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.06)] backdrop-blur-2xl dark:border-white/10 dark:bg-white/[0.06] md:p-6"
         >
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div className="space-y-4">
-              <HealthPill
-                active={Boolean(connectionStatus?.connected)}
-                label={connectionStatus?.connected ? "System online" : "Notion offline"}
-              />
+              <HealthPill active={Boolean(connectionStatus?.connected)} label={connectionStatus?.connected ? "System online" : "Notion offline"} />
               <div>
                 <h1 className="text-balance text-3xl font-black tracking-[-0.04em] text-slate-950 dark:text-white md:text-5xl">
                   System Control Center
                 </h1>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground md:text-base">
                   Pusat kendali data infrastructure Sambel Farm untuk akun,
-                  sinkronisasi Notion, schema mapping, automation, notification,
-                  backup, dan status sistem.
+                  sinkronisasi Notion, schema mapping, automation, dan backup.
                 </p>
               </div>
             </div>
@@ -529,7 +446,8 @@ export function SettingsPage() {
           </div>
         </motion.section>
 
-        <div className="grid gap-4 lg:grid-cols-[0.92fr_1.08fr]">
+        {/* --- MAIN GRID (2 COLUMNS) --- */}
+        <div className="grid gap-4 lg:grid-cols-2">
           
           {/* --- LEFT COLUMN --- */}
           <motion.section initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.04 }} className="space-y-4">
@@ -583,92 +501,7 @@ export function SettingsPage() {
               </CardContent>
             </Card>
 
-            {/* Database Discovery Card */}
-            <Card className={glassCard}>
-              <CardContent className="space-y-3 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-700/80 dark:text-sky-300/80">Database Discovery</p>
-                    <h2 className="mt-1 text-xl font-black tracking-[-0.03em]">Detected databases</h2>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-9 w-9 rounded-full border-white/60 bg-background/70"
-                    onClick={() => void refreshDatabases()}
-                    disabled={isRefreshingDatabases}
-                  >
-                    <RefreshCcw className={`h-4 w-4 ${isRefreshingDatabases ? "animate-spin" : ""}`} />
-                  </Button>
-                </div>
-
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    value={databaseSearch}
-                    onChange={(e) => setDatabaseSearch(e.target.value)}
-                    placeholder="Search Notion database..."
-                    className="h-11 rounded-full border-white/60 bg-background/70 pl-9"
-                  />
-                </div>
-
-                <div className="max-h-[430px] space-y-2 overflow-y-auto pr-1">
-                  {isLoadingDatabases && (
-                    <div className="flex items-center gap-2 rounded-[1.35rem] border border-border/55 bg-background/60 p-3 text-sm text-muted-foreground">
-                      <Loader2 className="h-4 w-4 animate-spin" /> Discovering workspace databases...
-                    </div>
-                  )}
-
-                  {filteredDatabases.map((database) => {
-                    const assigned = getAssignedType(database.id);
-
-                    return (
-                      <div key={database.id} className="rounded-[1.35rem] border border-border/55 bg-background/60 p-3 backdrop-blur transition-all duration-300 hover:bg-background/85">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-black tracking-[-0.01em]">
-                              {database.iconEmoji ? `${database.iconEmoji} ` : ""}
-                              {database.name}
-                            </p>
-                            <p className="mt-1 truncate text-[11px] text-muted-foreground">{database.id}</p>
-                          </div>
-                          <span
-                            className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] ${
-                              assigned ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "bg-muted/70 text-muted-foreground"
-                            }`}
-                          >
-                            {assigned ? assigned.shortLabel : "Available"}
-                          </span>
-                        </div>
-
-                        {/* Assign grid updated to support 4 buttons nicely */}
-                        <div className="mt-3 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
-                          {DATABASE_CONFIGS.map((config) => (
-                            <button
-                              key={config.type}
-                              onClick={() => assignDatabase(database, config.type)}
-                              className={`rounded-full px-2 py-1.5 text-[10px] font-black transition-all duration-200 ${
-                                dbSelections[config.type] === database.id
-                                  ? "bg-slate-950 text-white dark:bg-white dark:text-slate-950"
-                                  : "bg-muted/70 text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-700"
-                              }`}
-                            >
-                              {config.shortLabel}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          </motion.section>
-
-          {/* --- RIGHT COLUMN --- */}
-          <motion.section initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="space-y-4">
-            
-            {/* Database Control Plane Card */}
+            {/* Smart Database Control Plane (Replaced Discovery) */}
             <Card className={glassCard}>
               <CardContent className="space-y-4 p-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -676,14 +509,14 @@ export function SettingsPage() {
                     <p className="text-xs font-black uppercase tracking-[0.18em] text-violet-700/80 dark:text-violet-300/80">Database Control Plane</p>
                     <h2 className="mt-1 text-xl font-black tracking-[-0.03em]">Connected system databases</h2>
                   </div>
-                  <Button
-                    onClick={handleSaveDatabaseSelections}
-                    disabled={isSavingDatabases}
-                    className="rounded-full bg-slate-950 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-white/90"
-                  >
-                    {isSavingDatabases ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                    Save links
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="icon" onClick={() => void refreshDatabases()} disabled={isRefreshingDatabases} className="rounded-full border-white/60 bg-background/70 h-10 w-10">
+                      <RefreshCcw className={`h-4 w-4 ${isRefreshingDatabases ? "animate-spin" : ""}`} />
+                    </Button>
+                    <Button onClick={handleSaveDatabaseSelections} disabled={isSavingDatabases} className="rounded-full bg-slate-950 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950 h-10 px-4">
+                      {isSavingDatabases ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} Save links
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="grid gap-3">
@@ -703,22 +536,28 @@ export function SettingsPage() {
                               {value ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <AlertCircle className="h-4 w-4 text-amber-500" />}
                             </div>
                             <p className="mt-1 text-xs leading-5 text-muted-foreground">{config.hint}</p>
+                            
+                            {/* Smart Select / Combobox-like UX inside Select */}
                             <Select value={value} onValueChange={(nextValue) => setDbSelections((current) => ({ ...current, [config.type]: nextValue }))}>
                               <SelectTrigger className="mt-3 h-10 rounded-full border-white/60 bg-background/70 text-xs font-semibold">
-                                <SelectValue placeholder="Pilih database Notion" />
+                                <SelectValue placeholder="Pilih database Notion dari workspace..." />
                               </SelectTrigger>
-                              <SelectContent>
+                              <SelectContent className="max-h-[300px]">
+                                {allDatabases.length === 0 && (
+                                  <div className="p-2 text-xs text-muted-foreground text-center">Belum ada database. Klik refresh.</div>
+                                )}
                                 {allDatabases.map((db) => (
-                                  <SelectItem key={db.id} value={db.id}>
-                                    {db.iconEmoji ? `${db.iconEmoji} ` : ""}
+                                  <SelectItem key={db.id} value={db.id} className="text-sm font-medium">
+                                    {db.iconEmoji ? `${db.iconEmoji} ` : "📄 "}
                                     {db.name}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
+                            
                             {value && (
                               <p className="mt-2 truncate text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
-                                Connected to {databaseName(value)}
+                                Connected to: {databaseName(value)}
                               </p>
                             )}
                           </div>
@@ -729,7 +568,11 @@ export function SettingsPage() {
                 </div>
               </CardContent>
             </Card>
+          </motion.section>
 
+          {/* --- RIGHT COLUMN --- */}
+          <motion.section initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="space-y-4">
+            
             {/* Property Mapping Card */}
             <Card className={glassCard}>
               <CardContent className="space-y-4 p-4">
@@ -739,7 +582,6 @@ export function SettingsPage() {
                     <h2 className="mt-1 text-xl font-black tracking-[-0.03em]">Smart schema grouping</h2>
                   </div>
 
-                  {/* Segmented Control - Updated for 4 Types */}
                   <div className="grid grid-cols-2 gap-1 rounded-[1.35rem] border border-white/60 bg-background/70 p-1 backdrop-blur sm:grid-cols-4">
                     {DATABASE_CONFIGS.map((config) => (
                       <button
@@ -757,21 +599,13 @@ export function SettingsPage() {
                   </div>
                 </div>
 
-                {/* Database Mapping Stats */}
                 <div className="grid gap-2 grid-cols-2 sm:grid-cols-4">
                   {DATABASE_CONFIGS.map((config) => {
-                    const savedMappingState = 
-                      config.type === "laba_rugi" ? savedFinance
-                      : config.type === "panen" ? savedHarvest
-                      : config.type === "expenses" ? savedExpenses
-                      : savedKategori;
-
+                    const savedMappingState = config.type === "laba_rugi" ? savedFinance : config.type === "panen" ? savedHarvest : config.type === "expenses" ? savedExpenses : savedKategori;
                     return (
                       <div key={config.type} className="rounded-[1.25rem] bg-slate-950/[0.04] p-3 dark:bg-white/[0.07]">
                         <p className="text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">{config.shortLabel}</p>
-                        <p className="mt-2 text-sm font-black">
-                          {Object.keys(savedMappingState?.mappings ?? {}).length} mapped
-                        </p>
+                        <p className="mt-2 text-sm font-black">{Object.keys(savedMappingState?.mappings ?? {}).length} mapped</p>
                       </div>
                     )
                   })}
@@ -806,9 +640,7 @@ export function SettingsPage() {
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-2">
                               <p className="text-sm font-black tracking-[-0.01em]">{field.label}</p>
-                              {field.expectedType.split("|").map((type) => (
-                                <TypeBadge key={type} type={type} />
-                              ))}
+                              {field.expectedType.split("|").map((type) => <TypeBadge key={type} type={type} />)}
                               {isMapped && (
                                 <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-emerald-700 dark:text-emerald-300">
                                   <Workflow className="h-3 w-3" /> mapped
@@ -818,11 +650,7 @@ export function SettingsPage() {
                             <p className="mt-1 text-xs leading-5 text-muted-foreground">{field.description}</p>
                           </div>
 
-                          <Select
-                            value={fieldSelections[field.key] ?? ""}
-                            onValueChange={(val) => setFieldSelections((current) => ({ ...current, [field.key]: val }))}
-                            disabled={!properties.length}
-                          >
+                          <Select value={fieldSelections[field.key] ?? ""} onValueChange={(val) => setFieldSelections((current) => ({ ...current, [field.key]: val }))} disabled={!properties.length}>
                             <SelectTrigger className="h-10 rounded-full border-white/60 bg-background/70 text-xs font-semibold sm:w-[260px]">
                               <SelectValue placeholder="Pilih property" />
                             </SelectTrigger>
@@ -849,7 +677,7 @@ export function SettingsPage() {
           </motion.section>
         </div>
 
-        {/* --- DUMMY CONFIGURATIONS (As Requested) --- */}
+        {/* --- DUMMY CONFIGURATIONS (Grid 3 Cols) --- */}
         <div className="grid gap-4 lg:grid-cols-3">
           <Card className={glassCard}>
             <CardContent className="space-y-3 p-4">
