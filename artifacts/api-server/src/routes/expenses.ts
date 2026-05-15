@@ -9,7 +9,7 @@ import {
   handleNotionErrors,
   NotionTokenInvalidError,
 } from "../lib/notionClient";
-import { myCache } from "../lib/notionCache"; // Import cache buat bersih-bersih
+import { notionCache } from "../lib/notionCache";
 
 const router: IRouter = Router();
 
@@ -64,7 +64,7 @@ router.post("/notion/add-expense", async (req, res): Promise<void> => {
 
     // 2. BERSIHKAN CACHE DASHBOARD
     // Supaya pas dashboard dipanggil lagi, dia "ngeh" ada data pending baru
-    myCache.del(`notion_dashboard_${userId}`);
+    notionCache.del(`notion_dashboard_${userId}`);
 
     // 3. LANGSUNG KASIH RESPONSE SUKSES
     // User tidak perlu nunggu Notion API yang lambat

@@ -9,7 +9,7 @@ import {
   handleNotionErrors,
   NotionTokenInvalidError,
 } from "../lib/notionClient";
-import { myCache } from "../lib/notionCache"; // Import cache buat invalidasi
+import { notionCache } from "../lib/notionCache";
 
 const router: IRouter = Router();
 
@@ -70,7 +70,7 @@ router.post("/notion/add-harvest", async (req, res): Promise<void> => {
 
     // 3. BERSIHKAN CACHE DASHBOARD
     // Supaya dashboard langsung "ngeh" ada tambahan kg panen dari staging
-    myCache.del(`notion_dashboard_${userId}`);
+    notionCache.del(`notion_dashboard_${userId}`);
 
     // 4. RESPONSE INSTAN
     res.status(201).json({ 
