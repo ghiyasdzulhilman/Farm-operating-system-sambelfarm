@@ -197,6 +197,73 @@ function formatRelativeTime(dateString?: string) {
   }
 }
 
+// ── Staging contribution aggregator ─────────────────────────────────────────
+// Reads each pending staging record, extracts contributions per databaseType,
+// and mutates harvestMap in-place so area-level harvest weights stay accurate.
+interface StagingAggResult {
+  financeAmount: number;   // total rupiah pending (expenses + laba_rugi)
+  harvestWeight: number;   // total kg panen pending
+  inspeksiCount: number;   // jumlah record inspeksi pending
+  perawatanCount: number;  // jumlah record perawatan pending
+}
+
+function aggregateStagingContributions(
+  records: Array<{ databaseType: string; data: Record<string, unknown> }>,
+  harvestMap: Record<string, number>,
+): StagingAggResult {
+  const result: StagingAggResult = {
+    financeAmount: 0,
+    harvestWeight: 0,
+    inspeksiCount: 0,
+    perawatanCount: 0,
+  };
+
+  for (const record of records) {
+    const d = record.data;
+
+    switch (record.databaseType) {
+      case "panen": {
+        // Field: 'berat' (kg)
+        const weight = Number(d.berat ?? d.jumlahPanen ?? 0);
+        result.harvestWeight += weight;
+        harvestMap.global = (harvestMap.global ?? 0) + weight;
+        const areaId = (d.labaRugiId ?? d.area_id) as string | undefined;
+        if (areaId) harvestMap[areaId] = (harvestMap[areaId] ?? 0) + weight;
+        break;
+      }
+
+      case "expenses":
+      case "laba_rugi": {
+        // Field: 'nominal' (IDR). Fallback to qty*hargaPerPcs for backward compat.
+        const nominal =
+          d.nominal !== undefined
+            ? Number(d.nominal)
+            : Number(d.qty ?? 0) * Number(d.hargaPerPcs ?? 0);
+        result.financeAmount += nominal;
+        break;
+      }
+
+      case "inspeksi": {
+        // Placeholder — no numeric contribution yet, just count records.
+        result.inspeksiCount += 1;
+        break;
+      }
+
+      case "perawatan": {
+        // Placeholder — no numeric contribution yet, just count records.
+        result.perawatanCount += 1;
+        break;
+      }
+
+      default:
+        // Unknown type: silently skip — future-proof for new database types.
+        break;
+    }
+  }
+
+  return result;
+}
+
 async function queryRecentActivities(
   userId: string,
   accessToken: string,
@@ -369,26 +436,10 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
         )),
     ]);
 
-    // Augment harvestMap with pending panen staging data
-    let stagingHarvestWeight = 0;
-    let stagingPengeluaran = 0;
+    // ── Staging contribution aggregator (modular per databaseType) ──────────
+    const stagingAgg = aggregateStagingContributions(stagingRecords, harvestMap);
 
-    for (const record of stagingRecords) {
-      const data = record.data as Record<string, unknown>;
-      if (record.databaseType === "panen") {
-        const weight = Number(data.jumlahPanen ?? 0);
-        stagingHarvestWeight += weight;
-        harvestMap.global = (harvestMap.global || 0) + weight;
-        const labaRugiId = data.labaRugiId as string | undefined;
-        if (labaRugiId) {
-          harvestMap[labaRugiId] = (harvestMap[labaRugiId] || 0) + weight;
-        }
-      } else if (record.databaseType === "expenses") {
-        stagingPengeluaran += Number(data.qty ?? 0) * Number(data.hargaPerPcs ?? 0);
-      }
-    }
-
-    const adjustedPengeluaran = resultLabaRugi.totalPengeluaran + stagingPengeluaran;
+    const adjustedPengeluaran = resultLabaRugi.totalPengeluaran + stagingAgg.financeAmount;
 
     const finalAreas = resultLabaRugi.areas.map((area) => ({
       ...area,
@@ -430,10 +481,12 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
         hpp,
         averageRevenuePerKg: resultLabaRugi.totalPendapatan / (harvestMap.global || 1),
       },
-      staging: {
+      stagingStats: {
         pendingCount: stagingRecords.length,
-        pendingHarvestWeight: stagingHarvestWeight,
-        pendingPengeluaran: stagingPengeluaran,
+        pendingFinanceAmount: stagingAgg.financeAmount,
+        pendingWeight: stagingAgg.harvestWeight,
+        pendingInspeksiCount: stagingAgg.inspeksiCount,
+        pendingPerawatanCount: stagingAgg.perawatanCount,
       },
       operational: {
         totalAreas: finalAreas.length,
