@@ -423,9 +423,11 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
       resultLabaRugi: Awaited<ReturnType<typeof queryLabaRugi>>;
       harvestMapRaw: Record<string, number>;
       activities: any[];
+      cachedAt: string;
     };
 
     let notionCached = notionCache.get<NotionCached>(cacheKey);
+    const cacheHit = !!notionCached;
 
     if (!notionCached) {
       // Cache miss — fetch sequentially with 350 ms delay to stay under Notion rate limit
@@ -462,7 +464,7 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
           )
         : [];
 
-      notionCached = { resultLabaRugi, harvestMapRaw, activities };
+      notionCached = { resultLabaRugi, harvestMapRaw, activities, cachedAt: new Date().toISOString() };
       notionCache.set(cacheKey, notionCached);
     } else {
       req.log.info({ userId }, "Dashboard: cache hit, skipping Notion API");
@@ -536,11 +538,31 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
       lastUpdated: new Date().toISOString(),
       notionDatabaseId: dbLabaRugiId,
       activities: notionCached.activities,
+      cacheInfo: {
+        hit: cacheHit,
+        cachedAt: notionCached.cachedAt,
+      },
     });
   } catch (err) {
     if (handleNotionErrors(res, err)) return;
     throw err;
   }
+});
+
+// DELETE /api/dashboard/cache — manual cache invalidation
+router.delete("/dashboard/cache", async (req, res): Promise<void> => {
+  const { userId } = getAuth(req);
+  if (!userId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  const cacheKey = getDashboardCacheKey(userId);
+  const deletedCount = notionCache.del(cacheKey);
+
+  req.log.info({ userId, deletedCount }, "Dashboard: cache manually invalidated");
+
+  res.json({ success: true, cleared: deletedCount > 0 });
 });
 
 export default router;

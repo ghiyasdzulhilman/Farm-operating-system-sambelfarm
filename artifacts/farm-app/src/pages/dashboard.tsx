@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { id } from "date-fns/locale";
 import { motion, AnimatePresence, animate } from "framer-motion";
 import {
   AlertTriangle,
   Bot,
   ChevronDown,
+  Database,
   Filter,
   Leaf,
   RefreshCcw,
@@ -247,10 +248,33 @@ export function DashboardPage() {
         ? "Margin tipis. Optimalkan HPP per kg dan jadwal panen bernilai tinggi."
         : "Unit farming sehat. Scale area paling produktif sambil menjaga HPP.";
 
+  const [isRefreshingCache, setIsRefreshingCache] = useState(false);
+
   const handleRefreshSummary = () => {
     queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
     refetch();
   };
+
+  const handleRefreshCache = async () => {
+    setIsRefreshingCache(true);
+    try {
+      await fetch("/api/dashboard/cache", { method: "DELETE" });
+      queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
+      await refetch();
+    } finally {
+      setIsRefreshingCache(false);
+    }
+  };
+
+  const cacheAge = (() => {
+    const cachedAt = summary?.cacheInfo?.cachedAt;
+    if (!cachedAt) return null;
+    try {
+      return formatDistanceToNow(new Date(cachedAt), { addSuffix: true, locale: id });
+    } catch {
+      return null;
+    }
+  })();
 
   // --- PASTE MULAI DARI SINI ---
   const scrollToSection = (section: DashboardSection) => {
@@ -451,9 +475,31 @@ export function DashboardPage() {
               </div>
             </div>
 
-            <div className="mt-4 flex items-center gap-2 text-xs text-white/55">
-              <Sparkles className="h-3.5 w-3.5 text-amber-200" />
-              <span>Sync terakhir: {formatDate(summary?.lastUpdated)}</span>
+            <div className="mt-4 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 text-xs text-white/55">
+                <Sparkles className="h-3.5 w-3.5 text-amber-200" />
+                <span>Sync terakhir: {formatDate(summary?.lastUpdated)}</span>
+              </div>
+
+              {/* Cache age + manual refresh */}
+              <button
+                onClick={handleRefreshCache}
+                disabled={isRefreshingCache || isFetching}
+                className="group flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/8 px-2.5 py-1.5 text-[10px] font-bold text-white/50 transition-all hover:border-white/20 hover:bg-white/15 hover:text-white/80 disabled:opacity-40"
+                title="Hapus cache & ambil data terbaru dari Notion"
+              >
+                {isRefreshingCache || isFetching ? (
+                  <RefreshCcw className="h-3 w-3 animate-spin text-emerald-400" />
+                ) : (
+                  <>
+                    <Database className="h-3 w-3 text-white/40 group-hover:text-emerald-400 transition-colors" />
+                    <RefreshCcw className="h-3 w-3 text-white/40 group-hover:text-emerald-400 transition-colors" />
+                  </>
+                )}
+                <span>
+                  {cacheAge ? `diperbarui ${cacheAge}` : "Muat ulang"}
+                </span>
+              </button>
             </div>
           </div>
         </div>
