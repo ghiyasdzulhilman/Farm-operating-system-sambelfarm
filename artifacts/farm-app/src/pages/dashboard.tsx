@@ -23,6 +23,7 @@ import { FinancialSection } from "@/components/FinancialSection";
 import { InsightSection } from "@/components/InsightSection";
 import { OperationalSection } from "@/components/OperationalSection";
 import { ProductionSection } from "@/components/ProductionSection";
+import { StagingQueueCard } from "@/components/StagingQueueCard";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -286,7 +287,10 @@ export function DashboardPage() {
     // 3. RENDER UI UTAMA
   return (
     <div className="flex min-h-screen flex-col bg-[#F4F9F4] pb-20 font-sans dark:bg-slate-950">
-      
+
+      {/* ── Floating staging queue indicator ── */}
+      <StagingQueueCard stagingStats={summary?.stagingStats} />
+
       <main className="relative mx-auto w-full max-w-7xl overflow-x-clip px-4 pt-4 md:px-6">
         
                         {/* --- NAVIGASI PILL & FILTER (Versi Drawer / Pull-Tab) --- */}
