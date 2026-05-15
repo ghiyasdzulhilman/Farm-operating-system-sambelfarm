@@ -19,6 +19,7 @@
     "drizzle-orm": "catalog:",
     "express": "^5",
     "http-proxy-middleware": "^3.0.5",
+    "node-cache": "^5.1.2",
     "pino": "^9",
     "pino-http": "^10"
   },

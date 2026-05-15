@@ -9,6 +9,7 @@ import {
   NotionTokenInvalidError,
 } from "../lib/notionClient";
 import { purgeOldStagingData } from "../lib/autoPurge";
+import { notionCache, getDashboardCacheKey } from "../lib/notionCache";
 import type { FieldMappingData } from "@workspace/db";
 
 const router: IRouter = Router();
@@ -261,6 +262,12 @@ router.post("/staging/sync", async (req, res): Promise<void> => {
         failed++;
         errors.push({ stagingId: record.id, error: errMsg });
       }
+    }
+
+    // Invalidate dashboard cache so the next request forces a fresh Notion fetch
+    if (synced > 0) {
+      notionCache.del(getDashboardCacheKey(userId));
+      req.log.info({ userId, synced }, "Staging: dashboard cache invalidated after successful sync");
     }
 
     res.json({ success: true, synced, failed, errors });

@@ -9,6 +9,7 @@ import {
   handleNotionErrors,
   NotionTokenInvalidError,
 } from "../lib/notionClient";
+import { notionCache, getDashboardCacheKey, delay } from "../lib/notionCache";
 
 const router: IRouter = Router();
 
@@ -179,6 +180,9 @@ async function queryHarvestByArea(
 
       hasMore = data.has_more;
       nextCursor = data.next_cursor ?? undefined;
+
+      // Anti rate-limit: 350 ms gap between paginated requests
+      if (hasMore) await delay(350);
     } catch (err) {
       if (err instanceof NotionTokenInvalidError) throw err;
       break;
@@ -388,31 +392,21 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
   try {
     const connection = await getNotionConnection(userId);
 
-    const [labaRugiMapping] = await db
-      .select()
-      .from(fieldMappingsTable)
-      .where(and(
+    // ── DB mapping queries — cheap, always fresh, run in parallel ─────────
+    const [[labaRugiMapping], [panenMapping], [expensesMapping]] = await Promise.all([
+      db.select().from(fieldMappingsTable).where(and(
         eq(fieldMappingsTable.userId, userId),
         eq(fieldMappingsTable.databaseType, "laba_rugi"),
-      ));
-
-    const [panenMapping] = await db
-      .select()
-      .from(fieldMappingsTable)
-      .where(and(
+      )),
+      db.select().from(fieldMappingsTable).where(and(
         eq(fieldMappingsTable.userId, userId),
         eq(fieldMappingsTable.databaseType, "panen"),
-      ));
-
-    const [expensesMapping] = await db
-      .select()
-      .from(fieldMappingsTable)
-      .where(and(
+      )),
+      db.select().from(fieldMappingsTable).where(and(
         eq(fieldMappingsTable.userId, userId),
         eq(fieldMappingsTable.databaseType, "expenses"),
-      ));
-
-    console.log("EXPENSE DB:", expensesMapping?.notionDatabaseId);
+      )),
+    ]);
 
     const dbLabaRugiId = labaRugiMapping?.notionDatabaseId;
     const mappingsLabaRugi = labaRugiMapping?.mappings || {};
@@ -422,23 +416,72 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
       return;
     }
 
-    const [resultLabaRugi, harvestMap, stagingRecords] = await Promise.all([
-      queryLabaRugi(userId, connection.accessToken, dbLabaRugiId, mappingsLabaRugi),
-      panenMapping?.notionDatabaseId
-        ? queryHarvestByArea(userId, connection.accessToken, panenMapping.notionDatabaseId, panenMapping.mappings || {})
-        : Promise.resolve({ global: 0 } as Record<string, number>),
-      db
-        .select()
-        .from(stagingDataTable)
-        .where(and(
-          eq(stagingDataTable.userId, userId),
-          eq(stagingDataTable.status, "pending"),
-        )),
-    ]);
+    // ── STEP A: Cache check (Notion data only) ────────────────────────────
+    const cacheKey = getDashboardCacheKey(userId);
 
-    // ── Staging contribution aggregator (modular per databaseType) ──────────
+    type NotionCached = {
+      resultLabaRugi: Awaited<ReturnType<typeof queryLabaRugi>>;
+      harvestMapRaw: Record<string, number>;
+      activities: any[];
+    };
+
+    let notionCached = notionCache.get<NotionCached>(cacheKey);
+
+    if (!notionCached) {
+      // Cache miss — fetch sequentially with 350 ms delay to stay under Notion rate limit
+      req.log.info({ userId }, "Dashboard: cache miss, fetching from Notion sequentially");
+
+      const resultLabaRugi = await queryLabaRugi(
+        userId, connection.accessToken, dbLabaRugiId, mappingsLabaRugi,
+      );
+      await delay(350);
+
+      const harvestMapRaw = panenMapping?.notionDatabaseId
+        ? await queryHarvestByArea(
+            userId,
+            connection.accessToken,
+            panenMapping.notionDatabaseId,
+            panenMapping.mappings || {},
+          )
+        : ({ global: 0 } as Record<string, number>);
+      await delay(350);
+
+      // Build areaMap needed for the activities query
+      const areaMapForActivities: Record<string, string> = {};
+      for (const area of resultLabaRugi.areas) areaMapForActivities[area.id] = area.name;
+
+      const activities = panenMapping?.notionDatabaseId
+        ? await queryRecentActivities(
+            userId,
+            connection.accessToken,
+            panenMapping.notionDatabaseId,
+            expensesMapping?.notionDatabaseId || "",
+            expensesMapping?.mappings || {},
+            areaMapForActivities,
+            panenMapping.mappings || {},
+          )
+        : [];
+
+      notionCached = { resultLabaRugi, harvestMapRaw, activities };
+      notionCache.set(cacheKey, notionCached);
+    } else {
+      req.log.info({ userId }, "Dashboard: cache hit, skipping Notion API");
+    }
+
+    // ── STEP B: Fresh staging — never cached ─────────────────────────────
+    const stagingRecords = await db
+      .select()
+      .from(stagingDataTable)
+      .where(and(
+        eq(stagingDataTable.userId, userId),
+        eq(stagingDataTable.status, "pending"),
+      ));
+
+    // ── STEP C: Aggregate — shallow-copy harvestMap so cache stays immutable
+    const harvestMap = { ...notionCached.harvestMapRaw };
     const stagingAgg = aggregateStagingContributions(stagingRecords, harvestMap);
 
+    const { resultLabaRugi } = notionCached;
     const adjustedPengeluaran = resultLabaRugi.totalPengeluaran + stagingAgg.financeAmount;
 
     const finalAreas = resultLabaRugi.areas.map((area) => ({
@@ -447,26 +490,13 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
     }));
 
     const areaMap: Record<string, string> = {};
-    for (const area of finalAreas) {
-      areaMap[area.id] = area.name;
-    }
+    for (const area of finalAreas) areaMap[area.id] = area.name;
 
     const totalProfit = resultLabaRugi.totalPendapatan - adjustedPengeluaran;
     const hpp = adjustedPengeluaran / (harvestMap.global || 1);
     const bepProgress = (resultLabaRugi.totalPendapatan / (resultLabaRugi.totalModal || 1)) * 100;
 
-    const activities = panenMapping?.notionDatabaseId
-      ? await queryRecentActivities(
-          userId,
-          connection.accessToken,
-          panenMapping.notionDatabaseId,
-          expensesMapping?.notionDatabaseId || "",
-          expensesMapping?.mappings || {},
-          areaMap,
-          panenMapping?.mappings || {},
-        )
-      : [];
-
+    // ── STEP D: Response ──────────────────────────────────────────────────
     res.json({
       financial: {
         totalModal: resultLabaRugi.totalModal,
@@ -505,7 +535,7 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
       currency: "IDR",
       lastUpdated: new Date().toISOString(),
       notionDatabaseId: dbLabaRugiId,
-      activities,
+      activities: notionCached.activities,
     });
   } catch (err) {
     if (handleNotionErrors(res, err)) return;
