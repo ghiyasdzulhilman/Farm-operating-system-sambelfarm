@@ -98,14 +98,25 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
     defaultValues: EMPTY_VALUES,
   });
 
-  const addHarvest = useAddHarvest({
+    const addHarvest = useAddHarvest({
     mutation: {
-      onSuccess: () => {
+      onSuccess: async () => {
         toast({
-          title: "Data panen berhasil ditambahkan",
-          description: "Data telah disimpan ke Notion dan dashboard diperbarui.",
+          title: "Disimpan ke Antrean",
+          description: "Data masuk Staging dan dashboard diperbarui secara instan.",
         });
-        queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
+
+        // 1. PAKSA Dashboard buat tarik data baru saat ini juga
+        await queryClient.invalidateQueries({ 
+          queryKey: getGetDashboardSummaryQueryKey(),
+          refetchType: "all" 
+        });
+
+        // 2. KASIH TAU Staging Queue Card kalau ada data baru
+        await queryClient.invalidateQueries({
+          queryKey: ["staging", "list"]
+        });
+
         form.reset({ ...EMPTY_VALUES, tanggal: format(new Date(), "yyyy-MM-dd") });
         setOpen(false);
         onSuccess?.();
