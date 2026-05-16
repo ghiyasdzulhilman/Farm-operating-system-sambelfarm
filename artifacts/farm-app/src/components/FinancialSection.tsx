@@ -32,7 +32,7 @@ const metricAccent: Record<string, string> = {
   modal: "from-slate-900 to-slate-700 text-white",
   pendapatan: "from-emerald-500 to-teal-600 text-white",
   pengeluaran: "from-amber-500 to-orange-600 text-white",
-  profit: "from-lime-500 to-emerald-600 text-white",
+  profit: "from-lime-500 to-primary text-white",
   margin: "from-cyan-500 to-blue-600 text-white",
   hpp: "from-stone-700 to-zinc-900 text-white",
 };

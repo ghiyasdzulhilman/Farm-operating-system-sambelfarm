@@ -62,7 +62,7 @@ export function HomePage() {
             <div className="mt-8 space-y-7">
               <h1 className="max-w-3xl text-5xl font-black leading-[1.02] tracking-[-0.06em] text-slate-950 dark:text-white md:text-7xl">
                 Jalankan kebun seperti{" "}
-                <span className="bg-gradient-to-r from-emerald-600 to-lime-500 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-primary to-lime-500 bg-clip-text text-transparent">
                   perusahaan teknologi
                 </span>
               </h1>
@@ -85,7 +85,7 @@ export function HomePage() {
                 <Show when="signed-in">
                   <Link href="/dashboard">
                     <Button
-                      className="h-14 rounded-2xl bg-emerald-600 px-7 text-sm font-semibold tracking-wide text-white shadow-[0_20px_40px_rgba(16,185,129,0.2)] transition-all duration-300 hover:-translate-y-1 dark:bg-emerald-500"
+                      className="h-14 rounded-2xl bg-primary px-7 text-sm font-semibold tracking-wide text-white shadow-[0_20px_40px_rgba(16,185,129,0.2)] transition-all duration-300 hover:-translate-y-1 dark:bg-emerald-500"
                     >
                       Buka Dashboard Utama
                     </Button>
@@ -142,13 +142,13 @@ export function HomePage() {
                     Rp 18.2K
                   </h3>
                 </div>
-                <div className="rounded-2xl bg-emerald-500/[0.12] p-3 text-emerald-600">
+                <div className="rounded-2xl bg-emerald-500/[0.12] p-3 text-primary">
                   <Leaf className="h-5 w-5" />
                 </div>
               </div>
               <div className="mt-5 flex items-center justify-between text-sm">
                 <span className="text-slate-500">turun 12% bulan ini</span>
-                <span className="font-semibold text-emerald-600">Efficient</span>
+                <span className="font-semibold text-primary">Efficient</span>
               </div>
             </motion.div>
 
@@ -181,7 +181,7 @@ export function HomePage() {
                     </div>
                     <div className="text-right">
                       <p className="text-sm text-slate-500">Revenue / Week</p>
-                      <p className="mt-1 text-lg font-bold text-emerald-600">Rp 48.4JT</p>
+                      <p className="mt-1 text-lg font-bold text-primary">Rp 48.4JT</p>
                     </div>
                   </div>
 
@@ -240,7 +240,7 @@ export function HomePage() {
               </div>
               <div className="mt-3 flex items-center justify-between text-sm">
                 <span className="text-slate-500">system status</span>
-                <span className="font-semibold text-emerald-600">Secure</span>
+                <span className="font-semibold text-primary">Secure</span>
               </div>
             </motion.div>
 
@@ -282,7 +282,7 @@ export function HomePage() {
       {/* ──────────────────────────────────────────────────────────────── */}
       <section className="relative mx-auto max-w-7xl px-6 pb-32 md:px-8">
         <div className="mb-14">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-600">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
             Platform Capabilities
           </p>
           <h2 className="mt-4 text-4xl font-black tracking-[-0.05em] md:text-5xl">
@@ -298,7 +298,7 @@ export function HomePage() {
             className="group relative col-span-6 overflow-hidden rounded-[36px] border border-white/[0.40] bg-white/[0.62] p-8 shadow-[0_32px_64px_rgba(0,0,0,0.04)] backdrop-blur-2xl dark:border-white/[0.05] dark:bg-white/[0.04] md:col-span-4"
           >
             <div className="max-w-xl">
-              <div className="mb-4 h-11 w-11 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-600">
+              <div className="mb-4 h-11 w-11 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-primary">
                 <LineChart className="h-5 w-5" />
               </div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
@@ -310,7 +310,7 @@ export function HomePage() {
               <p className="mt-4 text-sm leading-6 text-slate-500 dark:text-slate-400">
                 Setiap rupiah biaya untuk input pertanian seperti Trichoderma, Calbovit, atau Kalinet akan langsung dihitung silang dengan total berat panen untuk melahirkan metrik profitabilitas yang jujur.
               </p>
-              <p className="mt-6 font-mono text-[10px] text-emerald-600/70">ledger.compute() : active</p>
+              <p className="mt-6 font-mono text-[10px] text-primary/70">ledger.compute() : active</p>
             </div>
           </motion.div>
 
@@ -351,7 +351,7 @@ export function HomePage() {
             whileHover={{ y: -5 }}
             className="col-span-6 rounded-[36px] border border-white/[0.40] bg-gradient-to-br from-emerald-500/[0.08] to-lime-400/[0.04] p-8 shadow-[0_32px_64px_rgba(0,0,0,0.04)] backdrop-blur-2xl dark:border-white/[0.05] md:col-span-2"
           >
-            <div className="mb-4 h-11 w-11 rounded-2xl bg-emerald-600/10 flex items-center justify-center text-emerald-600">
+            <div className="mb-4 h-11 w-11 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
               <BarChart3 className="h-5 w-5" />
             </div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-300">Production Insights</p>
@@ -359,7 +359,7 @@ export function HomePage() {
             <p className="mt-2 text-xs sm:text-sm text-slate-500 leading-relaxed">
               Pantau tren tonase per petak area untuk membaca peta produktivitas tanaman di tiap musim panen.
             </p>
-            <p className="mt-6 font-mono text-[10px] text-emerald-600/70">yield.analytics : tracking</p>
+            <p className="mt-6 font-mono text-[10px] text-primary/70">yield.analytics : tracking</p>
           </motion.div>
 
           {/* BENTO 5: DECISION LAYER */}
@@ -400,7 +400,7 @@ export function HomePage() {
                 const Icon = item.icon;
                 return (
                   <div key={item.label} className="rounded-2xl border border-white/[0.5] bg-white/40 dark:border-white/5 dark:bg-black/30 p-4 shadow-sm">
-                    <Icon className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                    <Icon className="h-4 w-4 text-primary dark:text-emerald-400" />
                     <p className="mt-3 font-mono text-[9px] uppercase tracking-[0.22em] text-slate-400">
                       {item.label}
                     </p>

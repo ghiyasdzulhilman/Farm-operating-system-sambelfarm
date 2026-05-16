@@ -382,7 +382,7 @@ export function DashboardPage() {
                     <div className="flex items-center justify-center gap-2 rounded-2xl bg-white/40 py-2 dark:bg-black/20">
                       <Select value={selectedAreaId} onValueChange={setSelectedAreaId}>
                         <SelectTrigger className="h-8 w-[130px] rounded-full border-none bg-white px-3 text-xs font-bold shadow-sm focus:ring-0 dark:bg-slate-900">
-                          <Leaf className="mr-1.5 h-3 w-3 text-emerald-600" />
+                          <Leaf className="mr-1.5 h-3 w-3 text-primary" />
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>

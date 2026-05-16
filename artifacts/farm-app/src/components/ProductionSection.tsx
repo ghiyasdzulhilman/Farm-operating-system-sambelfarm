@@ -161,7 +161,7 @@ const stats = [
               tracking-[-0.03em]
             "
           >
-            <BarChart3 className="h-5 w-5 text-emerald-600" />
+            <BarChart3 className="h-5 w-5 text-primary" />
             Productivity Curve
           </CardTitle>
 

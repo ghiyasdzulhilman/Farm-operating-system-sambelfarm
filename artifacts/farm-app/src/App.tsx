@@ -75,7 +75,7 @@ const clerkAppearance = {
     footerActionText: "text-muted-foreground",
     dividerText: "text-muted-foreground",
     identityPreviewEditButton: "text-primary hover:text-primary/90",
-    formFieldSuccessText: "text-emerald-600",
+    formFieldSuccessText: "text-primary",
     alertText: "text-destructive-foreground",
     logoBox: "mb-2",
     logoImage: "h-12 w-auto",

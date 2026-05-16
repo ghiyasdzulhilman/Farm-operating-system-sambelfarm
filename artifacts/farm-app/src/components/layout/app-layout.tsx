@@ -149,7 +149,7 @@ export function AppLayout({
     const colorClass = isInvalid
       ? "text-amber-600 bg-amber-50 border-amber-200 hover:bg-amber-100 dark:text-amber-400 dark:bg-amber-950/30 dark:border-amber-800/40"
       : isConnected
-        ? "text-emerald-600 bg-emerald-50 border-emerald-200 hover:bg-emerald-100 dark:text-emerald-400 dark:bg-emerald-950/30 dark:border-emerald-800/40"
+        ? "text-primary bg-emerald-50 border-emerald-200 hover:bg-emerald-100 dark:text-emerald-400 dark:bg-emerald-950/30 dark:border-emerald-800/40"
         : "text-rose-600 bg-rose-50 border-rose-200 hover:bg-rose-100 dark:text-rose-400 dark:bg-rose-950/30 dark:border-rose-800/40";
 
     const dotClass = isInvalid
@@ -297,7 +297,7 @@ export function AppLayout({
               className={`flex h-16 w-16 items-center justify-center rounded-full shadow-2xl text-white transition-all duration-300 ease-in-out active:scale-95 ${
                 isFabOpen 
                   ? "bg-rose-500 rotate-45 scale-90" 
-                  : "bg-gradient-to-br from-emerald-600 to-lime-500 hover:from-emerald-500 hover:to-lime-400"
+                  : "bg-gradient-to-br from-primary to-lime-500 hover:from-emerald-500 hover:to-lime-400"
               }`}
             >
               <Plus className="h-8 w-8" />
