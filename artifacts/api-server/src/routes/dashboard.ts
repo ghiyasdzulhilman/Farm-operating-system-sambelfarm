@@ -476,7 +476,7 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
       req.log.info({ userId }, "Dashboard: cache hit, skipping Notion API");
     }
 
-        // ── STEP B: Fresh staging — never cached ─────────────────────────────
+            // ── STEP B: Fresh staging — never cached ─────────────────────────────
     const oneMinuteAgo = new Date(Date.now() - 60 * 1000);
 
     const stagingRecords = await db
@@ -485,13 +485,15 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
       .where(
         and(
           eq(stagingDataTable.userId, userId),
-          or(
-            eq(stagingDataTable.status, "pending"),
-            and(
-              eq(stagingDataTable.status, "synced"),
-              gt(stagingDataTable.createdAt, oneMinuteAgo)
-            )
-          )
+          cacheHit
+            ? or(
+                eq(stagingDataTable.status, "pending"),
+                and(
+                  eq(stagingDataTable.status, "synced"),
+                  gt(stagingDataTable.createdAt, oneMinuteAgo)
+                )
+              )
+            : eq(stagingDataTable.status, "pending")
         )
       );
 
