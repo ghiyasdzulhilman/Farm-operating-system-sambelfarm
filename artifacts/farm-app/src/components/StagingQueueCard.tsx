@@ -182,11 +182,12 @@ export function StagingQueueCard({ stagingStats }: StagingQueueCardProps) {
 
   return (
     <>
-            {/* ── Minimalist Trigger Button ─────────────────────────── */}
+                  {/* ── Minimalist Trigger Button (HIDDEN) ─────────────────────────── */}
       <button
         onClick={() => setOpen(true)}
         className={[
-          "relative flex h-9 w-9 items-center justify-center rounded-xl border transition-all",
+          "hidden relative flex h-9 w-9 items-center justify-center rounded-xl border transition-all",
+
           hasData
             ? "border-amber-300/60 bg-amber-500 text-white shadow-sm hover:bg-amber-600 active:scale-95"
             : "border-slate-200/40 bg-slate-100/50 text-slate-500 hover:bg-slate-200/50 dark:border-white/10 dark:bg-slate-800/50 dark:text-slate-400 dark:hover:bg-slate-800",
