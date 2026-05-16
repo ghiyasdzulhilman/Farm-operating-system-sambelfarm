@@ -96,6 +96,7 @@ interface FieldSpec {
  * Urutan = urutan pengecekan. Field tanpa mapping yang tersimpan di DB akan di-skip
  * (tidak ada hardcoded fallback ke nama properti).
  */
+
 const DB_FIELD_SPECS: Record<string, FieldSpec[]> = {
   panen: [
     {
@@ -107,16 +108,20 @@ const DB_FIELD_SPECS: Record<string, FieldSpec[]> = {
       build: (v) => ({ date: { start: String(v) } }),
       optional: true,
     },
+    // FIX MAPPING: Di form namanya jumlahPanen, tapi di mapping DB namanya 'berat'
     {
-      mappingKey: "jumlahPanen",
+      mappingKey: "berat",
+      dataKey: "jumlahPanen",
       build: (v) => ({ number: Number(v ?? 0) }),
     },
     {
       mappingKey: "hargaJualPerKg",
       build: (v) => ({ number: Number(v ?? 0) }),
     },
+    // FIX MAPPING: Di form namanya kualitas, tapi di mapping DB namanya 'grade'
     {
-      mappingKey: "kualitas",
+      mappingKey: "grade",
+      dataKey: "kualitas",
       build: (v) => ({ select: { name: String(v) } }),
       optional: true,
     },
@@ -125,14 +130,12 @@ const DB_FIELD_SPECS: Record<string, FieldSpec[]> = {
       build: (v) => ({ select: { name: String(v) } }),
       optional: true,
     },
-    // Form mengirim "pindahTanamId" tapi mapping key-nya "areaPindahTanam"
     {
       mappingKey: "areaPindahTanam",
       dataKey: "pindahTanamId",
       build: (v) => ({ relation: [{ id: String(v) }] }),
       optional: true,
     },
-    // Form mengirim "labaRugiId" — mapping key juga "labaRugi"
     {
       mappingKey: "labaRugi",
       dataKey: "labaRugiId",
@@ -158,14 +161,12 @@ const DB_FIELD_SPECS: Record<string, FieldSpec[]> = {
       mappingKey: "date",
       build: (v) => ({ date: { start: String(v) } }),
     },
-    // Form mengirim "kategoriId" tapi mapping key-nya "kategori"
     {
       mappingKey: "kategori",
       dataKey: "kategoriId",
       build: (v) => ({ relation: [{ id: String(v) }] }),
       optional: true,
     },
-    // Form mengirim "areaId" tapi mapping key-nya "labaRugi"
     {
       mappingKey: "labaRugi",
       dataKey: "areaId",
