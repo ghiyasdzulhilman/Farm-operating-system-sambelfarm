@@ -59,7 +59,7 @@ interface AddExpenseDialogProps {
 
 export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
   const [open, setOpen] = useState(false);
-  const [step, setStep] = useState(1); // Tracker Pop-up Step ala iOS Shortcut
+  const [step, setStep] = useState(1);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -104,7 +104,7 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
           kategoriId: "",
           areaId: "",
         });
-        setStep(1); // Kembalikan ke step 1 pas sukses
+        setStep(1);
         setOpen(false);
         onSuccess?.();
       },
@@ -118,7 +118,6 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
     },
   });
 
-  // Fungsi Validasi tiap step sebelum diperbolehkan klik "Lanjut"
   const handleNextStep = async () => {
     let fieldsToValidate: ("pengeluaran" | "date" | "qty" | "hargaPerPcs")[] = [];
     if (step === 1) fieldsToValidate = ["pengeluaran"];
@@ -165,7 +164,6 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
         className="mx-auto max-w-md rounded-t-[2rem] border-t-0 p-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl pb-6" 
         data-testid="dialog-add-expense"
       >
-        {/* Handle Bar Laci Bawah */}
         <div className="mx-auto mt-4 h-1.5 w-12 rounded-full bg-slate-200 dark:bg-slate-800" />
 
         <SheetHeader className="px-6 py-4 flex flex-row items-center justify-between border-b border-slate-100 dark:border-slate-900">
@@ -179,7 +177,6 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
             </div>
           </div>
           
-          {/* Progress Indicator Dots */}
           <div className="flex gap-1.5">
             {[1, 2, 3, 4].map((i) => (
               <div 
@@ -202,7 +199,6 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 
-                {/* ANIMATION CONTAINER AGAR BELAK-BELOK STEP BERASA HALUS */}
                 <AnimatePresence mode="wait">
                   
                   {/* STEP 1: NAMA PENGELUARAN */}
@@ -212,16 +208,16 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                       initial={{ opacity: 0, x: 15 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -15 }}
-                      className="space-y-1.5 text-left"
+                      className="text-left"
                     >
-                      <FormLabel className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                        1. Apa nama pengeluarannya?
-                      </FormLabel>
                       <FormField
                         control={form.control}
                         name="pengeluaran"
                         render={({ field }) => (
-                          <FormItem>
+                          <FormItem className="space-y-1.5">
+                            <FormLabel className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                              1. Apa nama pengeluarannya?
+                            </FormLabel>
                             <FormControl>
                               <Input
                                 className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-primary/20 text-sm font-medium dark:bg-slate-900/50"
@@ -244,16 +240,16 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                       initial={{ opacity: 0, x: 15 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -15 }}
-                      className="space-y-1.5 text-left"
+                      className="text-left"
                     >
-                      <FormLabel className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                        2. Kapan tanggal pengeluarannya?
-                      </FormLabel>
                       <FormField
                         control={form.control}
                         name="date"
                         render={({ field }) => (
-                          <FormItem>
+                          <FormItem className="space-y-1.5">
+                            <FormLabel className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                              2. Kapan tanggal pengeluarannya?
+                            </FormLabel>
                             <FormControl>
                               <div className="relative">
                                 <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
@@ -415,7 +411,6 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
 
                 {/* DYNAMIC ACTION NAVIGATION FOOTER */}
                 <div className="flex justify-between items-center pt-4 border-t border-slate-100 dark:border-slate-900">
-                  {/* Button Kiri: Kembali atau Batal */}
                   {step > 1 ? (
                     <Button
                       type="button"
@@ -439,7 +434,6 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                     </Button>
                   )}
 
-                  {/* Button Kanan: Lanjut atau Simpan (Submit) */}
                   {step < 4 ? (
                     <Button
                       type="button"
