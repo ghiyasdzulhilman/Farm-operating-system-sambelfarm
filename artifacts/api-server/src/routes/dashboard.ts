@@ -205,21 +205,23 @@ function formatRelativeTime(dateString?: string) {
 // Reads each pending staging record, extracts contributions per databaseType,
 // and mutates harvestMap in-place so area-level harvest weights stay accurate.
 interface StagingAggResult {
-  financeAmount: number;   // total rupiah pending (expenses + laba_rugi)
-  harvestWeight: number;   // total kg panen pending
-  inspeksiCount: number;   // jumlah record inspeksi pending
-  perawatanCount: number;  // jumlah record perawatan pending
+  financeAmount: number;
+  harvestWeight: number;
+  inspeksiCount: number;
+  perawatanCount: number;
+  expenseAreaMap: Record<string, number>; // INI YANG BARU
 }
 
 function aggregateStagingContributions(
   records: Array<{ databaseType: string; data: Record<string, unknown> }>,
   harvestMap: Record<string, number>,
 ): StagingAggResult {
-  const result: StagingAggResult = {
+    const result: StagingAggResult = {
     financeAmount: 0,
     harvestWeight: 0,
     inspeksiCount: 0,
     perawatanCount: 0,
+    expenseAreaMap: {}, // INI YANG BARU
   };
 
   for (const record of records) {
@@ -236,14 +238,19 @@ function aggregateStagingContributions(
         break;
       }
 
-      case "expenses":
+            case "expenses":
       case "laba_rugi": {
-        // Field: 'nominal' (IDR). Fallback to qty*hargaPerPcs for backward compat.
         const nominal =
           d.nominal !== undefined
             ? Number(d.nominal)
             : Number(d.qty ?? 0) * Number(d.hargaPerPcs ?? 0);
         result.financeAmount += nominal;
+
+        // CATAT PENGELUARAN KE MASING-MASING AREA
+        const areaId = (d.labaRugiId ?? d.areaId) as string | undefined;
+        if (areaId) {
+          result.expenseAreaMap[areaId] = (result.expenseAreaMap[areaId] || 0) + nominal;
+        }
         break;
       }
 
@@ -486,10 +493,20 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
     const { resultLabaRugi } = notionCached;
     const adjustedPengeluaran = resultLabaRugi.totalPengeluaran + stagingAgg.financeAmount;
 
-    const finalAreas = resultLabaRugi.areas.map((area) => ({
-      ...area,
-      harvestWeight: harvestMap[area.id] || 0,
-    }));
+        const finalAreas = resultLabaRugi.areas.map((area) => {
+      const pendingExpense = stagingAgg.expenseAreaMap[area.id] || 0;
+      const updatedPengeluaran = area.pengeluaran + pendingExpense;
+      const updatedProfit = area.pendapatan - updatedPengeluaran;
+      const updatedMargin = area.pendapatan > 0 ? (updatedProfit / area.pendapatan) * 100 : 0;
+
+      return {
+        ...area,
+        pengeluaran: updatedPengeluaran,
+        profit: updatedProfit,
+        margin: updatedMargin,
+        harvestWeight: harvestMap[area.id] || 0,
+      };
+    });
 
     const areaMap: Record<string, string> = {};
     for (const area of finalAreas) areaMap[area.id] = area.name;
