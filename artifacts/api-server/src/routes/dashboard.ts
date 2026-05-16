@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { getAuth } from "@clerk/express";
 import { db, fieldMappingsTable, stagingDataTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, or, gt } from "drizzle-orm";
 import { formatDistanceToNow } from "date-fns";
 import {
   getNotionConnection,
@@ -228,21 +228,20 @@ interface StagingAggResult {
 
 function aggregateStagingContributions(records: any[], harvestMap: Record<string, number>) {
   const result = {
-    financeAmount: 0,       // Total pengeluaran pending
-    pendingRevenue: 0,      // Total pendapatan pending (BARU)
-    harvestWeight: 0,       // Total kg pending
+    financeAmount: 0,
+    pendingRevenue: 0,
+    harvestWeight: 0,
     inspeksiCount: 0,
     perawatanCount: 0,
     expenseAreaMap: {} as Record<string, number>,
-    revenueAreaMap: {} as Record<string, number>, // Rekap pendapatan per area (BARU)
+    revenueAreaMap: {} as Record<string, number>,
   };
 
   for (const record of records) {
     const d = record.data;
-    if (record.status !== "pending") continue;
 
     switch (record.databaseType) {
-      case "panen": {
+
         const weight = Number(d.jumlahPanen ?? 0);
         const price = Number(d.hargaJualPerKg ?? 0);
         const revenue = weight * price;
@@ -477,14 +476,24 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
       req.log.info({ userId }, "Dashboard: cache hit, skipping Notion API");
     }
 
-    // ── STEP B: Fresh staging — never cached ─────────────────────────────
+        // ── STEP B: Fresh staging — never cached ─────────────────────────────
+    const oneMinuteAgo = new Date(Date.now() - 60 * 1000);
+
     const stagingRecords = await db
       .select()
       .from(stagingDataTable)
-      .where(and(
-        eq(stagingDataTable.userId, userId),
-        eq(stagingDataTable.status, "pending"),
-      ));
+      .where(
+        and(
+          eq(stagingDataTable.userId, userId),
+          or(
+            eq(stagingDataTable.status, "pending"),
+            and(
+              eq(stagingDataTable.status, "synced"),
+              gt(stagingDataTable.createdAt, oneMinuteAgo)
+            )
+          )
+        )
+      );
 
             // ── STEP C: Aggregate — shallow-copy harvestMap so cache stays immutable
     const harvestMap = { ...notionCached.harvestMapRaw };
@@ -529,22 +538,31 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
     const hpp = adjustedPengeluaran / (harvestMap.global || 1);
     const bepProgress = (adjustedPendapatan / (resultLabaRugi.totalModal || 1)) * 100;
 
-    // FIX: Bikin Activity Feed Real-Time dari Staging
+        // FIX: Bikin Activity Feed Real-Time & Buffered dari Staging
     const pendingActivities = stagingRecords.map((record) => {
       const d = record.data;
+      const isPending = record.status === "pending";
+      
       let type = record.databaseType === "panen" ? "harvest" : "expense";
-      let title = record.databaseType === "panen" ? "Panen (Antrean)" : "Pengeluaran (Antrean)";
-      let description = "Menunggu sinkronisasi...";
+      let title = record.databaseType === "panen" 
+        ? (isPending ? "Panen (Antrean)" : "Panen (Sinkronisasi...)") 
+        : (isPending ? "Pengeluaran (Antrean)" : "Pengeluaran (Sinkronisasi...)");
+        
+      let description = isPending ? "Menunggu sinkronisasi..." : "Data sedang diindeks Notion...";
 
       if (record.databaseType === "panen") {
         const weight = Number(d.jumlahPanen ?? 0);
-        description = `${weight}kg menunggu dikirim ke Notion`;
+        description = isPending 
+          ? `${weight}kg menunggu dikirim ke Notion`
+          : `${weight}kg baru saja disinkronkan`;
       } else if (record.databaseType === "expenses" || record.databaseType === "laba_rugi") {
         const nominal = d.nominal !== undefined ? Number(d.nominal) : Number(d.qty ?? 0) * Number(d.hargaPerPcs ?? 0);
-        description = `Rp${nominal.toLocaleString("id-ID")} menunggu dikirim ke Notion`;
+        description = isPending 
+          ? `Rp${nominal.toLocaleString("id-ID")} menunggu dikirim`
+          : `Rp${nominal.toLocaleString("id-ID")} baru saja disinkronkan`;
       }
 
-      return { type, title, description, time: "Baru saja", isPending: true };
+      return { type, title, description, time: "Baru saja", isPending };
     });
 
     const finalActivities = [...pendingActivities, ...notionCached.activities].slice(0, 5);
