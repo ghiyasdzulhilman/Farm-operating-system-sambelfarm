@@ -182,52 +182,27 @@ export function StagingQueueCard({ stagingStats }: StagingQueueCardProps) {
 
   return (
     <>
-      {/* ── Floating trigger button ─────────────────────────── */}
-      <AnimatePresence>
-        <motion.div
-          className="fixed bottom-24 right-4 z-40 md:bottom-8 md:right-6"
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: "spring", stiffness: 300, damping: 22 }}
-        >
-          <button
-            onClick={() => setOpen(true)}
-            className={[
-              "relative flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-bold shadow-xl transition-all",
-              "border backdrop-blur-md",
-              hasData
-                ? "border-amber-300/60 bg-amber-500 text-white hover:bg-amber-600 active:scale-95"
-                : "border-slate-200/60 bg-white/80 text-slate-500 hover:bg-white dark:border-white/10 dark:bg-slate-900/80 dark:text-slate-400",
-            ].join(" ")}
-            aria-label="Buka staging queue"
-          >
-            {/* Pulse ring when there's pending data */}
-            {hasData && (
-              <span className="absolute -right-1 -top-1 flex h-4 w-4">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
-                <span className="relative inline-flex h-4 w-4 rounded-full bg-amber-500" />
-              </span>
-            )}
+            {/* ── Minimalist Trigger Button ─────────────────────────── */}
+      <button
+        onClick={() => setOpen(true)}
+        className={[
+          "relative flex h-9 w-9 items-center justify-center rounded-xl border transition-all",
+          hasData
+            ? "border-amber-300/60 bg-amber-500 text-white shadow-sm hover:bg-amber-600 active:scale-95"
+            : "border-slate-200/40 bg-slate-100/50 text-slate-500 hover:bg-slate-200/50 dark:border-white/10 dark:bg-slate-800/50 dark:text-slate-400 dark:hover:bg-slate-800",
+        ].join(" ")}
+        aria-label="Buka staging queue"
+      >
+        {/* Titik kuning berkedip kalau ada antrean */}
+        {hasData && (
+          <span className="absolute -right-1 -top-1 flex h-3 w-3">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
+            <span className="relative inline-flex h-3 w-3 rounded-full border-2 border-white bg-amber-500 dark:border-slate-950" />
+          </span>
+        )}
 
-            <CloudUpload className="h-4 w-4 shrink-0" />
-
-            {hasData ? (
-              <span>{pendingCount} data belum sinkron</span>
-            ) : (
-              <span className="text-xs">Staging bersih</span>
-            )}
-
-            {failedCount > 0 && (
-              <span className="ml-1 flex items-center gap-0.5 rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-black text-white">
-                <AlertCircle className="h-2.5 w-2.5" />
-                {failedCount} gagal
-              </span>
-            )}
-
-            <ChevronRight className="h-3.5 w-3.5 opacity-60" />
-          </button>
-        </motion.div>
-      </AnimatePresence>
+        <CloudUpload className="h-4 w-4" />
+      </button>
 
       {/* ── Sheet drawer ────────────────────────────────────── */}
       <Sheet open={open} onOpenChange={setOpen}>
