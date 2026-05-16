@@ -45,6 +45,8 @@ type DomainType = "finance" | "agronomy" | "lab" | "resource";
 const ALIASES: Record<string, string[]> = {
   qty: ["qty", "jumlah", "berat", "quantity", "kg"],
   harga: ["harga", "price", "rp", "jual", "satuan"],
+  kualitas: ["kualitas", "grade", "mutu"],
+  channel: ["channel", "saluran", "tujuan", "pembeli", "penjualan"],
   tanggal: ["tanggal", "date", "waktu", "hari", "created"],
   kategori: ["kategori", "category", "jenis"],
   area: ["area", "blok", "lahan", "pindah tanam"],
@@ -66,11 +68,14 @@ const DOMAINS: any[] = [
         { key: "pendapatan", label: "Total Pendapatan", expectedType: "rollup|formula|number" },
         { key: "pengeluaran", label: "Total Pengeluaran", expectedType: "rollup|formula|number" },
       ]},
-      { id: "panen", label: "Data Pemanenan", hint: "Pencatatan sesi panen kebun", fields: [
+            { id: "panen", label: "Data Pemanenan", hint: "Pencatatan sesi panen kebun", fields: [
         { key: "kegiatan", label: "Kegiatan / Judul", expectedType: "title", aliases: ALIASES.kegiatan },
         { key: "tanggal", label: "Tanggal", expectedType: "date|created_time", aliases: ALIASES.tanggal },
         { key: "jumlahPanen", label: "Jumlah Panen (kg)", expectedType: "number", aliases: ALIASES.qty },
         { key: "hargaJualPerKg", label: "Harga Jual per Kg", expectedType: "number", aliases: ALIASES.harga },
+        // INI TAMBAHANNYA: Kualitas dan Channel Penjualan
+        { key: "kualitas", label: "Kualitas / Grade", expectedType: "select", aliases: ALIASES.kualitas },
+        { key: "channelPenjualan", label: "Channel Penjualan", expectedType: "select", aliases: ALIASES.channel },
         { key: "labaRugi", label: "Area Laba Rugi", expectedType: "relation", aliases: ALIASES.area },
       ]},
       { id: "expenses", label: "Pengeluaran Operasional", hint: "Biaya Pupuk, pestisida, upah dll", fields: [
