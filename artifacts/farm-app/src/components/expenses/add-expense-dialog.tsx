@@ -112,6 +112,7 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
           variant: "destructive",
           title: "Gagal menyimpan",
           description: "Cek kembali koneksi internet atau server Anda.",
+          bg: "destructive"
         });
       },
     },
@@ -158,7 +159,6 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
         </Button>
       </SheetTrigger>
 
-      {/* BERUBAH KE side="top" & rounded-b UNTUK EFEK IPHONE DROPDOWN SHORTCUT */}
       <SheetContent 
         side="top"
         className="mx-auto max-w-md rounded-b-[2rem] border-x-0 border-t-0 p-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl pb-4 shadow-[0_16px_40px_rgba(0,0,0,0.12)]" 
@@ -175,7 +175,6 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
             </div>
           </div>
           
-          {/* Progress Dots Indicator */}
           <div className="flex gap-1.5">
             {[1, 2, 3, 4].map((i) => (
               <div 
@@ -196,9 +195,9 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
             </div>
           ) : (
             <Form {...form}>
+              {/* PERUBAHAN SAKTI 1: Blokir total native submission dari form html browser */}
               <form 
-                onSubmit={form.handleSubmit(onSubmit)} 
-                onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
+                onSubmit={(e) => e.preventDefault()} 
                 className="space-y-5"
               >
                 
@@ -327,7 +326,6 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                         />
                       </div>
 
-                      {/* Subtotal Live Badge */}
                       {subtotal > 0 && (
                         <div className="rounded-2xl bg-primary/[0.04] px-4 py-3 text-sm flex justify-between items-center border border-primary/10 dark:bg-primary/[0.02]">
                           <span className="font-medium text-muted-foreground">Total Pengeluaran:</span>
@@ -446,10 +444,12 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   ) : (
+                    /* PERUBAHAN SAKTI 2: Ubah type dari "submit" menjadi "button", panggil submit manual via onClick */
                     <Button
-                      type="submit"
+                      type="button"
                       className="h-11 rounded-xl px-6 font-bold bg-primary text-primary-foreground hover:opacity-90 transition-all active:scale-[0.98]"
                       disabled={addExpense.isPending}
+                      onClick={form.handleSubmit(onSubmit)}
                       data-testid="button-submit-expense"
                     >
                       {addExpense.isPending ? (
@@ -472,7 +472,6 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
           )}
         </div>
         
-        {/* Pull up notch line di bagian bawah kartu */}
         <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-slate-100 dark:bg-slate-900" />
       </SheetContent>
     </Sheet>
