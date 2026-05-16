@@ -131,7 +131,7 @@ export function StagingQueueCard({ stagingStats }: StagingQueueCardProps) {
   const records = listData?.records ?? [];
   const failedCount = records.filter((r) => r.status === "failed").length;
 
-    async function handleSync() {
+  async function handleSync() {
     setIsSyncing(true);
     try {
       const res = await fetch("/api/staging/sync", { method: "POST" });
@@ -162,13 +162,11 @@ export function StagingQueueCard({ stagingStats }: StagingQueueCardProps) {
       }
 
       // 2. KUNCI UTAMA: Paksa Refresh Semua Lini
-      // Ini akan memaksa layar Dashboard langsung memanggil ulang API /api/dashboard/summary
       await queryClient.invalidateQueries({
         queryKey: getGetDashboardSummaryQueryKey(),
-        refetchType: 'all' // Paksa refetch semua komponen yang butuh data summary
+        refetchType: 'all'
       });
       
-      // Paksa list di dalem sheet buat update status (dari pending jadi merah/failed atau ilang)
       await refetchList();
 
     } catch {
@@ -182,6 +180,7 @@ export function StagingQueueCard({ stagingStats }: StagingQueueCardProps) {
     }
   }
 
+  return (
     <>
       {/* ── Floating trigger button ─────────────────────────── */}
       <AnimatePresence>
