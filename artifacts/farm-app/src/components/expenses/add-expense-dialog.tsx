@@ -77,14 +77,25 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
     },
   });
 
-  const addExpense = useAddExpense({
+    const addExpense = useAddExpense({
     mutation: {
-      onSuccess: () => {
+      onSuccess: async () => {
         toast({
-          title: "Pengeluaran berhasil ditambahkan",
-          description: "Data telah disimpan ke Notion dan dashboard diperbarui.",
+          title: "Disimpan ke Antrean",
+          description: "Data masuk Staging dan dashboard diperbarui secara instan.",
         });
-        queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
+
+        // 1. PAKSA Dashboard buat tarik data baru saat ini juga
+        await queryClient.invalidateQueries({ 
+          queryKey: getGetDashboardSummaryQueryKey(),
+          refetchType: "all" 
+        });
+
+        // 2. KASIH TAU Staging Queue Card kalau ada data baru
+        await queryClient.invalidateQueries({
+          queryKey: ["staging", "list"]
+        });
+
         form.reset({
           pengeluaran: "",
           date: format(new Date(), "yyyy-MM-dd"),
@@ -100,11 +111,12 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
         toast({
           variant: "destructive",
           title: "Gagal menyimpan",
-          description: "Cek kembali koneksi Notion atau pastikan mapping sudah benar.",
+          description: "Cek kembali koneksi internet atau server Anda.",
         });
       },
     },
   });
+
 
   function onSubmit(values: ExpenseFormValues) {
     // Bersihkan data kosong (ubah string kosong jadi undefined biar Notion ga error)
