@@ -41,7 +41,6 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 
-// SATPAM DILONGGARIN: kategoriId & areaId dibuat optional biar form ga macet
 const expenseSchema = z.object({
   pengeluaran: z.string().min(1, "Nama pengeluaran wajib diisi"),
   date: z.string().min(1, "Tanggal wajib diisi"),
@@ -159,13 +158,12 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
         </Button>
       </SheetTrigger>
 
+      {/* BERUBAH KE side="top" & rounded-b UNTUK EFEK IPHONE DROPDOWN SHORTCUT */}
       <SheetContent 
-        side="bottom"
-        className="mx-auto max-w-md rounded-t-[2rem] border-t-0 p-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl pb-6" 
+        side="top"
+        className="mx-auto max-w-md rounded-b-[2rem] border-x-0 border-t-0 p-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl pb-4 shadow-[0_16px_40px_rgba(0,0,0,0.12)]" 
         data-testid="dialog-add-expense"
       >
-        <div className="mx-auto mt-4 h-1.5 w-12 rounded-full bg-slate-200 dark:bg-slate-800" />
-
         <SheetHeader className="px-6 py-4 flex flex-row items-center justify-between border-b border-slate-100 dark:border-slate-900">
           <div className="flex items-center gap-3">
             <div className="rounded-xl bg-primary/10 p-2 text-primary">
@@ -177,6 +175,7 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
             </div>
           </div>
           
+          {/* Progress Dots Indicator */}
           <div className="flex gap-1.5">
             {[1, 2, 3, 4].map((i) => (
               <div 
@@ -190,24 +189,27 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
           </div>
         </SheetHeader>
 
-        <div className="px-6 py-6">
+        <div className="px-6 py-4">
           {isLoadingOptions ? (
             <div className="space-y-4">
               <Skeleton className="h-12 w-full rounded-xl" />
             </div>
           ) : (
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <form 
+                onSubmit={form.handleSubmit(onSubmit)} 
+                onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
+                className="space-y-5"
+              >
                 
                 <AnimatePresence mode="wait">
-                  
                   {/* STEP 1: NAMA PENGELUARAN */}
                   {step === 1 && (
                     <motion.div
                       key="step1"
-                      initial={{ opacity: 0, x: 15 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -15 }}
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
                       className="text-left"
                     >
                       <FormField
@@ -237,9 +239,9 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                   {step === 2 && (
                     <motion.div
                       key="step2"
-                      initial={{ opacity: 0, x: 15 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -15 }}
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
                       className="text-left"
                     >
                       <FormField
@@ -272,9 +274,9 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                   {step === 3 && (
                     <motion.div
                       key="step3"
-                      initial={{ opacity: 0, x: 15 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -15 }}
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
                       className="space-y-4 text-left"
                     >
                       <p className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
@@ -325,7 +327,7 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                         />
                       </div>
 
-                      {/* Live Subtotal Badge */}
+                      {/* Subtotal Live Badge */}
                       {subtotal > 0 && (
                         <div className="rounded-2xl bg-primary/[0.04] px-4 py-3 text-sm flex justify-between items-center border border-primary/10 dark:bg-primary/[0.02]">
                           <span className="font-medium text-muted-foreground">Total Pengeluaran:</span>
@@ -337,13 +339,13 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                     </motion.div>
                   )}
 
-                  {/* STEP 4: KATEGORI & AREA (OPSIONAL) */}
+                  {/* STEP 4: KATEGORI & AREA */}
                   {step === 4 && (
                     <motion.div
                       key="step4"
-                      initial={{ opacity: 0, x: 15 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -15 }}
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
                       className="space-y-4 text-left"
                     >
                       <p className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
@@ -409,7 +411,7 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                   )}
                 </AnimatePresence>
 
-                {/* DYNAMIC ACTION NAVIGATION FOOTER */}
+                {/* NAVIGATION FOOTER */}
                 <div className="flex justify-between items-center pt-4 border-t border-slate-100 dark:border-slate-900">
                   {step > 1 ? (
                     <Button
@@ -469,6 +471,9 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
             </Form>
           )}
         </div>
+        
+        {/* Pull up notch line di bagian bawah kartu */}
+        <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-slate-100 dark:bg-slate-900" />
       </SheetContent>
     </Sheet>
   );
