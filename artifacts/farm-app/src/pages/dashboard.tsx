@@ -183,17 +183,17 @@ export function DashboardPage() {
 
   const areas = summary?.areas || [];
 
-  const displayData = useMemo<DisplayData>(() => {
+    const displayData = useMemo<DisplayData>(() => {
     if (!summary) return emptyDisplayData;
 
     if (selectedAreaId === "all") {
       return {
-        modal: summary.financial?.totalModal || 0,
-        pendapatan: summary.financial?.totalPendapatan || 0,
-        pengeluaran: summary.financial?.totalPengeluaran || 0,
-        profit: summary.financial?.labaRugi || 0,
-        margin: summary.financial?.marginTotal || 0,
-        harvestWeight: summary.production?.totalHarvestWeight || 0,
+        modal: summary.financial?.totalModal ?? 0,
+        pendapatan: summary.financial?.totalPendapatan ?? 0,
+        pengeluaran: summary.financial?.totalPengeluaran ?? 0,
+        profit: summary.financial?.labaRugi ?? 0,
+        margin: summary.financial?.marginTotal ?? 0,
+        harvestWeight: summary.production?.totalHarvestWeight ?? 0,
       };
     }
 
@@ -201,12 +201,12 @@ export function DashboardPage() {
     if (!area) return emptyDisplayData;
 
     return {
-      modal: area.modalAwal || 0,
-      pendapatan: area.pendapatan || 0,
-      pengeluaran: area.pengeluaran || 0,
-      profit: area.profit || 0,
-      margin: area.margin || 0,
-      harvestWeight: area.harvestWeight || 0,
+      modal: area.modalAwal ?? 0,
+      pendapatan: area.pendapatan ?? 0,
+      pengeluaran: area.pengeluaran ?? 0,
+      profit: area.profit ?? 0,
+      margin: area.margin ?? 0,
+      harvestWeight: area.harvestWeight ?? 0,
     };
   }, [summary, selectedAreaId, areas]);
 
@@ -239,14 +239,18 @@ export function DashboardPage() {
   const expenseActivities =
     summary?.activities?.filter((activity: any) => activity.type === "expense") || [];
 
-  const localBusinessStatus = displayData.margin > 0 ? "Profitable" : "Developing";
-  
-  const localRecommendation =
-    displayData.margin < 0
-      ? "Margin turun. Kurangi biaya variabel dan audit input area prioritas."
-      : displayData.margin < 15
-        ? "Margin tipis. Optimalkan HPP per kg dan jadwal panen bernilai tinggi."
-        : "Unit farming sehat. Scale area paling produktif sambil menjaga HPP.";
+  // FIX: Menggunakan insight langsung dari Backend jika "Semua Area"
+  const localBusinessStatus = selectedAreaId === "all" && summary?.insight?.businessStatus 
+    ? summary.insight.businessStatus 
+    : (displayData.margin > 0 ? "Profitable" : "Developing");
+
+  const localRecommendation = selectedAreaId === "all" && summary?.insight?.recommendation
+    ? summary.insight.recommendation
+    : (displayData.margin < 0
+        ? "Usaha masih merugi. Evaluasi total biaya pengeluaran dan audit operasional."
+        : displayData.margin < 15
+          ? "Margin tipis. Optimalkan HPP per kg dan pantau jadwal panen."
+          : "Unit farming sehat. Scale area paling produktif sambil menjaga HPP.");
 
   const [isRefreshingCache, setIsRefreshingCache] = useState(false);
 
@@ -285,8 +289,9 @@ export function DashboardPage() {
     });
   };
 
-  // 1. CEK LOADING SCREEN
-  if (isLoadingConnection) {
+    // 1. CEK LOADING SCREEN (Aman dari flash data 0)
+  if (isLoadingConnection || (isLoadingSummary && !summary)) {
+
     return (
       <div className="mt-4 space-y-5 px-4 md:px-6">
         <Skeleton className="h-44 rounded-[2rem]" />
@@ -316,7 +321,17 @@ export function DashboardPage() {
       <StagingQueueCard stagingStats={summary?.stagingStats} />
 
       <main className="relative mx-auto w-full max-w-7xl overflow-x-clip px-4 pt-4 md:px-6">
-        
+                {/* ALERT JIKA TOKEN NOTION PUTUS */}
+        {isTokenInvalid && (
+          <Alert variant="destructive" className="mb-4 border-red-500/50 bg-red-500/10 text-red-500 dark:bg-red-900/20">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Koneksi Notion Bermasalah</AlertTitle>
+            <AlertDescription>
+              Token integrasi tidak valid atau terputus. Silakan sambungkan ulang di menu Pengaturan.
+            </AlertDescription>
+          </Alert>
+        )}
+
                         {/* --- NAVIGASI PILL & FILTER (Versi Drawer / Pull-Tab) --- */}
         <div className="sticky top-2 z-30 flex flex-col md:top-4">
           <div className="w-full overflow-hidden rounded-[1.55rem] border border-white/60 bg-white/72 p-1.5 shadow-[0_18px_50px_rgba(15,23,42,0.10)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/70">
@@ -363,17 +378,6 @@ export function DashboardPage() {
                   <div className="pt-2">
                     {/* justify-center bikin itemnya ke tengah */}
                     <div className="flex items-center justify-center gap-2 rounded-2xl bg-white/40 py-2 dark:bg-black/20">
-                      
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 rounded-full bg-white shadow-sm dark:bg-slate-900"
-                        onClick={handleRefreshSummary}
-                        disabled={isFetching || isLoadingSummary}
-                      >
-                        <RefreshCcw className={`h-4 w-4 text-emerald-600 ${isFetching ? "animate-spin" : ""}`} />
-                      </Button>
-
                       <Select value={selectedAreaId} onValueChange={setSelectedAreaId}>
                         <SelectTrigger className="h-8 w-[130px] rounded-full border-none bg-white px-3 text-xs font-bold shadow-sm focus:ring-0 dark:bg-slate-900">
                           <Leaf className="mr-1.5 h-3 w-3 text-emerald-600" />
