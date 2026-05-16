@@ -97,11 +97,9 @@ export function AppLayout({
     <div
   className="
     min-h-screen
-
-    bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.12),transparent_32%),linear-gradient(180deg,hsl(var(--background)),hsl(var(--muted)))]
-
+    /* AMBIENT GLOW: Mengikuti Roda Warna Utama secara dinamis */
+    bg-[radial-gradient(circle_at_top_left,hsl(var(--primary)/0.12),transparent_32%),linear-gradient(180deg,hsl(var(--background)),hsl(var(--muted)))]
     pb-24
-
     font-sans
   "
 >
@@ -146,17 +144,18 @@ export function AppLayout({
     const isConnected = connectionStatus?.connected;
     const isInvalid = isConnected && connectionStatus?.tokenStatus === "invalid";
 
+    /* AUDIT: Mengubah warna kaku lama menjadi token semantik adaptif */
     const colorClass = isInvalid
-      ? "text-amber-600 bg-amber-50 border-amber-200 hover:bg-amber-100 dark:text-amber-400 dark:bg-amber-950/30 dark:border-amber-800/40"
+      ? "text-accent bg-accent/10 border-accent/20 hover:bg-accent/20"
       : isConnected
-        ? "text-primary bg-emerald-50 border-emerald-200 hover:bg-emerald-100 dark:text-emerald-400 dark:bg-emerald-950/30 dark:border-emerald-800/40"
-        : "text-rose-600 bg-rose-50 border-rose-200 hover:bg-rose-100 dark:text-rose-400 dark:bg-rose-950/30 dark:border-rose-800/40";
+        ? "text-primary bg-primary/10 border-primary/20 hover:bg-primary/20"
+        : "text-destructive bg-destructive/10 border-destructive/20 hover:bg-destructive/20";
 
     const dotClass = isInvalid
-      ? "bg-amber-500 animate-pulse"
+      ? "bg-accent animate-pulse"
       : isConnected
         ? "bg-primary"
-        : "bg-rose-500";
+        : "bg-destructive";
 
     const label = isInvalid ? "Token Invalid" : isConnected ? "Connected" : "Disconnected";
 
@@ -247,7 +246,7 @@ export function AppLayout({
           {/* ----- THE SUPER FAB ----- */}
           <div className="absolute left-1/2 -translate-x-1/2 -top-4 flex justify-center items-center">
             
-            {/* Overlay Blur (Aman di-unmount karena ga ada pop-up di dalemnya) */}
+            {/* Overlay Blur */}
             <AnimatePresence>
               {isFabOpen && (
                 <motion.div 
@@ -260,7 +259,7 @@ export function AppLayout({
               )}
             </AnimatePresence>
             
-            {/* SPEED DIAL PATTERN: Disembunyikan pakai CSS, BUKAN dihapus dari layar */}
+            {/* SPEED DIAL PATTERN */}
             <motion.div
               initial={false}
               animate={{ 
@@ -291,13 +290,13 @@ export function AppLayout({
               </div>
             </motion.div>
 
-                        {/* Tombol Plus Tengah */}
+            {/* Tombol Plus Tengah (AUDIT: Menggunakan destructive & secondary semantik) */}
             <button
               onClick={() => setIsFabOpen(!isFabOpen)}
               className={`flex h-16 w-16 items-center justify-center rounded-full shadow-2xl text-white transition-all duration-300 ease-in-out active:scale-95 ${
                 isFabOpen 
-                  ? "bg-rose-500 rotate-45 scale-90" 
-                  : "bg-gradient-to-br from-primary to-secondary hover:from-primary hover:to-lime-400"
+                  ? "bg-destructive rotate-45 scale-90" 
+                  : "bg-gradient-to-br from-primary to-secondary hover:from-primary/90 hover:to-secondary/90"
               }`}
             >
               <Plus className="h-8 w-8" />
