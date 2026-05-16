@@ -324,10 +324,10 @@ router.post("/staging/sync", async (req, res): Promise<void> => {
           continue;
         }
 
-        const created = await response.json() as { id: string };
+                const created = await response.json() as { id: string };
         await db
           .update(stagingDataTable)
-          .set({ status: "synced", errorMessage: null })
+          .set({ status: "synced", errorMessage: null, createdAt: new Date() }) // 👈 HACK NYA DI SINI
           .where(eq(stagingDataTable.id, record.id));
 
         req.log.info({ userId, stagingId: record.id, notionPageId: created.id }, "Staging: synced to Notion");
