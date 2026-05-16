@@ -37,89 +37,103 @@ interface NotionQueryResponse {
   next_cursor: string | null;
 }
 
-// --- 1. Fungsi Utama Narik Data Laba Rugi ---
+// --- 1. Fungsi Utama Narik Data Laba Rugi (Sudah Support 100+ Data & Margin Jujur) ---
 async function queryLabaRugi(
   userId: string,
   accessToken: string,
   databaseId: string,
   mappings: any,
 ) {
-  try {
-    const response = await notionFetch(
-      userId,
-      accessToken,
-      `https://api.notion.com/v1/databases/${databaseId}/query`,
-      { method: "POST", body: JSON.stringify({ page_size: 100 }) },
-    );
+  let hasMore = true;
+  let nextCursor: string | undefined = undefined;
 
-    if (!response.ok) {
-      return { totalModal: 0, totalPendapatan: 0, totalPengeluaran: 0, marginTotal: 0, areas: [] };
-    }
+  let totalModal = 0;
+  let totalPendapatan = 0;
+  let totalPengeluaran = 0;
+  const areas: any[] = [];
 
-    const data = (await response.json()) as NotionQueryResponse;
+  const modalPropId = mappings?.modalAwal?.propertyId;
+  const pendapatanPropId = mappings?.pendapatan?.propertyId;
+  const pengeluaranPropId = mappings?.pengeluaran?.propertyId;
+  const areaPropId = mappings?.area?.propertyId;
 
-    const modalPropId = mappings?.modalAwal?.propertyId;
-    const pendapatanPropId = mappings?.pendapatan?.propertyId;
-    const pengeluaranPropId = mappings?.pengeluaran?.propertyId;
-    const areaPropId = mappings?.area?.propertyId;
+  while (hasMore) {
+    const body: any = { page_size: 100 };
+    if (nextCursor) body.start_cursor = nextCursor;
 
-    let totalModal = 0;
-    let totalPendapatan = 0;
-    let totalPengeluaran = 0;
-    const areas: any[] = [];
+    try {
+      const response = await notionFetch(
+        userId,
+        accessToken,
+        `https://api.notion.com/v1/databases/${databaseId}/query`,
+        { method: "POST", body: JSON.stringify(body) },
+      );
 
-    for (const page of data.results) {
-      const extractNum = (propId: string) => {
-        if (!propId) return 0;
-        const prop = Object.values(page.properties).find((p: any) => p.id === propId) as any;
-        if (!prop) return 0;
-        if (prop.type === "rollup") return prop.rollup?.number ?? 0;
-        if (prop.type === "number") return prop.number ?? 0;
-        if (prop.type === "formula") return prop.formula?.number ?? 0;
-        return 0;
-      };
+      if (!response.ok) break;
 
-      const modalAwal = extractNum(modalPropId);
-      const pendapatan = extractNum(pendapatanPropId);
-      const pengeluaran = extractNum(pengeluaranPropId);
+      const data = (await response.json()) as NotionQueryResponse;
 
-      let areaName = "Area Tanpa Nama";
-      if (areaPropId) {
-        const titleProp = Object.values(page.properties).find((p: any) => p.id === areaPropId) as any;
-        if (titleProp && titleProp.title?.[0]) areaName = titleProp.title[0].plain_text;
-      } else {
-        const titleProp = Object.values(page.properties).find((p: any) => p.type === "title") as any;
-        if (titleProp && titleProp.title?.[0]) areaName = titleProp.title[0].plain_text;
+      for (const page of data.results) {
+        const extractNum = (propId: string) => {
+          if (!propId) return 0;
+          const prop = Object.values(page.properties).find((p: any) => p.id === propId) as any;
+          if (!prop) return 0;
+          if (prop.type === "rollup") return prop.rollup?.number ?? 0;
+          if (prop.type === "number") return prop.number ?? 0;
+          if (prop.type === "formula") return prop.formula?.number ?? 0;
+          return 0;
+        };
+
+        const modalAwal = extractNum(modalPropId);
+        const pendapatan = extractNum(pendapatanPropId);
+        const pengeluaran = extractNum(pengeluaranPropId);
+
+        let areaName = "Area Tanpa Nama";
+        if (areaPropId) {
+          const titleProp = Object.values(page.properties).find((p: any) => p.id === areaPropId) as any;
+          if (titleProp && titleProp.title?.[0]) areaName = titleProp.title[0].plain_text;
+        } else {
+          const titleProp = Object.values(page.properties).find((p: any) => p.type === "title") as any;
+          if (titleProp && titleProp.title?.[0]) areaName = titleProp.title[0].plain_text;
+        }
+
+        totalModal += modalAwal;
+        totalPendapatan += pendapatan;
+        totalPengeluaran += pengeluaran;
+
+        const profit = pendapatan - pengeluaran;
+        // FIX: Margin jujur. Kalau pendapatan 0 tapi ada pengeluaran, margin = -100% (Rugi)
+        const margin = pendapatan > 0 ? (profit / pendapatan) * 100 : (pengeluaran > 0 ? -100 : 0);
+
+        areas.push({
+          id: page.id,
+          name: areaName,
+          modalAwal,
+          pendapatan,
+          pengeluaran,
+          profit,
+          margin,
+          harvestWeight: 0,
+        });
       }
 
-      totalModal += modalAwal;
-      totalPendapatan += pendapatan;
-      totalPengeluaran += pengeluaran;
+      hasMore = data.has_more;
+      nextCursor = data.next_cursor ?? undefined;
 
-      const profit = pendapatan - pengeluaran;
-      const margin = pendapatan > 0 ? (profit / pendapatan) * 100 : 0;
-
-      areas.push({
-        id: page.id,
-        name: areaName,
-        modalAwal,
-        pendapatan,
-        pengeluaran,
-        profit,
-        margin,
-        harvestWeight: 0,
-      });
+      // Anti rate-limit: jeda 350ms antar tarikan paginasi
+      if (hasMore) await delay(350);
+    } catch (err) {
+      if (err instanceof NotionTokenInvalidError) throw err;
+      break;
     }
-
-    const profitGlobal = totalPendapatan - totalPengeluaran;
-    const marginTotal = totalPendapatan > 0 ? (profitGlobal / totalPendapatan) * 100 : 0;
-
-    return { totalModal, totalPendapatan, totalPengeluaran, marginTotal, areas };
-  } catch (err) {
-    if (err instanceof NotionTokenInvalidError) throw err;
-    return { totalModal: 0, totalPendapatan: 0, totalPengeluaran: 0, marginTotal: 0, areas: [] };
   }
+
+  const profitGlobal = totalPendapatan - totalPengeluaran;
+  const marginTotal = totalPendapatan > 0 ? (profitGlobal / totalPendapatan) * 100 : (totalPengeluaran > 0 ? -100 : 0);
+
+  return { totalModal, totalPendapatan, totalPengeluaran, marginTotal, areas };
 }
+
 
 // --- 2. Fungsi Baru: Narik Data Panen dan Di-Group Per Area ---
 async function queryHarvestByArea(
@@ -486,18 +500,21 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
         eq(stagingDataTable.status, "pending"),
       ));
 
-    // ── STEP C: Aggregate — shallow-copy harvestMap so cache stays immutable
+        // ── STEP C: Aggregate — shallow-copy harvestMap so cache stays immutable
     const harvestMap = { ...notionCached.harvestMapRaw };
     const stagingAgg = aggregateStagingContributions(stagingRecords, harvestMap);
 
     const { resultLabaRugi } = notionCached;
     const adjustedPengeluaran = resultLabaRugi.totalPengeluaran + stagingAgg.financeAmount;
 
-        const finalAreas = resultLabaRugi.areas.map((area) => {
-      const pendingExpense = stagingAgg.expenseAreaMap[area.id] || 0;
+    // FIX: Kartu Area pake margin jujur & sinkronisasi pengeluaran staging
+    const finalAreas = resultLabaRugi.areas.map((area) => {
+      const pendingExpense = stagingAgg.expenseAreaMap?.[area.id] || 0;
       const updatedPengeluaran = area.pengeluaran + pendingExpense;
       const updatedProfit = area.pendapatan - updatedPengeluaran;
-      const updatedMargin = area.pendapatan > 0 ? (updatedProfit / area.pendapatan) * 100 : 0;
+      const updatedMargin = area.pendapatan > 0 
+        ? (updatedProfit / area.pendapatan) * 100 
+        : (updatedPengeluaran > 0 ? -100 : 0);
 
       return {
         ...area,
@@ -512,28 +529,46 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
     for (const area of finalAreas) areaMap[area.id] = area.name;
 
     const totalProfit = resultLabaRugi.totalPendapatan - adjustedPengeluaran;
+    
+    // FIX: Hitung ulang Margin Global pake perhitungan jujur
+    const recalculatedMargin = resultLabaRugi.totalPendapatan > 0 
+      ? (totalProfit / resultLabaRugi.totalPendapatan) * 100 
+      : (adjustedPengeluaran > 0 ? -100 : 0);
 
-// HITUNG ULANG MARGIN BERDASARKAN STAGING
-const recalculatedMargin = resultLabaRugi.totalPendapatan > 0 
-  ? (totalProfit / resultLabaRugi.totalPendapatan) * 100 
-  : 0;
-
-const hpp = adjustedPengeluaran / (harvestMap.global || 1);
-
+    const hpp = adjustedPengeluaran / (harvestMap.global || 1);
     const bepProgress = (resultLabaRugi.totalPendapatan / (resultLabaRugi.totalModal || 1)) * 100;
+
+    // FIX: Bikin Activity Feed Real-Time dari Staging
+    const pendingActivities = stagingRecords.map((record) => {
+      const d = record.data;
+      let type = record.databaseType === "panen" ? "harvest" : "expense";
+      let title = record.databaseType === "panen" ? "Panen (Antrean)" : "Pengeluaran (Antrean)";
+      let description = "Menunggu sinkronisasi...";
+
+      if (record.databaseType === "panen") {
+        const weight = Number(d.berat ?? d.jumlahPanen ?? 0);
+        description = `${weight}kg menunggu dikirim ke Notion`;
+      } else if (record.databaseType === "expenses" || record.databaseType === "laba_rugi") {
+        const nominal = d.nominal !== undefined ? Number(d.nominal) : Number(d.qty ?? 0) * Number(d.hargaPerPcs ?? 0);
+        description = `Rp${nominal.toLocaleString("id-ID")} menunggu dikirim ke Notion`;
+      }
+
+      return { type, title, description, time: "Baru saja", isPending: true };
+    });
+
+    // Gabungin antrean (paling atas) dengan aktivitas dari Notion (bawahnya), maksimal 5 data.
+    const finalActivities = [...pendingActivities, ...notionCached.activities].slice(0, 5);
 
     // ── STEP D: Response ──────────────────────────────────────────────────
     res.json({
-      
       financial: {
         totalModal: resultLabaRugi.totalModal,
         totalPendapatan: resultLabaRugi.totalPendapatan,
         totalPengeluaran: adjustedPengeluaran,
         labaRugi: totalProfit,
-        marginTotal: recalculatedMargin, // SUDAH DIGANTI PAKAI HASIL HITUNGAN BARU
+        marginTotal: recalculatedMargin,
         bepProgress,
       },
-
       production: {
         totalHarvestWeight: harvestMap.global,
         hpp,
@@ -551,11 +586,11 @@ const hpp = adjustedPengeluaran / (harvestMap.global || 1);
         activeAreas: finalAreas.length,
       },
       insight: {
-        businessStatus: resultLabaRugi.marginTotal > 0 ? "Profitable" : "Developing",
+        businessStatus: recalculatedMargin > 0 ? "Profitable" : "Developing",
         recommendation:
-          resultLabaRugi.marginTotal < 0
+          recalculatedMargin < 0
             ? "Usaha masih merugi. Fokus meningkatkan penjualan dan efisiensi biaya."
-            : resultLabaRugi.marginTotal < 15
+            : recalculatedMargin < 15
               ? "Margin rendah, efisiensi operasional perlu ditingkatkan."
               : "Performa usaha dalam kondisi baik.",
       },
@@ -563,12 +598,13 @@ const hpp = adjustedPengeluaran / (harvestMap.global || 1);
       currency: "IDR",
       lastUpdated: new Date().toISOString(),
       notionDatabaseId: dbLabaRugiId,
-      activities: notionCached.activities,
+      activities: finalActivities,
       cacheInfo: {
         hit: cacheHit,
         cachedAt: notionCached.cachedAt,
       },
     });
+
   } catch (err) {
     if (handleNotionErrors(res, err)) return;
     throw err;
