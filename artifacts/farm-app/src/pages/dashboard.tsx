@@ -417,93 +417,51 @@ export function DashboardPage() {
         </div>
 
         {/* --- CARD BUSINESS PULSE & BEP SLIM (Sekarang di Bawah Navigasi) --- */}
-        <div className="relative mt-4 overflow-hidden rounded-[2rem] bg-slate-950 p-5 text-white shadow-2xl md:mt-6 md:rounded-[2.5rem] md:p-6">
-          <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-emerald-400/20 blur-[80px]" />
-          
-          <div className="relative z-10">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="mb-1 text-xs font-bold text-white/50">Business pulse</p>
-                <h2 className="text-2xl font-black md:text-3xl">{localBusinessStatus}</h2>
-              </div>
-              <div className="rounded-2xl bg-white/10 p-3 backdrop-blur-md">
-                <Bot className="h-6 w-6 text-emerald-400" />
-              </div>
-            </div>
-
-            <div className="mt-5 md:mt-6">
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-white/50">Margin</p>
-                  <p className="text-2xl font-black">
-                    <AnimatedNumber 
-                      key={`margin-${selectedAreaId}-${summary?.lastUpdated}`}
-                      value={displayData.margin} 
-                      formatFn={(val) => `${val.toFixed(1)}%`} 
-                    />
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-white/50">HPP / kg</p>
-                  <p className="text-xl font-black">
-                    <AnimatedNumber 
-                      key={`hpp-${selectedAreaId}-${summary?.lastUpdated}`}
-                      value={hpp} 
-                      formatFn={(val) => formatCurrency(val)} 
-                    />
-                  </p>
-                </div>
+                   <div className="mt-4 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 text-[10px] font-medium text-white/55 sm:text-xs">
+                <Sparkles className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
+                <span className="truncate">Sync: {formatDate(summary?.lastUpdated)}</span>
               </div>
 
-              {/* BEP Runway Bar (Slim Mode) */}
-              <div className="mt-3 rounded-2xl border border-white/10 bg-white/5 p-3.5">
-                <div className="mb-2 flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.15em]">
-                  <span className="text-white/50">BEP Runway</span>
-                  <span className="text-emerald-300">
-                    <AnimatedNumber 
-                      key={`bep-${selectedAreaId}-${summary?.lastUpdated}`}
-                      value={bepProgress} 
-                      formatFn={(val) => `${val.toFixed(1)}%`} 
-                    />
-                  </span>
-                </div>
-                <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
-                  <motion.div
-                    key={`bep-bar-${selectedAreaId}-${summary?.lastUpdated}`}
-                    initial={{ width: 0 }}
-                    animate={{ width: `${bepProgress}%` }}
-                    transition={{ duration: 1.2, ease: "easeOut" }}
-                    className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-lime-400 to-amber-300"
-                  />
-                </div>
-              </div>
-            </div>
+              {/* Aksi Samping (Staging Cloud & Refresh Cache) */}
+              <div className="flex items-center gap-2">
+                
+                {/* 1. Tombol Staging Cloud (Nyempil di sini sekarang) */}
+                <button
+                  onClick={() => {
+                    // Trik biar tombol cloud ini bisa manggil Sheet yang ada di StagingQueueCard
+                    // Karena komponennya kepisah, kita simulasikan klik tombol aslinya
+                    const triggerBtn = document.querySelector('[aria-label="Buka staging queue"]') as HTMLButtonElement;
+                    if (triggerBtn) triggerBtn.click();
+                  }}
+                  className={[
+                    "relative flex h-8 w-8 items-center justify-center rounded-xl border transition-all sm:h-9 sm:w-9",
+                    (summary?.stagingStats?.pendingCount ?? 0) > 0
+                      ? "border-amber-400/60 bg-amber-500 text-white shadow-[0_0_15px_rgba(245,158,11,0.4)] hover:bg-amber-400 active:scale-95"
+                      : "border-white/10 bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/80",
+                  ].join(" ")}
+                  title={(summary?.stagingStats?.pendingCount ?? 0) > 0 ? "Ada data belum disinkron" : "Staging bersih"}
+                >
+                  {(summary?.stagingStats?.pendingCount ?? 0) > 0 && (
+                    <span className="absolute -right-1 -top-1 flex h-2.5 w-2.5 sm:h-3 sm:w-3">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-300 opacity-75" />
+                      <span className="relative inline-flex h-2.5 w-2.5 rounded-full border-2 border-slate-950 bg-amber-400 sm:h-3 sm:w-3" />
+                    </span>
+                  )}
+                  {/* Pake icon RefreshCcw dari lucide krn CloudUpload ga di-import di file ini */}
+                  <Database className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> 
+                </button>
 
-            <div className="mt-4 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 text-xs text-white/55">
-                <Sparkles className="h-3.5 w-3.5 text-amber-200" />
-                <span>Sync terakhir: {formatDate(summary?.lastUpdated)}</span>
+                {/* 2. Tombol Manual Cacing (Dibikin compact biar rapi) */}
+                <button
+                  onClick={handleRefreshCache}
+                  disabled={isRefreshingCache || isFetching}
+                  className="group flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/40 transition-all hover:border-white/20 hover:bg-white/15 hover:text-emerald-400 disabled:opacity-40 sm:h-9 sm:w-9"
+                  title="Hapus cache & ambil data terbaru dari Notion"
+                >
+                  <RefreshCcw className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isRefreshingCache || isFetching ? "animate-spin text-emerald-400" : ""}`} />
+                </button>
               </div>
-
-              {/* Cache age + manual refresh */}
-              <button
-                onClick={handleRefreshCache}
-                disabled={isRefreshingCache || isFetching}
-                className="group flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/8 px-2.5 py-1.5 text-[10px] font-bold text-white/50 transition-all hover:border-white/20 hover:bg-white/15 hover:text-white/80 disabled:opacity-40"
-                title="Hapus cache & ambil data terbaru dari Notion"
-              >
-                {isRefreshingCache || isFetching ? (
-                  <RefreshCcw className="h-3 w-3 animate-spin text-emerald-400" />
-                ) : (
-                  <>
-                    <Database className="h-3 w-3 text-white/40 group-hover:text-emerald-400 transition-colors" />
-                    <RefreshCcw className="h-3 w-3 text-white/40 group-hover:text-emerald-400 transition-colors" />
-                  </>
-                )}
-                <span>
-                  {cacheAge ? `diperbarui ${cacheAge}` : "Muat ulang"}
-                </span>
-              </button>
             </div>
           </div>
         </div>
