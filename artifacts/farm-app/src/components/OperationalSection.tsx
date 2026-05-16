@@ -110,9 +110,9 @@ return (
             rounded-full
 
             border
-            border-emerald-500/15
+            border-primary/15
 
-            bg-emerald-500/10
+            bg-primary/10
 
             px-3
             py-1
@@ -128,7 +128,7 @@ return (
               h-1.5
               w-1.5
               rounded-full
-              bg-emerald-500
+              bg-primary
             "
           />
 
@@ -196,7 +196,7 @@ return (
 
                   ${
                     isEmerald
-                      ? "bg-emerald-500"
+                      ? "bg-primary"
                       : "bg-amber-500"
                   }
                 `}
@@ -252,7 +252,7 @@ return (
                         ${
                           isEmerald
                             ? `
-                              bg-emerald-500/10
+                              bg-primary/10
                               text-emerald-700
                             `
                             : `

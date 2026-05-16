@@ -35,7 +35,7 @@ export function HomePage() {
       {/* ORGANIC GLOBAL BACKGROUND */}
       {/* ──────────────────────────────────────────────────────────────── */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden z-0">
-        <div className="absolute left-[-10%] top-[-5%] h-[520px] w-[520px] rounded-full bg-emerald-500/[0.10] blur-3xl dark:bg-emerald-500/[0.14]" />
+        <div className="absolute left-[-10%] top-[-5%] h-[520px] w-[520px] rounded-full bg-primary/[0.10] blur-3xl dark:bg-primary/[0.14]" />
         <div className="absolute right-[-5%] top-[15%] h-[420px] w-[420px] rounded-full bg-amber-400/[0.08] blur-3xl dark:bg-amber-400/[0.10]" />
         <div className="absolute bottom-[-10%] left-[20%] h-[520px] w-[520px] rounded-full bg-emerald-300/[0.08] blur-3xl dark:bg-emerald-400/[0.10]" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.05),transparent_25%),radial-gradient(circle_at_85%_20%,rgba(245,158,11,0.05),transparent_25%),radial-gradient(circle_at_50%_80%,rgba(16,185,129,0.04),transparent_28%)]" />
@@ -54,8 +54,8 @@ export function HomePage() {
             transition={{ duration: 0.7 }}
             className="relative z-10"
           >
-            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/[0.18] bg-white/[0.65] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700 shadow-[0_12px_32px_rgba(0,0,0,0.03)] backdrop-blur-xl dark:border-white/[0.06] dark:bg-white/[0.05] dark:text-emerald-300">
-              <div className="h-2 w-2 rounded-full bg-emerald-500" />
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/[0.18] bg-white/[0.65] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700 shadow-[0_12px_32px_rgba(0,0,0,0.03)] backdrop-blur-xl dark:border-white/[0.06] dark:bg-white/[0.05] dark:text-emerald-300">
+              <div className="h-2 w-2 rounded-full bg-primary" />
               Executive Farm Operating System
             </div>
 
@@ -85,7 +85,7 @@ export function HomePage() {
                 <Show when="signed-in">
                   <Link href="/dashboard">
                     <Button
-                      className="h-14 rounded-2xl bg-primary px-7 text-sm font-semibold tracking-wide text-white shadow-[0_20px_40px_rgba(16,185,129,0.2)] transition-all duration-300 hover:-translate-y-1 dark:bg-emerald-500"
+                      className="h-14 rounded-2xl bg-primary px-7 text-sm font-semibold tracking-wide text-white shadow-[0_20px_40px_rgba(16,185,129,0.2)] transition-all duration-300 hover:-translate-y-1 dark:bg-primary"
                     >
                       Buka Dashboard Utama
                     </Button>
@@ -142,7 +142,7 @@ export function HomePage() {
                     Rp 18.2K
                   </h3>
                 </div>
-                <div className="rounded-2xl bg-emerald-500/[0.12] p-3 text-primary">
+                <div className="rounded-2xl bg-primary/[0.12] p-3 text-primary">
                   <Leaf className="h-5 w-5" />
                 </div>
               </div>
@@ -166,7 +166,7 @@ export function HomePage() {
                     Executive Overview
                   </h3>
                 </div>
-                <div className="rounded-2xl border border-emerald-500/[0.18] bg-emerald-500/[0.10] px-4 py-2 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                <div className="rounded-2xl border border-primary/[0.18] bg-primary/[0.10] px-4 py-2 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
                   Live Sync
                 </div>
               </div>
@@ -189,7 +189,7 @@ export function HomePage() {
                     {[28, 44, 36, 62, 58, 72, 90].map((h, i) => (
                       <div
                         key={i}
-                        className="flex-1 rounded-full bg-gradient-to-t from-emerald-500 to-lime-400 opacity-90"
+                        className="flex-1 rounded-full bg-gradient-to-t from-primary to-lime-400 opacity-90"
                         style={{ height: `${h}%` }}
                       />
                     ))}
@@ -209,7 +209,7 @@ export function HomePage() {
                   <div className="rounded-[24px] bg-slate-100/[0.7] p-4 dark:bg-white/[0.03]">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Field Health</p>
                     <div className="mt-4 flex items-center gap-2">
-                      <div className="h-3 w-3 rounded-full bg-emerald-500" />
+                      <div className="h-3 w-3 rounded-full bg-primary" />
                       <span className="font-semibold text-xs sm:text-sm">Stable condition</span>
                     </div>
                   </div>
@@ -236,7 +236,7 @@ export function HomePage() {
                 </div>
               </div>
               <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-white/[0.05]">
-                <div className="h-full w-[74%] rounded-full bg-gradient-to-r from-emerald-500 to-lime-400" />
+                <div className="h-full w-[74%] rounded-full bg-gradient-to-r from-primary to-lime-400" />
               </div>
               <div className="mt-3 flex items-center justify-between text-sm">
                 <span className="text-slate-500">system status</span>
@@ -298,7 +298,7 @@ export function HomePage() {
             className="group relative col-span-6 overflow-hidden rounded-[36px] border border-white/[0.40] bg-white/[0.62] p-8 shadow-[0_32px_64px_rgba(0,0,0,0.04)] backdrop-blur-2xl dark:border-white/[0.05] dark:bg-white/[0.04] md:col-span-4"
           >
             <div className="max-w-xl">
-              <div className="mb-4 h-11 w-11 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-primary">
+              <div className="mb-4 h-11 w-11 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
                 <LineChart className="h-5 w-5" />
               </div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
@@ -349,7 +349,7 @@ export function HomePage() {
           {/* BENTO 4: PRODUCTION INSIGHT */}
           <motion.div
             whileHover={{ y: -5 }}
-            className="col-span-6 rounded-[36px] border border-white/[0.40] bg-gradient-to-br from-emerald-500/[0.08] to-lime-400/[0.04] p-8 shadow-[0_32px_64px_rgba(0,0,0,0.04)] backdrop-blur-2xl dark:border-white/[0.05] md:col-span-2"
+            className="col-span-6 rounded-[36px] border border-white/[0.40] bg-gradient-to-br from-primary/[0.08] to-lime-400/[0.04] p-8 shadow-[0_32px_64px_rgba(0,0,0,0.04)] backdrop-blur-2xl dark:border-white/[0.05] md:col-span-2"
           >
             <div className="mb-4 h-11 w-11 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
               <BarChart3 className="h-5 w-5" />

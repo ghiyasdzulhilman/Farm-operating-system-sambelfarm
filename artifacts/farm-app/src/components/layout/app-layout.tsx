@@ -155,7 +155,7 @@ export function AppLayout({
     const dotClass = isInvalid
       ? "bg-amber-500 animate-pulse"
       : isConnected
-        ? "bg-emerald-500"
+        ? "bg-primary"
         : "bg-rose-500";
 
     const label = isInvalid ? "Token Invalid" : isConnected ? "Connected" : "Disconnected";
@@ -297,7 +297,7 @@ export function AppLayout({
               className={`flex h-16 w-16 items-center justify-center rounded-full shadow-2xl text-white transition-all duration-300 ease-in-out active:scale-95 ${
                 isFabOpen 
                   ? "bg-rose-500 rotate-45 scale-90" 
-                  : "bg-gradient-to-br from-primary to-secondary hover:from-emerald-500 hover:to-lime-400"
+                  : "bg-gradient-to-br from-primary to-secondary hover:from-primary hover:to-lime-400"
               }`}
             >
               <Plus className="h-8 w-8" />

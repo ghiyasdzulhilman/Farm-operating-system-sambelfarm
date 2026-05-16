@@ -30,7 +30,7 @@ interface FinancialSectionProps {
 
 const metricAccent: Record<string, string> = {
   modal: "from-slate-900 to-slate-700 text-white",
-  pendapatan: "from-emerald-500 to-teal-600 text-white",
+  pendapatan: "from-primary to-teal-600 text-white",
   pengeluaran: "from-amber-500 to-orange-600 text-white",
   profit: "from-secondary to-primary text-white",
   margin: "from-cyan-500 to-blue-600 text-white",
@@ -123,7 +123,7 @@ function MetricCard({
         <div>
           <div className="inline-flex items-center gap-1 rounded-full bg-muted/70 px-2 py-1 text-[10px] font-bold text-muted-foreground">
             <StatusIcon
-              className={`h-3 w-3 ${status === "down" ? "text-rose-500" : "text-emerald-500"}`}
+              className={`h-3 w-3 ${status === "down" ? "text-rose-500" : "text-primary"}`}
             />
             live indicator
           </div>

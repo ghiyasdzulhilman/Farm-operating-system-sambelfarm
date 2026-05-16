@@ -354,7 +354,7 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
 
                       {/* Live Profit/Revenue Estimator */}
                       {totalPendapatan > 0 && (
-                        <div className="rounded-2xl bg-emerald-500/[0.04] px-4 py-3 text-sm flex justify-between items-center border border-emerald-500/10 dark:bg-emerald-500/[0.02]">
+                        <div className="rounded-2xl bg-primary/[0.04] px-4 py-3 text-sm flex justify-between items-center border border-primary/10 dark:bg-primary/[0.02]">
                           <span className="font-medium text-emerald-700/80 dark:text-emerald-400/80">Estimasi Omset Panen:</span>
                           <span className="font-black text-primary text-base" data-testid="text-total-pendapatan-estimasi">
                             {formatCurrency(totalPendapatan)}

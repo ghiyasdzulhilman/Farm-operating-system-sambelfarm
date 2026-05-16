@@ -104,7 +104,7 @@ const stats = [
                     items-center
                     justify-center
                     rounded-2xl
-                    bg-emerald-500/10
+                    bg-primary/10
                     text-emerald-700
                   "
                 >
@@ -168,7 +168,7 @@ const stats = [
           <span
             className="
               rounded-full
-              bg-emerald-500/10
+              bg-primary/10
               px-3
               py-1
               text-xs
