@@ -131,7 +131,7 @@ export function StagingQueueCard({ stagingStats }: StagingQueueCardProps) {
   const records = listData?.records ?? [];
   const failedCount = records.filter((r) => r.status === "failed").length;
 
-  async function handleSync() {
+    async function handleSync() {
     setIsSyncing(true);
     try {
       const res = await fetch("/api/staging/sync", { method: "POST" });
@@ -143,7 +143,6 @@ export function StagingQueueCard({ stagingStats }: StagingQueueCardProps) {
         errors?: Array<{ stagingId: string; error: string }>;
       };
 
-      // 1. Tampilkan Notifikasi dengan lebih jelas
       if (result.synced > 0) {
         toast({
           title: `${result.synced} data berhasil disinkron`,
@@ -151,6 +150,11 @@ export function StagingQueueCard({ stagingStats }: StagingQueueCardProps) {
             ? `${result.failed} data gagal — cek detail pesan error merah di bawah.`
             : "Semua data telah mendarat di Notion.",
         });
+        
+        // --- AUTO CLOSE LACI JIKA SUKSES SEMUA ---
+        if (result.failed === 0) {
+          setOpen(false); 
+        }
       } else if (result.failed > 0) {
         toast({
           title: "Sinkronisasi Gagal",
@@ -161,7 +165,6 @@ export function StagingQueueCard({ stagingStats }: StagingQueueCardProps) {
         toast({ title: result.message });
       }
 
-      // 2. KUNCI UTAMA: Paksa Refresh Semua Lini
       await queryClient.invalidateQueries({
         queryKey: getGetDashboardSummaryQueryKey(),
         refetchType: 'all'
@@ -205,11 +208,11 @@ export function StagingQueueCard({ stagingStats }: StagingQueueCardProps) {
         <CloudUpload className="h-4 w-4" />
       </button>
 
-            {/* ── Sheet drawer ────────────────────────────────────── */}
+                  {/* ── Sheet drawer ────────────────────────────────────── */}
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent
           side="bottom"
-          className="mx-auto flex h-[80dvh] max-w-lg flex-col rounded-t-[2rem] border-t-0 p-0 bg-white dark:bg-slate-900"
+          className="mx-auto flex max-h-[85dvh] max-w-lg flex-col rounded-t-[2rem] border-t-0 p-0 bg-white dark:bg-slate-900"
         >
           {/* Handle bar */}
           <div className="flex justify-center pt-3 pb-1 shrink-0">
@@ -234,7 +237,7 @@ export function StagingQueueCard({ stagingStats }: StagingQueueCardProps) {
                   />
                 </div>
                 <div>
-                  <SheetTitle className="text-base">Staging Queue</SheetTitle>
+                  <SheetTitle className="text-base">Pending Room</SheetTitle>
                   <p className="text-[11px] text-muted-foreground">
                     {hasData
                       ? `${pendingCount} data menunggu sinkronisasi ke Notion`
@@ -264,8 +267,9 @@ export function StagingQueueCard({ stagingStats }: StagingQueueCardProps) {
           {/* Divider */}
           <div className="h-px bg-slate-100 dark:bg-slate-800 shrink-0" />
 
-          {/* List (Kunci Utama: flex-1 dan overflow-y-auto biar nge-scroll di dalam sini aja) */}
-          <div className="flex-1 overflow-y-auto px-5 py-3">
+          {/* List (Balik ke style max-height biar ngikutin isi) */}
+          <div className="overflow-y-auto px-5 py-3" style={{ maxHeight: "calc(85dvh - 200px)" }}>
+
             {isLoadingList ? (
               <div className="flex flex-col gap-2.5 py-2">
                 {[1, 2, 3].map((i) => (
@@ -369,7 +373,7 @@ export function StagingQueueCard({ stagingStats }: StagingQueueCardProps) {
               ) : (
                 <>
                   <CloudUpload className="mr-2 h-4 w-4" />
-                  Sync ke Notion Sekarang
+                  Kirim data ke notion
                   {records.length > 0 && (
                     <Badge className="ml-2 bg-white/30 text-white border-none">
                       {records.length}
