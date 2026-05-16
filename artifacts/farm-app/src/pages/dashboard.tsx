@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   Bot,
   ChevronDown,
+  CloudUpload,
   Database,
   Filter,
   Leaf,
@@ -13,6 +14,7 @@ import {
   Satellite,
   Sparkles,
 } from "lucide-react";
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getGetDashboardSummaryQueryKey,
@@ -508,8 +510,9 @@ export function DashboardPage() {
                       <span className="relative inline-flex h-2.5 w-2.5 rounded-full border-2 border-slate-950 bg-amber-400 sm:h-3 sm:w-3" />
                     </span>
                   )}
-                  <Database className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> 
+                                    <CloudUpload className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> 
                 </button>
+
 
                 {/* 2. Tombol Manual Cacing */}
                 <button
