@@ -13,7 +13,12 @@ import {
   ChevronRight,
   ChevronDown,
   X,
-  Plus
+  Plus,
+  // TAMBAHAN ICON UNTUK KENDALI WARNA
+  Sun,
+  Moon,
+  Palette,
+  Check
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -68,7 +73,7 @@ const DOMAINS: any[] = [
         { key: "pendapatan", label: "Total Pendapatan", expectedType: "rollup|formula|number" },
         { key: "pengeluaran", label: "Total Pengeluaran", expectedType: "rollup|formula|number" },
       ]},
-                  { id: "panen", label: "Data Pemanenan", hint: "Pencatatan sesi panen kebun", fields: [
+      { id: "panen", label: "Data Pemanenan", hint: "Pencatatan sesi panen kebun", fields: [
         { key: "kegiatan", label: "Kegiatan / Judul", expectedType: "title", aliases: ALIASES.kegiatan },
         { key: "tanggal", label: "Tanggal", expectedType: "date|created_time", aliases: ALIASES.tanggal },
         { key: "jumlahPanen", label: "Jumlah Panen (kg)", expectedType: "number", aliases: ALIASES.qty },
@@ -78,7 +83,6 @@ const DOMAINS: any[] = [
         { key: "areaPindahTanam", label: "Area Pindah Tanam", expectedType: "relation", aliases: ALIASES.area },
         { key: "labaRugi", label: "Area Laba Rugi", expectedType: "relation", aliases: ALIASES.area },
       ]},
-
       { id: "expenses", label: "Pengeluaran Operasional", hint: "Biaya Pupuk, pestisida, upah dll", fields: [
         { key: "pengeluaran", label: "Nama Pengeluaran", expectedType: "title" },
         { key: "date", label: "Tanggal", expectedType: "date|created_time", aliases: ALIASES.tanggal },
@@ -99,7 +103,6 @@ const DOMAINS: any[] = [
         { key: "area", label: "Area/Blok", expectedType: "title", aliases: ALIASES.area },
         { key: "waktu_tanam", label: "Waktu Tanam", expectedType: "date", aliases: ALIASES.tanggal },
       ]},
-      // FIX ID: Dikembalikan ke "treatment_blocks" agar lolos validasi enum backend
       { id: "treatment_blocks", label: "Riwayat Perawatan (Multi-Blok)", hint: "Mapping 1x, terapkan ke banyak blok", isMultiInstance: true, fields: [
         { key: "kegiatan", label: "Kegiatan", expectedType: "title", aliases: ALIASES.kegiatan },
         { key: "tanggal", label: "Tanggal", expectedType: "date", aliases: ALIASES.tanggal },
@@ -161,26 +164,32 @@ export function SettingsPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr]">
         
-        {/* SIDEBAR */}
-        <aside className="space-y-2">
-          {DOMAINS.map((domain) => {
-            const Icon = domain.icon;
-            const isActive = activeDomain === domain.id;
-            return (
-              <button key={domain.id} onClick={() => { setActiveDomain(domain.id); setExpandedSchema(null); }}
-                className={cn("group flex w-full items-center gap-3 rounded-2xl p-4 transition-all duration-300", 
-                  isActive ? "bg-slate-950 text-white shadow-xl dark:bg-white dark:text-slate-950" : "hover:bg-white/60 dark:hover:bg-white/5")}>
-                <div className={cn("rounded-xl p-2 transition-colors", isActive ? "bg-white/20" : "bg-slate-100 dark:bg-slate-800")}>
-                  <Icon className="h-5 w-5" />
-                </div>
-                <div className="text-left">
-                  <p className="text-sm font-black">{domain.label}</p>
-                  <p className={cn("text-[10px] opacity-60", isActive ? "text-white" : "text-muted-foreground")}>{domain.schemas.length} Schemas</p>
-                </div>
-                {isActive && <ChevronRight className="ml-auto h-4 w-4" />}
-              </button>
-            );
-          })}
+        {/* SIDEBAR CONTAINER */}
+        <aside className="space-y-4">
+          {/* List Tombol Domain Utama */}
+          <div className="space-y-2">
+            {DOMAINS.map((domain) => {
+              const Icon = domain.icon;
+              const isActive = activeDomain === domain.id;
+              return (
+                <button key={domain.id} onClick={() => { setActiveDomain(domain.id); setExpandedSchema(null); }}
+                  className={cn("group flex w-full items-center gap-3 rounded-2xl p-4 transition-all duration-300", 
+                    isActive ? "bg-slate-950 text-white shadow-xl dark:bg-white dark:text-slate-950" : "hover:bg-white/60 dark:hover:bg-white/5")}>
+                  <div className={cn("rounded-xl p-2 transition-colors", isActive ? "bg-white/20" : "bg-slate-100 dark:bg-slate-800")}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm font-black">{domain.label}</p>
+                    <p className={cn("text-[10px] opacity-60", isActive ? "text-white" : "text-muted-foreground")}>{domain.schemas.length} Schemas</p>
+                  </div>
+                  {isActive && <ChevronRight className="ml-auto h-4 w-4" />}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* SAKLAR PUSAT KENDALI WARNA (Hanya disisipkan di sini, rapi & aman) */}
+          <ColorControl />
         </aside>
 
         {/* MAIN CONTENT */}
@@ -217,8 +226,6 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
 
   const masterId = linkedIds[0] || "";
 
-  // 1. Fetching Initial Data
-  // FIX: Multi-instance harus nge-fetch schema_0 supaya database pertama kedetect!
   const fetchType = schema.isMultiInstance ? `${schema.id}_0` : schema.id;
   const { data: savedData } = useGetFieldMappings(
     { type: fetchType as any }, 
@@ -236,8 +243,6 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
     }
   }, [savedData]);
 
-  // 2. Inspection (Fetch Columns)
-  // FIX: Mengirim masterId kosong jika belum ada agar tidak error undefined di query parameter
   const inspectType = schema.id as any;
   const { data: inspected, isFetching: isInspecting, refetch: inspect } = useInspectDatabase(
     { type: inspectType, databaseId: masterId || "" },
@@ -248,13 +253,11 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
   );
   const props = inspected?.properties ?? [];
 
-  // 3. Logic: Remove DB Instance
   const handleRemoveDb = (id: string) => {
     setLinkedIds(prev => prev.filter(x => x !== id));
     if (linkedIds.length <= 1) setFieldMappings({}); 
   };
 
-  // 4. Logic: Auto Map (Fuzzy Matching)
   const handleAutoMap = () => {
     if (!props.length) return toast({ variant: "destructive", title: "Kolom Kosong", description: "Tunggu loading beres dulu bro." });
     const nextMap: Record<string, string> = { ...fieldMappings };
@@ -276,7 +279,6 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
     toast({ title: "Auto Map Selesai", description: `${count} kolom berhasil dicocokkan.` });
   };
 
-  // 5. Logic: Save
   const handleSave = async () => {
     if (!linkedIds.length) return toast({ variant: "destructive", title: "DB Belum Dipilih", description: "Pilih minimal 1 database." });
 
@@ -301,15 +303,12 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
   };
 
   return (
-    <Card className={cn(glassCard, "relative overflow-hidden transition-all duration-300", isExpanded && "ring-2 ring-emerald-500/40")}>
-      
-      {/* BAGIAN ATAS (DB SELECTOR & PILLS) */}
+    <Card className={cn(glassCard, "relative overflow-hidden transition-all duration-300", isExpanded && "ring-2 ring-primary/40")}>
       <div className="p-3 sm:p-4 sm:pb-2">
         <div className="flex flex-col gap-2.5">
-          
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-1 items-center gap-3 min-w-0">
-              <div className={cn("shrink-0 rounded-[1rem] p-2 text-emerald-600 transition-colors", isExpanded ? "bg-emerald-100 dark:bg-emerald-900/40" : "bg-slate-100 dark:bg-slate-800")}>
+              <div className={cn("shrink-0 rounded-[1rem] p-2 text-primary transition-colors", isExpanded ? "bg-primary/10" : "bg-slate-100 dark:bg-slate-800")}>
                 {schema.isMultiInstance ? <Workflow className="h-4 w-4" /> : <Database className="h-4 w-4" />}
               </div>
               <div className="min-w-0 flex-1">
@@ -317,14 +316,13 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
                 <p className="text-[11px] text-muted-foreground truncate">{schema.hint}</p>
               </div>
             </div>
-
             <div className="flex shrink-0 w-full sm:w-auto">
               {(!schema.isMultiInstance && linkedIds.length > 0) ? null : (
                 <Select onValueChange={(val) => {
                   if (!linkedIds.includes(val)) setLinkedIds(prev => schema.isMultiInstance ? [...prev, val] : [val]);
                 }}>
                   <SelectTrigger className="h-9 w-full flex-1 rounded-full border-white/60 bg-white/50 text-xs font-bold shadow-sm backdrop-blur dark:bg-slate-900/50 sm:w-[130px]">
-                    <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400"><Plus className="h-3.5 w-3.5"/>Pilih database</div>
+                    <div className="flex items-center gap-1.5 text-primary"><Plus className="h-3.5 w-3.5"/>Pilih database</div>
                   </SelectTrigger>
                   <SelectContent className="max-h-[300px]">
                     {allDatabases.map(db => <SelectItem key={db.id} value={db.id} className="text-xs">{db.iconEmoji} {db.name}</SelectItem>)}
@@ -333,12 +331,11 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
               )}
             </div>
           </div>
-
           <div className="flex w-full flex-wrap items-center justify-center gap-1.5 min-h-[26px]">
             <AnimatePresence mode="popLayout">
               {linkedIds.map(id => (
                 <motion.div key={id} layout initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} transition={{ type: "spring", stiffness: 300, damping: 25 }}>
-                  <Badge variant="secondary" className="gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                  <Badge variant="secondary" className="gap-1 px-2.5 py-1 rounded-full bg-primary/5 text-primary dark:bg-primary/10">
                     <span className="truncate max-w-[140px] text-[10px] font-semibold">
                       {allDatabases.find(d => d.id === id)?.iconEmoji} {allDatabases.find(d => d.id === id)?.name || id}
                     </span>
@@ -349,61 +346,46 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
             </AnimatePresence>
             {linkedIds.length === 0 && <span className="text-[10px] text-muted-foreground opacity-60">Belum ada database terpilih</span>}
           </div>
-
         </div>
       </div>
 
-      {/* PULL-TAB BUTTON */}
       <div className="relative z-10 -mt-1 mb-1 flex w-full justify-center">
-        <button
-          onClick={onToggle}
-          className="flex h-4 w-12 items-center justify-center rounded-b-xl border border-t-0 border-white/60 bg-white/50 shadow-[0_4px_10px_rgba(0,0,0,0.03)] backdrop-blur-md transition-colors hover:bg-white dark:border-white/10 dark:bg-slate-900/50 dark:hover:bg-slate-800"
-          aria-label="Toggle mapping config"
-        >
+        <button onClick={onToggle} className="flex h-4 w-12 items-center justify-center rounded-b-xl border border-t-0 border-white/60 bg-white/50 shadow-[0_4px_10px_rgba(0,0,0,0.03)] backdrop-blur-md transition-colors hover:bg-white dark:border-white/10 dark:bg-slate-900/50 dark:hover:bg-slate-800" aria-label="Toggle mapping config">
           <ChevronDown className={cn("h-3 w-3 text-muted-foreground transition-transform duration-300", isExpanded && "rotate-180")} />
         </button>
       </div>
 
-      {/* BAGIAN BAWAH (COLLAPSIBLE MAPPING) */}
       <AnimatePresence>
         {isExpanded && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
             <div className="px-3 pb-3 sm:px-4 sm:pb-4">
               <div className="border-t border-dashed border-slate-200 pt-4 dark:border-slate-800">
-                
                 <div className="mb-4 flex flex-col items-center justify-center gap-2.5">
                   <h4 className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Mapping Controls</h4>
                   <div className="flex flex-wrap items-center justify-center gap-1.5">
-                    <Button size="sm" onClick={() => inspect()} disabled={isInspecting || !masterId} 
-                      className="h-8 rounded-full px-4 text-[10px] font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/40 dark:text-emerald-300 dark:hover:bg-emerald-800/80">
+                    <Button size="sm" onClick={() => inspect()} disabled={isInspecting || !masterId} className="h-8 rounded-full px-4 text-[10px] font-bold bg-primary/5 text-primary hover:bg-primary/10 dark:bg-primary/10 dark:hover:bg-primary/20">
                       {isInspecting ? "Loading..." : "Load"}
                     </Button>
-                    <Button size="sm" onClick={handleAutoMap} disabled={!props.length} 
-                      className="h-8 rounded-full px-4 text-[10px] font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/40 dark:text-emerald-300 dark:hover:bg-emerald-800/80">
+                    <Button size="sm" onClick={handleAutoMap} disabled={!props.length} className="h-8 rounded-full px-4 text-[10px] font-bold bg-primary/5 text-primary hover:bg-primary/10 dark:bg-primary/10 dark:hover:bg-primary/20">
                       Auto map
                     </Button>
-                    <Button size="sm" onClick={handleSave} disabled={isSaving} 
-                      className="h-8 rounded-full bg-primary px-5 text-[10px] font-bold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90">
+                    <Button size="sm" onClick={handleSave} disabled={isSaving} className="h-8 rounded-full bg-primary px-5 text-[10px] font-bold text-primary-foreground shadow-sm transition-colors hover:opacity-90">
                       {isSaving ? "Saving..." : "Save"}
                     </Button>
                   </div>
                 </div>
-
                 <div className="grid gap-2">
                   {schema.fields.map((field: any) => {
                     const isMapped = !!fieldMappings[field.key];
                     const pType = field.expectedType.split('|')[0];
                     return (
-                      <div key={field.key} className={cn("flex flex-col gap-2 rounded-xl border p-2.5 transition-colors sm:flex-row sm:items-center sm:justify-between", isMapped ? "bg-emerald-50/50 border-emerald-100 dark:bg-emerald-950/20 dark:border-emerald-900/30" : "bg-slate-50/50 border-transparent dark:bg-slate-900/40")}>
-                        
+                      <div key={field.key} className={cn("flex flex-col gap-2 rounded-xl border p-2.5 transition-colors sm:flex-row sm:items-center sm:justify-between", isMapped ? "bg-primary/[0.02] border-primary/20" : "bg-slate-50/50 border-transparent dark:bg-slate-900/40")}>
                         <div className="flex flex-1 items-center gap-2.5 min-w-0">
                            <Badge variant="outline" className="rounded-full bg-white text-[9px] font-black uppercase dark:bg-slate-950">{pType}</Badge>
                            <div className="min-w-0 flex-1">
                              <p className="truncate text-xs font-bold tracking-tight text-slate-900 dark:text-white">{field.label}</p>
                            </div>
                         </div>
-
-                        {/* FIX: Status `disabled` dicabut. Dropdown tidak akan pernah terkunci! */}
                         <Select value={fieldMappings[field.key] || ""} onValueChange={(val) => setFieldMappings(prev => ({...prev, [field.key]: val}))}>
                           <SelectTrigger className="h-9 w-full shrink-0 rounded-lg bg-white/80 text-[11px] font-semibold shadow-sm dark:bg-slate-950/80 sm:w-[220px]">
                             <SelectValue placeholder={isInspecting ? "Memuat kolom..." : (props.length ? "Pilih kolom..." : "Kolom belum di-load")} className="truncate" />
@@ -421,13 +403,104 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
                     );
                   })}
                 </div>
-
               </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-
     </Card>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 📦 4. BRAND COLOR & THEME CONTROLLER WIDGET (Local Sub-Component)
+// ---------------------------------------------------------------------------
+const BRAND_COLORS = [
+  { name: "Hijau Daun (Sambelfarm)", hsl: "142 76% 36%", bgClass: "bg-[#16a34a]" },
+  { name: "Merah Cabai Matang", hsl: "0 72% 51%", bgClass: "bg-[#dc2626]" },
+  { name: "Jingga Cabai Rawit", hsl: "25 75% 50%", bgClass: "bg-[#f97316]" },
+  { name: "Kuning Tonase Mas", hsl: "45 90% 45%", bgClass: "bg-[#eab308]" },
+];
+
+function ColorControl() {
+  const [isDark, setIsDark] = useState(false);
+  const [activeColor, setActiveColor] = useState("142 76% 36%");
+
+  // Ambil state awal dark mode langsung dari classList dokumen browser
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setIsDark(document.documentElement.classList.contains("dark"));
+    }
+  }, []);
+
+  // Handler Tukar Pasang Dark Mode
+  useEffect(() => {
+    const root = document.documentElement;
+    if (isDark) {
+      root.classList.add("dark");
+    } else {
+      root.classList.remove("dark");
+    }
+  }, [isDark]);
+
+  // Handler Suntik Kode Warna HSL ke --primary Pusat Tailwind v4
+  const handleColorChange = (hslValue: string) => {
+    setActiveColor(hslValue);
+    document.documentElement.style.setProperty("--primary", hslValue);
+  };
+
+  return (
+    <div className="p-4 rounded-3xl border border-border bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl w-full space-y-4 shadow-sm">
+      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+        <Palette className="h-4 w-4 text-primary" />
+        <span>Sistem Kontrol Visual</span>
+      </div>
+
+      {/* Kontrol 1: Light & Dark Toggle */}
+      <div className="flex items-center justify-between border-b pb-3 border-border/50">
+        <span className="text-xs font-semibold">Mode Layar</span>
+        <button
+          onClick={() => setIsDark(!isDark)}
+          className="relative inline-flex h-7 w-12 items-center rounded-full bg-muted transition-colors focus:outline-none"
+        >
+          <motion.div
+            layout
+            className="flex h-5 w-5 items-center justify-center rounded-full bg-white dark:bg-slate-950 shadow-sm"
+            animate={{ x: isDark ? 22 : 4 }}
+            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+          >
+            {isDark ? (
+              <Moon className="h-3 w-3 text-primary" />
+            ) : (
+              <Sun className="h-3 w-3 text-amber-500" />
+            )}
+          </motion.div>
+        </button>
+      </div>
+
+      {/* Kontrol 2: Palet Kebun Cabai */}
+      <div className="space-y-2">
+        <span className="text-xs font-semibold block text-left">Warna Tema Aplikasi</span>
+        <div className="flex gap-2.5">
+          {BRAND_COLORS.map((color) => (
+            <button
+              key={color.hsl}
+              onClick={() => handleColorChange(color.hsl)}
+              className={cn(
+                "h-7 w-7 rounded-full flex items-center justify-center relative transition-transform active:scale-95 shadow-sm",
+                color.bgClass
+              )}
+              title={color.name}
+            >
+              {activeColor === color.hsl && (
+                <motion.div layoutId="checkedCircle" className="absolute inset-0 border-2 border-white rounded-full flex items-center justify-center bg-black/10">
+                  <Check className="h-3 w-3 text-white stroke-[4]" />
+                </motion.div>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
