@@ -575,13 +575,13 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
         marginTotal: recalculatedMargin,
         bepProgress,
       },
-      production: {
+            production: {
         totalHarvestWeight: harvestMap.global,
         hpp,
         averageRevenuePerKg: adjustedPendapatan / (harvestMap.global || 1),
       },
       stagingStats: {
-        pendingCount: stagingRecords.length,
+        pendingCount: stagingRecords.filter((r) => r.status === "pending").length,
         pendingFinanceAmount: stagingAgg.financeAmount,
         pendingWeight: stagingAgg.harvestWeight,
         pendingInspeksiCount: stagingAgg.inspeksiCount,
@@ -591,6 +591,7 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
         totalAreas: finalAreas.length,
         activeAreas: finalAreas.length,
       },
+
       insight: {
         businessStatus: recalculatedMargin > 0 ? "Profitable" : "Developing",
         recommendation:
