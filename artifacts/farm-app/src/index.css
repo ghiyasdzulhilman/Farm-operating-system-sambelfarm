@@ -67,7 +67,9 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* LIGHT MODE */
+/* ================================================================= */
+/* LIGHT MODE (Sambelfarm Premium Organic)                           */
+/* ================================================================= */
 :root {
   --button-outline: rgba(0,0,0, .10);
   --badge-outline: rgba(0,0,0, .05);
@@ -77,59 +79,63 @@
   --elevate-1: rgba(0,0,0, .03);
   --elevate-2: rgba(0,0,0, .08);
 
-  /* Earthy, natural palette */
-  --background: 40 33% 98%; /* Light warm cream */
-  --foreground: 142 40% 15%; /* Very dark green/brown */
+  /* Kalibrasi Background & Teks Organik */
+  --background: 80 20% 98%;        /* #FAFBF9 Putih gading super seger */
+  --foreground: 142 40% 12%;       /* Deep obsidian green untuk kontras teks mewah */
 
-  --border: 40 20% 85%;
-  --input: 40 20% 90%;
-  --ring: 142 50% 30%;
+  --border: 140 10% 90%;           /* Garis pembatas tipis yang menyatu dengan kebun */
+  --input: 140 10% 90%;
+  --ring: 142 76% 36%;
 
   --card: 0 0% 100%;
-  --card-foreground: 142 40% 15%;
-  --card-border: 40 20% 90%;
+  --card-foreground: 142 40% 12%;
+  --card-border: 140 10% 90%;
 
-  --sidebar: 40 33% 96%;
-  --sidebar-foreground: 142 40% 15%;
-  --sidebar-border: 40 20% 88%;
-  --sidebar-primary: 142 50% 30%;
+  --sidebar: 80 20% 96%;
+  --sidebar-foreground: 142 40% 12%;
+  --sidebar-border: 140 10% 88%;
+  --sidebar-primary: 142 76% 36%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 40 30% 90%;
-  --sidebar-accent-foreground: 142 50% 25%;
-  --sidebar-ring: 142 50% 30%;
+  --sidebar-accent: 140 15% 92%;
+  --sidebar-accent-foreground: 142 76% 30%;
+  --sidebar-ring: 142 76% 36%;
 
   --popover: 0 0% 100%;
-  --popover-foreground: 142 40% 15%;
-  --popover-border: 40 20% 90%;
+  --popover-foreground: 142 40% 12%;
+  --popover-border: 140 10% 90%;
 
-  --primary: 142 50% 30%; /* Deep green */
+  /* Integrasi Utama Warna Kebun Sambelfarm */
+  --primary: 142 76% 36%;          /* Puncian warna Hijau Emerald Premium */
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 30 25% 90%;
-  --secondary-foreground: 142 50% 25%;
+  --secondary: 130 30% 90%;        /* Hijau muda pendukung */
+  --secondary-foreground: 142 76% 25%;
 
-  --muted: 40 20% 92%;
+  /* KUNCI UTAMA: Muted input background untuk laci shortcut top banner */
+  --muted: 130 20% 94%;            /* Abu-abu kehijauan sangat lembut, empuk di mata */
   --muted-foreground: 142 20% 45%;
 
-  --accent: 40 30% 90%;
-  --accent-foreground: 142 50% 25%;
+  --accent: 140 15% 92%;
+  --accent-foreground: 142 76% 25%;
 
-  --destructive: 0 60% 50%;
+  --destructive: 0 72% 51%;
   --destructive-foreground: 0 0% 100%;
 
-  --chart-1: 142 50% 30%;
-  --chart-2: 45 90% 45%; /* Golden harvest */
-  --chart-3: 25 70% 50%; /* Earthy orange */
+  --chart-1: 142 76% 36%;
+  --chart-2: 45 90% 45%;           /* Golden harvest tonase */
+  --chart-3: 25 70% 50%;           /* Earthy orange cabai */
   --chart-4: 180 30% 40%;
   --chart-5: 330 40% 40%;
 
   --app-font-sans: 'Plus Jakarta Sans', sans-serif;
   --app-font-serif: Georgia, serif;
   --app-font-mono: Menlo, monospace;
-  --radius: 0.5rem;
+  --radius: 0.75rem;               /* Rounded melengkung smooth khas iOS */
 }
 
-/* DARK MODE */
+/* ================================================================= */
+/* DARK MODE (Boutique Executive Void)                               */
+/* ================================================================= */
 .dark {
   --button-outline: rgba(255,255,255, .10);
   --badge-outline: rgba(255,255,255, .05);
@@ -139,47 +145,47 @@
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
 
-  /* Deep dark earthy tones */
-  --background: 142 40% 8%;
-  --foreground: 40 30% 95%;
+  /* Hitam Void Premium (Tidak abal-abal) */
+  --background: 240 10% 3.9%;      /* Kemewahan radikal dark theme */
+  --foreground: 0 0% 98%;
 
-  --border: 142 30% 18%;
-  --input: 142 30% 20%;
-  --ring: 142 40% 50%;
+  --border: 240 3.7% 12%;
+  --input: 240 3.7% 12%;
+  --ring: 142 70% 45%;
 
-  --card: 142 40% 10%;
-  --card-foreground: 40 30% 95%;
-  --card-border: 142 30% 18%;
+  --card: 240 4% 7%;
+  --card-foreground: 0 0% 98%;
+  --card-border: 240 3.7% 12%;
 
-  --sidebar: 142 40% 9%;
-  --sidebar-foreground: 40 30% 95%;
-  --sidebar-border: 142 30% 16%;
-  --sidebar-primary: 142 40% 45%;
+  --sidebar: 240 4% 6%;
+  --sidebar-foreground: 0 0% 98%;
+  --sidebar-border: 240 3.7% 10%;
+  --sidebar-primary: 142 70% 45%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 142 30% 18%;
-  --sidebar-accent-foreground: 40 30% 95%;
-  --sidebar-ring: 142 40% 50%;
+  --sidebar-accent: 240 3.7% 12%;
+  --sidebar-accent-foreground: 0 0% 98%;
+  --sidebar-ring: 142 70% 45%;
 
-  --popover: 142 40% 10%;
-  --popover-foreground: 40 30% 95%;
-  --popover-border: 142 30% 18%;
+  --popover: 240 4% 7%;
+  --popover-foreground: 0 0% 98%;
+  --popover-border: 240 3.7% 12%;
 
-  --primary: 142 40% 45%;
-  --primary-foreground: 0 0% 100%;
+  --primary: 142 70% 45%;          /* Hijau neon menyala malam hari */
+  --primary-foreground: 144 100% 10%;
 
-  --secondary: 142 30% 18%;
-  --secondary-foreground: 40 30% 95%;
+  --secondary: 240 3.7% 12%;
+  --secondary-foreground: 0 0% 98%;
 
-  --muted: 142 30% 16%;
-  --muted-foreground: 142 10% 65%;
+  --muted: 240 3.7% 12%;
+  --muted-foreground: 240 5% 64.9%;
 
-  --accent: 142 30% 18%;
-  --accent-foreground: 40 30% 95%;
+  --accent: 240 3.7% 12%;
+  --accent-foreground: 0 0% 98%;
 
-  --destructive: 0 50% 40%;
+  --destructive: 0 62% 44%;
   --destructive-foreground: 0 0% 100%;
 
-  --chart-1: 142 40% 45%;
+  --chart-1: 142 70% 45%;
   --chart-2: 45 80% 50%;
   --chart-3: 25 60% 55%;
   --chart-4: 180 30% 50%;
