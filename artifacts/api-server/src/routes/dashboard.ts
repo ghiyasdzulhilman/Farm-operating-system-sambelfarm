@@ -226,66 +226,52 @@ interface StagingAggResult {
   expenseAreaMap: Record<string, number>; // INI YANG BARU
 }
 
-function aggregateStagingContributions(
-  records: Array<{ databaseType: string; data: Record<string, unknown> }>,
-  harvestMap: Record<string, number>,
-): StagingAggResult {
-    const result: StagingAggResult = {
-    financeAmount: 0,
-    harvestWeight: 0,
+function aggregateStagingContributions(records: any[], harvestMap: Record<string, number>) {
+  const result = {
+    financeAmount: 0,       // Total pengeluaran pending
+    pendingRevenue: 0,      // Total pendapatan pending (BARU)
+    harvestWeight: 0,       // Total kg pending
     inspeksiCount: 0,
     perawatanCount: 0,
-    expenseAreaMap: {}, // INI YANG BARU
+    expenseAreaMap: {} as Record<string, number>,
+    revenueAreaMap: {} as Record<string, number>, // Rekap pendapatan per area (BARU)
   };
 
   for (const record of records) {
     const d = record.data;
+    if (record.status !== "pending") continue;
 
     switch (record.databaseType) {
       case "panen": {
-        // Field: 'berat' (kg)
-        const weight = Number(d.berat ?? d.jumlahPanen ?? 0);
+        const weight = Number(d.jumlahPanen ?? 0);
+        const price = Number(d.hargaJualPerKg ?? 0);
+        const revenue = weight * price;
+
+        result.pendingRevenue += revenue;
         result.harvestWeight += weight;
-        harvestMap.global = (harvestMap.global ?? 0) + weight;
-        const areaId = (d.labaRugiId ?? d.area_id) as string | undefined;
-        if (areaId) harvestMap[areaId] = (harvestMap[areaId] ?? 0) + weight;
+
+        if (harvestMap) {
+          harvestMap.global = (harvestMap.global || 0) + weight;
+          const areaId = d.labaRugiId as string | undefined;
+          if (areaId) {
+            harvestMap[areaId] = (harvestMap[areaId] || 0) + weight;
+            result.revenueAreaMap[areaId] = (result.revenueAreaMap[areaId] || 0) + revenue;
+          }
+        }
         break;
       }
-
-            case "expenses":
+      case "expenses":
       case "laba_rugi": {
-        const nominal =
-          d.nominal !== undefined
-            ? Number(d.nominal)
-            : Number(d.qty ?? 0) * Number(d.hargaPerPcs ?? 0);
+        const nominal = d.nominal !== undefined ? Number(d.nominal) : Number(d.qty ?? 0) * Number(d.hargaPerPcs ?? 0);
         result.financeAmount += nominal;
-
-        // CATAT PENGELUARAN KE MASING-MASING AREA
         const areaId = (d.labaRugiId ?? d.areaId) as string | undefined;
         if (areaId) {
           result.expenseAreaMap[areaId] = (result.expenseAreaMap[areaId] || 0) + nominal;
         }
         break;
       }
-
-      case "inspeksi": {
-        // Placeholder — no numeric contribution yet, just count records.
-        result.inspeksiCount += 1;
-        break;
-      }
-
-      case "perawatan": {
-        // Placeholder — no numeric contribution yet, just count records.
-        result.perawatanCount += 1;
-        break;
-      }
-
-      default:
-        // Unknown type: silently skip — future-proof for new database types.
-        break;
     }
   }
-
   return result;
 }
 
@@ -500,24 +486,29 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
         eq(stagingDataTable.status, "pending"),
       ));
 
-        // ── STEP C: Aggregate — shallow-copy harvestMap so cache stays immutable
+            // ── STEP C: Aggregate — shallow-copy harvestMap so cache stays immutable
     const harvestMap = { ...notionCached.harvestMapRaw };
     const stagingAgg = aggregateStagingContributions(stagingRecords, harvestMap);
 
     const { resultLabaRugi } = notionCached;
     const adjustedPengeluaran = resultLabaRugi.totalPengeluaran + stagingAgg.financeAmount;
+    const adjustedPendapatan = resultLabaRugi.totalPendapatan + stagingAgg.pendingRevenue;
 
-    // FIX: Kartu Area pake margin jujur & sinkronisasi pengeluaran staging
+    // FIX: Kartu Area sinkron data Panen + Pengeluaran Staging sekaligus
     const finalAreas = resultLabaRugi.areas.map((area) => {
       const pendingExpense = stagingAgg.expenseAreaMap?.[area.id] || 0;
+      const pendingRevenue = stagingAgg.revenueAreaMap?.[area.id] || 0;
+      
       const updatedPengeluaran = area.pengeluaran + pendingExpense;
-      const updatedProfit = area.pendapatan - updatedPengeluaran;
-      const updatedMargin = area.pendapatan > 0 
-        ? (updatedProfit / area.pendapatan) * 100 
+      const updatedPendapatan = area.pendapatan + pendingRevenue;
+      const updatedProfit = updatedPendapatan - updatedPengeluaran;
+      const updatedMargin = updatedPendapatan > 0 
+        ? (updatedProfit / updatedPendapatan) * 100 
         : (updatedPengeluaran > 0 ? -100 : 0);
 
       return {
         ...area,
+        pendapatan: updatedPendapatan,
         pengeluaran: updatedPengeluaran,
         profit: updatedProfit,
         margin: updatedMargin,
@@ -528,15 +519,15 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
     const areaMap: Record<string, string> = {};
     for (const area of finalAreas) areaMap[area.id] = area.name;
 
-    const totalProfit = resultLabaRugi.totalPendapatan - adjustedPengeluaran;
+    const totalProfit = adjustedPendapatan - adjustedPengeluaran;
     
     // FIX: Hitung ulang Margin Global pake perhitungan jujur
-    const recalculatedMargin = resultLabaRugi.totalPendapatan > 0 
-      ? (totalProfit / resultLabaRugi.totalPendapatan) * 100 
+    const recalculatedMargin = adjustedPendapatan > 0 
+      ? (totalProfit / adjustedPendapatan) * 100 
       : (adjustedPengeluaran > 0 ? -100 : 0);
 
     const hpp = adjustedPengeluaran / (harvestMap.global || 1);
-    const bepProgress = (resultLabaRugi.totalPendapatan / (resultLabaRugi.totalModal || 1)) * 100;
+    const bepProgress = (adjustedPendapatan / (resultLabaRugi.totalModal || 1)) * 100;
 
     // FIX: Bikin Activity Feed Real-Time dari Staging
     const pendingActivities = stagingRecords.map((record) => {
@@ -546,7 +537,7 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
       let description = "Menunggu sinkronisasi...";
 
       if (record.databaseType === "panen") {
-        const weight = Number(d.berat ?? d.jumlahPanen ?? 0);
+        const weight = Number(d.jumlahPanen ?? 0);
         description = `${weight}kg menunggu dikirim ke Notion`;
       } else if (record.databaseType === "expenses" || record.databaseType === "laba_rugi") {
         const nominal = d.nominal !== undefined ? Number(d.nominal) : Number(d.qty ?? 0) * Number(d.hargaPerPcs ?? 0);
@@ -556,14 +547,13 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
       return { type, title, description, time: "Baru saja", isPending: true };
     });
 
-    // Gabungin antrean (paling atas) dengan aktivitas dari Notion (bawahnya), maksimal 5 data.
     const finalActivities = [...pendingActivities, ...notionCached.activities].slice(0, 5);
 
     // ── STEP D: Response ──────────────────────────────────────────────────
     res.json({
       financial: {
         totalModal: resultLabaRugi.totalModal,
-        totalPendapatan: resultLabaRugi.totalPendapatan,
+        totalPendapatan: adjustedPendapatan, // Menggunakan pendapatan yang sudah ditambah staging
         totalPengeluaran: adjustedPengeluaran,
         labaRugi: totalProfit,
         marginTotal: recalculatedMargin,
@@ -572,7 +562,7 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
       production: {
         totalHarvestWeight: harvestMap.global,
         hpp,
-        averageRevenuePerKg: resultLabaRugi.totalPendapatan / (harvestMap.global || 1),
+        averageRevenuePerKg: adjustedPendapatan / (harvestMap.global || 1),
       },
       stagingStats: {
         pendingCount: stagingRecords.length,
