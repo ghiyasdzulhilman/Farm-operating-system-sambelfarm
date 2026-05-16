@@ -205,19 +205,19 @@ export function StagingQueueCard({ stagingStats }: StagingQueueCardProps) {
         <CloudUpload className="h-4 w-4" />
       </button>
 
-      {/* ── Sheet drawer ────────────────────────────────────── */}
+            {/* ── Sheet drawer ────────────────────────────────────── */}
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent
           side="bottom"
-          className="mx-auto max-h-[85dvh] max-w-lg rounded-t-[2rem] border-t-0 p-0"
+          className="mx-auto flex h-[80dvh] max-w-lg flex-col rounded-t-[2rem] border-t-0 p-0 bg-white dark:bg-slate-900"
         >
           {/* Handle bar */}
-          <div className="flex justify-center pt-3 pb-1">
+          <div className="flex justify-center pt-3 pb-1 shrink-0">
             <div className="h-1 w-10 rounded-full bg-slate-200 dark:bg-slate-700" />
           </div>
 
           {/* Header */}
-          <SheetHeader className="px-5 pt-2 pb-4">
+          <SheetHeader className="px-5 pt-2 pb-4 shrink-0">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div
@@ -262,10 +262,10 @@ export function StagingQueueCard({ stagingStats }: StagingQueueCardProps) {
           </SheetHeader>
 
           {/* Divider */}
-          <div className="h-px bg-slate-100 dark:bg-slate-800" />
+          <div className="h-px bg-slate-100 dark:bg-slate-800 shrink-0" />
 
-          {/* List */}
-          <div className="overflow-y-auto px-5 py-3" style={{ maxHeight: "calc(85dvh - 200px)" }}>
+          {/* List (Kunci Utama: flex-1 dan overflow-y-auto biar nge-scroll di dalam sini aja) */}
+          <div className="flex-1 overflow-y-auto px-5 py-3">
             {isLoadingList ? (
               <div className="flex flex-col gap-2.5 py-2">
                 {[1, 2, 3].map((i) => (
@@ -350,50 +350,38 @@ export function StagingQueueCard({ stagingStats }: StagingQueueCardProps) {
           </div>
 
           {/* Footer action */}
-          <div className="border-t border-slate-100 px-5 py-4 dark:border-slate-800">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-11 w-11 shrink-0 rounded-xl"
-                onClick={() => refetchList()}
-                disabled={isLoadingList || isSyncing}
-                aria-label="Refresh daftar"
-              >
-                <RefreshCw className={`h-4 w-4 ${isLoadingList ? "animate-spin" : ""}`} />
-              </Button>
-
-              <Button
-                className={[
-                  "h-11 flex-1 rounded-xl text-sm font-bold transition-all",
-                  hasData || records.length > 0
-                    ? "bg-amber-500 text-white hover:bg-amber-600 active:scale-[0.98]"
-                    : "bg-slate-100 text-slate-400",
-                ].join(" ")}
-                disabled={isSyncing || isLoadingList || records.length === 0}
-                onClick={handleSync}
-              >
-                {isSyncing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Menyinkron...
-                  </>
-                ) : (
-                  <>
-                    <CloudUpload className="mr-2 h-4 w-4" />
-                    Sync ke Notion Sekarang
-                    {records.length > 0 && (
-                      <Badge className="ml-2 bg-white/30 text-white">
-                        {records.length}
-                      </Badge>
-                    )}
-                  </>
-                )}
-              </Button>
-            </div>
+          <div className="border-t border-slate-100 px-5 py-4 dark:border-slate-800 shrink-0">
+            <Button
+              className={[
+                "h-11 w-full rounded-xl text-sm font-bold transition-all",
+                hasData || records.length > 0
+                  ? "bg-amber-500 text-white hover:bg-amber-600 active:scale-[0.98]"
+                  : "bg-slate-100 text-slate-400",
+              ].join(" ")}
+              disabled={isSyncing || isLoadingList || records.length === 0}
+              onClick={handleSync}
+            >
+              {isSyncing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Menyinkron...
+                </>
+              ) : (
+                <>
+                  <CloudUpload className="mr-2 h-4 w-4" />
+                  Sync ke Notion Sekarang
+                  {records.length > 0 && (
+                    <Badge className="ml-2 bg-white/30 text-white border-none">
+                      {records.length}
+                    </Badge>
+                  )}
+                </>
+              )}
+            </Button>
           </div>
         </SheetContent>
       </Sheet>
+
     </>
   );
 }
