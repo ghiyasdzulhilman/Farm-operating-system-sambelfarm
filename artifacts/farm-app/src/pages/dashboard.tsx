@@ -461,7 +461,6 @@ export function DashboardPage() {
               </div>
             </div>
           </div>
-        </div>
 
                                 {/* --- SECTION KONTEN --- */}
         <div className="mt-4 space-y-8 md:mt-6 md:space-y-12">
