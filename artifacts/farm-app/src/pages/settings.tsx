@@ -18,7 +18,7 @@ import {
   Moon,
   Palette,
   Check,
-  Pipette // Icon tambahan untuk custom picker
+  Pipette
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -155,7 +155,7 @@ export function SettingsPage() {
         </div>
         <div className="flex items-center gap-3 rounded-2xl bg-white/50 p-2 backdrop-blur dark:bg-slate-950/50">
           <Button variant="ghost" size="icon" onClick={() => void refresh()} disabled={isRefreshing} className="rounded-xl">
-            <RefreshCcw className={cn("h-4 w-4 text-emerald-600", isRefreshing && "animate-spin")} />
+            <RefreshCcw className={cn("h-4 w-4 text-primary", isRefreshing && "animate-spin")} />
           </Button>
           <div className="h-8 w-px bg-border" />
           <UserButton />
@@ -187,7 +187,7 @@ export function SettingsPage() {
             })}
           </div>
 
-          {/* SAKLAR PUSAT KENDALI WARNA */}
+          {/* SAKLAR TRIPLE KENDALI WARNA */}
           <ColorControl />
         </aside>
 
@@ -412,16 +412,8 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
 }
 
 // ---------------------------------------------------------------------------
-// 📦 4. BRAND COLOR & THEME CONTROLLER WIDGET (UNLIMITED PICKER SYSTEM)
+// 📦 4. BRAND COLOR & THEME CONTROLLER WIDGET (TRIPLE IDENTITY EDITION)
 // ---------------------------------------------------------------------------
-const PRESET_COLORS = [
-  { name: "Hijau Kebun", hsl: "142 76% 36%", bgClass: "bg-[#16a34a]" },
-  { name: "Merah Cabai", hsl: "0 72% 51%", bgClass: "bg-[#dc2626]" },
-  { name: "Jingga Rawit", hsl: "25 75% 50%", bgClass: "bg-[#f97316]" },
-  { name: "Emas Panen", hsl: "45 90% 45%", bgClass: "bg-[#eab308]" },
-];
-
-// FUNGSI SAKTI: Mengubah string HEX (#ffffff) menjadi format baris string HSL (H S% L%) bawaan Tailwind v4
 function hexToHslString(hex: string): string {
   hex = hex.replace(/^#/, "");
   let r = parseInt(hex.substring(0, 2), 16) / 255;
@@ -451,15 +443,32 @@ function hexToHslString(hex: string): string {
 
 function ColorControl() {
   const [isDark, setIsDark] = useState(false);
-  const [activeColor, setActiveColor] = useState("142 76% 36%");
-  const [customHex, setCustomHex] = useState("#16a34a"); // State penyimpan warna kustom bebas
 
+  // State Hex untuk 3 Warna Identitas Kebun Lu
+  const [primaryHex, setPrimaryHex] = useState("#16a34a");   // Warna Utama
+  const [secondaryHex, setSecondaryHex] = useState("#a3e635"); // Warna Kedua
+  const [accentHex, setAccentHex] = useState("#f97316");    // Warna Ketiga (Aksen)
+
+  // Ambil data tema & warna dari memori local storage biar gak ilang pas refresh
   useEffect(() => {
     if (typeof window !== "undefined") {
       setIsDark(document.documentElement.classList.contains("dark"));
+      
+      const savedPrimary = localStorage.getItem("sf-primary-hex") || "#16a34a";
+      const savedSecondary = localStorage.getItem("sf-secondary-hex") || "#a3e635";
+      const savedAccent = localStorage.getItem("sf-accent-hex") || "#f97316";
+
+      setPrimaryHex(savedPrimary);
+      setSecondaryHex(savedSecondary);
+      setAccentHex(savedAccent);
+
+      document.documentElement.style.setProperty("--primary", hexToHslString(savedPrimary));
+      document.documentElement.style.setProperty("--secondary", hexToHslString(savedSecondary));
+      document.documentElement.style.setProperty("--accent", hexToHslString(savedAccent));
     }
   }, []);
 
+  // Sync Mode Layar
   useEffect(() => {
     const root = document.documentElement;
     if (isDark) {
@@ -469,30 +478,35 @@ function ColorControl() {
     }
   }, [isDark]);
 
-  const handleColorChange = (hslValue: string) => {
-    setActiveColor(hslValue);
-    document.documentElement.style.setProperty("--primary", hslValue);
+  // Handler Perubahan Warna Utama (Primary)
+  const handlePrimaryChange = (hex: string) => {
+    setPrimaryHex(hex);
+    localStorage.setItem("sf-primary-hex", hex);
+    document.documentElement.style.setProperty("--primary", hexToHslString(hex));
   };
 
-  // Handler saat roda warna Custom Picker dipilih bebas oleh user
-  const handleCustomHexChange = (hexValue: string) => {
-    setCustomHex(hexValue);
-    const hslString = hexToHslString(hexValue);
-    setActiveColor(hslString);
-    document.documentElement.style.setProperty("--primary", hslString);
+  // Handler Perubahan Warna Kedua (Secondary)
+  const handleSecondaryChange = (hex: string) => {
+    setSecondaryHex(hex);
+    localStorage.setItem("sf-secondary-hex", hex);
+    document.documentElement.style.setProperty("--secondary", hexToHslString(hex));
   };
 
-  // Mengecek apakah warna yang aktif saat ini termasuk dalam daftar preset atau kustom
-  const isPresetActive = PRESET_COLORS.some(c => c.hsl === activeColor);
+  // Handler Perubahan Warna Ketiga (Accent)
+  const handleAccentChange = (hex: string) => {
+    setAccentHex(hex);
+    localStorage.setItem("sf-accent-hex", hex);
+    document.documentElement.style.setProperty("--accent", hexToHslString(hex));
+  };
 
   return (
-    <div className="p-4 rounded-3xl border border-border bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl w-full space-y-4 shadow-sm">
+    <div className="p-4 rounded-3xl border border-border bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl w-full space-y-4 shadow-sm text-left">
       <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
         <Palette className="h-4 w-4 text-primary" />
         <span>Sistem Kontrol Visual</span>
       </div>
 
-      {/* Kontrol 1: Light & Dark Toggle */}
+      {/* Kontrol Mode Layar */}
       <div className="flex items-center justify-between border-b pb-3 border-border/50">
         <span className="text-xs font-semibold">Mode Layar</span>
         <button
@@ -505,60 +519,71 @@ function ColorControl() {
             animate={{ x: isDark ? 22 : 4 }}
             transition={{ type: "spring", stiffness: 500, damping: 30 }}
           >
-            {isDark ? (
-              <Moon className="h-3 w-3 text-primary" />
-            ) : (
-              <Sun className="h-3 w-3 text-amber-500" />
-            )}
+            {isDark ? <Moon className="h-3 w-3 text-primary" /> : <Sun className="h-3 w-3 text-amber-500" />}
           </motion.div>
         </button>
       </div>
 
-      {/* Kontrol 2: Palet Kebun Cabai + Unlimited Custom Picker */}
-      <div className="space-y-2">
-        <span className="text-xs font-semibold block text-left">Warna Tema Aplikasi</span>
-        <div className="flex flex-wrap gap-2.5 items-center">
-          
-          {/* Render 4 Warna Preset Utama */}
-          {PRESET_COLORS.map((color) => (
-            <button
-              key={color.hsl}
-              onClick={() => handleColorChange(color.hsl)}
-              className={cn(
-                "h-7 w-7 rounded-full flex items-center justify-center relative transition-transform active:scale-95 shadow-sm",
-                color.bgClass
-              )}
-              title={color.name}
-            >
-              {activeColor === color.hsl && (
-                <motion.div layoutId="checkedCircle" className="absolute inset-0 border-2 border-white rounded-full flex items-center justify-center bg-black/10">
-                  <Check className="h-3 w-3 text-white stroke-[4]" />
-                </motion.div>
-              )}
-            </button>
-          ))}
-
-          {/* SAKLAR AJIB: Tombol Roda Warna Tanpa Batas (HTML5 Native Picker) */}
-          <div className="relative h-7 w-7 rounded-full bg-gradient-to-tr from-indigo-500 via-purple-500 p-px to-pink-500 shadow-sm overflow-hidden active:scale-95 transition-transform">
+      {/* TRIPLE UNLIMITED COLOR PICKERS CONTAINER */}
+      <div className="space-y-3 pt-1">
+        
+        {/* PICKER 1: WARNA UTAMA */}
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <span className="text-xs font-bold block">Warna Utama</span>
+            <span className="text-[10px] text-muted-foreground block">Tombol & Progress</span>
+          </div>
+          <div className="relative h-7 w-14 rounded-xl border border-border/60 shadow-sm overflow-hidden" style={{ backgroundColor: primaryHex }}>
             <input 
-              type="color"
-              value={customHex}
-              onChange={(e) => handleCustomHexChange(e.target.value)}
-              className="absolute inset-0 opacity-0 cursor-pointer h-full w-full z-10"
-              title="Kustomisasi Warna Bebas"
+              type="color" 
+              value={primaryHex} 
+              onChange={(e) => handlePrimaryChange(e.target.value)}
+              className="absolute inset-0 opacity-0 cursor-pointer h-full w-full"
             />
-            <div className="w-full h-full rounded-full bg-white/10 flex items-center justify-center text-white">
-              {!isPresetActive ? (
-                <div className="absolute inset-0 border-2 border-white rounded-full flex items-center justify-center bg-black/30">
-                  <Check className="h-3 w-3 text-white stroke-[4]" />
-                </div>
-              ) : (
-                <Pipette className="h-3 w-3 opacity-90 stroke-[2.5]" />
-              )}
+            <div className="w-full h-full flex items-center justify-center pointer-events-none mix-blend-difference text-white text-[10px] font-mono font-bold">
+              {primaryHex.toUpperCase()}
             </div>
           </div>
-
         </div>
+
+        {/* PICKER 2: WARNA KEDUA */}
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <span className="text-xs font-bold block">Warna Kedua</span>
+            <span className="text-[10px] text-muted-foreground block">Badge & Secondary UI</span>
+          </div>
+          <div className="relative h-7 w-14 rounded-xl border border-border/60 shadow-sm overflow-hidden" style={{ backgroundColor: secondaryHex }}>
+            <input 
+              type="color" 
+              value={secondaryHex} 
+              onChange={(e) => handleSecondaryChange(e.target.value)}
+              className="absolute inset-0 opacity-0 cursor-pointer h-full w-full"
+            />
+            <div className="w-full h-full flex items-center justify-center pointer-events-none mix-blend-difference text-white text-[10px] font-mono font-bold">
+              {secondaryHex.toUpperCase()}
+            </div>
+          </div>
+        </div>
+
+        {/* PICKER 3: WARNA KETIGA */}
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <span className="text-xs font-bold block">Warna Aksen</span>
+            <span className="text-[10px] text-muted-foreground block">Notifikasi & Alert</span>
+          </div>
+          <div className="relative h-7 w-14 rounded-xl border border-border/60 shadow-sm overflow-hidden" style={{ backgroundColor: accentHex }}>
+            <input 
+              type="color" 
+              value={accentHex} 
+              onChange={(e) => handleAccentChange(e.target.value)}
+              className="absolute inset-0 opacity-0 cursor-pointer h-full w-full"
+            />
+            <div className="w-full h-full flex items-center justify-center pointer-events-none mix-blend-difference text-white text-[10px] font-mono font-bold">
+              {accentHex.toUpperCase()}
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   );
