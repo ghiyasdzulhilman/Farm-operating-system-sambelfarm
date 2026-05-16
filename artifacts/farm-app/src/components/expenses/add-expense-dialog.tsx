@@ -164,7 +164,8 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
         className="mx-auto max-w-md rounded-b-[2rem] border-x-0 border-t-0 p-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl pb-4 shadow-[0_16px_40px_rgba(0,0,0,0.12)]" 
         data-testid="dialog-add-expense"
       >
-        <SheetHeader className="px-6 py-4 flex flex-row items-center justify-between border-b border-slate-100 dark:border-slate-900">
+        {/* AUDIT: Mengganti border-slate kaku ke semantic border */}
+        <SheetHeader className="px-6 py-4 flex flex-row items-center justify-between border-b border-border">
           <div className="flex items-center gap-3">
             <div className="rounded-xl bg-primary/10 p-2 text-primary">
               <Wallet className="h-5 w-5" />
@@ -181,7 +182,8 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                 key={i} 
                 className={[
                   "h-1.5 rounded-full transition-all duration-300", 
-                  step === i ? "w-4 bg-primary" : "w-1.5 bg-slate-200 dark:bg-slate-800"
+                  /* AUDIT: Mengubah indikator tidak aktif agar adaptif mengikuti rumpun warna utama */
+                  step === i ? "w-4 bg-primary" : "w-1.5 bg-border"
                 ].join(" ")} 
               />
             ))}
@@ -195,7 +197,6 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
             </div>
           ) : (
             <Form {...form}>
-              {/* PERUBAHAN SAKTI 1: Blokir total native submission dari form html browser */}
               <form 
                 onSubmit={(e) => e.preventDefault()} 
                 className="space-y-5"
@@ -216,12 +217,14 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                         name="pengeluaran"
                         render={({ field }) => (
                           <FormItem className="space-y-1.5">
-                            <FormLabel className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                            {/* AUDIT: Konversi text kaku ke muted-foreground */}
+                            <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
                               1. Apa nama pengeluarannya?
                             </FormLabel>
                             <FormControl>
+                              {/* AUDIT: Mengubah background dark mode input agar seirama dengan basis kustomisasi */}
                               <Input
-                                className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-primary/20 text-sm font-medium dark:bg-slate-900/50"
+                                className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-primary/20 text-sm font-medium dark:bg-muted/50"
                                 placeholder="mis. Beli Pupuk Kalinet, Bayar Harian..."
                                 data-testid="input-pengeluaran"
                                 {...field}
@@ -248,7 +251,8 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                         name="date"
                         render={({ field }) => (
                           <FormItem className="space-y-1.5">
-                            <FormLabel className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                            {/* AUDIT: Konversi text kaku ke muted-foreground */}
+                            <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
                               2. Kapan tanggal pengeluarannya?
                             </FormLabel>
                             <FormControl>
@@ -256,7 +260,7 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                                 <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                                 <Input
                                   type="date"
-                                  className="h-12 rounded-xl bg-muted border-transparent pl-11 focus-visible:ring-2 focus-visible:ring-primary/20 font-medium dark:bg-slate-900/50"
+                                  className="h-12 rounded-xl bg-muted border-transparent pl-11 focus-visible:ring-2 focus-visible:ring-primary/20 font-medium dark:bg-muted/50"
                                   data-testid="input-date"
                                   {...field}
                                 />
@@ -278,7 +282,8 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                       exit={{ opacity: 0, y: 10 }}
                       className="space-y-4 text-left"
                     >
-                      <p className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                      {/* AUDIT: Konversi text kaku ke muted-foreground */}
+                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
                         3. Isi Jumlah & Harga Satuan
                       </p>
                       <div className="grid grid-cols-2 gap-4">
@@ -287,13 +292,14 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                           name="qty"
                           render={({ field }) => (
                             <FormItem className="space-y-1.5">
-                              <FormLabel className="text-[11px] font-bold text-slate-400">Volume / Qty</FormLabel>
+                              {/* AUDIT: Konversi text kaku ke muted-foreground */}
+                              <FormLabel className="text-[11px] font-bold text-muted-foreground">Volume / Qty</FormLabel>
                               <FormControl>
                                 <Input
                                   type="number"
                                   min={0.1}
                                   step="any"
-                                  className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-primary/20 dark:bg-slate-900/50"
+                                  className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-primary/20 dark:bg-muted/50"
                                   placeholder="0"
                                   data-testid="input-qty"
                                   {...field}
@@ -309,12 +315,13 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                           name="hargaPerPcs"
                           render={({ field }) => (
                             <FormItem className="space-y-1.5">
-                              <FormLabel className="text-[11px] font-bold text-slate-400">Harga per Pcs (Rp)</FormLabel>
+                              {/* AUDIT: Konversi text kaku ke muted-foreground */}
+                              <FormLabel className="text-[11px] font-bold text-muted-foreground">Harga per Pcs (Rp)</FormLabel>
                               <FormControl>
                                 <Input
                                   type="number"
                                   min={0}
-                                  className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-primary/20 dark:bg-slate-900/50"
+                                  className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-primary/20 dark:bg-muted/50"
                                   placeholder="0"
                                   data-testid="input-harga"
                                   {...field}
@@ -346,7 +353,8 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                       exit={{ opacity: 0, y: 10 }}
                       className="space-y-4 text-left"
                     >
-                      <p className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                      {/* AUDIT: Konversi text kaku ke muted-foreground */}
+                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
                         4. Hubungkan ke Database (Opsional)
                       </p>
                       
@@ -355,10 +363,11 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                         name="kategoriId"
                         render={({ field }) => (
                           <FormItem className="space-y-1.5">
-                            <FormLabel className="text-[11px] font-bold text-slate-400">Kategori</FormLabel>
+                            {/* AUDIT: Konversi text kaku ke muted-foreground */}
+                            <FormLabel className="text-[11px] font-bold text-muted-foreground">Kategori</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value || ""}>
                               <FormControl>
-                                <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-primary/20 dark:bg-slate-900/50" data-testid="select-kategori">
+                                <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-primary/20 dark:bg-muted/50" data-testid="select-kategori">
                                   <SelectValue placeholder="Pilih kategori (Bisa dilewati)..." />
                                 </SelectTrigger>
                               </FormControl>
@@ -383,10 +392,11 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                         name="areaId"
                         render={({ field }) => (
                           <FormItem className="space-y-1.5">
-                            <FormLabel className="text-[11px] font-bold text-slate-400">Target Area Laba Rugi</FormLabel>
+                            {/* AUDIT: Konversi text kaku ke muted-foreground */}
+                            <FormLabel className="text-[11px] font-bold text-muted-foreground">Target Area Laba Rugi</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value || ""}>
                               <FormControl>
-                                <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-primary/20 dark:bg-slate-900/50" data-testid="select-area">
+                                <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-primary/20 dark:bg-muted/50" data-testid="select-area">
                                   <SelectValue placeholder="Pilih area kebun (Bisa dilewati)..." />
                                 </SelectTrigger>
                               </FormControl>
@@ -410,12 +420,14 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                 </AnimatePresence>
 
                 {/* NAVIGATION FOOTER */}
-                <div className="flex justify-between items-center pt-4 border-t border-slate-100 dark:border-slate-900">
+                {/* AUDIT: Mengubah border footer kaku ke semantic border */}
+                <div className="flex justify-between items-center pt-4 border-t border-border">
                   {step > 1 ? (
                     <Button
                       type="button"
                       variant="ghost"
-                      className="h-11 rounded-xl px-4 font-bold text-slate-500"
+                      /* AUDIT: Mengubah warna teks tombol kembali kaku ke muted-foreground */
+                      className="h-11 rounded-xl px-4 font-bold text-muted-foreground"
                       onClick={() => setStep((p) => p - 1)}
                       disabled={addExpense.isPending}
                     >
@@ -426,7 +438,8 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                     <Button
                       type="button"
                       variant="ghost"
-                      className="h-11 rounded-xl px-4 font-bold text-slate-400"
+                      /* AUDIT: Mengubah warna teks tombol batal kaku ke muted-foreground */
+                      className="h-11 rounded-xl px-4 font-bold text-muted-foreground"
                       onClick={() => setOpen(false)}
                       data-testid="button-cancel-expense"
                     >
@@ -444,7 +457,6 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   ) : (
-                    /* PERUBAHAN SAKTI 2: Ubah type dari "submit" menjadi "button", panggil submit manual via onClick */
                     <Button
                       type="button"
                       className="h-11 rounded-xl px-6 font-bold bg-primary text-primary-foreground hover:opacity-90 transition-all active:scale-[0.98]"
@@ -472,7 +484,8 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
           )}
         </div>
         
-        <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-slate-100 dark:bg-slate-900" />
+        {/* AUDIT: Mengubah warna aksen notch bawah kaku ke semantic border */}
+        <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-border" />
       </SheetContent>
     </Sheet>
   );
