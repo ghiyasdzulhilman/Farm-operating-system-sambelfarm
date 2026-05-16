@@ -131,7 +131,7 @@ export function StagingQueueCard({ stagingStats }: StagingQueueCardProps) {
   const records = listData?.records ?? [];
   const failedCount = records.filter((r) => r.status === "failed").length;
 
-  async function handleSync() {
+    async function handleSync() {
     setIsSyncing(true);
     try {
       const res = await fetch("/api/staging/sync", { method: "POST" });
@@ -143,33 +143,38 @@ export function StagingQueueCard({ stagingStats }: StagingQueueCardProps) {
         errors?: Array<{ stagingId: string; error: string }>;
       };
 
+      // 1. Tampilkan Notifikasi dengan lebih jelas
       if (result.synced > 0) {
         toast({
           title: `${result.synced} data berhasil disinkron`,
-          description:
-            result.failed > 0
-              ? `${result.failed} data gagal — cek detail di bawah.`
-              : "Semua data telah dikirim ke Notion.",
+          description: result.failed > 0
+            ? `${result.failed} data gagal — cek detail pesan error merah di bawah.`
+            : "Semua data telah mendarat di Notion.",
+        });
+      } else if (result.failed > 0) {
+        toast({
+          title: "Sinkronisasi Gagal",
+          description: `${result.failed} data gagal dikirim. Cek pesan error merah di tiap baris.`,
+          variant: "destructive",
         });
       } else if (result.message) {
         toast({ title: result.message });
-      } else {
-        toast({
-          title: "Sinkronisasi selesai",
-          description: `${result.failed} data gagal dikirim.`,
-          variant: "destructive",
-        });
       }
 
-      // Refresh dashboard + list
-      queryClient.invalidateQueries({
+      // 2. KUNCI UTAMA: Paksa Refresh Semua Lini
+      // Ini akan memaksa layar Dashboard langsung memanggil ulang API /api/dashboard/summary
+      await queryClient.invalidateQueries({
         queryKey: getGetDashboardSummaryQueryKey(),
+        refetchType: 'all' // Paksa refetch semua komponen yang butuh data summary
       });
-      refetchList();
+      
+      // Paksa list di dalem sheet buat update status (dari pending jadi merah/failed atau ilang)
+      await refetchList();
+
     } catch {
       toast({
-        title: "Sinkronisasi gagal",
-        description: "Coba lagi atau periksa koneksi Notion.",
+        title: "Sinkronisasi terputus",
+        description: "Terjadi kesalahan jaringan. Coba lagi.",
         variant: "destructive",
       });
     } finally {
@@ -177,7 +182,6 @@ export function StagingQueueCard({ stagingStats }: StagingQueueCardProps) {
     }
   }
 
-  return (
     <>
       {/* ── Floating trigger button ─────────────────────────── */}
       <AnimatePresence>
