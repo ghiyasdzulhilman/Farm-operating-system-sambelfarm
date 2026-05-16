@@ -1,7 +1,4 @@
-import { useEffect, useState } from "react";
-import { UserButton } from "@clerk/react";
-import { motion, AnimatePresence } from "framer-motion";
-import {
+ {
   Database,
   FlaskConical,
   Leaf,
@@ -587,4 +584,3 @@ function ColorControl() {
       </div>
     </div>
   );
-}
