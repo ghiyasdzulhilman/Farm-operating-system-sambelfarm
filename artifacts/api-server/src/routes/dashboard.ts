@@ -226,49 +226,35 @@ interface StagingAggResult {
   expenseAreaMap: Record<string, number>; // INI YANG BARU
 }
 
-function aggregateStagingContributions(records: any[], harvestMap: Record<string, number>, cacheHit: boolean) {
+function aggregateStagingContributions(records: any[], harvestMap: Record<string, number>) {
   const result = {
-    financeAmount: 0,
-    pendingRevenue: 0,
-    harvestWeight: 0,
-    inspeksiCount: 0,
-    perawatanCount: 0,
+    financeAmount: 0, pendingRevenue: 0, harvestWeight: 0,
+    inspeksiCount: 0, perawatanCount: 0,
     expenseAreaMap: {} as Record<string, number>,
     revenueAreaMap: {} as Record<string, number>,
   };
 
   for (const record of records) {
     const d = record.data;
-    const isSynced = record.status === "synced";
-
     switch (record.databaseType) {
       case "panen": {
         const weight = Number(d.jumlahPanen ?? 0);
         const price = Number(d.hargaJualPerKg ?? 0);
         const revenue = weight * price;
-        const areaId = d.labaRugiId as string | undefined;
-
-        // 1. UANG (Pendapatan): Pakai Notion Rollup (Lelet) -> Selalu di-buffer
         result.pendingRevenue += revenue;
-        if (areaId) {
-          result.revenueAreaMap[areaId] = (result.revenueAreaMap[areaId] || 0) + revenue;
-        }
-
-        // 2. BERAT (Kg): Pakai Query Langsung (Cepat) -> Matikan buffer pas Cache Miss biar gak double!
-        if (!isSynced || cacheHit) {
-          result.harvestWeight += weight;
-          if (harvestMap) {
-            harvestMap.global = (harvestMap.global || 0) + weight;
-            if (areaId) {
-              harvestMap[areaId] = (harvestMap[areaId] || 0) + weight;
-            }
+        result.harvestWeight += weight;
+        if (harvestMap) {
+          harvestMap.global = (harvestMap.global || 0) + weight;
+          const areaId = d.labaRugiId as string | undefined;
+          if (areaId) {
+            harvestMap[areaId] = (harvestMap[areaId] || 0) + weight;
+            result.revenueAreaMap[areaId] = (result.revenueAreaMap[areaId] || 0) + revenue;
           }
         }
         break;
       }
       case "expenses":
       case "laba_rugi": {
-        // UANG (Pengeluaran): Pakai Notion Rollup (Lelet) -> Selalu di-buffer
         const nominal = d.nominal !== undefined ? Number(d.nominal) : Number(d.qty ?? 0) * Number(d.hargaPerPcs ?? 0);
         result.financeAmount += nominal;
         const areaId = (d.labaRugiId ?? d.areaId) as string | undefined;
@@ -484,29 +470,32 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
       req.log.info({ userId }, "Dashboard: cache hit, skipping Notion API");
     }
 
-                // ── STEP B: Fresh staging & Synced Buffer ─────────────────────────────
-    const oneMinuteAgo = new Date(Date.now() - 60 * 1000);
-
+                    // ── STEP B: Ambil Semua Data Staging ────────────────────────────────────
     const stagingRecords = await db
       .select()
       .from(stagingDataTable)
-      .where(
-        and(
-          eq(stagingDataTable.userId, userId),
-          or(
-            eq(stagingDataTable.status, "pending"),
-            and(
-              eq(stagingDataTable.status, "synced"),
-              gt(stagingDataTable.createdAt, oneMinuteAgo)
-            )
-          )
+      .where(and(
+        eq(stagingDataTable.userId, userId),
+        or(
+          eq(stagingDataTable.status, "pending"),
+          eq(stagingDataTable.status, "synced")
         )
-      );
+      ));
 
-            // ── STEP C: Aggregate — shallow-copy harvestMap so cache stays immutable
-
+    // ── STEP C: Filter Anti-Dobel & Aggregate ───────────────────────────────
     const harvestMap = { ...notionCached.harvestMapRaw };
-        const stagingAgg = aggregateStagingContributions(stagingRecords, harvestMap, cacheHit);
+    const cacheTimeMs = new Date(notionCached.cachedAt).getTime();
+    
+    const validStagingRecords = stagingRecords.filter(record => {
+      if (record.status === "pending") return true;
+      
+      // KUNCI ANTI-DOBEL: Kalau udah di-sync, hitung HANYA JIKA
+      // dia dibuat SETELAH data Notion ditarik. 
+      const recordTimeMs = new Date(record.createdAt).getTime();
+      return recordTimeMs > cacheTimeMs;
+    });
+
+    const stagingAgg = aggregateStagingContributions(validStagingRecords, harvestMap);
 
     const { resultLabaRugi } = notionCached;
     const adjustedPengeluaran = resultLabaRugi.totalPengeluaran + stagingAgg.financeAmount;
