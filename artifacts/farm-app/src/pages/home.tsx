@@ -62,7 +62,7 @@ export function HomePage() {
             <div className="mt-8 space-y-7">
               <h1 className="max-w-3xl text-5xl font-black leading-[1.02] tracking-[-0.06em] text-slate-950 dark:text-white md:text-7xl">
                 Jalankan kebun seperti{" "}
-                <span className="bg-gradient-to-r from-primary to-lime-500 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
                   perusahaan teknologi
                 </span>
               </h1>
