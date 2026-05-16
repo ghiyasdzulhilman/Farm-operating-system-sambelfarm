@@ -153,7 +153,8 @@ export function FinancialSection({
     ][index % 4],
   }));
 
-  const totalProfit = profitChartData.reduce((acc, item) => acc + item.profit, 0);
+  // Ambil langsung dari sumber utama biar selalu klop sama kartu atas
+const totalProfit = displayData.profit; 
 
   // VARIAN ANIMASI
   // Bikin kartu munculnya berurutan dengan jeda 0.08 detik (stagger)
