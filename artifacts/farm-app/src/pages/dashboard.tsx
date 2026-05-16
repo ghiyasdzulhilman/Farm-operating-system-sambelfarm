@@ -416,8 +416,70 @@ export function DashboardPage() {
           </div>
         </div>
 
-        {/* --- CARD BUSINESS PULSE & BEP SLIM (Sekarang di Bawah Navigasi) --- */}
-                   <div className="mt-4 flex items-center justify-between gap-2">
+                {/* --- CARD BUSINESS PULSE & BEP SLIM (Sekarang di Bawah Navigasi) --- */}
+        <div className="relative mt-4 overflow-hidden rounded-[2rem] bg-slate-950 p-5 text-white shadow-2xl md:mt-6 md:rounded-[2.5rem] md:p-6">
+          <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-emerald-400/20 blur-[80px]" />
+          
+          <div className="relative z-10">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="mb-1 text-xs font-bold text-white/50">Business pulse</p>
+                <h2 className="text-2xl font-black md:text-3xl">{localBusinessStatus}</h2>
+              </div>
+              <div className="rounded-2xl bg-white/10 p-3 backdrop-blur-md">
+                <Bot className="h-6 w-6 text-emerald-400" />
+              </div>
+            </div>
+
+            <div className="mt-5 md:mt-6">
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-white/50">Margin</p>
+                  <p className="text-2xl font-black">
+                    <AnimatedNumber 
+                      key={`margin-${selectedAreaId}-${summary?.lastUpdated}`}
+                      value={displayData.margin} 
+                      formatFn={(val) => `${val.toFixed(1)}%`} 
+                    />
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-white/50">HPP / kg</p>
+                  <p className="text-xl font-black">
+                    <AnimatedNumber 
+                      key={`hpp-${selectedAreaId}-${summary?.lastUpdated}`}
+                      value={hpp} 
+                      formatFn={(val) => formatCurrency(val)} 
+                    />
+                  </p>
+                </div>
+              </div>
+
+              {/* BEP Runway Bar (Slim Mode) */}
+              <div className="mt-3 rounded-2xl border border-white/10 bg-white/5 p-3.5">
+                <div className="mb-2 flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.15em]">
+                  <span className="text-white/50">BEP Runway</span>
+                  <span className="text-emerald-300">
+                    <AnimatedNumber 
+                      key={`bep-${selectedAreaId}-${summary?.lastUpdated}`}
+                      value={bepProgress} 
+                      formatFn={(val) => `${val.toFixed(1)}%`} 
+                    />
+                  </span>
+                </div>
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+                  <motion.div
+                    key={`bep-bar-${selectedAreaId}-${summary?.lastUpdated}`}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${bepProgress}%` }}
+                    transition={{ duration: 1.2, ease: "easeOut" }}
+                    className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-lime-400 to-amber-300"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 text-[10px] font-medium text-white/55 sm:text-xs">
                 <Sparkles className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
                 <span className="truncate">Sync: {formatDate(summary?.lastUpdated)}</span>
@@ -456,7 +518,7 @@ export function DashboardPage() {
                   className="group flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/40 transition-all hover:border-white/20 hover:bg-white/15 hover:text-emerald-400 disabled:opacity-40 sm:h-9 sm:w-9"
                   title="Hapus cache & ambil data terbaru dari Notion"
                 >
-                  <RefreshCw className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isRefreshingCache || isFetching ? "animate-spin text-emerald-400" : ""}`} />
+                  <RefreshCcw className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isRefreshingCache || isFetching ? "animate-spin text-emerald-400" : ""}`} />
                 </button>
               </div>
             </div>
