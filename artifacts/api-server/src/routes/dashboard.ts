@@ -495,19 +495,28 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
     for (const area of finalAreas) areaMap[area.id] = area.name;
 
     const totalProfit = resultLabaRugi.totalPendapatan - adjustedPengeluaran;
-    const hpp = adjustedPengeluaran / (harvestMap.global || 1);
+
+// HITUNG ULANG MARGIN BERDASARKAN STAGING
+const recalculatedMargin = resultLabaRugi.totalPendapatan > 0 
+  ? (totalProfit / resultLabaRugi.totalPendapatan) * 100 
+  : 0;
+
+const hpp = adjustedPengeluaran / (harvestMap.global || 1);
+
     const bepProgress = (resultLabaRugi.totalPendapatan / (resultLabaRugi.totalModal || 1)) * 100;
 
     // ── STEP D: Response ──────────────────────────────────────────────────
     res.json({
+      
       financial: {
         totalModal: resultLabaRugi.totalModal,
         totalPendapatan: resultLabaRugi.totalPendapatan,
         totalPengeluaran: adjustedPengeluaran,
         labaRugi: totalProfit,
-        marginTotal: resultLabaRugi.marginTotal,
+        marginTotal: recalculatedMargin, // SUDAH DIGANTI PAKAI HASIL HITUNGAN BARU
         bepProgress,
       },
+
       production: {
         totalHarvestWeight: harvestMap.global,
         hpp,
