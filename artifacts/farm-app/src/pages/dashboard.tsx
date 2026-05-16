@@ -417,7 +417,7 @@ export function DashboardPage() {
         </div>
 
         {/* --- CARD BUSINESS PULSE & BEP SLIM (Sekarang di Bawah Navigasi) --- */}
-                   <div className="mt-4 flex items-center justify-between gap-2">
+                               <div className="mt-4 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 text-[10px] font-medium text-white/55 sm:text-xs">
                 <Sparkles className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
                 <span className="truncate">Sync: {formatDate(summary?.lastUpdated)}</span>
@@ -429,8 +429,6 @@ export function DashboardPage() {
                 {/* 1. Tombol Staging Cloud (Nyempil di sini sekarang) */}
                 <button
                   onClick={() => {
-                    // Trik biar tombol cloud ini bisa manggil Sheet yang ada di StagingQueueCard
-                    // Karena komponennya kepisah, kita simulasikan klik tombol aslinya
                     const triggerBtn = document.querySelector('[aria-label="Buka staging queue"]') as HTMLButtonElement;
                     if (triggerBtn) triggerBtn.click();
                   }}
@@ -448,11 +446,10 @@ export function DashboardPage() {
                       <span className="relative inline-flex h-2.5 w-2.5 rounded-full border-2 border-slate-950 bg-amber-400 sm:h-3 sm:w-3" />
                     </span>
                   )}
-                  {/* Pake icon RefreshCcw dari lucide krn CloudUpload ga di-import di file ini */}
                   <Database className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> 
                 </button>
 
-                {/* 2. Tombol Manual Cacing (Dibikin compact biar rapi) */}
+                {/* 2. Tombol Manual Cacing (Dibikin compact) */}
                 <button
                   onClick={handleRefreshCache}
                   disabled={isRefreshingCache || isFetching}
