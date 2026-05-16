@@ -426,10 +426,12 @@ export function HomePage() {
                     </div>
                   );
                 })}
+                              </div>
               </div>
             </div>
-          </div>
+          </motion.div> {/* <-- Tag penutup sakti yang kelupaan ditaruh si agent */}
         </section>
-    </main>
-  );
-}
+      </main>
+    );
+  }
+
