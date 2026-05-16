@@ -348,9 +348,19 @@ router.post("/staging/sync", async (req, res): Promise<void> => {
     }
 
     // Invalidate dashboard cache so the next request forces a fresh Notion fetch
+        // Invalidate ALL related caches so the next request forces a fresh Notion fetch
     if (synced > 0) {
+      // Hapus cache utama dashboard
       notionCache.del(getDashboardCacheKey(userId));
-      req.log.info({ userId, synced }, "Staging: dashboard cache invalidated after successful sync");
+      
+      // Hapus cache database satuan (Biar panen & pengeluaran baru langsung masuk)
+      notionCache.keys().forEach((key) => {
+        if (key.includes(userId)) {
+          notionCache.del(key);
+        }
+      });
+      
+      req.log.info({ userId, synced }, "Staging: All related caches completely purged after sync");
     }
 
     res.json({ success: true, synced, failed, errors });
