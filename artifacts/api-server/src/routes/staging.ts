@@ -104,24 +104,20 @@ const DB_FIELD_SPECS: Record<string, FieldSpec[]> = {
       build: (v) => ({ title: [{ text: { content: String(v ?? "") } }] }),
     },
     {
-      mappingKey: "tanggal",
+      mappingKey: "tanggal", // 100% Cocok sama SettingsPage
       build: (v) => ({ date: { start: String(v) } }),
       optional: true,
     },
-    // FIX MAPPING: Di form namanya jumlahPanen, tapi di mapping DB namanya 'berat'
     {
-      mappingKey: "berat",
-      dataKey: "jumlahPanen",
+      mappingKey: "jumlahPanen", // 100% Cocok sama SettingsPage & Form
       build: (v) => ({ number: Number(v ?? 0) }),
     },
     {
       mappingKey: "hargaJualPerKg",
       build: (v) => ({ number: Number(v ?? 0) }),
     },
-    // FIX MAPPING: Di form namanya kualitas, tapi di mapping DB namanya 'grade'
     {
-      mappingKey: "grade",
-      dataKey: "kualitas",
+      mappingKey: "kualitas", // 100% Cocok sama SettingsPage & Form
       build: (v) => ({ select: { name: String(v) } }),
       optional: true,
     },
@@ -131,8 +127,8 @@ const DB_FIELD_SPECS: Record<string, FieldSpec[]> = {
       optional: true,
     },
     {
-      mappingKey: "areaPindahTanam",
-      dataKey: "pindahTanamId",
+      mappingKey: "areaPindahTanam", // 100% Cocok sama SettingsPage
+      dataKey: "pindahTanamId", // Ini nangkep data 'pindahTanamId' dari Form Dialog lu
       build: (v) => ({ relation: [{ id: String(v) }] }),
       optional: true,
     },
@@ -143,6 +139,7 @@ const DB_FIELD_SPECS: Record<string, FieldSpec[]> = {
       optional: true,
     },
   ],
+
 
   expenses: [
     {
