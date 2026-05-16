@@ -1,4 +1,7 @@
- {
+import { useEffect, useState } from "react";
+import { UserButton } from "@clerk/react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
   Database,
   FlaskConical,
   Leaf,
@@ -409,9 +412,9 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
 }
 
 // ---------------------------------------------------------------------------
-// 📦 4. BRAND COLOR & THEME CONTROLLER WIDGET (TRIPLE IDENTITY EDITION)
+// 📦 4. BRAND COLOR & THEME CONTROLLER WIDGET (AUTO ADAPTIVE EDITION)
 // ---------------------------------------------------------------------------
-function hexToHslString(hex: string): string {
+function hexToHsl(hex: string) {
   hex = hex.replace(/^#/, "");
   let r = parseInt(hex.substring(0, 2), 16) / 255;
   let g = parseInt(hex.substring(2, 4), 16) / 255;
@@ -431,25 +434,31 @@ function hexToHslString(hex: string): string {
     h /= 6;
   }
 
-  h = Math.round(h * 360);
-  s = Math.round(s * 100);
-  l = Math.round(l * 100);
+  const roundedH = Math.round(h * 360);
+  const roundedS = Math.round(s * 100);
+  const roundedL = Math.round(l * 100);
 
-  return `${h} ${s}% ${l}%`;
+  return {
+    h: roundedH,
+    s: roundedS,
+    l: roundedL,
+    toString: () => `${roundedH} ${roundedS}% ${roundedL}%`
+  };
 }
 
 function ColorControl() {
   const [isDark, setIsDark] = useState(false);
 
-  // State Hex untuk 3 Warna Identitas Kebun Lu
-  const [primaryHex, setPrimaryHex] = useState("#16a34a");   // Warna Utama
-  const [secondaryHex, setSecondaryHex] = useState("#a3e635"); // Warna Kedua
-  const [accentHex, setAccentHex] = useState("#f97316");    // Warna Ketiga (Aksen)
+  // State Hex Dasar 3 Warna Identitas
+  const [primaryHex, setPrimaryHex] = useState("#16a34a");
+  const [secondaryHex, setSecondaryHex] = useState("#a3e635");
+  const [accentHex, setAccentHex] = useState("#f97316");
 
-  // Ambil data tema & warna dari memori local storage biar gak ilang pas refresh
+  // Load warna awal dari LocalStorage & Suntik Muted UI otomatis
   useEffect(() => {
     if (typeof window !== "undefined") {
-      setIsDark(document.documentElement.classList.contains("dark"));
+      const activeDark = document.documentElement.classList.contains("dark");
+      setIsDark(activeDark);
       
       const savedPrimary = localStorage.getItem("sf-primary-hex") || "#16a34a";
       const savedSecondary = localStorage.getItem("sf-secondary-hex") || "#a3e635";
@@ -459,41 +468,64 @@ function ColorControl() {
       setSecondaryHex(savedSecondary);
       setAccentHex(savedAccent);
 
-      document.documentElement.style.setProperty("--primary", hexToHslString(savedPrimary));
-      document.documentElement.style.setProperty("--secondary", hexToHslString(savedSecondary));
-      document.documentElement.style.setProperty("--accent", hexToHslString(savedAccent));
+      const p = hexToHsl(savedPrimary);
+      document.documentElement.style.setProperty("--primary", p.toString());
+      document.documentElement.style.setProperty("--secondary", hexToHsl(savedSecondary).toString());
+      document.documentElement.style.setProperty("--accent", hexToHsl(savedAccent).toString());
+
+      // Pipa Sinkronisasi Otomatis untuk Muted UI (Nav Bar & Input Boxes)
+      if (activeDark) {
+        document.documentElement.style.setProperty("--muted", `${p.h} 8% 12%`);
+        document.documentElement.style.setProperty("--muted-foreground", `${p.h} 8% 65%`);
+      } else {
+        document.documentElement.style.setProperty("--muted", `${p.h} 15% 94%`);
+        document.documentElement.style.setProperty("--muted-foreground", `${p.h} 20% 45%`);
+      }
     }
   }, []);
 
-  // Sync Mode Layar
+  // Sync Mode Gelap/Terang + Update Muted UI seketika
   useEffect(() => {
     const root = document.documentElement;
+    const p = hexToHsl(primaryHex);
     if (isDark) {
       root.classList.add("dark");
+      root.style.setProperty("--muted", `${p.h} 8% 12%`);
+      root.style.setProperty("--muted-foreground", `${p.h} 8% 65%`);
     } else {
       root.classList.remove("dark");
+      root.style.setProperty("--muted", `${p.h} 15% 94%`);
+      root.style.setProperty("--muted-foreground", `${p.h} 20% 45%`);
     }
-  }, [isDark]);
+  }, [isDark, primaryHex]);
 
-  // Handler Perubahan Warna Utama (Primary)
+  // Handler Ganti Warna Utama + Kloning ke Muted Rumpun Sejenis
   const handlePrimaryChange = (hex: string) => {
     setPrimaryHex(hex);
     localStorage.setItem("sf-primary-hex", hex);
-    document.documentElement.style.setProperty("--primary", hexToHslString(hex));
+    
+    const p = hexToHsl(hex);
+    document.documentElement.style.setProperty("--primary", p.toString());
+    
+    if (isDark) {
+      document.documentElement.style.setProperty("--muted", `${p.h} 8% 12%`);
+      document.documentElement.style.setProperty("--muted-foreground", `${p.h} 8% 65%`);
+    } else {
+      document.documentElement.style.setProperty("--muted", `${p.h} 15% 94%`);
+      document.documentElement.style.setProperty("--muted-foreground", `${p.h} 20% 45%`);
+    }
   };
 
-  // Handler Perubahan Warna Kedua (Secondary)
   const handleSecondaryChange = (hex: string) => {
     setSecondaryHex(hex);
     localStorage.setItem("sf-secondary-hex", hex);
-    document.documentElement.style.setProperty("--secondary", hexToHslString(hex));
+    document.documentElement.style.setProperty("--secondary", hexToHsl(hex).toString());
   };
 
-  // Handler Perubahan Warna Ketiga (Accent)
   const handleAccentChange = (hex: string) => {
     setAccentHex(hex);
     localStorage.setItem("sf-accent-hex", hex);
-    document.documentElement.style.setProperty("--accent", hexToHslString(hex));
+    document.documentElement.style.setProperty("--accent", hexToHsl(hex).toString());
   };
 
   return (
@@ -503,7 +535,6 @@ function ColorControl() {
         <span>Sistem Kontrol Visual</span>
       </div>
 
-      {/* Kontrol Mode Layar */}
       <div className="flex items-center justify-between border-b pb-3 border-border/50">
         <span className="text-xs font-semibold">Mode Layar</span>
         <button
@@ -521,14 +552,12 @@ function ColorControl() {
         </button>
       </div>
 
-      {/* TRIPLE UNLIMITED COLOR PICKERS CONTAINER */}
       <div className="space-y-3 pt-1">
-        
         {/* PICKER 1: WARNA UTAMA */}
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
             <span className="text-xs font-bold block">Warna Utama</span>
-            <span className="text-[10px] text-muted-foreground block">Tombol & Progress</span>
+            <span className="text-[10px] text-muted-foreground block">UI Utama & Basis Muted</span>
           </div>
           <div className="relative h-7 w-14 rounded-xl border border-border/60 shadow-sm overflow-hidden" style={{ backgroundColor: primaryHex }}>
             <input 
@@ -580,7 +609,7 @@ function ColorControl() {
             </div>
           </div>
         </div>
-
       </div>
     </div>
   );
+}
