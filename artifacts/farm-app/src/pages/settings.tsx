@@ -14,11 +14,11 @@ import {
   ChevronDown,
   X,
   Plus,
-  // TAMBAHAN ICON UNTUK KENDALI WARNA
   Sun,
   Moon,
   Palette,
-  Check
+  Check,
+  Pipette // Icon tambahan untuk custom picker
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -166,7 +166,6 @@ export function SettingsPage() {
         
         {/* SIDEBAR CONTAINER */}
         <aside className="space-y-4">
-          {/* List Tombol Domain Utama */}
           <div className="space-y-2">
             {DOMAINS.map((domain) => {
               const Icon = domain.icon;
@@ -188,7 +187,7 @@ export function SettingsPage() {
             })}
           </div>
 
-          {/* SAKLAR PUSAT KENDALI WARNA (Hanya disisipkan di sini, rapi & aman) */}
+          {/* SAKLAR PUSAT KENDALI WARNA */}
           <ColorControl />
         </aside>
 
@@ -413,27 +412,54 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
 }
 
 // ---------------------------------------------------------------------------
-// 📦 4. BRAND COLOR & THEME CONTROLLER WIDGET (Local Sub-Component)
+// 📦 4. BRAND COLOR & THEME CONTROLLER WIDGET (UNLIMITED PICKER SYSTEM)
 // ---------------------------------------------------------------------------
-const BRAND_COLORS = [
-  { name: "Hijau Daun (Sambelfarm)", hsl: "142 76% 36%", bgClass: "bg-[#16a34a]" },
-  { name: "Merah Cabai Matang", hsl: "0 72% 51%", bgClass: "bg-[#dc2626]" },
-  { name: "Jingga Cabai Rawit", hsl: "25 75% 50%", bgClass: "bg-[#f97316]" },
-  { name: "Kuning Tonase Mas", hsl: "45 90% 45%", bgClass: "bg-[#eab308]" },
+const PRESET_COLORS = [
+  { name: "Hijau Kebun", hsl: "142 76% 36%", bgClass: "bg-[#16a34a]" },
+  { name: "Merah Cabai", hsl: "0 72% 51%", bgClass: "bg-[#dc2626]" },
+  { name: "Jingga Rawit", hsl: "25 75% 50%", bgClass: "bg-[#f97316]" },
+  { name: "Emas Panen", hsl: "45 90% 45%", bgClass: "bg-[#eab308]" },
 ];
+
+// FUNGSI SAKTI: Mengubah string HEX (#ffffff) menjadi format baris string HSL (H S% L%) bawaan Tailwind v4
+function hexToHslString(hex: string): string {
+  hex = hex.replace(/^#/, "");
+  let r = parseInt(hex.substring(0, 2), 16) / 255;
+  let g = parseInt(hex.substring(2, 4), 16) / 255;
+  let b = parseInt(hex.substring(4, 6), 16) / 255;
+
+  let max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h = 0, s = 0, l = (max + min) / 2;
+
+  if (max !== min) {
+    let d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      case b: h = (r - g) / d + 4; break;
+    }
+    h /= 6;
+  }
+
+  h = Math.round(h * 360);
+  s = Math.round(s * 100);
+  l = Math.round(l * 100);
+
+  return `${h} ${s}% ${l}%`;
+}
 
 function ColorControl() {
   const [isDark, setIsDark] = useState(false);
   const [activeColor, setActiveColor] = useState("142 76% 36%");
+  const [customHex, setCustomHex] = useState("#16a34a"); // State penyimpan warna kustom bebas
 
-  // Ambil state awal dark mode langsung dari classList dokumen browser
   useEffect(() => {
     if (typeof window !== "undefined") {
       setIsDark(document.documentElement.classList.contains("dark"));
     }
   }, []);
 
-  // Handler Tukar Pasang Dark Mode
   useEffect(() => {
     const root = document.documentElement;
     if (isDark) {
@@ -443,11 +469,21 @@ function ColorControl() {
     }
   }, [isDark]);
 
-  // Handler Suntik Kode Warna HSL ke --primary Pusat Tailwind v4
   const handleColorChange = (hslValue: string) => {
     setActiveColor(hslValue);
     document.documentElement.style.setProperty("--primary", hslValue);
   };
+
+  // Handler saat roda warna Custom Picker dipilih bebas oleh user
+  const handleCustomHexChange = (hexValue: string) => {
+    setCustomHex(hexValue);
+    const hslString = hexToHslString(hexValue);
+    setActiveColor(hslString);
+    document.documentElement.style.setProperty("--primary", hslString);
+  };
+
+  // Mengecek apakah warna yang aktif saat ini termasuk dalam daftar preset atau kustom
+  const isPresetActive = PRESET_COLORS.some(c => c.hsl === activeColor);
 
   return (
     <div className="p-4 rounded-3xl border border-border bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl w-full space-y-4 shadow-sm">
@@ -478,11 +514,13 @@ function ColorControl() {
         </button>
       </div>
 
-      {/* Kontrol 2: Palet Kebun Cabai */}
+      {/* Kontrol 2: Palet Kebun Cabai + Unlimited Custom Picker */}
       <div className="space-y-2">
         <span className="text-xs font-semibold block text-left">Warna Tema Aplikasi</span>
-        <div className="flex gap-2.5">
-          {BRAND_COLORS.map((color) => (
+        <div className="flex flex-wrap gap-2.5 items-center">
+          
+          {/* Render 4 Warna Preset Utama */}
+          {PRESET_COLORS.map((color) => (
             <button
               key={color.hsl}
               onClick={() => handleColorChange(color.hsl)}
@@ -499,6 +537,27 @@ function ColorControl() {
               )}
             </button>
           ))}
+
+          {/* SAKLAR AJIB: Tombol Roda Warna Tanpa Batas (HTML5 Native Picker) */}
+          <div className="relative h-7 w-7 rounded-full bg-gradient-to-tr from-indigo-500 via-purple-500 p-px to-pink-500 shadow-sm overflow-hidden active:scale-95 transition-transform">
+            <input 
+              type="color"
+              value={customHex}
+              onChange={(e) => handleCustomHexChange(e.target.value)}
+              className="absolute inset-0 opacity-0 cursor-pointer h-full w-full z-10"
+              title="Kustomisasi Warna Bebas"
+            />
+            <div className="w-full h-full rounded-full bg-white/10 flex items-center justify-center text-white">
+              {!isPresetActive ? (
+                <div className="absolute inset-0 border-2 border-white rounded-full flex items-center justify-center bg-black/30">
+                  <Check className="h-3 w-3 text-white stroke-[4]" />
+                </div>
+              ) : (
+                <Pipette className="h-3 w-3 opacity-90 stroke-[2.5]" />
+              )}
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
