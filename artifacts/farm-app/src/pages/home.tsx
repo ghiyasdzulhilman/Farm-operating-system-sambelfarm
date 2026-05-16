@@ -1,437 +1,298 @@
-import { ReactNode } from "react"; // Kunci anti-error TS
 import { Link } from "wouter";
 import { Show } from "@clerk/react";
-import { motion } from "framer-motion";
-import {
-  ArrowRight,
-  Braces,
-  CircleDot,
-  DatabaseZap,
-  GitBranch,
-  Leaf,
-  Orbit,
-  Radar,
-  ScanLine,
-  ShieldCheck,
-  Sparkles,
-  Terminal,
-  TrendingUp,
-  Workflow,
-  Zap,
+import { 
+  ArrowRight, 
+  Sprout, 
+  LineChart, 
+  Cloud, 
+  Zap, 
+  Target, 
+  ShieldCheck, 
+  Globe, 
+  MousePointerClick,
+  BarChart3,
+  PieChart,
+  LayoutDashboard
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { motion, useScroll, useTransform } from "framer-motion";
+import { useRef } from "react";
 
-const floatTransition = (duration: number, delay = 0) => ({
-  duration,
-  delay,
-  repeat: Infinity,
-  repeatType: "mirror" as const,
-  ease: "easeInOut" as const,
-});
+// --- Sub-Components untuk Kebersihan Kode ---
 
-const telemetry = [
-  { label: "GROSS MARGIN", value: "+42.8%", tone: "text-emerald-300" },
-  { label: "YIELD VELOCITY", value: "1.8T/WK", tone: "text-lime-300" },
-  { label: "RUNWAY", value: "91 DAYS", tone: "text-amber-300" },
-];
+const FloatingCard = ({ children, className, delay = 0 }: any) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay, duration: 0.8, ease: [0.21, 1.11, 0.81, 0.99] }}
+    className={`absolute hidden md:block rounded-3xl border border-white/20 bg-white/10 p-4 shadow-2xl backdrop-blur-xl ${className}`}
+  >
+    {children}
+  </motion.div>
+);
 
-const fieldNodes = [
-  { label: "CAPITAL", value: "IDR 124M", x: "left-[8%]", y: "top-[18%]" },
-  { label: "HARVEST", value: "864 KG", x: "right-[9%]", y: "top-[26%]" },
-  { label: "HPP/KG", value: "8.2K", x: "left-[13%]", y: "bottom-[21%]" },
-  { label: "SYNC", value: "LIVE", x: "right-[15%]", y: "bottom-[18%]" },
-];
-
-const bentoPanels = [
-  {
-    icon: DatabaseZap,
-    eyebrow: "NOTION DATA PLANE",
-    title: "Databases become telemetry.",
-    description:
-      "Financial, harvest, and expense records resolve into one operating graph without spreadsheet drag.",
-    meta: "schema.align()",
-    className: "md:col-span-2",
-  },
-  {
-    icon: Radar,
-    eyebrow: "FIELD SIGNALS",
-    title: "Production is observed, not guessed.",
-    description:
-      "Every kilogram, block, cost anomaly, and margin delta becomes a live decision signal.",
-    meta: "yield.scan:active",
-    className: "md:row-span-2",
-  },
-  {
-    icon: TrendingUp,
-    eyebrow: "UNIT ECONOMICS",
-    title: "Profit physics for modern farms.",
-    description:
-      "Track modal, revenue, expenses, HPP, BEP, and margin with boardroom clarity.",
-    meta: "margin.vector",
-    className: "",
-  },
-  {
-    icon: Sparkles,
-    eyebrow: "INTELLIGENCE LAYER",
-    title: "Recommendations with operational weight.",
-    description:
-      "Detect costly areas, production lift, and margin compression before they compound.",
-    meta: "insight.dispatch",
-    className: "",
-  },
-];
-
-function TerminalCta({
-  href,
-  children,
-  primary = false,
-  testId,
-}: {
-  href: string;
-  children: ReactNode;
-  primary?: boolean;
-  testId: string;
-}) {
-  return (
-    <Link href={href}>
-      <motion.a
-        whileHover={{ y: -2, scale: 1.01 }}
-        whileTap={{ scale: 0.98 }}
-        data-testid={testId}
-        className={`group relative inline-flex h-12 w-full items-center justify-center overflow-hidden rounded-xl border px-5 font-mono text-[11px] font-bold uppercase tracking-[0.22em] transition-colors sm:w-auto cursor-pointer ${
-          primary
-            ? "border-emerald-300/30 bg-emerald-300/10 text-emerald-100 shadow-[0_0_38px_rgba(16,185,129,0.18)]"
-            : "border-white/10 bg-white/[0.025] text-white/70 hover:text-white"
-        }`}
-      >
-        <span className="absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-emerald-300/70 to-transparent" />
-        <span className="absolute inset-0 opacity-0 mix-blend-screen transition-opacity duration-300 group-hover:opacity-100 bg-[radial-gradient(circle_at_50%_0%,rgba(16,185,129,0.28),transparent_55%)]" />
-        <Terminal className="mr-2 h-3.5 w-3.5" />
-        <span className="relative">{children}</span>
-        <ArrowRight className="relative ml-2 h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" />
-        {primary && (
-          <span className="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-emerald-300 shadow-[0_0_18px_rgba(16,185,129,0.95)]" />
-        )}
-      </motion.a>
-    </Link>
-  );
-}
-
-function CommandConsole() {
-  return (
-    <motion.div
-      initial={{ opacity: 0, rotateX: 18, rotateY: -18, y: 40 }}
-      animate={{ opacity: 1, rotateX: 0, rotateY: 0, y: [0, -12, 0] }}
-      transition={{ opacity: { duration: 0.8 }, y: floatTransition(7.5, 0.2) }}
-      className="relative mx-auto w-full max-w-[760px] [transform-style:preserve-3d]"
-    >
-      <div className="absolute -inset-8 -z-10 rounded-[3rem] bg-emerald-400/10 blur-3xl" />
-      <div className="relative overflow-hidden rounded-[2rem] border border-white/5 bg-white/[0.035] shadow-[0_28px_120px_rgba(0,0,0,0.7),0_0_90px_rgba(16,185,129,0.08)] backdrop-blur-2xl">
-        <div className="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-emerald-300/70 to-transparent" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_0%,rgba(16,185,129,0.18),transparent_30%),radial-gradient(circle_at_85%_10%,rgba(163,230,53,0.10),transparent_28%)]" />
-
-        <div className="relative border-b border-white/5 px-4 py-3 md:px-5">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.22em] text-white/40">
-              <span className="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_18px_rgba(16,185,129,0.95)]" />
-              sambel.os/mission-control
-            </div>
-            <div className="hidden items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/35 sm:flex">
-              <CircleDot className="h-3 w-3 text-lime-300" /> 14:32 UTC · LIVE
-            </div>
-          </div>
-        </div>
-
-        <div className="relative grid gap-4 p-4 md:grid-cols-[1.1fr_0.9fr] md:p-5">
-          <div className="rounded-[1.4rem] border border-white/5 bg-black/35 p-4">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-emerald-300/70">
-                  Operational Gravity
-                </p>
-                <h3 className="mt-2 text-3xl font-black tracking-[-0.06em] text-white md:text-5xl">
-                  ZERO.
-                </h3>
-              </div>
-              <Orbit className="h-8 w-8 text-emerald-300/80" />
-            </div>
-
-            <div className="mt-8 h-28 rounded-[1.15rem] border border-white/5 bg-[linear-gradient(180deg,rgba(16,185,129,0.12),rgba(255,255,255,0.015))] p-3">
-              <div className="flex h-full items-end gap-2">
-                {[44, 68, 52, 82, 61, 93, 74, 88, 64, 96, 78, 90].map(
-                  (height, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ height: 12 }}
-                      animate={{ height: `${height}%` }}
-                      transition={{ duration: 0.8, delay: index * 0.04 }}
-                      className="flex-1 rounded-t-sm bg-gradient-to-t from-emerald-500/35 to-lime-300 shadow-[0_0_18px_rgba(16,185,129,0.22)]"
-                    />
-                  ),
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="grid gap-3">
-            {telemetry.map((item, index) => (
-              <motion.div
-                key={item.label}
-                initial={{ opacity: 0, x: 16 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.45 + index * 0.08 }}
-                className="rounded-[1.15rem] border border-white/5 bg-white/[0.035] p-4"
-              >
-                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/35">
-                  {item.label}
-                </p>
-                <p
-                  className={`mt-2 text-2xl font-black tracking-[-0.05em] ${item.tone}`}
-                >
-                  {item.value}
-                </p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-
-        <div className="relative grid grid-cols-3 border-t border-white/5">
-          {[
-            ["NOTION", "SYNCED"],
-            ["FIELD", "MAPPED"],
-            ["ANOMALY", "WATCH"],
-          ].map(([label, value]) => (
-            <div
-              key={label}
-              className="border-r border-white/5 p-4 last:border-r-0"
-            >
-              <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/30">
-                {label}
-              </p>
-              <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.16em] text-white/70">
-                {value}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </motion.div>
-  );
-}
+const FeatureCard = ({ icon: Icon, title, desc, tag }: any) => (
+  <motion.div 
+    whileHover={{ y: -10 }}
+    className="group relative flex flex-col justify-end overflow-hidden rounded-[2.5rem] border border-slate-200 bg-white p-8 transition-all hover:border-emerald-500/50 hover:shadow-[0_20px_40px_rgba(5,150,105,0.1)] dark:border-slate-800 dark:bg-slate-900"
+  >
+    <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-emerald-50 opacity-0 transition-all group-hover:opacity-100 dark:bg-emerald-900/20"></div>
+    <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-lg shadow-emerald-600/30">
+      <Icon className="h-7 w-7" />
+    </div>
+    <span className="mb-2 text-[10px] font-bold uppercase tracking-widest text-emerald-600">{tag}</span>
+    <h3 className="mb-3 text-2xl font-black text-slate-900 dark:text-white">{title}</h3>
+    <p className="text-sm font-medium leading-relaxed text-slate-500 dark:text-slate-400">{desc}</p>
+  </motion.div>
+);
 
 export function HomePage() {
+  const containerRef = useRef(null);
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start start", "end start"]
+  });
+
+  const y1 = useTransform(scrollYProgress, [0, 1], [0, -200]);
+  const y2 = useTransform(scrollYProgress, [0, 1], [0, -500]);
+
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#050505] text-white">
-      <div className="pointer-events-none absolute inset-0 opacity-[0.16] [background-image:linear-gradient(rgba(255,255,255,0.18)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.18)_1px,transparent_1px)] [background-size:40px_40px] [mask-image:radial-gradient(ellipse_at_top,black_0%,black_45%,transparent_78%)]" />
-      <div className="pointer-events-none absolute inset-0 [background-image:radial-gradient(circle_at_20px_20px,rgba(16,185,129,0.36)_1px,transparent_1.5px)] [background-size:80px_80px] opacity-20 [mask-image:radial-gradient(ellipse_at_top,black_0%,transparent_70%)]" />
-      <div className="pointer-events-none absolute left-1/2 top-0 h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-emerald-500/10 blur-[120px]" />
-      <div className="pointer-events-none absolute right-[-12rem] top-40 h-[420px] w-[420px] rounded-full bg-lime-300/5 blur-[110px]" />
-      <div className="pointer-events-none absolute bottom-[-16rem] left-[-10rem] h-[420px] w-[420px] rounded-full bg-amber-500/5 blur-[120px]" />
+    <div ref={containerRef} className="relative min-h-screen w-full bg-[#FAFBF9] selection:bg-emerald-200 selection:text-emerald-900 dark:bg-slate-950">
+      
+      {/* ── 1. GLOBAL DECORATIONS ── */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -left-[10%] top-[5%] h-[500px] w-[500px] rounded-full bg-emerald-500/10 blur-[120px]"></div>
+        <div className="absolute -right-[10%] top-[20%] h-[600px] w-[600px] rounded-full bg-lime-400/10 blur-[150px]"></div>
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent dark:via-slate-800"></div>
+      </div>
 
-      {fieldNodes.map((node, index) => (
-        <motion.div
-          key={node.label}
-          animate={{ y: [0, index % 2 ? -18 : -12, 0] }}
-          transition={floatTransition(5.8 + index * 0.7, index * 0.18)}
-          className={`pointer-events-none absolute hidden rounded-xl border border-white/5 bg-white/[0.025] px-3 py-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/35 backdrop-blur-xl md:block ${node.x} ${node.y}`}
-        >
-          <span className="mr-2 text-emerald-300/80">{node.value}</span>
-          {node.label}
-        </motion.div>
-      ))}
-
-      <section className="relative mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-6 sm:px-6 lg:px-8">
-        <header className="flex items-center justify-between border-b border-white/5 pb-5">
-          <Link href="/">
-            <a className="group flex items-center gap-3">
-              <span className="grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/[0.035] shadow-[0_0_32px_rgba(16,185,129,0.12)] backdrop-blur-xl">
-                <Leaf className="h-4 w-4 text-emerald-300" />
-              </span>
-              <span>
-                <span className="block text-sm font-black tracking-[-0.02em] text-white">
-                  Sambel Farm
-                </span>
-                <span className="block font-mono text-[9px] uppercase tracking-[0.22em] text-white/35">
-                  Boutique Agritech OS
-                </span>
-              </span>
-            </a>
+      {/* ── 2. NAVIGATION (Sleek & Floating) ── */}
+      <nav className="fixed top-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-8 rounded-full border border-white/40 bg-white/60 px-6 py-3 shadow-lg backdrop-blur-md dark:border-white/10 dark:bg-slate-900/60">
+        <div className="flex items-center gap-2 font-black tracking-tighter text-emerald-700 dark:text-emerald-400">
+          <Sprout className="h-5 w-5" />
+          <span>SAMBELFARM</span>
+        </div>
+        <div className="hidden h-4 w-px bg-slate-200 dark:bg-slate-800 md:block"></div>
+        <div className="hidden gap-6 text-xs font-bold uppercase tracking-widest text-slate-500 md:flex">
+          <a href="#features" className="transition-colors hover:text-emerald-600">Features</a>
+          <a href="#story" className="transition-colors hover:text-emerald-600">Our Vision</a>
+        </div>
+        <Show when="signed-in">
+          <Link href="/dashboard">
+            <Button size="sm" className="rounded-full bg-emerald-600 font-bold dark:bg-emerald-500">Dashboard</Button>
           </Link>
+        </Show>
+        <Show when="signed-out">
+          <Link href="/sign-in">
+            <Button size="sm" variant="ghost" className="rounded-full font-bold">Login</Button>
+          </Link>
+        </Show>
+      </nav>
 
-          <div className="hidden items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-white/35 sm:flex">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_16px_rgba(16,185,129,0.95)]" />
-            Premium Data Plane
+      {/* ── 3. HERO SECTION (The Visionary Stage) ── */}
+      <header className="relative flex min-h-screen flex-col items-center justify-center px-4 pt-32 text-center md:pt-40">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="max-w-5xl"
+        >
+          {/* Badge */}
+          <div className="mx-auto mb-8 flex w-max items-center gap-2 rounded-full border border-emerald-100 bg-white/80 px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700 shadow-sm backdrop-blur-sm dark:border-emerald-900/50 dark:bg-slate-900/80 dark:text-emerald-400">
+            <Globe className="h-3 w-3 animate-spin-slow" />
+            <span>Agriculture Operating System v2.0</span>
           </div>
-        </header>
 
-        <div className="grid flex-1 items-center gap-12 py-12 lg:grid-cols-[0.92fr_1.08fr] lg:py-16">
-          <motion.div
-            initial={{ opacity: 0, y: 28 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: "easeOut" }}
-            className="relative z-10"
-          >
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.22em] text-white/45 backdrop-blur-xl">
-              <ScanLine className="h-3.5 w-3.5 text-emerald-300" />
-              Premium Boutique Agritech OS
+          <h1 className="text-6xl font-black leading-[0.95] tracking-tight text-slate-950 md:text-8xl lg:text-9xl dark:text-white">
+            DIRT INTO <br />
+            <span className="bg-gradient-to-b from-emerald-400 to-emerald-700 bg-clip-text text-transparent">DATA.</span>
+          </h1>
+
+          <p className="mx-auto mt-10 max-w-2xl text-lg font-medium leading-relaxed text-slate-500 md:text-2xl dark:text-slate-400">
+            Ubah cara Anda melihat kebun. Sambelfarm adalah intelijen bisnis yang mengubah input operasional menjadi kejernihan profit. 
+            <span className="text-slate-900 dark:text-white"> Dibuat untuk petani yang berpikir seperti CEO.</span>
+          </p>
+
+          <div className="mt-12 flex flex-col items-center justify-center gap-6 sm:flex-row">
+            <Link href="/sign-up">
+              <Button size="lg" className="h-16 rounded-full bg-emerald-600 px-10 text-lg font-black tracking-tight shadow-2xl shadow-emerald-600/40 transition-transform hover:scale-105 active:scale-95 dark:bg-emerald-500">
+                MULAI EKSPEDISI DATA
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
+            <div className="flex items-center gap-3 text-sm font-bold text-slate-400">
+              <ShieldCheck className="h-5 w-5 text-emerald-500" />
+              Trusted by 100+ Modern Agropreneurs
             </div>
+          </div>
+        </motion.div>
 
-            <h1
-              data-testid="text-hero-title"
-              className="mt-7 max-w-5xl text-6xl font-black uppercase leading-[0.82] tracking-[-0.08em] text-white sm:text-7xl md:text-8xl xl:text-9xl"
-            >
-              DIRT
-              <br />
-              INTO
-              <span className="block bg-gradient-to-r from-emerald-300 via-lime-200 to-white bg-clip-text text-transparent">
-                DATA.
-              </span>
-            </h1>
-
-            <p
-              data-testid="text-hero-subtitle"
-              className="mt-7 max-w-2xl text-base leading-7 text-white/55 md:text-lg"
-            >
-              Sambel Farm turns Notion-backed financial, production, and
-              operational records into a mission-control interface for modern
-              farms. Zero dashboard clutter. Pure operating signal.
-            </p>
-
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Show when="signed-out">
-                <TerminalCta
-                  href="/sign-up"
-                  primary
-                  testId="button-hero-signup"
-                >
-                  Initialize OS
-                </TerminalCta>
-                <TerminalCta href="/sign-in" testId="button-hero-signin">
-                  Authenticate
-                </TerminalCta>
-              </Show>
-
-              <Show when="signed-in">
-                <TerminalCta
-                  href="/dashboard"
-                  primary
-                  testId="button-hero-dashboard"
-                >
-                  Open Mission Control
-                </TerminalCta>
-              </Show>
-            </div>
-
-            <div className="mt-9 grid max-w-xl grid-cols-3 gap-2 border-t border-white/5 pt-5">
-              {[
-                ["MODE", "DARK VOID"],
-                ["SYNC", "NOTION API"],
-                ["STATE", "LIVE OPS"],
-              ].map(([label, value]) => (
-                <div key={label}>
-                  <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-white/25">
-                    {label}
-                  </p>
-                  <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.16em] text-white/70">
-                    {value}
-                  </p>
+        {/* --- Floating Visual Elements (The Wow Factor) --- */}
+        <div className="relative mt-20 h-[400px] w-full max-w-6xl">
+           <FloatingCard className="left-0 top-0 z-20 w-64 rotate-[-6deg]" delay={0.4}>
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                  <BarChart3 className="h-5 w-5 text-emerald-600" />
                 </div>
-              ))}
-            </div>
-          </motion.div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Margin Profit</p>
+                  <p className="text-xl font-black text-slate-900">45.8%</p>
+                </div>
+              </div>
+           </FloatingCard>
 
-          <div className="relative [perspective:1200px]">
-            <motion.div
-              animate={{ y: [0, -15, 0], rotateZ: [0, 0.35, 0] }}
-              transition={floatTransition(8.5)}
-              className="absolute -right-3 top-2 z-10 hidden rounded-2xl border border-white/5 bg-white/[0.035] p-3 font-mono text-[10px] uppercase tracking-[0.18em] text-white/45 backdrop-blur-2xl lg:block"
-            >
-              <GitBranch className="mb-2 h-4 w-4 text-lime-300" />
-              Schema Graph
+           <FloatingCard className="right-10 top-20 z-10 w-72 rotate-[4deg]" delay={0.6}>
+              <div className="space-y-3 text-left">
+                <div className="flex justify-between items-center">
+                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">HPP Control</p>
+                  <Zap className="h-4 w-4 text-amber-500" />
+                </div>
+                <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                  <div className="h-full w-[70%] bg-emerald-500"></div>
+                </div>
+                <p className="text-xs font-bold text-slate-600">Rp 18.200 / Kg</p>
+              </div>
+           </FloatingCard>
+
+           <FloatingCard className="left-20 bottom-10 z-30 w-56 rotate-[2deg] border-emerald-500/30 bg-emerald-500/10" delay={0.8}>
+              <div className="flex items-center gap-3 text-emerald-700">
+                <PieChart className="h-6 w-6" />
+                <span className="text-sm font-black uppercase tracking-tighter">Real-time Sync</span>
+              </div>
+           </FloatingCard>
+
+           {/* Central "Dashboard" Mockup Teaser */}
+           <motion.div 
+            style={{ y: y1 }}
+            className="mx-auto mt-10 h-[500px] w-full max-w-4xl rounded-t-[3rem] border-x border-t border-white/40 bg-white/30 p-4 shadow-[0_-20px_80px_rgba(5,150,105,0.15)] backdrop-blur-3xl dark:border-white/10 dark:bg-slate-900/30"
+           >
+              <div className="h-full w-full rounded-t-[2rem] bg-gradient-to-br from-slate-900 to-slate-950 p-8 text-left shadow-inner">
+                <div className="flex items-center justify-between border-b border-white/5 pb-6">
+                  <div className="flex gap-4">
+                    <div className="h-3 w-3 rounded-full bg-red-500"></div>
+                    <div className="h-3 w-3 rounded-full bg-amber-500"></div>
+                    <div className="h-3 w-3 rounded-full bg-emerald-500"></div>
+                  </div>
+                  <LayoutDashboard className="h-5 w-5 text-white/20" />
+                </div>
+                <div className="mt-10 space-y-6">
+                  <div className="h-8 w-1/3 rounded-lg bg-white/10 animate-pulse"></div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="h-32 rounded-2xl bg-white/5 border border-white/5"></div>
+                    <div className="h-32 rounded-2xl bg-white/5 border border-white/5"></div>
+                    <div className="h-32 rounded-2xl bg-emerald-500/20 border border-emerald-500/20"></div>
+                  </div>
+                </div>
+              </div>
+           </motion.div>
+        </div>
+      </header>
+
+      {/* ── 4. PROBLEM SECTION (The Empathy Hook) ── */}
+      <section id="story" className="relative bg-slate-950 py-32 text-white">
+        <div className="mx-auto max-w-6xl px-4 lg:px-8">
+          <div className="grid gap-20 lg:grid-cols-2 lg:items-center">
+            <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
+              <h2 className="text-4xl font-black leading-tight md:text-6xl">
+                BERHENTI <br />
+                <span className="text-emerald-400">MENEBAK-NEBAK</span> <br />
+                PROFIT ANDA.
+              </h2>
+              <p className="mt-8 text-lg leading-relaxed text-slate-400 md:text-xl">
+                Banyak pengusaha kebun gagal bukan karena tanamannya mati, tapi karena mereka 
+                <span className="text-white"> buta terhadap angka operasionalnya sendiri.</span> <br /><br />
+                Sambelfarm hadir untuk menghentikan kebocoran finansial di antara sela-sela polybag. Kami menghubungkan Notion Anda ke sebuah mesin kalkulasi otomatis yang memberitahu Anda kapan harus berekspansi dan kapan harus efisiensi.
+              </p>
             </motion.div>
-            <motion.div
-              animate={{ y: [0, -22, 0], rotateZ: [0, -0.45, 0] }}
-              transition={floatTransition(7.2, 0.4)}
-              className="absolute -left-4 bottom-14 z-10 hidden rounded-2xl border border-white/5 bg-white/[0.035] p-3 font-mono text-[10px] uppercase tracking-[0.18em] text-white/45 backdrop-blur-2xl lg:block"
-            >
-              <Braces className="mb-2 h-4 w-4 text-emerald-300" />
-              Unit Economics
-            </motion.div>
-            <CommandConsole />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-4">
+                <div className="h-40 rounded-3xl bg-emerald-600 p-6">
+                  <p className="text-3xl font-black italic">0%</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest opacity-80">Ghosting Data</p>
+                </div>
+                <div className="h-60 rounded-3xl bg-slate-900 p-6 border border-white/5">
+                  <LineChart className="h-10 w-10 text-emerald-400 mb-4" />
+                  <p className="font-bold">HPP Insight</p>
+                </div>
+              </div>
+              <div className="space-y-4 pt-12">
+                <div className="h-60 rounded-3xl bg-slate-900 p-6 border border-white/5">
+                  <Cloud className="h-10 w-10 text-blue-400 mb-4" />
+                  <p className="font-bold">Notion Sync</p>
+                </div>
+                <div className="h-40 rounded-3xl bg-amber-500 p-6 text-slate-950">
+                   <Target className="h-10 w-10 mb-4" />
+                   <p className="font-black italic">Precision</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
+      </section>
 
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.3 }}
-          className="grid gap-3 pb-10 md:grid-cols-4"
-        >
-          {bentoPanels.map((panel) => {
-            const Icon = panel.icon;
-            return (
-              <div
-                key={panel.title}
-                className={`group relative overflow-hidden rounded-[1.5rem] border border-white/5 bg-white/[0.025] p-5 backdrop-blur-2xl transition-all duration-300 hover:border-emerald-300/20 hover:bg-white/[0.04] ${panel.className}`}
-              >
-                <div className="absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                <div className="absolute inset-0 opacity-0 mix-blend-screen transition-opacity duration-300 group-hover:opacity-100 bg-[radial-gradient(circle_at_50%_0%,rgba(16,185,129,0.18),transparent_58%)]" />
-                <div className="relative">
-                  <Icon className="h-5 w-5 text-emerald-300" />
-                  <p className="mt-5 font-mono text-[9px] uppercase tracking-[0.22em] text-white/30">
-                    {panel.eyebrow}
-                  </p>
-                  <h3 className="mt-2 text-xl font-black tracking-[-0.04em] text-white">
-                    {panel.title}
-                  </h3>
-                  <p className="mt-3 text-sm leading-6 text-white/[0.55]">
-                    {panel.description}
-                  </p>
-                  <p className="mt-6 font-mono text-[10px] uppercase tracking-[0.18em] text-lime-300/60">
-                    {panel.meta}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
+      {/* ── 5. FEATURES (The Tech Specs) ── */}
+      <section id="features" className="py-32">
+        <div className="mx-auto max-w-6xl px-4 lg:px-8">
+          <div className="mb-20 text-center">
+            <h2 className="text-4xl font-black text-slate-950 md:text-6xl dark:text-white">CORE ENGINE.</h2>
+            <p className="mt-4 font-bold text-emerald-600 uppercase tracking-widest">Built for High-Growth Farming</p>
+          </div>
+          
+          <div className="grid gap-8 md:grid-cols-3">
+            <FeatureCard 
+              icon={BarChart3}
+              tag="Financial Intelligence"
+              title="Laba Rugi Visual"
+              desc="Lupakan tabel angka yang membosankan. Lihat pergerakan uang Anda dalam visualisasi yang intuitif dan mudah dipahami dalam sekali lirik."
+            />
+            <FeatureCard 
+              icon={MousePointerClick}
+              tag="One-Handed Operation"
+              title="Input Dari Lahan"
+              desc="Didesain untuk dioperasikan saat Anda berdiri di tengah kebun. Input pengeluaran atau panen hanya butuh beberapa detik."
+            />
+            <FeatureCard 
+              icon={ShieldCheck}
+              tag="Notion Backbone"
+              title="Data Tetap Milik Anda"
+              desc="Kami tidak menyimpan data Anda di server kami. Semua tersimpan aman di Notion Anda. Kami hanya menjadi 'wajah' pintarnya."
+            />
+          </div>
+        </div>
+      </section>
 
-          <div className="group relative overflow-hidden rounded-[1.5rem] border border-white/5 bg-white/[0.025] p-5 backdrop-blur-2xl transition-all duration-300 hover:border-amber-300/20 hover:bg-white/[0.04] md:col-span-4">
-            <div className="grid gap-4 md:grid-cols-[0.6fr_1.4fr] md:items-center">
-              <div>
-                <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-amber-300/55">
-                  Operational Gravity: Zero.
-                </p>
-                <h3 className="mt-2 text-3xl font-black uppercase leading-none tracking-[-0.06em] text-white md:text-5xl">
-                  Farm ops without friction.
-                </h3>
-              </div>
-              <div className="grid gap-2 sm:grid-cols-3">
-                {[
-                  { icon: ShieldCheck, label: "Secure auth", value: "CLERK" },
-                  { icon: Workflow, label: "Mapping", value: "DYNAMIC" },
-                  { icon: Zap, label: "Signals", value: "REALTIME" },
-                ].map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <div
-                      key={item.label}
-                      className="rounded-2xl border border-white/5 bg-black/30 p-4"
-                    >
-                      <Icon className="h-4 w-4 text-emerald-300" />
-                      <p className="mt-4 font-mono text-[9px] uppercase tracking-[0.22em] text-white/30">
-                        {item.label}
-                      </p>
-                      <p className="mt-1 font-mono text-xs font-bold uppercase tracking-[0.18em] text-white/70">
-                        {item.value}
-                      </p>
-                    </div>
-                  );
-                })}
-                              </div>
-              </div>
+      {/* ── 6. FINAL CALL TO ACTION (The Conversion) ── */}
+      <section className="relative overflow-hidden py-32">
+        <div className="mx-auto max-w-4xl px-4 text-center">
+          <div className="relative z-10 rounded-[3rem] bg-emerald-600 p-12 text-white shadow-2xl md:p-20 dark:bg-emerald-900">
+            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
+            <h2 className="text-5xl font-black tracking-tight md:text-7xl">
+              SIAP JADI <br /> PENGUASA PASAR?
+            </h2>
+            <p className="mx-auto mt-8 max-w-xl text-lg font-medium text-emerald-100">
+              Bergabunglah dengan ekosistem agropreneur yang sudah meninggalkan cara lama. Kelola kebun Anda seperti bisnis teknologi.
+            </p>
+            <div className="mt-12 flex flex-col items-center justify-center gap-4 sm:flex-row">
+              <Link href="/sign-up">
+                <Button size="lg" className="h-16 w-full rounded-2xl bg-white px-10 text-lg font-black text-emerald-900 transition-transform hover:scale-105 sm:w-auto">
+                  AKTIVASI SEKARANG
+                </Button>
+              </Link>
+              <Link href="/dashboard">
+                <Button size="lg" variant="ghost" className="h-16 w-full rounded-2xl border border-white/20 px-10 text-lg font-black text-white hover:bg-white/10 sm:w-auto">
+                  LIHAT DEMO
+                </Button>
+              </Link>
             </div>
-          </motion.div> {/* <-- Tag penutup sakti yang kelupaan ditaruh si agent */}
-        </section>
-      </main>
-    );
-  }
+          </div>
+        </div>
+      </section>
 
+      {/* ── 7. FOOTER ── */}
+      <footer className="py-12 text-center text-[10px] font-bold uppercase tracking-[0.3em] text-slate-400">
+        © 2026 Sambelfarm Agrotech Ecosystem • All Rights Reserved
+      </footer>
+
+    </div>
+  );
+}
