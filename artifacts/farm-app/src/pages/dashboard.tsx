@@ -417,7 +417,7 @@ export function DashboardPage() {
         </div>
 
         {/* --- CARD BUSINESS PULSE & BEP SLIM (Sekarang di Bawah Navigasi) --- */}
-                               <div className="mt-4 flex items-center justify-between gap-2">
+                   <div className="mt-4 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 text-[10px] font-medium text-white/55 sm:text-xs">
                 <Sparkles className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
                 <span className="truncate">Sync: {formatDate(summary?.lastUpdated)}</span>
@@ -426,7 +426,7 @@ export function DashboardPage() {
               {/* Aksi Samping (Staging Cloud & Refresh Cache) */}
               <div className="flex items-center gap-2">
                 
-                {/* 1. Tombol Staging Cloud (Nyempil di sini sekarang) */}
+                {/* 1. Tombol Staging Cloud */}
                 <button
                   onClick={() => {
                     const triggerBtn = document.querySelector('[aria-label="Buka staging queue"]') as HTMLButtonElement;
@@ -449,18 +449,20 @@ export function DashboardPage() {
                   <Database className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> 
                 </button>
 
-                {/* 2. Tombol Manual Cacing (Dibikin compact) */}
+                {/* 2. Tombol Manual Cacing */}
                 <button
                   onClick={handleRefreshCache}
                   disabled={isRefreshingCache || isFetching}
                   className="group flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/40 transition-all hover:border-white/20 hover:bg-white/15 hover:text-emerald-400 disabled:opacity-40 sm:h-9 sm:w-9"
                   title="Hapus cache & ambil data terbaru dari Notion"
                 >
-                  <RefreshCcw className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isRefreshingCache || isFetching ? "animate-spin text-emerald-400" : ""}`} />
+                  <RefreshCw className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isRefreshingCache || isFetching ? "animate-spin text-emerald-400" : ""}`} />
                 </button>
               </div>
             </div>
           </div>
+        </div>
+
 
                                 {/* --- SECTION KONTEN --- */}
         <div className="mt-4 space-y-8 md:mt-6 md:space-y-12">
