@@ -241,7 +241,7 @@ function aggregateStagingContributions(records: any[], harvestMap: Record<string
     const d = record.data;
 
     switch (record.databaseType) {
-
+      case "panen": {
         const weight = Number(d.jumlahPanen ?? 0);
         const price = Number(d.hargaJualPerKg ?? 0);
         const revenue = weight * price;
