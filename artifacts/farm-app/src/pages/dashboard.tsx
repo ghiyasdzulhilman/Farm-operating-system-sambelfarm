@@ -282,7 +282,6 @@ export function DashboardPage() {
     }
   })();
 
-  // --- PASTE MULAI DARI SINI ---
   const scrollToSection = (section: DashboardSection) => {
     setActiveSection(section);
     sectionRefs[section].current?.scrollIntoView({
@@ -315,15 +314,17 @@ export function DashboardPage() {
     100
   );
 
-    // 3. RENDER UI UTAMA
+  // 3. RENDER UI UTAMA
   return (
-    <div className="flex min-h-screen flex-col bg-[#F4F9F4] pb-20 font-sans dark:bg-slate-950">
+    /* AUDIT WARNA: Menghapus background kaku (bg-[#F4F9F4] & dark:bg-slate-950) 
+       agar layout bisa tembus pandang mengikuti background utama dari app-layout.tsx */
+    <div className="flex min-h-screen flex-col pb-20 font-sans">
 
       {/* ── Floating staging queue indicator ── */}
       <StagingQueueCard stagingStats={summary?.stagingStats} />
 
       <main className="relative mx-auto w-full max-w-7xl overflow-x-clip px-4 pt-4 md:px-6">
-                {/* ALERT JIKA TOKEN NOTION PUTUS */}
+        {/* ALERT JIKA TOKEN NOTION PUTUS */}
         {isTokenInvalid && (
           <Alert variant="destructive" className="mb-4 border-red-500/50 bg-red-500/10 text-red-500 dark:bg-red-900/20">
             <AlertTriangle className="h-4 w-4" />
@@ -334,7 +335,7 @@ export function DashboardPage() {
           </Alert>
         )}
 
-                        {/* --- NAVIGASI PILL & FILTER (Versi Drawer / Pull-Tab) --- */}
+        {/* --- NAVIGASI PILL & FILTER (Versi Drawer / Pull-Tab) --- */}
         <div className="sticky top-2 z-30 flex flex-col md:top-4">
           <div className="w-full overflow-hidden rounded-[1.55rem] border border-white/60 bg-white/72 p-1.5 shadow-[0_18px_50px_rgba(15,23,42,0.10)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/70">
             
@@ -418,9 +419,9 @@ export function DashboardPage() {
           </div>
         </div>
 
-                {/* --- CARD BUSINESS PULSE & BEP SLIM (Sekarang di Bawah Navigasi) --- */}
+        {/* --- CARD BUSINESS PULSE & BEP SLIM (Sekarang di Bawah Navigasi) --- */}
         <div className="relative mt-4 overflow-hidden rounded-[2rem] bg-slate-950 p-5 text-white shadow-2xl md:mt-6 md:rounded-[2.5rem] md:p-6">
-          <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-emerald-400/20 blur-[80px]" />
+          <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/20 blur-[80px]" />
           
           <div className="relative z-10">
             <div className="flex items-start justify-between">
@@ -429,7 +430,7 @@ export function DashboardPage() {
                 <h2 className="text-2xl font-black md:text-3xl">{localBusinessStatus}</h2>
               </div>
               <div className="rounded-2xl bg-white/10 p-3 backdrop-blur-md">
-                <Bot className="h-6 w-6 text-emerald-400" />
+                <Bot className="h-6 w-6 text-primary" />
               </div>
             </div>
 
@@ -461,7 +462,7 @@ export function DashboardPage() {
               <div className="mt-3 rounded-2xl border border-white/10 bg-white/5 p-3.5">
                 <div className="mb-2 flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.15em]">
                   <span className="text-white/50">BEP Runway</span>
-                  <span className="text-emerald-300">
+                  <span className="text-primary">
                     <AnimatedNumber 
                       key={`bep-${selectedAreaId}-${summary?.lastUpdated}`}
                       value={bepProgress} 
@@ -475,7 +476,7 @@ export function DashboardPage() {
                     initial={{ width: 0 }}
                     animate={{ width: `${bepProgress}%` }}
                     transition={{ duration: 1.2, ease: "easeOut" }}
-                    className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-lime-400 to-amber-300"
+                    className="h-full rounded-full bg-gradient-to-r from-primary via-secondary to-accent"
                   />
                 </div>
               </div>
@@ -483,7 +484,7 @@ export function DashboardPage() {
 
             <div className="mt-4 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 text-[10px] font-medium text-white/55 sm:text-xs">
-                <Sparkles className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
+                <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" />
                 <span className="truncate">Sync: {formatDate(summary?.lastUpdated)}</span>
               </div>
 
@@ -499,15 +500,15 @@ export function DashboardPage() {
                   className={[
                     "relative flex h-8 w-8 items-center justify-center rounded-xl border transition-all sm:h-9 sm:w-9",
                     (summary?.stagingStats?.pendingCount ?? 0) > 0
-                      ? "border-amber-400/60 bg-amber-500 text-white shadow-[0_0_15px_rgba(245,158,11,0.4)] hover:bg-amber-400 active:scale-95"
+                      ? "border-accent/40 bg-accent text-white shadow-sm hover:bg-accent/90 active:scale-95"
                       : "border-white/10 bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/80",
                   ].join(" ")}
                   title={(summary?.stagingStats?.pendingCount ?? 0) > 0 ? "Ada data belum disinkron" : "Staging bersih"}
                 >
                   {(summary?.stagingStats?.pendingCount ?? 0) > 0 && (
                     <span className="absolute -right-1 -top-1 flex h-2.5 w-2.5 sm:h-3 sm:w-3">
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-300 opacity-75" />
-                      <span className="relative inline-flex h-2.5 w-2.5 rounded-full border-2 border-slate-950 bg-amber-400 sm:h-3 sm:w-3" />
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
+                      <span className="relative inline-flex h-2.5 w-2.5 rounded-full border-2 border-slate-950 bg-accent sm:h-3 sm:w-3" />
                     </span>
                   )}
                                     <CloudUpload className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> 
@@ -518,10 +519,10 @@ export function DashboardPage() {
                 <button
                   onClick={handleRefreshCache}
                   disabled={isRefreshingCache || isFetching}
-                  className="group flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/40 transition-all hover:border-white/20 hover:bg-white/15 hover:text-emerald-400 disabled:opacity-40 sm:h-9 sm:w-9"
+                  className="group flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/40 transition-all hover:border-white/20 hover:bg-white/15 hover:text-primary disabled:opacity-40 sm:h-9 sm:w-9"
                   title="Hapus cache & ambil data terbaru dari Notion"
                 >
-                  <RefreshCcw className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isRefreshingCache || isFetching ? "animate-spin text-emerald-400" : ""}`} />
+                  <RefreshCcw className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isRefreshingCache || isFetching ? "animate-spin text-primary" : ""}`} />
                 </button>
               </div>
             </div>
@@ -529,7 +530,7 @@ export function DashboardPage() {
         </div>
 
 
-                                {/* --- SECTION KONTEN --- */}
+        {/* --- SECTION KONTEN --- */}
         <div className="mt-4 space-y-8 md:mt-6 md:space-y-12">
           
           <section ref={financialRef} className="scroll-mt-[83px]">
