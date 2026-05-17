@@ -80,10 +80,60 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
 
   const addExpense = useAddExpense({
     mutation: {
-      onSuccess: async () => {
+      // FIX LOGIC: Menangkap payload variables input untuk di-mapping ke dalam Toast
+      onSuccess: async (data, variables) => {
+        
+        // Logika pencari nama asli kategori & area berdasarkan ID
+        const resolvedCategory = dropdownOptions?.categories?.find(
+          (c) => c.id === variables?.kategoriId
+        )?.name || variables?.pengeluaran || "Pengeluaran";
+
+        const resolvedArea = dropdownOptions?.areas?.find(
+          (a) => a.id === variables?.areaId
+        )?.name || "Global / Semua Area";
+
+        // EKSEKUSI PREMIUM TOAST WITH CYBER DESIGN
         toast({
-          title: "Disimpan ke Antrean",
-          description: "Data masuk Staging dan dashboard diperbarui secara instan.",
+          description: (
+            <div className="w-full space-y-3 pt-1 text-left">
+              {/* Baris Atas: Status Indikator Lampu LED Mini */}
+              <div className="flex items-start gap-3">
+                <div className="h-2 w-2 rounded-full bg-primary animate-pulse mt-1.5 shrink-0 shadow-[0_0_8px_var(--primary)]" />
+                <div className="space-y-0.5">
+                  <p className="font-black text-sm text-foreground tracking-tight">
+                    Disimpan ke Antrean
+                  </p>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Data masuk Staging lokal dan dashboard diperbarui secara <span className="text-primary font-semibold">instan</span>.
+                  </p>
+                </div>
+              </div>
+
+              {/* Garis Pembatas Tipis */}
+              <div className="border-t border-border/40 my-1" />
+
+              {/* Baris Bawah: Manifes Detail Data Dinamis */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-muted/40 border border-border/40 rounded-xl p-2 min-w-0">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/60 block">
+                    Manifes / Item
+                  </span>
+                  <p className="text-xs font-bold text-foreground truncate mt-0.5">
+                    {resolvedCategory}
+                  </p>
+                </div>
+
+                <div className="bg-muted/40 border border-border/40 rounded-xl p-2 min-w-0">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/60 block">
+                    Target Area
+                  </span>
+                  <p className="text-xs font-bold text-foreground truncate mt-0.5">
+                    {resolvedArea}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ),
         });
 
         await queryClient.invalidateQueries({ 
@@ -112,7 +162,6 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
           variant: "destructive",
           title: "Gagal menyimpan",
           description: "Cek kembali koneksi internet atau server Anda.",
-          bg: "destructive"
         });
       },
     },
@@ -164,7 +213,6 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
         className="mx-auto max-w-md rounded-b-[2rem] border-x-0 border-t-0 p-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl pb-4 shadow-[0_16px_40px_rgba(0,0,0,0.12)]" 
         data-testid="dialog-add-expense"
       >
-        {/* AUDIT: Mengganti border-slate kaku ke semantic border */}
         <SheetHeader className="px-6 py-4 flex flex-row items-center justify-between border-b border-border">
           <div className="flex items-center gap-3">
             <div className="rounded-xl bg-primary/10 p-2 text-primary">
@@ -182,7 +230,6 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                 key={i} 
                 className={[
                   "h-1.5 rounded-full transition-all duration-300", 
-                  /* AUDIT: Mengubah indikator tidak aktif agar adaptif mengikuti rumpun warna utama */
                   step === i ? "w-4 bg-primary" : "w-1.5 bg-border"
                 ].join(" ")} 
               />
@@ -217,12 +264,10 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                         name="pengeluaran"
                         render={({ field }) => (
                           <FormItem className="space-y-1.5">
-                            {/* AUDIT: Konversi text kaku ke muted-foreground */}
                             <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
                               1. Apa nama pengeluarannya?
                             </FormLabel>
                             <FormControl>
-                              {/* AUDIT: Mengubah background dark mode input agar seirama dengan basis kustomisasi */}
                               <Input
                                 className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-primary/20 text-sm font-medium dark:bg-muted/50"
                                 placeholder="mis. Beli Pupuk Kalinet, Bayar Harian..."
@@ -251,7 +296,6 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                         name="date"
                         render={({ field }) => (
                           <FormItem className="space-y-1.5">
-                            {/* AUDIT: Konversi text kaku ke muted-foreground */}
                             <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
                               2. Kapan tanggal pengeluarannya?
                             </FormLabel>
@@ -282,7 +326,6 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                       exit={{ opacity: 0, y: 10 }}
                       className="space-y-4 text-left"
                     >
-                      {/* AUDIT: Konversi text kaku ke muted-foreground */}
                       <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
                         3. Isi Jumlah & Harga Satuan
                       </p>
@@ -292,7 +335,6 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                           name="qty"
                           render={({ field }) => (
                             <FormItem className="space-y-1.5">
-                              {/* AUDIT: Konversi text kaku ke muted-foreground */}
                               <FormLabel className="text-[11px] font-bold text-muted-foreground">Volume / Qty</FormLabel>
                               <FormControl>
                                 <Input
@@ -315,7 +357,6 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                           name="hargaPerPcs"
                           render={({ field }) => (
                             <FormItem className="space-y-1.5">
-                              {/* AUDIT: Konversi text kaku ke muted-foreground */}
                               <FormLabel className="text-[11px] font-bold text-muted-foreground">Harga per Pcs (Rp)</FormLabel>
                               <FormControl>
                                 <Input
@@ -353,7 +394,6 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                       exit={{ opacity: 0, y: 10 }}
                       className="space-y-4 text-left"
                     >
-                      {/* AUDIT: Konversi text kaku ke muted-foreground */}
                       <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
                         4. Hubungkan ke Database (Opsional)
                       </p>
@@ -363,7 +403,6 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                         name="kategoriId"
                         render={({ field }) => (
                           <FormItem className="space-y-1.5">
-                            {/* AUDIT: Konversi text kaku ke muted-foreground */}
                             <FormLabel className="text-[11px] font-bold text-muted-foreground">Kategori</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value || ""}>
                               <FormControl>
@@ -392,7 +431,6 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                         name="areaId"
                         render={({ field }) => (
                           <FormItem className="space-y-1.5">
-                            {/* AUDIT: Konversi text kaku ke muted-foreground */}
                             <FormLabel className="text-[11px] font-bold text-muted-foreground">Target Area Laba Rugi</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value || ""}>
                               <FormControl>
@@ -420,13 +458,11 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                 </AnimatePresence>
 
                 {/* NAVIGATION FOOTER */}
-                {/* AUDIT: Mengubah border footer kaku ke semantic border */}
                 <div className="flex justify-between items-center pt-4 border-t border-border">
                   {step > 1 ? (
                     <Button
                       type="button"
                       variant="ghost"
-                      /* AUDIT: Mengubah warna teks tombol kembali kaku ke muted-foreground */
                       className="h-11 rounded-xl px-4 font-bold text-muted-foreground"
                       onClick={() => setStep((p) => p - 1)}
                       disabled={addExpense.isPending}
@@ -438,7 +474,6 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                     <Button
                       type="button"
                       variant="ghost"
-                      /* AUDIT: Mengubah warna teks tombol batal kaku ke muted-foreground */
                       className="h-11 rounded-xl px-4 font-bold text-muted-foreground"
                       onClick={() => setOpen(false)}
                       data-testid="button-cancel-expense"
@@ -484,7 +519,6 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
           )}
         </div>
         
-        {/* AUDIT: Mengubah warna aksen notch bawah kaku ke semantic border */}
         <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-border" />
       </SheetContent>
     </Sheet>
