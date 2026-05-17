@@ -8,7 +8,9 @@ import {
   FlaskConical, 
   Settings, 
   Wheat,
-  ClipboardList
+  ClipboardList,
+  Sprout,
+  Coins
 } from "lucide-react";
 
 import { AddHarvestDialog } from "@/components/harvest/add-harvest-dialog";
@@ -50,7 +52,7 @@ export function AppLayout({
     );
   }
 
-  // Definisi navigasi (Cuma 4 item)
+  // Definisi navigasi (Clean Edition - Tanpa Label teks kaku)
   const navItems = [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/operasional", icon: ClipboardList, label: "Operasional" },
@@ -59,11 +61,9 @@ export function AppLayout({
   ];
 
   return (
-    <div
-      /* AUDIT UI: Background dibikin polos 'bg-background' biar layout bener-bener plong tanpa kurungan */
-      className="min-h-screen bg-background pb-24 font-sans text-foreground transition-colors duration-500"
-    >
-      {/* HEADER: Profil User */}
+    <div className="min-h-screen bg-background pb-28 font-sans text-foreground transition-colors duration-500">
+      
+      {/* HEADER: Top Bar */}
       <header
         className={`
           sticky top-0 z-40 w-full border-b border-border/50 bg-background/80 backdrop-blur-2xl transition-all duration-300
@@ -115,47 +115,54 @@ export function AppLayout({
         {children}
       </main>
 
-      {/* BOTTOM NAVIGATION */}
-      <nav
-        className="fixed bottom-4 left-4 right-4 z-50 max-w-lg mx-auto rounded-3xl border border-border/50 bg-background/80 backdrop-blur-2xl shadow-lg pb-safe transition-colors duration-300"
-      >
-        <div className="relative max-w-lg mx-auto h-16 px-4">
-          {/* CONTAINER JEMPOL */}
-          <div className="flex items-center justify-between h-full w-full gap-1">
-            
-            {/* Bagian Kiri */}
+      {/* ----- PREMIUM BOTTOM NAV DOCK ----- */}
+      <nav className="fixed bottom-5 left-4 right-4 z-50 max-w-md mx-auto rounded-[2rem] border border-border/50 bg-background/80 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] pb-safe transition-all duration-300">
+        <div className="relative max-w-md mx-auto h-16 px-4">
+          
+          <div className="flex items-center justify-between h-full w-full">
+            {/* SAYAP NAVIGASI KIRI */}
             <div className="flex w-2/5 justify-around h-full items-center">
               {[navItems[0], navItems[1]].map((item) => {
                 const Icon = item.icon;
                 const isActive = location === item.href;
                 return (
                   <Link key={item.label} href={item.href}>
-                    <a className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary transition-colors min-w-[60px]">
-                      <div className={`p-2 rounded-xl transition-all ${isActive ? "bg-primary/15 shadow-sm text-primary" : "text-muted-foreground"}`}>
-                        <Icon className={`h-5 w-5 ${isActive ? "stroke-primary stroke-[2.5]" : ""}`} />
-                      </div>
-                      <span className={`text-[10px] font-semibold ${isActive ? "text-primary" : ""}`}>{item.label}</span>
+                    <a className="relative flex flex-col items-center justify-center h-full w-[50px] transition-colors">
+                      <Icon className={`h-5 w-5 transition-all duration-300 ${isActive ? "text-primary scale-110 stroke-[2.2]" : "text-muted-foreground/70"}`} />
+                      {/* PREMIUM GLOWING DOT INDICATOR */}
+                      {isActive && (
+                        <motion.div 
+                          layoutId="nav-glow-dot"
+                          className="absolute bottom-1.5 h-1 w-1 rounded-full bg-primary shadow-[0_0_8px_var(--primary)]"
+                          transition={{ type: "spring", stiffness: 380, damping: 28 }}
+                        />
+                      )}
                     </a>
                   </Link>
                 );
               })}
             </div>
 
-            {/* LOBANG DI TENGAH */}
+            {/* SPACE TENGAH UNTUK LIQUID FAB */}
             <div className="w-1/5 flex justify-center items-center" />
 
-            {/* Bagian Kanan */}
+            {/* SAYAP NAVIGASI KANAN */}
             <div className="flex w-2/5 justify-around h-full items-center">
               {[navItems[2], navItems[3]].map((item) => {
                 const Icon = item.icon;
                 const isActive = location === item.href;
                 return (
                   <Link key={item.label} href={item.href}>
-                    <a className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary transition-colors min-w-[60px]">
-                      <div className={`p-2 rounded-xl transition-all ${isActive ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}>
-                        <Icon className={`h-5 w-5 ${isActive ? "stroke-primary stroke-[2.5]" : ""}`} />
-                      </div>
-                      <span className={`text-[10px] font-semibold ${isActive ? "text-primary" : ""}`}>{item.label}</span>
+                    <a className="relative flex flex-col items-center justify-center h-full w-[50px] transition-colors">
+                      <Icon className={`h-5 w-5 transition-all duration-300 ${isActive ? "text-primary scale-110 stroke-[2.2]" : "text-muted-foreground/70"}`} />
+                      {/* PREMIUM GLOWING DOT INDICATOR */}
+                      {isActive && (
+                        <motion.div 
+                          layoutId="nav-glow-dot"
+                          className="absolute bottom-1.5 h-1 w-1 rounded-full bg-primary shadow-[0_0_8px_var(--primary)]"
+                          transition={{ type: "spring", stiffness: 380, damping: 28 }}
+                        />
+                      )}
                     </a>
                   </Link>
                 );
@@ -163,67 +170,83 @@ export function AppLayout({
             </div>
           </div>
 
-          {/* ----- THE SUPER FAB ----- */}
-          <div className="absolute left-1/2 -translate-x-1/2 -top-4 flex justify-center items-center">
-            
-            {/* Overlay Blur */}
+          {/* ─── COCKPIT LIQUID MORPHING FAB ─── */}
+          <div className="absolute left-1/2 -translate-x-1/2 -top-5 flex justify-center items-center">
+            {/* Lapisan Blur Latar Saat FAB Terbuka */}
             <AnimatePresence>
               {isFabOpen && (
                 <motion.div 
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="fixed inset-0 bg-background/80 backdrop-blur-sm -z-10"
+                  className="fixed inset-0 bg-background/40 backdrop-blur-md -z-10"
                   onClick={() => setIsFabOpen(false)}
                 />
               )}
             </AnimatePresence>
             
-            {/* SPEED DIAL PATTERN */}
+            {/* MORPHING BUTTON CONTAINER */}
             <motion.div
-              initial={false}
-              animate={{ 
-                opacity: isFabOpen ? 1 : 0, 
-                y: isFabOpen ? 0 : 15, 
-                scale: isFabOpen ? 1 : 0.9,
-                pointerEvents: isFabOpen ? "auto" : "none" 
+              animate={{
+                width: isFabOpen ? "230px" : "60px",
+                height: "60px",
+                borderRadius: isFabOpen ? "30px" : "50%",
               }}
-              transition={{ duration: 0.2 }}
-              className="absolute bottom-20 left-1/2 -translate-x-1/2 flex flex-col gap-3 items-center z-20 w-max"
+              transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
+              className="relative flex items-center justify-between bg-primary p-1.5 shadow-2xl overflow-hidden"
             >
-              <div 
-                className="drop-shadow-lg flex justify-center w-full"
-                onClick={() => {
-                  setTimeout(() => setIsFabOpen(false), 200);
-                }}
-              >
-                <AddHarvestDialog onSuccess={() => setIsFabOpen(false)} />
-              </div>
-              
-              <div 
-                className="drop-shadow-lg flex justify-center w-full"
-                onClick={() => {
-                  setTimeout(() => setIsFabOpen(false), 200);
-                }}
-              >
-                <AddExpenseDialog onSuccess={() => setIsFabOpen(false)} />
-              </div>
-            </motion.div>
+              {/* OPSI KIRI: TAMBAH PANEN (Muncul Pas Cair Melebar) */}
+              <AnimatePresence>
+                {isFabOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, x: -20, scale: 0.8 }}
+                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                    exit={{ opacity: 0, x: -20, scale: 0.8 }}
+                    transition={{ delay: 0.1 }}
+                    /* AUDit UI: Paksa teks internal dialog shadcn jadi putih murni & buang ijo */
+                    className="pl-3 [&_button]:bg-transparent [&_button]:text-white [&_button]:font-black [&_button]:text-xs [&_button]:border-none [&_button]:p-0 [&_button]:shadow-none [&_svg]:text-white [&_svg]:mr-1.5"
+                    onClick={() => setTimeout(() => setIsFabOpen(false), 200)}
+                  >
+                    <AddHarvestDialog />
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-            {/* Tombol Plus Tengah (AUDIT: Murni pakai primary biar elegan) */}
-            <button
-              onClick={() => setIsFabOpen(!isFabOpen)}
-              className={`flex h-16 w-16 items-center justify-center rounded-full shadow-xl transition-all duration-300 ease-in-out active:scale-95 ${
-                isFabOpen 
-                  ? "bg-destructive text-destructive-foreground rotate-45 scale-90" 
-                  : "bg-primary text-primary-foreground hover:bg-primary/90"
-              }`}
-            >
-              <Plus className="h-8 w-8" />
-            </button>
+              {/* TONGKAT UTAMA: TOMBOL SILANG / PLUS TENGAH */}
+              <button
+                onClick={() => setIsFabOpen(!isFabOpen)}
+                className={`
+                  absolute left-1/2 -translate-x-1/2 flex h-[48px] w-[48px] items-center justify-center rounded-full 
+                  bg-white/10 text-white backdrop-blur-md transition-all duration-300 ease-in-out active:scale-95
+                  ${isFabOpen ? "rotate-45 bg-black/20" : ""}
+                `}
+                aria-label="Aksi Kebun"
+              >
+                <Plus className="h-6 w-6 text-white stroke-[2.5]" />
+              </button>
+
+              {/* OPSI KANAN: TAMBAH BIAYA (Muncul Pas Cair Melebar) */}
+              <AnimatePresence>
+                {isFabOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, x: 20, scale: 0.8 }}
+                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                    exit={{ opacity: 0, x: 20, scale: 0.8 }}
+                    transition={{ delay: 0.1 }}
+                    /* AUDit UI: Paksa teks internal dialog shadcn jadi putih murni & buang ijo */
+                    className="pr-3 [&_button]:bg-transparent [&_button]:text-white [&_button]:font-black [&_button]:text-xs [&_button]:border-none [&_button]:p-0 [&_button]:shadow-none [&_svg]:text-white [&_svg]:mr-1.5"
+                    onClick={() => setTimeout(() => setIsFabOpen(false), 200)}
+                  >
+                    <AddExpenseDialog />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
           </div>
+
         </div>
       </nav>
+
     </div>
   );
 }
