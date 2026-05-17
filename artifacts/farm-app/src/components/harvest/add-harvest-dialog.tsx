@@ -257,7 +257,7 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
                     </motion.div>
                   )}
 
-                  {/* STEP 2: TANGGAL */}
+                                    {/* STEP 2: TANGGAL */}
                   {step === 2 && (
                     <motion.div
                       key="step2"
@@ -268,20 +268,20 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
                     >
                       <FormField
                         control={form.control}
-                        name="tanggal"
+                        name="date"
                         render={({ field }) => (
                           <FormItem className="space-y-1.5">
-                            {/* AUDIT WARNA: Teks kaku berganti ke muted-foreground semantik */}
                             <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-                              2. Kapan tanggal pemanenannya?
+                              2. Kapan tanggal pengeluarannya?
                             </FormLabel>
                             <FormControl>
-                              <div className="relative">
+                              {/* ─── JURUS ANTI MELEBER: Kita kunci lebar maks di max-w-[220px] ─── */}
+                              <div className="relative max-w-[220px] w-full">
                                 <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                                 <Input
                                   type="date"
-                                  className="h-12 rounded-xl bg-muted border-transparent pl-11 focus-visible:ring-2 focus-visible:ring-primary/20 font-medium dark:bg-muted/50"
-                                  data-testid="input-tanggal"
+                                  className="h-12 rounded-xl bg-muted border-transparent pl-11 pr-4 focus-visible:ring-2 focus-visible:ring-primary/20 font-bold text-sm tracking-tight text-foreground w-full dark:bg-muted/50"
+                                  data-testid="input-date"
                                   {...field}
                                 />
                               </div>
