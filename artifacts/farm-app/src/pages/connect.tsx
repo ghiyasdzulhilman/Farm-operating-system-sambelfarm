@@ -46,7 +46,7 @@ export function ConnectPage() {
     }
   });
 
-  const deleteConnection = useDisconnectNotion({
+  const disconnect = useDisconnectNotion({
     mutation: {
       onSuccess: () => {
         toast({
@@ -65,10 +65,20 @@ export function ConnectPage() {
     }
   });
 
+  // MEMULIHKAN FUNGSI HANDLER ASLI BIAR GA ERROR VARIABEL
+  const handleConnect = () => {
+    setIsConnecting(true);
+    initiateOAuth.mutate();
+  };
+
+  const handleDisconnect = () => {
+    disconnect.mutate();
+  };
+
   const isConnected = connectionStatus?.connected;
   const isTokenInvalid = isConnected && connectionStatus?.tokenStatus === "invalid";
 
-  // FIX FIX BUG NOTION: Deteksi & amankan link gambar AWS S3 biar gak tumpah jadi teks rongsokan
+  // Proteksi link gambar kustom Notion AWS S3
   const renderWorkspaceIcon = () => {
     const icon = connectionStatus?.workspaceIcon;
     if (!icon) return <Database className="h-4 w-4 text-muted-foreground/70" />;
@@ -79,14 +89,12 @@ export function ConnectPage() {
   };
 
   return (
-    /* ANIMASI LACI: Panel otomatis merosot mulus dari atas layar begitu dibuka */
     <motion.div 
       initial={{ opacity: 0, y: -40 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
       className="max-w-md mx-auto px-2 pt-2 pb-12"
     >
-      {/* THE ULTRA-MINIMAL TOP LACI CONSOLE */}
       <div className="rounded-3xl border border-border/40 bg-slate-900/30 backdrop-blur-2xl shadow-[0_25px_50px_rgba(0,0,0,0.2)] overflow-hidden">
         
         {/* HEADER MINI PANEL */}
@@ -98,7 +106,6 @@ export function ConnectPage() {
             </span>
           </div>
           
-          {/* Tombol Silang Minimalis buat balik ke Dashboard */}
           <Link href="/dashboard">
             <a className="p-1 rounded-lg hover:bg-white/5 text-muted-foreground/60 hover:text-foreground transition-all">
               <X className="h-4 w-4 stroke-[2]" />
@@ -114,7 +121,6 @@ export function ConnectPage() {
               <div className="h-10 bg-white/5 rounded-xl w-full animate-pulse" />
             </div>
           ) : isConnected ? (
-            /* STATE TERHUBUNG: Bersih Tanpa Boks Gede */
             <div className="space-y-4">
               <div className="flex items-center justify-between gap-3 bg-slate-950/40 border border-border/40 p-3 rounded-2xl">
                 <div className="flex items-center gap-3 min-w-0">
@@ -129,15 +135,14 @@ export function ConnectPage() {
                   </div>
                 </div>
 
-                {/* Tombol Putus Kapsul Kecil */}
                 <Button 
                   variant="outline" 
                   onClick={handleDisconnect} 
-                  disabled={deleteConnection.isPending}
+                  disabled={disconnect.isPending}
                   className="h-8 rounded-lg border-destructive/20 bg-destructive/5 text-destructive hover:bg-destructive/10 text-[11px] font-bold px-2.5 shrink-0 transition-all"
                   data-testid="button-disconnect-notion"
                 >
-                  {deleteConnection.isPending ? (
+                  {disconnect.isPending ? (
                     <Loader2 className="h-3 w-3 animate-spin" />
                   ) : (
                     "Putus Jalur"
@@ -152,7 +157,6 @@ export function ConnectPage() {
               )}
             </div>
           ) : (
-            /* STATE OFFLINE: Super Clean */
             <div className="py-4 flex flex-col items-center text-center space-y-2">
               <p className="text-xs text-muted-foreground/90 max-w-xs leading-relaxed">
                 Hubungkan autentikasi enkripsi OAuth resmi Notion agar pusat kendali sistem bisa menyedot data catatan kebun Anda.
@@ -162,7 +166,6 @@ export function ConnectPage() {
         </div>
 
         {/* CONTROL FOOTER INTERACTION BAR */}
-        {/* Tombol aksi utama dipasang di bawah murni jika offline atau token invalid */}
         {(!isConnected || isTokenInvalid) && !isLoadingStatus && (
           <div className="bg-slate-950/40 border-t border-border/30 px-5 py-3 flex justify-end">
             <Button
