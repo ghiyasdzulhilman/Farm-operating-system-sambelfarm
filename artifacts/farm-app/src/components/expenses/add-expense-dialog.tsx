@@ -68,11 +68,12 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
 
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
+    // FIX UX: Nilai angka awal diubah jadi string kosong agar placeholder murni bekerja
     defaultValues: {
       pengeluaran: "",
       date: format(new Date(), "yyyy-MM-dd"),
-      qty: 1,
-      hargaPerPcs: 0,
+      qty: "" as any,
+      hargaPerPcs: "" as any,
       kategoriId: "",
       areaId: "",
     },
@@ -80,10 +81,8 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
 
   const addExpense = useAddExpense({
     mutation: {
-      // FIX LOGIC: Menangkap payload variables input untuk di-mapping ke dalam Toast
       onSuccess: async (data, variables) => {
         
-        // Logika pencari nama asli kategori & area berdasarkan ID
         const resolvedCategory = dropdownOptions?.categories?.find(
           (c) => c.id === variables?.kategoriId
         )?.name || variables?.pengeluaran || "Pengeluaran";
@@ -92,11 +91,9 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
           (a) => a.id === variables?.areaId
         )?.name || "Global / Semua Area";
 
-        // EKSEKUSI PREMIUM TOAST WITH CYBER DESIGN
         toast({
           description: (
             <div className="w-full space-y-3 pt-1 text-left">
-              {/* Baris Atas: Status Indikator Lampu LED Mini */}
               <div className="flex items-start gap-3">
                 <div className="h-2 w-2 rounded-full bg-primary animate-pulse mt-1.5 shrink-0 shadow-[0_0_8px_var(--primary)]" />
                 <div className="space-y-0.5">
@@ -109,14 +106,12 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                 </div>
               </div>
 
-              {/* Garis Pembatas Tipis */}
               <div className="border-t border-border/40 my-1" />
 
-              {/* Baris Bawah: Manifes Detail Data Dinamis */}
               <div className="grid grid-cols-2 gap-2">
                 <div className="bg-muted/40 border border-border/40 rounded-xl p-2 min-w-0">
                   <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/60 block">
-                    Item
+                    Manifes / Item
                   </span>
                   <p className="text-xs font-bold text-foreground truncate mt-0.5">
                     {resolvedCategory}
@@ -145,11 +140,12 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
           queryKey: ["staging", "list"]
         });
 
+        // FIX UX: Kembalikan form reset ke string kosong
         form.reset({
           pengeluaran: "",
           date: format(new Date(), "yyyy-MM-dd"),
-          qty: 1,
-          hargaPerPcs: 0,
+          qty: "" as any,
+          hargaPerPcs: "" as any,
           kategoriId: "",
           areaId: "",
         });
@@ -188,6 +184,7 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
     addExpense.mutate({ data: cleanPayload as any });
   }
 
+  // Catatan: Rumus perkalian otomatis aman karena string kosong falsy dilempar otomatis ke nilai 0
   const subtotal = (form.watch("qty") || 0) * (form.watch("hargaPerPcs") || 0);
   const formatCurrency = (n: number) =>
     new Intl.NumberFormat("id-ID", {
@@ -282,7 +279,7 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                     </motion.div>
                   )}
 
-                                    {/* STEP 2: TANGGAL */}
+                  {/* STEP 2: TANGGAL */}
                   {step === 2 && (
                     <motion.div
                       key="step2"
@@ -300,7 +297,6 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                               2. Kapan tanggal pengeluarannya?
                             </FormLabel>
                             <FormControl>
-                              {/* ─── JURUS ANTI MELEBER: Kita kunci lebar maks di max-w-[220px] ─── */}
                               <div className="relative max-w-[220px] w-full">
                                 <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                                 <Input
@@ -338,12 +334,14 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                             <FormItem className="space-y-1.5">
                               <FormLabel className="text-[11px] font-bold text-muted-foreground">Volume / Qty</FormLabel>
                               <FormControl>
+                                {/* FIX UX PRO: Menggunakan placeholder="1" + onFocus auto select text */}
                                 <Input
                                   type="number"
                                   min={0.1}
                                   step="any"
-                                  className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-primary/20 dark:bg-muted/50"
-                                  placeholder="0"
+                                  className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-primary/20 dark:bg-muted/50 font-bold text-sm"
+                                  placeholder="1"
+                                  onFocus={(e) => e.target.select()}
                                   data-testid="input-qty"
                                   {...field}
                                 />
@@ -360,11 +358,13 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                             <FormItem className="space-y-1.5">
                               <FormLabel className="text-[11px] font-bold text-muted-foreground">Harga per Pcs (Rp)</FormLabel>
                               <FormControl>
+                                {/* FIX UX PRO: Menggunakan placeholder="0" + onFocus auto select text */}
                                 <Input
                                   type="number"
                                   min={0}
-                                  className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-primary/20 dark:bg-muted/50"
+                                  className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-primary/20 dark:bg-muted/50 font-bold text-sm"
                                   placeholder="0"
+                                  onFocus={(e) => e.target.select()}
                                   data-testid="input-harga"
                                   {...field}
                                 />
@@ -408,7 +408,7 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                             <Select onValueChange={field.onChange} value={field.value || ""}>
                               <FormControl>
                                 <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-primary/20 dark:bg-muted/50" data-testid="select-kategori">
-                                  <SelectValue placeholder="Pilih kategori" />
+                                  <SelectValue placeholder="Pilih kategori (Bisa dilewati)..." />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent className="rounded-xl shadow-xl">
@@ -436,7 +436,7 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                             <Select onValueChange={field.onChange} value={field.value || ""}>
                               <FormControl>
                                 <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-primary/20 dark:bg-muted/50" data-testid="select-area">
-                                  <SelectValue placeholder="Pilih area kebun" />
+                                  <SelectValue placeholder="Pilih area kebun (Bisa dilewati)..." />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent className="rounded-xl shadow-xl">
