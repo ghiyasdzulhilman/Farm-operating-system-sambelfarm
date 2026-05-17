@@ -113,8 +113,6 @@ function AnimatedNumber({
   return <span>{displayValue}</span>;
 }
 
-
-
 export function DashboardPage() {
   const queryClient = useQueryClient();
   const [selectedAreaId, setSelectedAreaId] = useState("all");
@@ -136,7 +134,7 @@ export function DashboardPage() {
     []
   );
 
-      useEffect(() => {
+  useEffect(() => {
     const handleScroll = () => {
       let currentSection: DashboardSection = "financial";
 
@@ -185,7 +183,7 @@ export function DashboardPage() {
 
   const areas = summary?.areas || [];
 
-    const displayData = useMemo<DisplayData>(() => {
+  const displayData = useMemo<DisplayData>(() => {
     if (!summary) return emptyDisplayData;
 
     if (selectedAreaId === "all") {
@@ -282,6 +280,7 @@ export function DashboardPage() {
     }
   })();
 
+  // --- PASTE MULAI DARI SINI ---
   const scrollToSection = (section: DashboardSection) => {
     setActiveSection(section);
     sectionRefs[section].current?.scrollIntoView({
@@ -290,9 +289,8 @@ export function DashboardPage() {
     });
   };
 
-    // 1. CEK LOADING SCREEN (Aman dari flash data 0)
+  // 1. CEK LOADING SCREEN (Aman dari flash data 0)
   if (isLoadingConnection || (isLoadingSummary && !summary)) {
-
     return (
       <div className="mt-4 space-y-5 px-4 md:px-6">
         <Skeleton className="h-44 rounded-[2rem]" />
@@ -316,8 +314,6 @@ export function DashboardPage() {
 
   // 3. RENDER UI UTAMA
   return (
-    /* AUDIT WARNA: Menghapus background kaku (bg-[#F4F9F4] & dark:bg-slate-950) 
-       agar layout bisa tembus pandang mengikuti background utama dari app-layout.tsx */
     <div className="flex min-h-screen flex-col pb-20 font-sans">
 
       {/* ── Floating staging queue indicator ── */}
@@ -347,17 +343,19 @@ export function DashboardPage() {
                   onClick={() => scrollToSection(item.key)}
                   className="relative min-h-11 rounded-[1.15rem] px-2 text-xs font-bold text-muted-foreground transition-colors duration-300 hover:text-foreground md:text-sm"
                 >
+                  {/* AUDIT WARNA: Segmented control menggunakan bg-primary biar adaptif */}
                   {activeSection === item.key && (
                     <motion.span
                       layoutId="smart-section-pill"
-                      className="absolute inset-0 rounded-[1.15rem] bg-slate-950 shadow-md dark:bg-white"
+                      className="absolute inset-0 rounded-[1.15rem] bg-primary shadow-md"
                       transition={{ type: "spring", bounce: 0.18, duration: 0.55 }}
                     />
                   )}
+                  {/* AUDIT WARNA: Text saat aktif berubah jadi text-primary-foreground */}
                   <span
                     className={
                       activeSection === item.key
-                        ? "relative z-10 text-white dark:text-slate-950"
+                        ? "relative z-10 text-primary-foreground"
                         : "relative z-10"
                     }
                   >
@@ -511,7 +509,7 @@ export function DashboardPage() {
                       <span className="relative inline-flex h-2.5 w-2.5 rounded-full border-2 border-slate-950 bg-accent sm:h-3 sm:w-3" />
                     </span>
                   )}
-                                    <CloudUpload className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> 
+                  <CloudUpload className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> 
                 </button>
 
 
