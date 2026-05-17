@@ -56,12 +56,13 @@ const TYPE_LABELS: Record<string, string> = {
   perawatan: "Perawatan",
 };
 
+/* AUDIT WARNA: Mengubah semua badge warna statis ke Semantic Tokens */
 const TYPE_COLORS: Record<string, string> = {
-  panen: "bg-emerald-100 text-emerald-700 border-emerald-200",
-  expenses: "bg-red-100 text-red-700 border-red-200",
-  laba_rugi: "bg-blue-100 text-blue-700 border-blue-200",
-  inspeksi: "bg-violet-100 text-violet-700 border-violet-200",
-  perawatan: "bg-orange-100 text-orange-700 border-orange-200",
+  panen: "bg-primary/10 text-primary border-primary/20",
+  expenses: "bg-secondary/10 text-secondary border-secondary/20",
+  laba_rugi: "bg-accent/10 text-accent border-accent/20",
+  inspeksi: "bg-primary/10 text-primary border-primary/20",
+  perawatan: "bg-secondary/10 text-secondary border-secondary/20",
 };
 
 function formatCurrency(amount: number) {
@@ -185,38 +186,39 @@ export function StagingQueueCard({ stagingStats }: StagingQueueCardProps) {
 
   return (
     <>
-                  {/* ── Minimalist Trigger Button (HIDDEN) ─────────────────────────── */}
+      {/* ── Minimalist Trigger Button (HIDDEN) ─────────────────────────── */}
       <button
         onClick={() => setOpen(true)}
         className={[
           "hidden relative flex h-9 w-9 items-center justify-center rounded-xl border transition-all",
-
+          /* AUDIT WARNA: Mengubah Amber Trigger menjadi token Accent */
           hasData
-            ? "border-amber-300/60 bg-amber-500 text-white shadow-sm hover:bg-amber-600 active:scale-95"
-            : "border-slate-200/40 bg-slate-100/50 text-slate-500 hover:bg-slate-200/50 dark:border-white/10 dark:bg-slate-800/50 dark:text-slate-400 dark:hover:bg-slate-800",
+            ? "border-accent/40 bg-accent text-white shadow-sm hover:bg-accent/90 active:scale-95"
+            : "border-border bg-muted/50 text-muted-foreground hover:bg-muted dark:bg-muted/30 dark:hover:bg-muted/50",
         ].join(" ")}
         aria-label="Buka staging queue"
       >
-        {/* Titik kuning berkedip kalau ada antrean */}
         {hasData && (
           <span className="absolute -right-1 -top-1 flex h-3 w-3">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
-            <span className="relative inline-flex h-3 w-3 rounded-full border-2 border-white bg-amber-500 dark:border-slate-950" />
+            {/* AUDIT WARNA: Titik notifikasi menggunakan Accent */}
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
+            <span className="relative inline-flex h-3 w-3 rounded-full border-2 border-white bg-accent dark:border-slate-950" />
           </span>
         )}
 
         <CloudUpload className="h-4 w-4" />
       </button>
 
-                  {/* ── Sheet drawer ────────────────────────────────────── */}
+      {/* ── Sheet drawer ────────────────────────────────────── */}
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent
           side="bottom"
-          className="mx-auto flex max-h-[85dvh] max-w-lg flex-col rounded-t-[2rem] border-t-0 p-0 bg-white dark:bg-slate-900"
+          /* AUDIT WARNA: Latar sheet diubah agar menyatu seperti input form */
+          className="mx-auto flex max-h-[85dvh] max-w-lg flex-col rounded-t-[2rem] border-t-0 p-0 bg-background dark:bg-slate-950/95 backdrop-blur-xl"
         >
           {/* Handle bar */}
           <div className="flex justify-center pt-3 pb-1 shrink-0">
-            <div className="h-1 w-10 rounded-full bg-slate-200 dark:bg-slate-700" />
+            <div className="h-1 w-10 rounded-full bg-border" />
           </div>
 
           {/* Header */}
@@ -226,21 +228,22 @@ export function StagingQueueCard({ stagingStats }: StagingQueueCardProps) {
                 <div
                   className={[
                     "rounded-xl p-2",
-                    hasData ? "bg-amber-100 dark:bg-amber-950" : "bg-slate-100 dark:bg-slate-800",
+                    /* AUDIT WARNA: Aksen background header icon disesuaikan */
+                    hasData ? "bg-accent/10" : "bg-muted",
                   ].join(" ")}
                 >
                   <CloudUpload
                     className={[
                       "h-5 w-5",
-                      hasData ? "text-amber-600" : "text-slate-400",
+                      hasData ? "text-accent" : "text-muted-foreground",
                     ].join(" ")}
                   />
                 </div>
                 <div>
-                  <SheetTitle className="text-base">Pending Room</SheetTitle>
-                  <p className="text-[11px] text-muted-foreground">
+                  <SheetTitle className="text-base text-left font-black tracking-tight">Pending Room</SheetTitle>
+                  <p className="text-[11px] text-left font-medium text-muted-foreground">
                     {hasData
-                      ? `${pendingCount} data menunggu sinkronisasi ke Notion`
+                      ? `${pendingCount} antrean menunggu sinkronisasi`
                       : "Semua data sudah tersinkron"}
                   </p>
                 </div>
@@ -250,12 +253,12 @@ export function StagingQueueCard({ stagingStats }: StagingQueueCardProps) {
               {hasData && (
                 <div className="flex flex-col items-end gap-1 text-right">
                   {(stagingStats?.pendingFinanceAmount ?? 0) > 0 && (
-                    <span className="rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-600 dark:bg-red-950 dark:text-red-400">
+                    <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-bold text-destructive">
                       {formatCurrency(stagingStats!.pendingFinanceAmount)} pending
                     </span>
                   )}
                   {(stagingStats?.pendingWeight ?? 0) > 0 && (
-                    <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
+                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
                       {stagingStats!.pendingWeight} kg pending
                     </span>
                   )}
@@ -265,9 +268,9 @@ export function StagingQueueCard({ stagingStats }: StagingQueueCardProps) {
           </SheetHeader>
 
           {/* Divider */}
-          <div className="h-px bg-slate-100 dark:bg-slate-800 shrink-0" />
+          <div className="h-px bg-border shrink-0" />
 
-          {/* List (Balik ke style max-height biar ngikutin isi) */}
+          {/* List Content */}
           <div className="overflow-y-auto px-5 py-3" style={{ maxHeight: "calc(85dvh - 200px)" }}>
 
             {isLoadingList ? (
@@ -275,15 +278,15 @@ export function StagingQueueCard({ stagingStats }: StagingQueueCardProps) {
                 {[1, 2, 3].map((i) => (
                   <div
                     key={i}
-                    className="h-16 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800"
+                    className="h-16 animate-pulse rounded-2xl bg-muted"
                   />
                 ))}
               </div>
             ) : records.length === 0 ? (
               <div className="flex flex-col items-center gap-2 py-10 text-center text-muted-foreground">
-                <CheckCircle2 className="h-8 w-8 text-emerald-400" />
-                <p className="text-sm font-semibold">Tidak ada data pending</p>
-                <p className="text-xs">Semua sudah tersinkron ke Notion</p>
+                <CheckCircle2 className="h-8 w-8 text-primary/60" />
+                <p className="text-sm font-bold">Tidak ada antrean data</p>
+                <p className="text-xs font-medium">Semuanya sudah masuk Notion dengan aman</p>
               </div>
             ) : (
               <div className="flex flex-col gap-2">
@@ -294,9 +297,10 @@ export function StagingQueueCard({ stagingStats }: StagingQueueCardProps) {
                     animate={{ opacity: 1, y: 0 }}
                     className={[
                       "rounded-2xl border p-3.5",
+                      /* AUDIT WARNA: Background kartunya kini menggunakan background Muted kalem ala iOS Form */
                       record.status === "failed"
-                        ? "border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/30"
-                        : "border-slate-100 bg-slate-50 dark:border-slate-800 dark:bg-slate-900/50",
+                        ? "border-destructive/20 bg-destructive/5"
+                        : "border-border/50 bg-muted/60 dark:bg-muted/40",
                     ].join(" ")}
                   >
                     <div className="flex items-start justify-between gap-2">
@@ -305,41 +309,41 @@ export function StagingQueueCard({ stagingStats }: StagingQueueCardProps) {
                           className={[
                             "rounded-lg border px-2 py-0.5 text-[10px] font-bold",
                             TYPE_COLORS[record.databaseType] ??
-                              "bg-slate-100 text-slate-600 border-slate-200",
+                              "bg-muted text-muted-foreground border-border",
                           ].join(" ")}
                         >
                           {TYPE_LABELS[record.databaseType] ?? record.databaseType}
                         </span>
                         {record.status === "failed" && (
-                          <span className="flex items-center gap-1 text-[10px] font-bold text-red-600">
+                          <span className="flex items-center gap-1 text-[10px] font-bold text-destructive">
                             <AlertCircle className="h-3 w-3" />
                             Gagal
                           </span>
                         )}
                         {record.status === "pending" && (
-                          <span className="flex items-center gap-1 text-[10px] font-bold text-amber-600">
+                          <span className="flex items-center gap-1 text-[10px] font-bold text-accent">
                             <Clock className="h-3 w-3" />
-                            Pending
+                            Tertunda
                           </span>
                         )}
                       </div>
                     </div>
 
-                    <p className="mt-1.5 text-xs font-medium text-slate-700 dark:text-slate-300">
+                    <p className="mt-1.5 text-xs font-bold text-foreground">
                       {getRecordSummary(record)}
                     </p>
 
                     {/* Error message */}
                     {record.status === "failed" && record.errorMessage && (
-                      <div className="mt-2 flex items-start gap-1.5 rounded-xl bg-red-100 px-2.5 py-2 dark:bg-red-900/30">
-                        <AlertCircle className="mt-0.5 h-3 w-3 shrink-0 text-red-500" />
-                        <p className="text-[10px] leading-relaxed text-red-700 dark:text-red-400">
+                      <div className="mt-2 flex items-start gap-1.5 rounded-xl bg-destructive/10 px-2.5 py-2">
+                        <AlertCircle className="mt-0.5 h-3 w-3 shrink-0 text-destructive" />
+                        <p className="text-[10px] leading-relaxed text-destructive font-medium">
                           {record.errorMessage}
                         </p>
                       </div>
                     )}
 
-                    <p className="mt-1.5 text-[10px] text-muted-foreground">
+                    <p className="mt-1.5 text-[10px] font-medium text-muted-foreground/70">
                       {new Date(record.createdAt).toLocaleString("id-ID", {
                         day: "numeric",
                         month: "short",
@@ -354,13 +358,14 @@ export function StagingQueueCard({ stagingStats }: StagingQueueCardProps) {
           </div>
 
           {/* Footer action */}
-          <div className="border-t border-slate-100 px-5 py-4 dark:border-slate-800 shrink-0">
+          <div className="border-t border-border px-5 py-4 shrink-0">
             <Button
               className={[
                 "h-11 w-full rounded-xl text-sm font-bold transition-all",
+                /* AUDIT WARNA: Tombol eksekusi dikonversi ke token Primary biar sama persis sama form submit */
                 hasData || records.length > 0
-                  ? "bg-amber-500 text-white hover:bg-amber-600 active:scale-[0.98]"
-                  : "bg-slate-100 text-slate-400",
+                  ? "bg-primary text-primary-foreground hover:opacity-90 active:scale-[0.98] shadow-sm"
+                  : "bg-muted text-muted-foreground cursor-not-allowed",
               ].join(" ")}
               disabled={isSyncing || isLoadingList || records.length === 0}
               onClick={handleSync}
@@ -368,14 +373,14 @@ export function StagingQueueCard({ stagingStats }: StagingQueueCardProps) {
               {isSyncing ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Menyinkron...
+                  Menyinkron ke Notion...
                 </>
               ) : (
                 <>
                   <CloudUpload className="mr-2 h-4 w-4" />
-                  Kirim data ke notion
+                  Kirim Data ke Notion
                   {records.length > 0 && (
-                    <Badge className="ml-2 bg-white/30 text-white border-none">
+                    <Badge className="ml-2 bg-white/20 text-white border-none rounded-lg px-2 text-[10px]">
                       {records.length}
                     </Badge>
                   )}
