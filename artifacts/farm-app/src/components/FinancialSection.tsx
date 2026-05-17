@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { motion, animate } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -28,49 +28,15 @@ interface FinancialSectionProps {
   profitChartData: any[];
 }
 
+/* AUDIT WARNA: Mengubah gradient kaku menjadi gradient dinamis berdasarkan token tema CSS */
 const metricAccent: Record<string, string> = {
-  modal: "from-slate-900 to-slate-700 text-white",
-  pendapatan: "from-primary to-teal-600 text-white",
-  pengeluaran: "from-amber-500 to-orange-600 text-white",
-  profit: "from-secondary to-primary text-white",
-  margin: "from-cyan-500 to-blue-600 text-white",
-  hpp: "from-stone-700 to-zinc-900 text-white",
+  modal: "from-primary to-primary/70 text-primary-foreground",
+  pendapatan: "from-primary to-primary/70 text-primary-foreground",
+  pengeluaran: "from-secondary to-secondary/70 text-secondary-foreground",
+  profit: "from-accent to-accent/70 text-accent-foreground",
+  margin: "from-accent to-accent/70 text-accent-foreground",
+  hpp: "from-accent to-accent/70 text-accent-foreground",
 };
-
-
-// ... (lanjut ke const metricAccent = { ... } dan kode komponen yang tadi)
-
-
-// --- KOMPONEN ANIMASI ANGKA HALUS ---
-function SubtleAnimatedNumber({ 
-  value, 
-  formatFn 
-}: { 
-  value: number; 
-  formatFn: (val: number) => string 
-}) {
-  const [displayValue, setDisplayValue] = useState(formatFn(0));
-  const formatRef = useRef(formatFn);
-
-  useEffect(() => {
-    formatRef.current = formatFn;
-  }, [formatFn]);
-
-  useEffect(() => {
-    // Animasi mulus selama 1 detik (tidak terlalu heboh)
-    const controls = animate(0, value, {
-      duration: 1.0, 
-      ease: "easeOut",
-      onUpdate: (latest) => {
-        setDisplayValue(formatRef.current(latest));
-      },
-    });
-
-    return () => controls.stop();
-  }, [value]);
-
-  return <>{displayValue}</>;
-}
 
 // --- METRIC CARD ---
 function MetricCard({
@@ -87,7 +53,6 @@ function MetricCard({
 
   return (
     <Card
-      /* AUDIT WARNA: Mengganti bg-white/75 dkk dengan token semantik card & border */
       className="
         relative
         overflow-hidden
@@ -116,14 +81,15 @@ function MetricCard({
             className="w-full truncate text-left text-[17px] font-black tracking-tighter sm:text-lg"
             title={valueTooltip}
           >
-            {/* Terapkan animasi di sini */}
-            <SubtleAnimatedNumber value={rawValue} formatFn={formatFn} />
+            {/* AUDIT UI: Efek hitung animasi dihapus, angka langsung tampil cepat */}
+            {formatFn(rawValue)}
           </p>
         </div>
 
         <div>
           <div className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-[10px] font-bold text-muted-foreground">
             <StatusIcon
+              /* AUDIT WARNA: Ikon naik/turun ikut merespon warna tema atau error */
               className={`h-3 w-3 ${status === "down" ? "text-destructive" : "text-primary"}`}
             />
             live indicator
@@ -261,7 +227,6 @@ const totalProfit = displayData.profit;
       </div>
 
       <motion.div variants={fadeSlideItem}>
-        {/* AUDIT WARNA: Mengganti bg-white/75 dkk dengan token semantik card & border */}
         <Card className="rounded-[1.75rem] border-border/50 bg-card text-card-foreground shadow-sm">
           <CardContent className="p-4 md:p-6">
             <div className="mb-4 flex items-center justify-between">
@@ -328,7 +293,6 @@ const totalProfit = displayData.profit;
                       borderRadius: "1rem",
                       border: "none",
                       boxShadow: "0 10px 40px -10px rgba(0,0,0,0.15)",
-                      /* AUDIT WARNA: Background tooltip diubah biar elegan di dark mode */
                       background: "var(--card)",
                       color: "var(--card-foreground)",
                       padding: "8px 12px",
@@ -344,12 +308,9 @@ const totalProfit = displayData.profit;
                 <p className="text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/80">
                   Total Profit
                 </p>
-                {/* Teks total profit dikecilin jadi text-lg biar ga nabrak */}
                 <p className="mt-0.5 text-lg font-black tracking-tighter text-foreground">
-                  <SubtleAnimatedNumber 
-                    value={totalProfit} 
-                    formatFn={formatCurrency} 
-                  />
+                  {/* AUDIT UI: Efek animasi dihapus, angka di tengah donat langsung tampil */}
+                  {formatCurrency(totalProfit)}
                 </p>
               </div>
             </div>
