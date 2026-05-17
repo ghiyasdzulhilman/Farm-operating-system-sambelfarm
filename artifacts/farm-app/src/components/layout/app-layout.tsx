@@ -59,18 +59,18 @@ export function AppLayout({
     { href: "/settings", icon: Settings, label: "Setelan" },
   ];
 
-  // KALIBRASI ASIMETRIS BALON BERDASARKAN GAMBAR TARGET LU
+  // KALIBRASI BUSUR KIPAS (Lengkungan Organik untuk 4 Balon)
   const quickActions = [
-    // Balon Kiri: Menggantung di Kiri Atas Tombol
-    { id: "harvest", component: AddHarvestDialog, position: { x: -35, y: -65 }, delay: 0.02 },
-    // Balon Kanan: Menggantung di Kanan Atas Tombol (Pola Genggaman Kipas)
-    { id: "expense", component: AddExpenseDialog, position: { x: 35, y: -65 }, delay: 0.06 },
+    // Posisi TENGAH KIRI (Nantinya Paling Kiri di x: -80, y: -45)
+    { id: "harvest", component: AddHarvestDialog, position: { x: -40, y: -85 }, delay: 0.03 },
+    // Posisi TENGAH KANAN (Nantinya Paling Kanan di x: 80, y: -45)
+    { id: "expense", component: AddExpenseDialog, position: { x: 40, y: -85 }, delay: 0.08 },
   ];
 
   return (
     <div className="min-h-screen bg-background pb-28 font-sans text-foreground transition-colors duration-500">
       
-      {/* HEADER */}
+      {/* HEADER: Top Bar */}
       <header
         className={
           "sticky top-0 z-40 w-full border-b border-border/50 bg-background/80 backdrop-blur-2xl transition-all duration-300 " +
@@ -122,11 +122,12 @@ export function AppLayout({
         {children}
       </main>
 
-      {/* ----- PREMIUM BOTTOM NAV DOCK (EDGE GLOW EDITION) ----- */}
+      {/* ----- BOTTOM NAV DOCK ----- */}
       <nav className="fixed bottom-5 left-4 right-4 z-50 max-w-md mx-auto rounded-[2rem] border border-primary/30 bg-background/70 backdrop-blur-3xl shadow-[0_0_20px] shadow-primary/20 pb-safe transition-all duration-300">
         <div className="relative max-w-md mx-auto h-16 px-4">
           
           <div className="flex items-center justify-between h-full w-full">
+            {/* SAYAP KIRI */}
             <div className="flex w-2/5 justify-around h-full items-center">
               {[navItems[0], navItems[1]].map((item) => {
                 const Icon = item.icon;
@@ -150,6 +151,7 @@ export function AppLayout({
 
             <div className="w-1/5 flex justify-center items-center" />
 
+            {/* SAYAP KANAN */}
             <div className="flex w-2/5 justify-around h-full items-center">
               {[navItems[2], navItems[3]].map((item) => {
                 const Icon = item.icon;
@@ -187,7 +189,7 @@ export function AppLayout({
               )}
             </AnimatePresence>
             
-            {/* CONTAINER GELEMBUNG BALON ASIMETRIS */}
+            {/* KUMPULAN BALON AKSI */}
             {quickActions.map((action) => {
               const ActionDialog = action.component;
               return (
@@ -201,13 +203,17 @@ export function AppLayout({
                       className="absolute z-20"
                     >
                       <div className="relative drop-shadow-2xl">
-                        {/* BUBBLE KACA PREMIUM */}
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full border border-primary/40 bg-background/80 backdrop-blur-xl active:scale-95 transition-all shadow-[0_0_15px] shadow-primary/20 hover:bg-primary/10">
-                          {/* SUNTIKAN CSS MAUT: Melenyapkan teks internal dialog & menyisakan ikon murni */}
-                          <div className="[&_button]:h-full [&_button]:w-full [&_button]:flex [&_button]:items-center [&_button]:justify-center [&_button]:border-none [&_button]:p-0 [&_button]:bg-transparent [&_button]:text-primary [&_button]:rounded-full [&_svg]:h-5 [&_svg]:w-5 [&_svg]:mr-0 [&_svg]:stroke-[1.5] [&_span]:hidden [&_span]:text-[0px] font-[0px] text-[0px] text-transparent">
+                        
+                        {/* BALON PRIMARY GLASSMORPHISM */}
+                        <div className="relative flex h-[52px] w-[52px] items-center justify-center rounded-full border border-white/30 bg-primary/85 backdrop-blur-xl shadow-[0_8px_20px] shadow-primary/30 active:scale-95 transition-all">
+                          
+                          {/* CSS MAUT PEMBUNUH TEKS: Force button full circle, font size 0, text transparent */}
+                          <div className="absolute inset-0 h-full w-full overflow-hidden flex items-center justify-center [&_button]:h-full [&_button]:w-full [&_button]:rounded-full [&_button]:bg-transparent [&_button]:p-0 [&_button]:border-none [&_button]:shadow-none [&_button]:text-[0px] [&_button]:text-transparent [&_button>span]:hidden [&_button_svg]:h-6 [&_button_svg]:w-6 [&_button_svg]:text-white [&_button_svg]:m-0">
                             <ActionDialog onSuccess={() => setIsFabOpen(false)} />
                           </div>
+                          
                         </div>
+
                       </div>
                     </motion.div>
                   )}
@@ -215,7 +221,7 @@ export function AppLayout({
               );
             })}
 
-            {/* TOMBOL PUSAT (FROSTED GLASS) */}
+            {/* TOMBOL PUSAT (+) */}
             <motion.button
               onClick={() => setIsFabOpen(!isFabOpen)}
               animate={{ rotate: isFabOpen ? 45 : 0 }}
