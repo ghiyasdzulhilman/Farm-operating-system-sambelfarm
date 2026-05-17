@@ -267,7 +267,7 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                             <FormControl>
                               <Input
                                 className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-primary/20 text-sm font-medium dark:bg-muted/50"
-                                placeholder="mis. Beli Pupuk Kalinet, Bayar Harian..."
+                                placeholder="Pupuk, upah dll..."
                                 data-testid="input-pengeluaran"
                                 {...field}
                               />
@@ -396,7 +396,7 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                       className="space-y-4 text-left"
                     >
                       <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-                        4. Hubungkan ke Database (Opsional)
+                        4. Hubungkan ke Database
                       </p>
                       
                       <FormField
