@@ -434,7 +434,7 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
                     </motion.div>
                   )}
 
-                  {/* STEP 5: PEMETAAN NOTION DATABASE (OPSIONAL) */}
+                  {/* STEP 5: PEMETAAN NOTION DATABASE */}
                   {step === 5 && (
                     <motion.div
                       key="step5"
@@ -445,7 +445,7 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
                     >
                       {/* AUDIT WARNA: Teks kaku berganti ke muted-foreground semantik */}
                       <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-                        5. Alokasi Database Kebun (Opsional)
+                        5. Hubungkan Ke Database
                       </p>
 
                       <FormField
