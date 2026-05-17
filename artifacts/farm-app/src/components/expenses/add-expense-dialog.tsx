@@ -116,7 +116,7 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
               <div className="grid grid-cols-2 gap-2">
                 <div className="bg-muted/40 border border-border/40 rounded-xl p-2 min-w-0">
                   <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/60 block">
-                    Manifes / Item
+                    Item
                   </span>
                   <p className="text-xs font-bold text-foreground truncate mt-0.5">
                     {resolvedCategory}
@@ -408,7 +408,7 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                             <Select onValueChange={field.onChange} value={field.value || ""}>
                               <FormControl>
                                 <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-primary/20 dark:bg-muted/50" data-testid="select-kategori">
-                                  <SelectValue placeholder="Pilih kategori (Bisa dilewati)..." />
+                                  <SelectValue placeholder="Pilih kategori" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent className="rounded-xl shadow-xl">
@@ -436,7 +436,7 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                             <Select onValueChange={field.onChange} value={field.value || ""}>
                               <FormControl>
                                 <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-primary/20 dark:bg-muted/50" data-testid="select-area">
-                                  <SelectValue placeholder="Pilih area kebun (Bisa dilewati)..." />
+                                  <SelectValue placeholder="Pilih area kebun" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent className="rounded-xl shadow-xl">
