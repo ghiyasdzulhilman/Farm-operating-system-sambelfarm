@@ -245,7 +245,7 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
                               {/* AUDIT WARNA: Background input box di dark mode disesuaikan */}
                               <Input
                                 className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-primary/20 text-sm font-medium dark:bg-muted/50"
-                                placeholder="mis. Panen Cabai Merah Keriting Blok A..."
+                                placeholder="Panen cabe di blok A"
                                 data-testid="input-kegiatan"
                                 {...field}
                               />
