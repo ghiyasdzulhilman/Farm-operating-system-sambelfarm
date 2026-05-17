@@ -72,12 +72,13 @@ const stats = [
         return (
           <Card
             key={stat.label}
+            /* AUDIT WARNA: Mengganti kaca putih kaku ke token semantik card & border */
             className="
               rounded-[1.6rem]
-              border-white/60
-              bg-white/70
-              backdrop-blur-xl
-              shadow-[0_16px_48px_rgba(15,23,42,0.07)]
+              border-border/50
+              bg-card
+              text-card-foreground
+              shadow-sm
             "
           >
             <CardContent className="p-4 md:p-5">
@@ -97,6 +98,7 @@ const stats = [
                 </p>
 
                 <div
+                  /* AUDIT WARNA: Teks emerald-700 diubah ke primary agar serasi dengan roda warna */
                   className="
                     flex
                     h-9
@@ -105,7 +107,7 @@ const stats = [
                     justify-center
                     rounded-2xl
                     bg-primary/10
-                    text-emerald-700
+                    text-primary
                   "
                 >
                   <Icon className="h-4 w-4" />
@@ -137,13 +139,14 @@ const stats = [
     </div>
 
     <Card
+      /* AUDIT WARNA: Mengganti kaca putih kaku ke token semantik card & border */
       className="
         overflow-hidden
         rounded-[1.75rem]
-        border-white/60
-        bg-white/70
-        backdrop-blur-xl
-        shadow-[0_18px_60px_rgba(15,23,42,0.08)]
+        border-border/50
+        bg-card
+        text-card-foreground
+        shadow-sm
       "
     >
 
@@ -166,6 +169,7 @@ const stats = [
           </CardTitle>
 
           <span
+            /* AUDIT WARNA: Teks emerald-700 diubah ke primary agar serasi */
             className="
               rounded-full
               bg-primary/10
@@ -173,7 +177,7 @@ const stats = [
               py-1
               text-xs
               font-bold
-              text-emerald-700
+              text-primary
             "
           >
             kg analytics
@@ -208,15 +212,16 @@ const stats = [
                   x2="0"
                   y2="1"
                 >
+                  {/* AUDIT WARNA: Inject CSS variable langsung ke dalam grafik agar warnanya dinamis */}
                   <stop
                     offset="0%"
-                    stopColor="#059669"
+                    stopColor="hsl(var(--primary))"
                     stopOpacity={0.45}
                   />
 
                   <stop
                     offset="100%"
-                    stopColor="#059669"
+                    stopColor="hsl(var(--primary))"
                     stopOpacity={0.02}
                   />
                 </linearGradient>
@@ -248,12 +253,25 @@ const stats = [
                   `${value} kg`,
                   "Panen",
                 ]}
+                /* AUDIT WARNA: Background tooltip disesuaikan agar suport Dark Mode */
+                contentStyle={{
+                  borderRadius: "1rem",
+                  border: "none",
+                  boxShadow: "0 10px 40px -10px rgba(0,0,0,0.15)",
+                  background: "var(--card)",
+                  color: "var(--card-foreground)",
+                  padding: "8px 12px",
+                  fontSize: "12px",
+                  fontWeight: "bold",
+                }}
+                itemStyle={{ color: "var(--foreground)", fontWeight: "900" }}
               />
 
               <Area
                 type="monotone"
                 dataKey="kg"
-                stroke="#059669"
+                /* AUDIT WARNA: Stroke grafik adaptif dengan warna primer aplikasi */
+                stroke="hsl(var(--primary))"
                 strokeWidth={3}
                 fill="url(#productionGradient)"
               />
