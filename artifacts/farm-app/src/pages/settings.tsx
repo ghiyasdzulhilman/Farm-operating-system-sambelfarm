@@ -130,7 +130,8 @@ const DOMAINS: any[] = [
   { id: "resource", label: "Resources", icon: Users, description: "Manajemen data pekerja", schemas: [] },
 ];
 
-const glassCard = "rounded-[1.75rem] border border-white/60 bg-white/70 shadow-[0_8px_32px_rgba(15,23,42,0.05)] backdrop-blur-2xl dark:border-white/10 dark:bg-white/[0.05]";
+/* AUDIT WARNA: Mengubah class kaku menjadi class transparan dinamis agar ngikut mode */
+const glassCard = "rounded-[1.75rem] border-border/50 bg-card text-card-foreground shadow-sm transition-all duration-300";
 
 // ---------------------------------------------------------------------------
 // 🚀 2. MAIN PAGE COMPONENT
@@ -172,14 +173,15 @@ export function SettingsPage() {
               const isActive = activeDomain === domain.id;
               return (
                 <button key={domain.id} onClick={() => { setActiveDomain(domain.id); setExpandedSchema(null); }}
+                  /* AUDIT WARNA: Teks list menu side diubah biar adaptif */
                   className={cn("group flex w-full items-center gap-3 rounded-2xl p-4 transition-all duration-300", 
-                    isActive ? "bg-slate-950 text-white shadow-xl dark:bg-white dark:text-slate-950" : "hover:bg-white/60 dark:hover:bg-white/5")}>
-                  <div className={cn("rounded-xl p-2 transition-colors", isActive ? "bg-white/20" : "bg-slate-100 dark:bg-slate-800")}>
+                    isActive ? "bg-primary text-primary-foreground shadow-sm" : "hover:bg-primary/5 text-muted-foreground")}>
+                  <div className={cn("rounded-xl p-2 transition-colors", isActive ? "bg-primary-foreground/20 text-white" : "bg-muted text-muted-foreground")}>
                     <Icon className="h-5 w-5" />
                   </div>
                   <div className="text-left">
-                    <p className="text-sm font-black">{domain.label}</p>
-                    <p className={cn("text-[10px] opacity-60", isActive ? "text-white" : "text-muted-foreground")}>{domain.schemas.length} Schemas</p>
+                    <p className={cn("text-sm font-black", isActive && "text-white")}>{domain.label}</p>
+                    <p className={cn("text-[10px]", isActive ? "text-white/80" : "text-muted-foreground/60")}>{domain.schemas.length} Schemas</p>
                   </div>
                   {isActive && <ChevronRight className="ml-auto h-4 w-4" />}
                 </button>
@@ -302,12 +304,13 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
   };
 
   return (
-    <Card className={cn(glassCard, "relative overflow-hidden transition-all duration-300", isExpanded && "ring-2 ring-primary/40")}>
+    <Card className={cn(glassCard, isExpanded && "ring-2 ring-primary/40")}>
       <div className="p-3 sm:p-4 sm:pb-2">
         <div className="flex flex-col gap-2.5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-1 items-center gap-3 min-w-0">
-              <div className={cn("shrink-0 rounded-[1rem] p-2 text-primary transition-colors", isExpanded ? "bg-primary/10" : "bg-slate-100 dark:bg-slate-800")}>
+              {/* AUDIT WARNA: Background icon menyesuaikan dengan class muted */}
+              <div className={cn("shrink-0 rounded-[1rem] p-2 text-primary transition-colors", isExpanded ? "bg-primary/10" : "bg-muted")}>
                 {schema.isMultiInstance ? <Workflow className="h-4 w-4" /> : <Database className="h-4 w-4" />}
               </div>
               <div className="min-w-0 flex-1">
@@ -320,7 +323,8 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
                 <Select onValueChange={(val) => {
                   if (!linkedIds.includes(val)) setLinkedIds(prev => schema.isMultiInstance ? [...prev, val] : [val]);
                 }}>
-                  <SelectTrigger className="h-9 w-full flex-1 rounded-full border-white/60 bg-white/50 text-xs font-bold shadow-sm backdrop-blur dark:bg-slate-900/50 sm:w-[130px]">
+                  {/* AUDIT WARNA: Select trigger warna background diset murni agar tidak bentrok */}
+                  <SelectTrigger className="h-9 w-full flex-1 rounded-full border-border/60 bg-muted/50 text-xs font-bold shadow-sm backdrop-blur sm:w-[130px]">
                     <div className="flex items-center gap-1.5 text-primary"><Plus className="h-3.5 w-3.5"/>Pilih database</div>
                   </SelectTrigger>
                   <SelectContent className="max-h-[300px]">
@@ -334,7 +338,7 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
             <AnimatePresence mode="popLayout">
               {linkedIds.map(id => (
                 <motion.div key={id} layout initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} transition={{ type: "spring", stiffness: 300, damping: 25 }}>
-                  <Badge variant="secondary" className="gap-1 px-2.5 py-1 rounded-full bg-primary/5 text-primary dark:bg-primary/10">
+                  <Badge variant="secondary" className="gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary">
                     <span className="truncate max-w-[140px] text-[10px] font-semibold">
                       {allDatabases.find(d => d.id === id)?.iconEmoji} {allDatabases.find(d => d.id === id)?.name || id}
                     </span>
@@ -349,7 +353,8 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
       </div>
 
       <div className="relative z-10 -mt-1 mb-1 flex w-full justify-center">
-        <button onClick={onToggle} className="flex h-4 w-12 items-center justify-center rounded-b-xl border border-t-0 border-white/60 bg-white/50 shadow-[0_4px_10px_rgba(0,0,0,0.03)] backdrop-blur-md transition-colors hover:bg-white dark:border-white/10 dark:bg-slate-900/50 dark:hover:bg-slate-800" aria-label="Toggle mapping config">
+        {/* AUDIT WARNA: Tombol pull tab diselaraskan */}
+        <button onClick={onToggle} className="flex h-4 w-12 items-center justify-center rounded-b-xl border border-t-0 border-border/60 bg-muted/30 shadow-[0_4px_10px_rgba(0,0,0,0.03)] backdrop-blur-md transition-colors hover:bg-muted" aria-label="Toggle mapping config">
           <ChevronDown className={cn("h-3 w-3 text-muted-foreground transition-transform duration-300", isExpanded && "rotate-180")} />
         </button>
       </div>
@@ -358,14 +363,14 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
         {isExpanded && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
             <div className="px-3 pb-3 sm:px-4 sm:pb-4">
-              <div className="border-t border-dashed border-slate-200 pt-4 dark:border-slate-800">
+              <div className="border-t border-dashed border-border/50 pt-4">
                 <div className="mb-4 flex flex-col items-center justify-center gap-2.5">
                   <h4 className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Mapping Controls</h4>
                   <div className="flex flex-wrap items-center justify-center gap-1.5">
-                    <Button size="sm" onClick={() => inspect()} disabled={isInspecting || !masterId} className="h-8 rounded-full px-4 text-[10px] font-bold bg-primary/5 text-primary hover:bg-primary/10 dark:bg-primary/10 dark:hover:bg-primary/20">
+                    <Button size="sm" onClick={() => inspect()} disabled={isInspecting || !masterId} className="h-8 rounded-full px-4 text-[10px] font-bold bg-primary/10 text-primary hover:bg-primary/20">
                       {isInspecting ? "Loading..." : "Load"}
                     </Button>
-                    <Button size="sm" onClick={handleAutoMap} disabled={!props.length} className="h-8 rounded-full px-4 text-[10px] font-bold bg-primary/5 text-primary hover:bg-primary/10 dark:bg-primary/10 dark:hover:bg-primary/20">
+                    <Button size="sm" onClick={handleAutoMap} disabled={!props.length} className="h-8 rounded-full px-4 text-[10px] font-bold bg-primary/10 text-primary hover:bg-primary/20">
                       Auto map
                     </Button>
                     <Button size="sm" onClick={handleSave} disabled={isSaving} className="h-8 rounded-full bg-primary px-5 text-[10px] font-bold text-primary-foreground shadow-sm transition-colors hover:opacity-90">
@@ -378,15 +383,15 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
                     const isMapped = !!fieldMappings[field.key];
                     const pType = field.expectedType.split('|')[0];
                     return (
-                      <div key={field.key} className={cn("flex flex-col gap-2 rounded-xl border p-2.5 transition-colors sm:flex-row sm:items-center sm:justify-between", isMapped ? "bg-primary/[0.02] border-primary/20" : "bg-slate-50/50 border-transparent dark:bg-slate-900/40")}>
+                      <div key={field.key} className={cn("flex flex-col gap-2 rounded-xl border p-2.5 transition-colors sm:flex-row sm:items-center sm:justify-between", isMapped ? "bg-primary/[0.04] border-primary/20" : "bg-muted/20 border-transparent")}>
                         <div className="flex flex-1 items-center gap-2.5 min-w-0">
-                           <Badge variant="outline" className="rounded-full bg-white text-[9px] font-black uppercase dark:bg-slate-950">{pType}</Badge>
+                           <Badge variant="outline" className="rounded-full bg-background text-[9px] font-black uppercase text-foreground">{pType}</Badge>
                            <div className="min-w-0 flex-1">
-                             <p className="truncate text-xs font-bold tracking-tight text-slate-900 dark:text-white">{field.label}</p>
+                             <p className="truncate text-xs font-bold tracking-tight text-foreground">{field.label}</p>
                            </div>
                         </div>
                         <Select value={fieldMappings[field.key] || ""} onValueChange={(val) => setFieldMappings(prev => ({...prev, [field.key]: val}))}>
-                          <SelectTrigger className="h-9 w-full shrink-0 rounded-lg bg-white/80 text-[11px] font-semibold shadow-sm dark:bg-slate-950/80 sm:w-[220px]">
+                          <SelectTrigger className="h-9 w-full shrink-0 rounded-lg bg-background text-[11px] font-semibold shadow-sm sm:w-[220px]">
                             <SelectValue placeholder={isInspecting ? "Memuat kolom..." : (props.length ? "Pilih kolom..." : "Kolom belum di-load")} className="truncate" />
                           </SelectTrigger>
                           <SelectContent>
@@ -468,12 +473,8 @@ function ColorControl() {
       setSecondaryHex(savedSecondary);
       setAccentHex(savedAccent);
 
+      // Pipa Sinkronisasi Otomatis untuk Muted UI
       const p = hexToHsl(savedPrimary);
-      document.documentElement.style.setProperty("--primary", p.toString());
-      document.documentElement.style.setProperty("--secondary", hexToHsl(savedSecondary).toString());
-      document.documentElement.style.setProperty("--accent", hexToHsl(savedAccent).toString());
-
-      // Pipa Sinkronisasi Otomatis untuk Muted UI (Nav Bar & Input Boxes)
       if (activeDark) {
         document.documentElement.style.setProperty("--muted", `${p.h} 8% 12%`);
         document.documentElement.style.setProperty("--muted-foreground", `${p.h} 8% 65%`);
@@ -484,11 +485,15 @@ function ColorControl() {
     }
   }, []);
 
-  // Sync Mode Gelap/Terang + Update Muted UI seketika
-  useEffect(() => {
+  // Sync Mode Gelap/Terang
+  const toggleTheme = () => {
+    const newIsDark = !isDark;
+    setIsDark(newIsDark);
+    localStorage.setItem("theme", newIsDark ? "dark" : "light");
+    
     const root = document.documentElement;
     const p = hexToHsl(primaryHex);
-    if (isDark) {
+    if (newIsDark) {
       root.classList.add("dark");
       root.style.setProperty("--muted", `${p.h} 8% 12%`);
       root.style.setProperty("--muted-foreground", `${p.h} 8% 65%`);
@@ -497,9 +502,9 @@ function ColorControl() {
       root.style.setProperty("--muted", `${p.h} 15% 94%`);
       root.style.setProperty("--muted-foreground", `${p.h} 20% 45%`);
     }
-  }, [isDark, primaryHex]);
+  };
 
-  // Handler Ganti Warna Utama + Kloning ke Muted Rumpun Sejenis
+  // Handler Ganti Warna Utama
   const handlePrimaryChange = (hex: string) => {
     setPrimaryHex(hex);
     localStorage.setItem("sf-primary-hex", hex);
@@ -529,7 +534,7 @@ function ColorControl() {
   };
 
   return (
-    <div className="p-4 rounded-3xl border border-border bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl w-full space-y-4 shadow-sm text-left">
+    <div className="p-4 rounded-3xl border border-border bg-card shadow-sm w-full space-y-4 text-left">
       <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
         <Palette className="h-4 w-4 text-primary" />
         <span>Sistem Kontrol Visual</span>
@@ -538,12 +543,12 @@ function ColorControl() {
       <div className="flex items-center justify-between border-b pb-3 border-border/50">
         <span className="text-xs font-semibold">Mode Layar</span>
         <button
-          onClick={() => setIsDark(!isDark)}
+          onClick={toggleTheme}
           className="relative inline-flex h-7 w-12 items-center rounded-full bg-muted transition-colors focus:outline-none"
         >
           <motion.div
             layout
-            className="flex h-5 w-5 items-center justify-center rounded-full bg-white dark:bg-slate-950 shadow-sm"
+            className="flex h-5 w-5 items-center justify-center rounded-full bg-background shadow-sm"
             animate={{ x: isDark ? 22 : 4 }}
             transition={{ type: "spring", stiffness: 500, damping: 30 }}
           >
@@ -553,7 +558,7 @@ function ColorControl() {
       </div>
 
       <div className="space-y-3 pt-1">
-        {/* PICKER 1: WARNA UTAMA */}
+        {/* PICKER 1 */}
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
             <span className="text-xs font-bold block">Warna Utama</span>
@@ -572,7 +577,7 @@ function ColorControl() {
           </div>
         </div>
 
-        {/* PICKER 2: WARNA KEDUA */}
+        {/* PICKER 2 */}
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
             <span className="text-xs font-bold block">Warna Kedua</span>
@@ -591,7 +596,7 @@ function ColorControl() {
           </div>
         </div>
 
-        {/* PICKER 3: WARNA KETIGA */}
+        {/* PICKER 3 */}
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
             <span className="text-xs font-bold block">Warna Aksen</span>
