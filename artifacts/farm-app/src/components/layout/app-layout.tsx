@@ -208,7 +208,7 @@ export function AppLayout({
                         <div className="relative flex h-[52px] w-[52px] items-center justify-center rounded-full border border-white/30 bg-primary/85 backdrop-blur-xl shadow-[0_8px_20px] shadow-primary/30 active:scale-95 transition-all">
                           
                           {/* CSS MAUT PEMBUNUH TEKS: Force button full circle, font size 0, text transparent */}
-                          <div className="absolute inset-0 h-full w-full overflow-hidden flex items-center justify-center [&_button]:h-full [&_button]:w-full [&_button]:rounded-full [&_button]:bg-transparent [&_button]:p-0 [&_button]:border-none [&_button]:shadow-none [&_button]:text-[0px] [&_button]:text-transparent [&_button>span]:hidden [&_button_svg]:h-6 [&_button_svg]:w-6 [&_button_svg]:text-white [&_button_svg]:m-0 [&_button_svg]:translate-x-[2px]
+                          <div className="absolute inset-0 h-full w-full overflow-hidden flex items-center justify-center [&_button]:h-full [&_button]:w-full [&_button]:rounded-full [&_button]:bg-transparent [&_button]:p-0 [&_button]:border-none [&_button]:shadow-none [&_button]:text-[0px] [&_button]:text-transparent [&_button>span]:hidden [&_button_svg]:h-6 [&_button_svg]:w-6 [&_button_svg]:text-white [&_button_svg]:m-0 [&_button_svg]:translate-x-[4px]
 ">
                             <ActionDialog onSuccess={() => setIsFabOpen(false)} />
                           </div>
