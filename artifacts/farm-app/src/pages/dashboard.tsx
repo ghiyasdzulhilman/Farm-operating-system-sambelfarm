@@ -357,10 +357,11 @@ export function DashboardPage() {
                       transition={{ type: "spring", bounce: 0.18, duration: 0.55 }}
                     />
                   )}
+                  {/* AUDIT UI: text-primary-foreground dibuang, digembok mati pakai text-white biar steril */}
                   <span
                     className={
                       activeSection === item.key
-                        ? "relative z-10 text-primary-foreground"
+                        ? "relative z-10 text-white"
                         : "relative z-10"
                     }
                   >
@@ -426,7 +427,6 @@ export function DashboardPage() {
             <div className="flex items-start justify-between">
               <div>
                 <p className="mb-1 text-xs font-bold text-white/60">Business pulse</p>
-                {/* AUDIT UI: Teks judul kembali ke putih bersih tanpa embel-embel warna ijo */}
                 <h2 className="text-2xl font-black text-white md:text-3xl transition-colors duration-500">
                   {localBusinessStatus}
                 </h2>
@@ -441,7 +441,6 @@ export function DashboardPage() {
                 
                 {/* Kotak Margin */}
                 <div className={`rounded-2xl border p-4 transition-colors duration-500 ${getMarginBg(displayData.margin)}`}>
-                  {/* AUDIT UI: Label kembali ke putih transparan */}
                   <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-white/60">Margin</p>
                   <p className="text-2xl font-black text-white">
                     <AnimatedNumber 
@@ -454,7 +453,6 @@ export function DashboardPage() {
 
                 {/* Kotak HPP */}
                 <div className={`rounded-2xl border p-4 transition-colors duration-500 ${getMarginBg(displayData.margin)}`}>
-                  {/* AUDIT UI: Label kembali ke putih transparan */}
                   <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-white/60">HPP / kg</p>
                   <p className="text-xl font-black text-white">
                     <AnimatedNumber 
@@ -470,7 +468,6 @@ export function DashboardPage() {
               <div className="mt-3 rounded-2xl border border-white/10 bg-white/5 p-3.5">
                 <div className="mb-2 flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.15em]">
                   <span className="text-white/60">BEP Runway</span>
-                  {/* AUDIT UI: Teks persentase BEP di-set putih tebal */}
                   <span className="text-white font-bold">
                     <AnimatedNumber 
                       key={`bep-${selectedAreaId}-${summary?.lastUpdated}`}
