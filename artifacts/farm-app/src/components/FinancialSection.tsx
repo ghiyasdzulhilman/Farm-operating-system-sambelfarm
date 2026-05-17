@@ -87,14 +87,15 @@ function MetricCard({
 
   return (
     <Card
+      /* AUDIT WARNA: Mengganti bg-white/75 dkk dengan token semantik card & border */
       className="
         relative
         overflow-hidden
         rounded-[1.5rem]
-        border-white/60
-        bg-white/75
-        backdrop-blur-2xl
-        shadow-[0_18px_60px_rgba(15,23,42,0.07)]
+        border-border/50
+        bg-card
+        text-card-foreground
+        shadow-sm
       "
     >
       <CardContent className="flex min-h-[120px] flex-col justify-between p-3">
@@ -121,9 +122,9 @@ function MetricCard({
         </div>
 
         <div>
-          <div className="inline-flex items-center gap-1 rounded-full bg-muted/70 px-2 py-1 text-[10px] font-bold text-muted-foreground">
+          <div className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-[10px] font-bold text-muted-foreground">
             <StatusIcon
-              className={`h-3 w-3 ${status === "down" ? "text-rose-500" : "text-primary"}`}
+              className={`h-3 w-3 ${status === "down" ? "text-destructive" : "text-primary"}`}
             />
             live indicator
           </div>
@@ -259,8 +260,9 @@ const totalProfit = displayData.profit;
         </motion.div>
       </div>
 
-                          <motion.div variants={fadeSlideItem}>
-        <Card className="rounded-[1.75rem] border-white/60 bg-white/75 backdrop-blur-2xl shadow-[0_18px_60px_rgba(15,23,42,0.07)]">
+      <motion.div variants={fadeSlideItem}>
+        {/* AUDIT WARNA: Mengganti bg-white/75 dkk dengan token semantik card & border */}
+        <Card className="rounded-[1.75rem] border-border/50 bg-card text-card-foreground shadow-sm">
           <CardContent className="p-4 md:p-6">
             <div className="mb-4 flex items-center justify-between">
               <div>
@@ -326,13 +328,14 @@ const totalProfit = displayData.profit;
                       borderRadius: "1rem",
                       border: "none",
                       boxShadow: "0 10px 40px -10px rgba(0,0,0,0.15)",
-                      background: "rgba(255, 255, 255, 0.95)",
-                      backdropFilter: "blur(16px)",
+                      /* AUDIT WARNA: Background tooltip diubah biar elegan di dark mode */
+                      background: "var(--card)",
+                      color: "var(--card-foreground)",
                       padding: "8px 12px",
                       fontSize: "12px",
                       fontWeight: "bold",
                     }}
-                    itemStyle={{ color: "#0f172a", fontWeight: "900" }}
+                    itemStyle={{ color: "var(--foreground)", fontWeight: "900" }}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -342,7 +345,7 @@ const totalProfit = displayData.profit;
                   Total Profit
                 </p>
                 {/* Teks total profit dikecilin jadi text-lg biar ga nabrak */}
-                <p className="mt-0.5 text-lg font-black tracking-tighter text-slate-900">
+                <p className="mt-0.5 text-lg font-black tracking-tighter text-foreground">
                   <SubtleAnimatedNumber 
                     value={totalProfit} 
                     formatFn={formatCurrency} 
@@ -357,5 +360,3 @@ const totalProfit = displayData.profit;
     </motion.div>
   );
 }
-
-
