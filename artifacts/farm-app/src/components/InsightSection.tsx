@@ -105,13 +105,13 @@ const toneClass: Record<string, string> = {
     <div>
 
       <p
+        /* AUDIT WARNA: Teks statis violet diubah ke warna accent dinamis */
         className="
           text-xs
           font-black
           uppercase
           tracking-[0.22em]
-
-          text-violet-700
+          text-accent
         "
       >
         Smart Insight
@@ -134,21 +134,18 @@ const toneClass: Record<string, string> = {
       className="
         grid
         gap-4
-
         lg:grid-cols-[0.9fr_1.1fr]
       "
     >
 
       <Card
+        /* AUDIT WARNA: Border white statis diperhalus agar elemen AI premium lebih menyatu */
         className="
           overflow-hidden
           rounded-[1.75rem]
-
-          border-white/60
-
+          border-white/10
           bg-slate-950
           text-white
-
           shadow-2xl
         "
       >
@@ -162,35 +159,29 @@ const toneClass: Record<string, string> = {
         >
 
           <div
+            /* AUDIT WARNA: Ambient glow violet kaku diubah ke accent/30 */
             className="
               absolute
               -right-12
               -top-12
-
               h-44
               w-44
-
               rounded-full
-
-              bg-violet-400/30
-
+              bg-accent/30
               blur-3xl
             "
           />
 
           <div
+            /* AUDIT WARNA: Ambient glow emerald kaku diubah ke primary/20 */
             className="
               absolute
               -bottom-16
               left-8
-
               h-36
               w-36
-
               rounded-full
-
-              bg-emerald-400/20
-
+              bg-primary/20
               blur-3xl
             "
           />
@@ -212,7 +203,6 @@ const toneClass: Record<string, string> = {
                   font-bold
                   uppercase
                   tracking-[0.18em]
-
                   text-white/45
                 "
               >
@@ -241,11 +231,11 @@ const toneClass: Record<string, string> = {
             >
 
               <Bot
+                /* AUDIT WARNA: Ikon bot disesuaikan warnanya dengan aksen tema */
                 className="
                   h-5
                   w-5
-
-                  text-violet-200
+                  text-accent
                 "
               />
 
@@ -258,7 +248,6 @@ const toneClass: Record<string, string> = {
               relative
               text-sm
               leading-6
-
               text-white/65
             "
           >
@@ -269,12 +258,9 @@ const toneClass: Record<string, string> = {
             className="
               relative
               rounded-[1.4rem]
-
               border
               border-white/10
-
               bg-white/10
-
               p-4
             "
           >
@@ -285,18 +271,17 @@ const toneClass: Record<string, string> = {
                 flex
                 items-center
                 gap-2
-
                 text-sm
                 font-bold
               "
             >
 
               <Lightbulb
+                /* AUDIT WARNA: Ikon bohlam diselaraskan */
                 className="
                   h-4
                   w-4
-
-                  text-amber-200
+                  text-accent
                 "
               />
 
@@ -308,7 +293,6 @@ const toneClass: Record<string, string> = {
               className="
                 text-sm
                 leading-6
-
                 text-white/64
               "
             >
@@ -328,7 +312,6 @@ const toneClass: Record<string, string> = {
         className="
           grid
           gap-3
-
           sm:grid-cols-2
         "
       >
@@ -341,17 +324,13 @@ const toneClass: Record<string, string> = {
 
             <Card
               key={insight.title}
-
+              /* AUDIT WARNA: Mengganti kaca statis putih dengan semantic bg-card agar plong & responsif */
               className="
                 rounded-[1.75rem]
-
-                border-white/60
-
-                bg-white/75
-
-                backdrop-blur-2xl
-
-                shadow-[0_18px_60px_rgba(15,23,42,0.07)]
+                border-border/50
+                bg-card
+                text-card-foreground
+                shadow-sm
               "
             >
 
@@ -364,7 +343,6 @@ const toneClass: Record<string, string> = {
                     rounded-2xl
                     border
                     p-3
-
                     ${toneClass[insight.tone]}
                   `}
                 >
