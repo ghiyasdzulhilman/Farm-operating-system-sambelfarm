@@ -59,18 +59,12 @@ export function AppLayout({
     { href: "/settings", icon: Settings, label: "Setelan" },
   ];
 
-  // Definisi Aksi Balon (Gelembung Kaca - KALIBRASI TENGAH + ICON ONLY)
+  // Definisi Aksi Balon (Gelembung Kaca - TENGAH + ICON ONLY)
   const quickActions = [
-    // --- TEMPAT BUAT MENU MASA DEPAN (Kiri - P1) ---
-    // { id: "inspect", ..., position: { x: -75, y: -80 }, delay: 0 },
-
     // Posisi 2: TENGAH KIRI (Harvest)
     { id: "harvest", icon: Sprout, component: AddHarvestDialog, position: { x: -28, y: -110 }, delay: 0.05 },
     // Posisi 3: TENGAH KANAN (Expense)
     { id: "expense", icon: Coins, component: AddExpenseDialog, position: { x: 28, y: -110 }, delay: 0.1 },
-
-    // --- TEMPAT BUAT MENU MASA DEPAN (Kanan - P4) ---
-    // { id: "treatment", ..., position: { x: 75, y: -80 }, delay: 0.15 },
   ];
 
   return (
@@ -78,10 +72,10 @@ export function AppLayout({
       
       {/* HEADER: Top Bar */}
       <header
-        className={`
-          sticky top-0 z-40 w-full border-b border-border/50 bg-background/80 backdrop-blur-2xl transition-all duration-300
-          ${isTopbarHidden ? "-translate-y-full opacity-0" : "translate-y-0 opacity-100"}
-        `}
+        className={
+          "sticky top-0 z-40 w-full border-b border-border/50 bg-background/80 backdrop-blur-2xl transition-all duration-300 " +
+          (isTopbarHidden ? "-translate-y-full opacity-0" : "translate-y-0 opacity-100")
+        }
       >
         <div className="container flex h-14 items-center justify-between px-4 max-w-5xl mx-auto">
           <div className="flex items-center justify-between w-full">
@@ -112,8 +106,8 @@ export function AppLayout({
                 const label = isInvalid ? "Token Invalid" : isConnected ? "Connected" : "Disconnected";
 
                 return (
-                  <button className={`inline-flex items-center gap-2 text-xs font-medium px-3 py-1 rounded-full border w-fit transition-all ${colorClass}`}>
-                    <div className={`w-2 h-2 rounded-full ${dotClass}`} />
+                  <button className={"inline-flex items-center gap-2 text-xs font-medium px-3 py-1 rounded-full border w-fit transition-all " + colorClass}>
+                    <div className={"w-2 h-2 rounded-full " + dotClass} />
                     {label}
                   </button>
                 );
@@ -141,7 +135,7 @@ export function AppLayout({
                 return (
                   <Link key={item.label} href={item.href}>
                     <a className="relative flex flex-col items-center justify-center h-full w-[50px] transition-colors">
-                      <Icon className={`h-[22px] w-[22px] transition-all duration-500 ${isActive ? "text-primary scale-110 stroke-[2]" : "text-muted-foreground/50 stroke-[1.5]"}`} />
+                      <Icon className={"h-[22px] w-[22px] transition-all duration-500 " + (isActive ? "text-primary scale-110 stroke-[2]" : "text-muted-foreground/50 stroke-[1.5]")} />
                       
                       {isActive && (
                         <motion.div 
@@ -166,7 +160,7 @@ export function AppLayout({
                 return (
                   <Link key={item.label} href={item.href}>
                     <a className="relative flex flex-col items-center justify-center h-full w-[50px] transition-colors">
-                      <Icon className={`h-[22px] w-[22px] transition-all duration-500 ${isActive ? "text-primary scale-110 stroke-[2]" : "text-muted-foreground/50 stroke-[1.5]"}`} />
+                      <Icon className={"h-[22px] w-[22px] transition-all duration-500 " + (isActive ? "text-primary scale-110 stroke-[2]" : "text-muted-foreground/50 stroke-[1.5]")} />
                       
                       {isActive && (
                         <motion.div 
@@ -229,4 +223,22 @@ export function AppLayout({
             <motion.button
               onClick={() => setIsFabOpen(!isFabOpen)}
               animate={{ rotate: isFabOpen ? 45 : 0 }}
-              transition={{ type: "
+              transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+              className={
+                "relative flex h-[68px] w-[68px] items-center justify-center rounded-full transition-all duration-300 active:scale-95 " +
+                (isFabOpen 
+                  ? "bg-destructive/80 text-white shadow-[0_0_20px] shadow-destructive/40 border border-destructive/50 backdrop-blur-xl" 
+                  : "bg-background/40 backdrop-blur-2xl border-[1.5px] border-primary/50 shadow-[0_0_25px] shadow-primary/40")
+              }
+              aria-label="Aksi Kebun"
+            >
+              <Plus className={"h-8 w-8 stroke-[1.5] transition-colors duration-300 " + (isFabOpen ? "text-white" : "text-primary")} />
+            </motion.button>
+          </div>
+
+        </div>
+      </nav>
+
+    </div>
+  );
+}
