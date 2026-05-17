@@ -66,17 +66,14 @@ const visibleFeed =
 
 return (
   <Card
+    /* AUDIT WARNA: Mengganti kaca statis dengan semantic bg-card agar plong di Dark/Light mode */
     className="
       overflow-hidden
       rounded-[1.75rem]
-
-      border-white/60
-
-      bg-white/70
-
-      backdrop-blur-xl
-
-      shadow-[0_18px_60px_rgba(15,23,42,0.08)]
+      border-border/50
+      bg-card
+      text-card-foreground
+      shadow-sm
     "
   >
 
@@ -102,24 +99,20 @@ return (
         </CardTitle>
 
         <span
+          /* AUDIT WARNA: Teks emerald-700 diubah ke primary adaptif */
           className="
             flex
             items-center
             gap-1.5
-
             rounded-full
-
             border
             border-primary/15
-
             bg-primary/10
-
             px-3
             py-1
-
             text-xs
             font-bold
-            text-emerald-700
+            text-primary
           "
         >
 
@@ -168,10 +161,8 @@ return (
                     absolute
                     left-[0.68rem]
                     top-10
-
                     h-[calc(100%-1rem)]
                     w-px
-
                     bg-border
                   "
                 />
@@ -179,25 +170,23 @@ return (
               )}
 
               <span
+                /* AUDIT WARNA: Mengubah background amber statis menjadi token secondary */
                 className={`
                   absolute
                   left-0
                   top-4
-
                   flex
                   h-5
                   w-5
                   items-center
                   justify-center
-
                   rounded-full
                   border-4
                   border-background
-
                   ${
                     isEmerald
                       ? "bg-primary"
-                      : "bg-amber-500"
+                      : "bg-secondary"
                   }
                 `}
               />
@@ -205,19 +194,15 @@ return (
               <div
                 className="
                   rounded-3xl
-
                   border
                   border-border/60
-
-                  bg-background/70
-
+                  bg-muted/30
                   p-4
-
                   transition-all
                   duration-300
-
                   hover:-translate-y-0.5
                   hover:shadow-lg
+                  dark:bg-muted/10
                 "
               >
 
@@ -239,6 +224,7 @@ return (
                   >
 
                     <div
+                      /* AUDIT WARNA: Ikon harvest menggunakan primary, expense menggunakan secondary */
                       className={`
                         flex
                         h-10
@@ -246,19 +232,11 @@ return (
                         shrink-0
                         items-center
                         justify-center
-
                         rounded-2xl
-
                         ${
                           isEmerald
-                            ? `
-                              bg-primary/10
-                              text-emerald-700
-                            `
-                            : `
-                              bg-amber-500/10
-                              text-amber-700
-                            `
+                            ? "bg-primary/10 text-primary"
+                            : "bg-secondary/10 text-secondary"
                         }
                       `}
                     >
@@ -299,9 +277,7 @@ return (
                       shrink-0
                       items-center
                       gap-1
-
                       whitespace-nowrap
-
                       text-[11px]
                       font-semibold
                       text-muted-foreground
