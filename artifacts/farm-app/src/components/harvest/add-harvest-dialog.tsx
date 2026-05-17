@@ -458,7 +458,7 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
                             <Select onValueChange={field.onChange} value={field.value || ""}>
                               <FormControl>
                                 <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-primary/20 dark:bg-muted/50" data-testid="select-pindah-tanam">
-                                  <SelectValue placeholder="Pilih area pindah tanam (Bisa dilewati)..." />
+                                  <SelectValue placeholder="Pilih area pindah tanam" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent className="rounded-xl shadow-xl">
@@ -487,7 +487,7 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
                             <Select onValueChange={field.onChange} value={field.value || ""}>
                               <FormControl>
                                 <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-primary/20 dark:bg-muted/50" data-testid="select-laba-rugi">
-                                  <SelectValue placeholder="Pilih area laba rugi (Bisa dilewati)..." />
+                                  <SelectValue placeholder="Pilih area laba rugi" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent className="rounded-xl shadow-xl">
