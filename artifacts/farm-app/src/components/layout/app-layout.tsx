@@ -59,7 +59,7 @@ export function AppLayout({
     { href: "/settings", icon: Settings, label: "Setelan" },
   ];
 
-  // KALIBRASI JARAK BALON MENYESUAIKAN UKURAN DOCK SAFARI YANG MINI
+  // KALIBRASI BUSUR KIPAS MINI EDISI CAPSULE SAFARI
   const quickActions = [
     { id: "harvest", component: AddHarvestDialog, position: { x: -36, y: -65 }, delay: 0.03 },
     { id: "expense", component: AddExpenseDialog, position: { x: 36, y: -65 }, delay: 0.08 },
@@ -120,8 +120,21 @@ export function AppLayout({
         {children}
       </main>
 
-      {/* ----- ULTRA-MINIMALIST SAFARI FLOATING CAPSULE ----- */}
-      {/* Rombak: Menggunakan rounded-full, max-w-sm, dan border putih tipis border-white/20 */}
+      {/* ─── EVAKUASI AMAN: BACKDROP OVERLAY DI LUAR TRAP TRANSFORMASI (z-40) ─── */}
+      {/* Sekarang benar-benar full screen bebas hambatan dan bisa diclose dari mana aja! */}
+      <AnimatePresence>
+        {isFabOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 backdrop-blur-md z-40"
+            onClick={() => setIsFabOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ----- ULTRA-MINIMALIST SAFARI FLOATING CAPSULE (z-50) ----- */}
       <nav className="fixed bottom-6 left-4 right-4 z-50 max-w-sm mx-auto rounded-full border border-white/20 bg-background/60 backdrop-blur-3xl shadow-[0_15px_40px_rgba(0,0,0,0.2)] transition-all duration-300">
         <div className="relative w-full h-12 px-5">
           
@@ -134,7 +147,6 @@ export function AppLayout({
                 return (
                   <Link key={item.label} href={item.href}>
                     <a className="relative flex flex-col items-center justify-center h-full w-[40px] transition-colors">
-                      {/* FIX KETEBALAN IKON: stroke-[2] murni biar tegas mirip safari */}
                       <Icon className={"h-[19px] w-[19px] transition-all duration-500 " + (isActive ? "text-primary scale-105 stroke-[2.2]" : "text-foreground/60 stroke-[2]")} />
                       {isActive && (
                         <motion.div 
@@ -174,20 +186,8 @@ export function AppLayout({
             </div>
           </div>
 
-          {/* ─── COCKPIT "BALLOON CLUSTER" FAB (SAFARI COMPACT SIZE) ─── */}
+          {/* ─── COCKPIT "BALLOON CLUSTER" FAB ─── */}
           <div className="absolute left-1/2 -translate-x-1/2 -top-4 flex justify-center items-center">
-            
-            <AnimatePresence>
-              {isFabOpen && (
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="fixed inset-0 bg-background/60 backdrop-blur-md -z-10"
-                  onClick={() => setIsFabOpen(false)}
-                />
-              )}
-            </AnimatePresence>
             
             {/* KUMPULAN BALON AKSI MINI */}
             {quickActions.map((action) => {
@@ -218,13 +218,13 @@ export function AppLayout({
               );
             })}
 
-            {/* TOMBOL PUSAT COMPACT RINGKAS (+ / X) */}
+            {/* TOMBOL PUSAT (+) */}
             <motion.button
               onClick={() => setIsFabOpen(!isFabOpen)}
               animate={{ rotate: isFabOpen ? 45 : 0 }}
               transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
               className={
-                "relative flex h-12 w-12 items-center justify-center rounded-full transition-all duration-300 active:scale-95 " +
+                "relative flex h-12 w-12 items-center justify-center rounded-full transition-all duration-300 active:scale-95 z-30 " +
                 (isFabOpen 
                   ? "bg-destructive text-white shadow-lg border border-destructive/40 backdrop-blur-xl" 
                   : "bg-background/60 backdrop-blur-2xl border border-white/20 shadow-md")
