@@ -65,7 +65,6 @@ export function ConnectPage() {
     }
   });
 
-  // MEMULIHKAN FUNGSI HANDLER ASLI BIAR GA ERROR VARIABEL
   const handleConnect = () => {
     setIsConnecting(true);
     initiateOAuth.mutate();
@@ -95,19 +94,21 @@ export function ConnectPage() {
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
       className="max-w-md mx-auto px-2 pt-2 pb-12"
     >
-      <div className="rounded-3xl border border-border/40 bg-slate-900/30 backdrop-blur-2xl shadow-[0_25px_50px_rgba(0,0,0,0.2)] overflow-hidden">
+      {/* CARD UTAMA: Sekarang murni pakai 'bg-card' dinamis, bukan hardcoded slate lagi */}
+      <div className="rounded-3xl border border-border/50 bg-card/40 backdrop-blur-2xl shadow-[0_25px_50px_rgba(0,0,0,0.15)] overflow-hidden">
         
         {/* HEADER MINI PANEL */}
-        <div className="flex items-center justify-between border-b border-border/30 px-5 py-3.5 bg-slate-950/20">
+        <div className="flex items-center justify-between border-b border-border/40 px-5 py-3.5 bg-muted/20">
           <div className="flex items-center gap-2">
-            <div className={"w-2 h-2 rounded-full " + (isTokenInvalid ? "bg-amber-500 animate-pulse" : isConnected ? "bg-primary animate-pulse shadow-[0_0_8px_var(--primary)]" : "bg-muted-foreground/40")} />
+            {/* INDIKATOR STATUS: Memakai dinamis token 'bg-accent' dan 'bg-primary' */}
+            <div className={"w-2 h-2 rounded-full " + (isTokenInvalid ? "bg-accent animate-pulse shadow-[0_0_8px_var(--accent)]" : isConnected ? "bg-primary animate-pulse shadow-[0_0_8px_var(--primary)]" : "bg-muted-foreground/40")} />
             <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80">
               {isTokenInvalid ? "Integrasi Error" : isConnected ? "Notion Connected" : "Notion Disconnected"}
             </span>
           </div>
           
           <Link href="/dashboard">
-            <a className="p-1 rounded-lg hover:bg-white/5 text-muted-foreground/60 hover:text-foreground transition-all">
+            <a className="p-1 rounded-lg hover:bg-muted text-muted-foreground/60 hover:text-foreground transition-all">
               <X className="h-4 w-4 stroke-[2]" />
             </a>
           </Link>
@@ -117,12 +118,13 @@ export function ConnectPage() {
         <div className="p-5">
           {isLoadingStatus ? (
             <div className="space-y-3 py-2">
-              <div className="h-4 bg-white/5 rounded w-1/3 animate-pulse" />
-              <div className="h-10 bg-white/5 rounded-xl w-full animate-pulse" />
+              <Skeleton className="h-4 w-1/3 rounded" />
+              <Skeleton className="h-10 w-full rounded-xl" />
             </div>
           ) : isConnected ? (
             <div className="space-y-4">
-              <div className="flex items-center justify-between gap-3 bg-slate-950/40 border border-border/40 p-3 rounded-2xl">
+              {/* FRAME INFO: Dinamis menyesuaikan warna status token */}
+              <div className={"flex items-center justify-between gap-3 border p-3 rounded-2xl " + (isTokenInvalid ? "bg-accent/5 border-accent/20" : "bg-muted/30 border-border/50")}>
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="h-9 w-9 bg-background border border-border/60 rounded-xl flex items-center justify-center shrink-0">
                     {renderWorkspaceIcon()}
@@ -130,7 +132,7 @@ export function ConnectPage() {
                   <div className="min-w-0">
                     <p className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-wide">Workspace</p>
                     <p className="font-bold text-sm text-foreground truncate mt-0.5" data-testid="text-workspace-name">
-                      {connectionStatus.workspaceName || "Database Aktif"}
+                      {connectionStatus.workspaceName || "Database Pembuku"}
                     </p>
                   </div>
                 </div>
@@ -151,7 +153,7 @@ export function ConnectPage() {
               </div>
 
               {isTokenInvalid && (
-                <p className="text-[11px] text-amber-500 font-medium leading-relaxed bg-amber-500/5 border border-amber-500/20 p-3 rounded-xl">
+                <p className="text-[11px] text-accent font-medium leading-relaxed bg-accent/5 border border-accent/20 p-3 rounded-xl">
                   ⚠ Token kedaluwarsa atau dicabut dari dasbor Notion. Silakan klik tombol hubungkan kembali di bawah.
                 </p>
               )}
@@ -167,7 +169,7 @@ export function ConnectPage() {
 
         {/* CONTROL FOOTER INTERACTION BAR */}
         {(!isConnected || isTokenInvalid) && !isLoadingStatus && (
-          <div className="bg-slate-950/40 border-t border-border/30 px-5 py-3 flex justify-end">
+          <div className="bg-muted/20 border-t border-border/40 px-5 py-3 flex justify-end">
             <Button
               onClick={handleConnect}
               disabled={isConnecting}
