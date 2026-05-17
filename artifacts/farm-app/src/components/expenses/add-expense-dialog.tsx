@@ -408,7 +408,7 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                             <Select onValueChange={field.onChange} value={field.value || ""}>
                               <FormControl>
                                 <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-primary/20 dark:bg-muted/50" data-testid="select-kategori">
-                                  <SelectValue placeholder="Pilih kategori (Bisa dilewati)..." />
+                                  <SelectValue placeholder="Pilih kategori" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent className="rounded-xl shadow-xl">
@@ -436,7 +436,7 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                             <Select onValueChange={field.onChange} value={field.value || ""}>
                               <FormControl>
                                 <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-primary/20 dark:bg-muted/50" data-testid="select-area">
-                                  <SelectValue placeholder="Pilih area kebun (Bisa dilewati)..." />
+                                  <SelectValue placeholder="Pilih area kebun" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent className="rounded-xl shadow-xl">
