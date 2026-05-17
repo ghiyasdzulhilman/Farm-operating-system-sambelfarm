@@ -69,11 +69,12 @@ const harvestSchema = z.object({
 
 type HarvestFormValues = z.infer<typeof harvestSchema>;
 
+// FIX UX: Mengubah default nilai angka 0 jadi string kosong agar placeholder murni aktif
 const EMPTY_VALUES: HarvestFormValues = {
   kegiatan: "",
   tanggal: format(new Date(), "yyyy-MM-dd"),
-  jumlahPanen: 0,
-  hargaJualPerKg: 0,
+  jumlahPanen: "" as any,
+  hargaJualPerKg: "" as any,
   kualitas: "",
   channelPenjualan: "",
   pindahTanamId: "",
@@ -101,10 +102,58 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
 
   const addHarvest = useAddHarvest({
     mutation: {
-      onSuccess: async () => {
+      // FIX LOGIC: Menangkap data variables input untuk di-render ke Cyber Toast
+      onSuccess: async (data, variables) => {
+        
+        // Pemetaan otomatis ID panen ke nama lokasi asli manusia
+        const resolvedArea = dropdownOptions?.pindahTanam?.find(
+          (p) => p.id === variables?.pindahTanamId
+        )?.name || variables?.kegiatan || "Panen Cabe";
+
+        const resolvedChannel = variables?.channelPenjualan || "Pasar Distribusi";
+
+        // SINKRONISASI NOTIFIKASI TOAST PREMIUM DENGAN EXPENSES
         toast({
-          title: "Disimpan ke Antrean",
-          description: "Data masuk Staging dan dashboard diperbarui secara instan.",
+          description: (
+            <div className="w-full space-y-3 pt-1 text-left">
+              {/* Baris Atas: Indikator Lampu LED Neon Mini */}
+              <div className="flex items-start gap-3">
+                <div className="h-2 w-2 rounded-full bg-primary animate-pulse mt-1.5 shrink-0 shadow-[0_0_8px_var(--primary)]" />
+                <div className="space-y-0.5">
+                  <p className="font-black text-sm text-foreground tracking-tight">
+                    Disimpan ke Antrean
+                  </p>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Data masuk Staging lokal dan dashboard diperbarui secara <span className="text-primary font-semibold">instan</span>.
+                  </p>
+                </div>
+              </div>
+
+              {/* Garis Pembatas Tipis */}
+              <div className="border-t border-border/40 my-1" />
+
+              {/* Baris Bawah: Manifes Data Kebun */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-muted/40 border border-border/40 rounded-xl p-2 min-w-0">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/60 block">
+                    Kegiatan / Lokasi
+                  </span>
+                  <p className="text-xs font-bold text-foreground truncate mt-0.5">
+                    {resolvedArea}
+                  </p>
+                </div>
+
+                <div className="bg-muted/40 border border-border/40 rounded-xl p-2 min-w-0">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/60 block">
+                    Channel Pasar
+                  </span>
+                  <p className="text-xs font-bold text-foreground truncate mt-0.5">
+                    {resolvedChannel}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ),
         });
 
         await queryClient.invalidateQueries({ 
@@ -136,6 +185,7 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
   const handleNextStep = async () => {
     let fieldsToValidate: ("kegiatan" | "tanggal" | "jumlahPanen" | "hargaJualPerKg" | "kualitas" | "channelPenjualan")[] = [];
     if (step === 1) fieldsToValidate = ["kegiatan"];
+    // AUDIT BUG: Mengubah validasi agar mengarah ke properti 'tanggal' yang valid sesuai schema
     if (step === 2) fieldsToValidate = ["tanggal"];
     if (step === 3) fieldsToValidate = ["jumlahPanen", "hargaJualPerKg"];
     if (step === 4) fieldsToValidate = ["kualitas", "channelPenjualan"];
@@ -183,7 +233,6 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
         className="mx-auto max-w-md rounded-b-[2rem] border-x-0 border-t-0 p-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl pb-4 shadow-[0_16px_40px_rgba(0,0,0,0.12)]" 
         data-testid="dialog-add-harvest"
       >
-        {/* AUDIT WARNA: Mengubah border kaku ke token border semantik */}
         <SheetHeader className="px-6 py-4 flex flex-row items-center justify-between border-b border-border">
           <div className="flex items-center gap-3">
             <div className="rounded-xl bg-primary/10 p-2 text-primary">
@@ -201,7 +250,6 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
                 key={i} 
                 className={[
                   "h-1.5 rounded-full transition-all duration-300", 
-                  /* AUDIT WARNA: Mengubah basis titik tidak aktif agar seirama visual */
                   step === i ? "w-4 bg-primary" : "w-1.5 bg-border"
                 ].join(" ")} 
               />
@@ -237,12 +285,10 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
                         name="kegiatan"
                         render={({ field }) => (
                           <FormItem className="space-y-1.5">
-                            {/* AUDIT WARNA: Teks kaku berganti ke muted-foreground semantik */}
                             <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
                               1. Apa nama kegiatan panennya?
                             </FormLabel>
                             <FormControl>
-                              {/* AUDIT WARNA: Background input box di dark mode disesuaikan */}
                               <Input
                                 className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-primary/20 text-sm font-medium dark:bg-muted/50"
                                 placeholder="Panen cabe di blok A"
@@ -257,7 +303,7 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
                     </motion.div>
                   )}
 
-                                    {/* STEP 2: TANGGAL */}
+                  {/* STEP 2: TANGGAL */}
                   {step === 2 && (
                     <motion.div
                       key="step2"
@@ -268,14 +314,14 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
                     >
                       <FormField
                         control={form.control}
-                        name="date"
+                        name="tanggal" // FIX BUG & SINKRONISASI: Mengubah dari kaku 'date' ke skema asli 'tanggal'
                         render={({ field }) => (
                           <FormItem className="space-y-1.5">
                             <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-                              2. Kapan tanggal pengeluarannya?
+                              2. Kapan tanggal panennya?
                             </FormLabel>
                             <FormControl>
-                              {/* ─── JURUS ANTI MELEBER: Kita kunci lebar maks di max-w-[220px] ─── */}
+                              {/* FIX VISUAL: Mengunci lebar maksimal agar presisi kapsul seperti Expenses */}
                               <div className="relative max-w-[220px] w-full">
                                 <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                                 <Input
@@ -302,7 +348,6 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
                       exit={{ opacity: 0, y: 10 }}
                       className="space-y-4 text-left"
                     >
-                      {/* AUDIT WARNA: Teks kaku berganti ke muted-foreground semantik */}
                       <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
                         3. Isi Tonase Hasil & Harga Pasar
                       </p>
@@ -312,15 +357,16 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
                           name="jumlahPanen"
                           render={({ field }) => (
                             <FormItem className="space-y-1.5">
-                              {/* AUDIT WARNA: Teks kaku berganti ke muted-foreground semantik */}
                               <FormLabel className="text-[11px] font-bold text-muted-foreground">Total Berat (Kg)</FormLabel>
                               <FormControl>
+                                {/* FIX UX PRO: Menggunakan placeholder="0" + onFocus auto select text */}
                                 <Input
                                   type="number"
                                   min={0}
                                   step="0.01"
-                                  className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-primary/20 dark:bg-muted/50"
-                                  placeholder="0"
+                                  className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-primary/20 dark:bg-muted/50 font-bold text-sm"
+                                  placeholder="0.00"
+                                  onFocus={(e) => e.target.select()}
                                   data-testid="input-jumlah-panen"
                                   {...field}
                                 />
@@ -335,14 +381,15 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
                           name="hargaJualPerKg"
                           render={({ field }) => (
                             <FormItem className="space-y-1.5">
-                              {/* AUDIT WARNA: Teks kaku berganti ke muted-foreground semantik */}
                               <FormLabel className="text-[11px] font-bold text-muted-foreground">Harga Jual per Kg (Rp)</FormLabel>
                               <FormControl>
+                                {/* FIX UX PRO: Menggunakan placeholder="0" + onFocus auto select text */}
                                 <Input
                                   type="number"
                                   min={0}
-                                  className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-primary/20 dark:bg-muted/50"
+                                  className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-primary/20 dark:bg-muted/50 font-bold text-sm"
                                   placeholder="0"
+                                  onFocus={(e) => e.target.select()}
                                   data-testid="input-harga-jual"
                                   {...field}
                                 />
@@ -353,9 +400,7 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
                         />
                       </div>
 
-                      {/* Live Profit/Revenue Estimator */}
                       {totalPendapatan > 0 && (
-                        /* AUDIT WARNA: Menghapus warna emerald kaku, bertukar menjadi relasi dinamis */
                         <div className="rounded-2xl bg-primary/[0.04] px-4 py-3 text-sm flex justify-between items-center border border-primary/10 dark:bg-primary/[0.02]">
                           <span className="font-medium text-muted-foreground">Estimasi Omset Panen:</span>
                           <span className="font-black text-primary text-base" data-testid="text-total-pendapatan-estimasi">
@@ -375,7 +420,6 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
                       exit={{ opacity: 0, y: 10 }}
                       className="space-y-4 text-left"
                     >
-                      {/* AUDIT WARNA: Teks kaku berganti ke muted-foreground semantik */}
                       <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
                         4. Klasifikasi Hasil & Jalur Distribusi
                       </p>
@@ -385,7 +429,6 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
                         name="kualitas"
                         render={({ field }) => (
                           <FormItem className="space-y-1.5">
-                            {/* AUDIT WARNA: Teks kaku berganti ke muted-foreground semantik */}
                             <FormLabel className="text-[11px] font-bold text-muted-foreground">Grade Kualitas</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value}>
                               <FormControl>
@@ -411,7 +454,6 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
                         name="channelPenjualan"
                         render={({ field }) => (
                           <FormItem className="space-y-1.5">
-                            {/* AUDIT WARNA: Teks kaku berganti ke muted-foreground semantik */}
                             <FormLabel className="text-[11px] font-bold text-muted-foreground">Target Pasar / Channel</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value}>
                               <FormControl>
@@ -443,7 +485,6 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
                       exit={{ opacity: 0, y: 10 }}
                       className="space-y-4 text-left"
                     >
-                      {/* AUDIT WARNA: Teks kaku berganti ke muted-foreground semantik */}
                       <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
                         5. Hubungkan Ke Database
                       </p>
@@ -453,7 +494,6 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
                         name="pindahTanamId"
                         render={({ field }) => (
                           <FormItem className="space-y-1.5">
-                            {/* AUDIT WARNA: Teks kaku berganti ke muted-foreground semantik */}
                             <FormLabel className="text-[11px] font-bold text-muted-foreground">Area Pindah Tanam</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value || ""}>
                               <FormControl>
@@ -482,7 +522,6 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
                         name="labaRugiId"
                         render={({ field }) => (
                           <FormItem className="space-y-1.5">
-                            {/* AUDIT WARNA: Teks kaku berganti ke muted-foreground semantik */}
                             <FormLabel className="text-[11px] font-bold text-muted-foreground">Target Mapping Laba Rugi</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value || ""}>
                               <FormControl>
@@ -511,13 +550,11 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
                 </AnimatePresence>
 
                 {/* DYNAMIC NAVIGATION CONTROL FOOTER */}
-                {/* AUDIT WARNA: Batasan pemisah menggunakan border semantik */}
                 <div className="flex justify-between items-center pt-4 border-t border-border">
                   {step > 1 ? (
                     <Button
                       type="button"
                       variant="ghost"
-                      /* AUDIT WARNA: Warna tombol kembali kaku beralih ke muted-foreground */
                       className="h-11 rounded-xl px-4 font-bold text-muted-foreground"
                       onClick={() => setStep((p) => p - 1)}
                       disabled={addHarvest.isPending}
@@ -529,7 +566,6 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
                     <Button
                       type="button"
                       variant="ghost"
-                      /* AUDIT WARNA: Warna tombol batal kaku beralih ke muted-foreground */
                       className="h-11 rounded-xl px-4 font-bold text-muted-foreground"
                       onClick={() => setOpen(false)}
                       data-testid="button-cancel-harvest"
@@ -575,7 +611,6 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
           )}
         </div>
         
-        {/* AUDIT WARNA: Notch handle bawah disesuaikan */}
         <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-border" />
       </SheetContent>
     </Sheet>
