@@ -59,10 +59,18 @@ export function AppLayout({
     { href: "/settings", icon: Settings, label: "Setelan" },
   ];
 
-  // Aksi Balon (Gelembung Kaca)
+  // Definisi Aksi Balon (Gelembung Kaca - KALIBRASI TENGAH + ICON ONLY)
   const quickActions = [
-    { id: "harvest", icon: Sprout, component: AddHarvestDialog, position: { x: -75, y: -80 }, delay: 0 },
-    { id: "expense", icon: Coins, component: AddExpenseDialog, position: { x: -28, y: -110 }, delay: 0.05 },
+    // --- TEMPAT BUAT MENU MASA DEPAN (Kiri - P1) ---
+    // { id: "inspect", ..., position: { x: -75, y: -80 }, delay: 0 },
+
+    // Posisi 2: TENGAH KIRI (Harvest)
+    { id: "harvest", icon: Sprout, component: AddHarvestDialog, position: { x: -28, y: -110 }, delay: 0.05 },
+    // Posisi 3: TENGAH KANAN (Expense)
+    { id: "expense", icon: Coins, component: AddExpenseDialog, position: { x: 28, y: -110 }, delay: 0.1 },
+
+    // --- TEMPAT BUAT MENU MASA DEPAN (Kanan - P4) ---
+    // { id: "treatment", ..., position: { x: 75, y: -80 }, delay: 0.15 },
   ];
 
   return (
@@ -121,7 +129,6 @@ export function AppLayout({
       </main>
 
       {/* ----- PREMIUM BOTTOM NAV DOCK (EDGE GLOW EDITION) ----- */}
-      {/* AUDIT UI: Ditambahin shadow-primary/20 biar pinggirannya bercahaya tipis */}
       <nav className="fixed bottom-5 left-4 right-4 z-50 max-w-md mx-auto rounded-[2rem] border border-primary/30 bg-background/70 backdrop-blur-3xl shadow-[0_0_20px] shadow-primary/20 pb-safe transition-all duration-300">
         <div className="relative max-w-md mx-auto h-16 px-4">
           
@@ -134,7 +141,6 @@ export function AppLayout({
                 return (
                   <Link key={item.label} href={item.href}>
                     <a className="relative flex flex-col items-center justify-center h-full w-[50px] transition-colors">
-                      {/* AUDIT UI: Garis tipis (stroke-[1.5]) ala desain kelas atas */}
                       <Icon className={`h-[22px] w-[22px] transition-all duration-500 ${isActive ? "text-primary scale-110 stroke-[2]" : "text-muted-foreground/50 stroke-[1.5]"}`} />
                       
                       {isActive && (
@@ -191,7 +197,7 @@ export function AppLayout({
               )}
             </AnimatePresence>
             
-            {/* CONTAINER GELEMBUNG BALON (KACA TRANSPARAN) */}
+            {/* CONTAINER GELEMBUNG BALON (TENGAH BUSUR) */}
             {quickActions.map((action) => {
               const ActionDialog = action.component;
               return (
@@ -205,9 +211,9 @@ export function AppLayout({
                       className="absolute z-20"
                     >
                       <div className="relative drop-shadow-2xl">
-                        {/* AUDIT UI: Gelembung dibuat efek kaca transparan dengan border menyala */}
+                        {/* Gelembung kaca transparan */}
                         <div className="flex h-14 w-14 items-center justify-center rounded-full border border-primary/40 bg-background/60 backdrop-blur-xl active:scale-95 transition-all shadow-[0_0_15px] shadow-primary/20 hover:bg-primary/10">
-                          {/* Paksa ikon di dalam dialog ngikutin tema garis tipis dan warna primary */}
+                          {/* Paksa ICON ONLY constraint: text & span disembunyikan */}
                           <div className="[&_button]:h-full [&_button]:w-full [&_button]:flex [&_button]:items-center [&_button]:justify-center [&_button]:border-none [&_button]:p-0 [&_button]:bg-transparent [&_button]:text-primary [&_button]:rounded-full [&_svg]:h-[22px] [&_svg]:w-[22px] [&_svg]:mr-0 [&_svg]:stroke-[1.5] [&_span]:hidden [&_span]:text-[0px]">
                             <ActionDialog onSuccess={() => setIsFabOpen(false)} />
                           </div>
@@ -223,25 +229,4 @@ export function AppLayout({
             <motion.button
               onClick={() => setIsFabOpen(!isFabOpen)}
               animate={{ rotate: isFabOpen ? 45 : 0 }}
-              transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-              /* AUDIT UI: Tombol dibuat ala kepingan kaca tebal dengan glow primary di belakangnya */
-              className={`
-                relative flex h-[68px] w-[68px] items-center justify-center rounded-full transition-all duration-300 active:scale-95
-                ${isFabOpen 
-                  ? "bg-destructive/80 text-white shadow-[0_0_20px] shadow-destructive/40 border border-destructive/50 backdrop-blur-xl" 
-                  : "bg-background/40 backdrop-blur-2xl border-[1.5px] border-primary/50 shadow-[0_0_25px] shadow-primary/40"
-                }
-              `}
-              aria-label="Aksi Kebun"
-            >
-              {/* Ikon Plus dibuat tajam elegan (stroke-[1.5]) */}
-              <Plus className={`h-8 w-8 stroke-[1.5] transition-colors duration-300 ${isFabOpen ? "text-white" : "text-primary"}`} />
-            </motion.button>
-          </div>
-
-        </div>
-      </nav>
-
-    </div>
-  );
-}
+              transition={{ type: "
