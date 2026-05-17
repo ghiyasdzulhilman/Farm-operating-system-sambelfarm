@@ -59,18 +59,18 @@ export function AppLayout({
     { href: "/settings", icon: Settings, label: "Setelan" },
   ];
 
-  // Definisi Aksi Balon (Gelembung Kaca - TENGAH + ICON ONLY)
+  // KALIBRASI ASIMETRIS BALON BERDASARKAN GAMBAR TARGET LU
   const quickActions = [
-    // Posisi 2: TENGAH KIRI (Harvest)
-    { id: "harvest", icon: Sprout, component: AddHarvestDialog, position: { x: -28, y: -110 }, delay: 0.05 },
-    // Posisi 3: TENGAH KANAN (Expense)
-    { id: "expense", icon: Coins, component: AddExpenseDialog, position: { x: 28, y: -110 }, delay: 0.1 },
+    // Balon Kiri: Menggantung di Kiri Atas Tombol
+    { id: "harvest", component: AddHarvestDialog, position: { x: -35, y: -65 }, delay: 0.02 },
+    // Balon Kanan: Menggantung di Kanan Atas Tombol (Pola Genggaman Kipas)
+    { id: "expense", component: AddExpenseDialog, position: { x: 35, y: -65 }, delay: 0.06 },
   ];
 
   return (
     <div className="min-h-screen bg-background pb-28 font-sans text-foreground transition-colors duration-500">
       
-      {/* HEADER: Top Bar */}
+      {/* HEADER */}
       <header
         className={
           "sticky top-0 z-40 w-full border-b border-border/50 bg-background/80 backdrop-blur-2xl transition-all duration-300 " +
@@ -127,7 +127,6 @@ export function AppLayout({
         <div className="relative max-w-md mx-auto h-16 px-4">
           
           <div className="flex items-center justify-between h-full w-full">
-            {/* SAYAP NAVIGASI KIRI */}
             <div className="flex w-2/5 justify-around h-full items-center">
               {[navItems[0], navItems[1]].map((item) => {
                 const Icon = item.icon;
@@ -136,7 +135,6 @@ export function AppLayout({
                   <Link key={item.label} href={item.href}>
                     <a className="relative flex flex-col items-center justify-center h-full w-[50px] transition-colors">
                       <Icon className={"h-[22px] w-[22px] transition-all duration-500 " + (isActive ? "text-primary scale-110 stroke-[2]" : "text-muted-foreground/50 stroke-[1.5]")} />
-                      
                       {isActive && (
                         <motion.div 
                           layoutId="nav-glow-dot"
@@ -152,7 +150,6 @@ export function AppLayout({
 
             <div className="w-1/5 flex justify-center items-center" />
 
-            {/* SAYAP NAVIGASI KANAN */}
             <div className="flex w-2/5 justify-around h-full items-center">
               {[navItems[2], navItems[3]].map((item) => {
                 const Icon = item.icon;
@@ -161,12 +158,11 @@ export function AppLayout({
                   <Link key={item.label} href={item.href}>
                     <a className="relative flex flex-col items-center justify-center h-full w-[50px] transition-colors">
                       <Icon className={"h-[22px] w-[22px] transition-all duration-500 " + (isActive ? "text-primary scale-110 stroke-[2]" : "text-muted-foreground/50 stroke-[1.5]")} />
-                      
                       {isActive && (
                         <motion.div 
-                        layoutId="nav-glow-dot"
-                        className="absolute bottom-1.5 h-1 w-1 rounded-full bg-primary shadow-[0_0_8px] shadow-primary"
-                        transition={{ type: "spring", stiffness: 380, damping: 28 }}
+                          layoutId="nav-glow-dot"
+                          className="absolute bottom-1.5 h-1 w-1 rounded-full bg-primary shadow-[0_0_8px] shadow-primary"
+                          transition={{ type: "spring", stiffness: 380, damping: 28 }}
                         />
                       )}
                     </a>
@@ -191,7 +187,7 @@ export function AppLayout({
               )}
             </AnimatePresence>
             
-            {/* CONTAINER GELEMBUNG BALON (TENGAH BUSUR) */}
+            {/* CONTAINER GELEMBUNG BALON ASIMETRIS */}
             {quickActions.map((action) => {
               const ActionDialog = action.component;
               return (
@@ -201,14 +197,14 @@ export function AppLayout({
                       initial={{ opacity: 0, x: 0, y: 0, scale: 0 }}
                       animate={{ opacity: 1, x: action.position.x, y: action.position.y, scale: 1 }}
                       exit={{ opacity: 0, x: 0, y: 0, scale: 0 }}
-                      transition={{ type: "spring", bounce: 0.4, duration: 0.6, delay: action.delay }}
+                      transition={{ type: "spring", bounce: 0.35, duration: 0.5, delay: action.delay }}
                       className="absolute z-20"
                     >
                       <div className="relative drop-shadow-2xl">
-                        {/* Gelembung kaca transparan */}
-                        <div className="flex h-14 w-14 items-center justify-center rounded-full border border-primary/40 bg-background/60 backdrop-blur-xl active:scale-95 transition-all shadow-[0_0_15px] shadow-primary/20 hover:bg-primary/10">
-                          {/* Paksa ICON ONLY constraint: text & span disembunyikan */}
-                          <div className="[&_button]:h-full [&_button]:w-full [&_button]:flex [&_button]:items-center [&_button]:justify-center [&_button]:border-none [&_button]:p-0 [&_button]:bg-transparent [&_button]:text-primary [&_button]:rounded-full [&_svg]:h-[22px] [&_svg]:w-[22px] [&_svg]:mr-0 [&_svg]:stroke-[1.5] [&_span]:hidden [&_span]:text-[0px]">
+                        {/* BUBBLE KACA PREMIUM */}
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full border border-primary/40 bg-background/80 backdrop-blur-xl active:scale-95 transition-all shadow-[0_0_15px] shadow-primary/20 hover:bg-primary/10">
+                          {/* SUNTIKAN CSS MAUT: Melenyapkan teks internal dialog & menyisakan ikon murni */}
+                          <div className="[&_button]:h-full [&_button]:w-full [&_button]:flex [&_button]:items-center [&_button]:justify-center [&_button]:border-none [&_button]:p-0 [&_button]:bg-transparent [&_button]:text-primary [&_button]:rounded-full [&_svg]:h-5 [&_svg]:w-5 [&_svg]:mr-0 [&_svg]:stroke-[1.5] [&_span]:hidden [&_span]:text-[0px] font-[0px] text-[0px] text-transparent">
                             <ActionDialog onSuccess={() => setIsFabOpen(false)} />
                           </div>
                         </div>
@@ -225,14 +221,14 @@ export function AppLayout({
               animate={{ rotate: isFabOpen ? 45 : 0 }}
               transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
               className={
-                "relative flex h-[68px] w-[68px] items-center justify-center rounded-full transition-all duration-300 active:scale-95 " +
+                "relative flex h-[64px] w-[64px] items-center justify-center rounded-full transition-all duration-300 active:scale-95 " +
                 (isFabOpen 
                   ? "bg-destructive/80 text-white shadow-[0_0_20px] shadow-destructive/40 border border-destructive/50 backdrop-blur-xl" 
                   : "bg-background/40 backdrop-blur-2xl border-[1.5px] border-primary/50 shadow-[0_0_25px] shadow-primary/40")
               }
               aria-label="Aksi Kebun"
             >
-              <Plus className={"h-8 w-8 stroke-[1.5] transition-colors duration-300 " + (isFabOpen ? "text-white" : "text-primary")} />
+              <Plus className={"h-7 w-7 stroke-[1.5] transition-colors duration-300 " + (isFabOpen ? "text-white" : "text-primary")} />
             </motion.button>
           </div>
 
