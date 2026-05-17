@@ -50,7 +50,7 @@ const scrollReveal = {
     filter: "blur(0px)",
     transition: { 
       duration: 0.8, 
-      ease: [0.21, 1.11, 0.81, 0.99]
+      ease: [0.21, 1.11, 0.81, 0.99] // Efek spring yang smooth
     } 
   }
 };
@@ -92,6 +92,7 @@ function AnimatedNumber({
 }) {
   const [displayValue, setDisplayValue] = useState(formatFn(0));
 
+  // Trik biar animasi ga ke-trigger cuma gara-gara buka/tutup menu filter
   const formatRef = useRef(formatFn);
   useEffect(() => {
     formatRef.current = formatFn;
@@ -107,7 +108,7 @@ function AnimatedNumber({
     });
 
     return () => controls.stop();
-  }, [value]);
+  }, [value]); // Kunci utama: Animasi cuma ngulang kalo 'value' nya berubah
 
   return <span>{displayValue}</span>;
 }
@@ -155,6 +156,7 @@ export function DashboardPage() {
         if (!element) return;
 
         const rect = element.getBoundingClientRect();
+        // Ubah angkanya jadi 112 biar sensornya pas sama landing baru
         if (rect.top <= 92) {
           currentSection = section.key;
         }
@@ -250,6 +252,7 @@ export function DashboardPage() {
   const expenseActivities =
     summary?.activities?.filter((activity: any) => activity.type === "expense") || [];
 
+  // FIX: Menggunakan insight langsung dari Backend jika "Semua Area"
   const localBusinessStatus = selectedAreaId === "all" && summary?.insight?.businessStatus 
     ? summary.insight.businessStatus 
     : (displayData.margin > 0 ? "Profitable" : "Developing");
@@ -290,6 +293,7 @@ export function DashboardPage() {
     }
   })();
 
+  // --- PASTE MULAI DARI SINI ---
   const scrollToSection = (section: DashboardSection) => {
     setActiveSection(section);
     sectionRefs[section].current?.scrollIntoView({
@@ -298,6 +302,7 @@ export function DashboardPage() {
     });
   };
 
+  // 1. CEK LOADING SCREEN (Aman dari flash data 0)
   if (isLoadingConnection || (isLoadingSummary && !summary)) {
     return (
       <div className="mt-4 space-y-5 px-4 md:px-6">
@@ -312,15 +317,23 @@ export function DashboardPage() {
     );
   }
 
+  // 2. HITUNGAN VARIABEL (Hanya Dideklarasikan Sekali Di Sini)
   const hpp = displayData.pengeluaran / (displayData.harvestWeight || 1);
-  const bepProgress = Math.min((displayData.pendapatan / (displayData.modal || 1)) * 100, 100);
+  
+  const bepProgress = Math.min(
+    (displayData.pendapatan / (displayData.modal || 1)) * 100,
+    100
+  );
 
+  // 3. RENDER UI UTAMA
   return (
     <div className="flex min-h-screen flex-col pb-20 font-sans">
 
+      {/* ── Floating staging queue indicator ── */}
       <StagingQueueCard stagingStats={summary?.stagingStats} />
 
       <main className="relative mx-auto w-full max-w-7xl overflow-x-clip px-4 pt-4 md:px-6">
+        {/* ALERT JIKA TOKEN NOTION PUTUS */}
         {isTokenInvalid && (
           <Alert variant="destructive" className="mb-4 border-red-500/50 bg-red-500/10 text-red-500 dark:bg-red-900/20">
             <AlertTriangle className="h-4 w-4" />
@@ -331,9 +344,11 @@ export function DashboardPage() {
           </Alert>
         )}
 
+        {/* --- NAVIGASI PILL & FILTER (Versi Drawer / Pull-Tab) --- */}
         <div className="sticky top-2 z-30 flex flex-col md:top-4">
           <div className="w-full overflow-hidden rounded-[1.55rem] border border-white/60 bg-white/72 p-1.5 shadow-[0_18px_50px_rgba(15,23,42,0.10)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/70">
             
+            {/* Baris 1: Segmented Control */}
             <div className="relative z-20 grid grid-cols-4 gap-1">
               {sectionItems.map((item) => (
                 <button
@@ -361,6 +376,7 @@ export function DashboardPage() {
               ))}
             </div>
 
+            {/* Baris 2: Area Filter */}
             <AnimatePresence initial={false}>
               {showControls && (
                 <motion.div
@@ -409,14 +425,14 @@ export function DashboardPage() {
         </div>
 
         {/* --- CARD BUSINESS PULSE & BEP SLIM --- */}
-        <div className="relative mt-4 overflow-hidden rounded-[2rem] bg-slate-950 p-5 text-white shadow-2xl md:mt-6 md:rounded-[2.5rem] md:p-6">
+        {/* AUDIT WARNA: Menambahkan trik [transform:translateZ(0)] buat menambal bug Safari offside pojok kanan */}
+        <div className="relative mt-4 overflow-hidden rounded-[2rem] bg-slate-950 p-5 text-white shadow-2xl md:mt-6 md:rounded-[2.5rem] md:p-6 [transform:translateZ(0)]">
           <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/20 blur-[80px]" />
           
           <div className="relative z-10">
             <div className="flex items-start justify-between">
               <div>
                 <p className="mb-1 text-xs font-bold text-white/50">Business pulse</p>
-                {/* AUDIT WARNA: Judul status ngikutin warna Margin */}
                 <h2 className={`text-2xl font-black md:text-3xl transition-colors duration-500 ${getMarginColor(displayData.margin)}`}>
                   {localBusinessStatus}
                 </h2>
@@ -429,7 +445,7 @@ export function DashboardPage() {
             <div className="mt-5 md:mt-6">
               <div className="grid grid-cols-2 gap-3 text-sm">
                 
-                {/* AUDIT WARNA: Kotak Margin dinamis berdasarkan angka persentase */}
+                {/* Kotak Margin */}
                 <div className={`rounded-2xl border p-4 transition-colors duration-500 ${getMarginBg(displayData.margin)}`}>
                   <p className={`mb-1 text-[10px] font-bold uppercase tracking-[0.15em] ${getMarginColor(displayData.margin)}`}>Margin</p>
                   <p className="text-2xl font-black text-white">
@@ -441,9 +457,9 @@ export function DashboardPage() {
                   </p>
                 </div>
 
-                {/* AUDIT WARNA: Kotak HPP disinkronkan dengan warna Secondary biar variatif tapi tetap nyatu tema */}
-                <div className="rounded-2xl border border-secondary/20 bg-secondary/10 p-4 transition-colors duration-500">
-                  <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-secondary">HPP / kg</p>
+                {/* AUDIT WARNA: Kotak HPP disamakan dengan Margin agar tidak terlalu rame warnanya */}
+                <div className={`rounded-2xl border p-4 transition-colors duration-500 ${getMarginBg(displayData.margin)}`}>
+                  <p className={`mb-1 text-[10px] font-bold uppercase tracking-[0.15em] ${getMarginColor(displayData.margin)}`}>HPP / kg</p>
                   <p className="text-xl font-black text-white">
                     <AnimatedNumber 
                       key={`hpp-${selectedAreaId}-${summary?.lastUpdated}`}
@@ -467,7 +483,6 @@ export function DashboardPage() {
                   </span>
                 </div>
                 <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
-                  {/* AUDIT WARNA: BEP Bar sekarang konsisten pakai solid Primary biar elegan */}
                   <motion.div
                     key={`bep-bar-${selectedAreaId}-${summary?.lastUpdated}`}
                     initial={{ width: 0 }}
