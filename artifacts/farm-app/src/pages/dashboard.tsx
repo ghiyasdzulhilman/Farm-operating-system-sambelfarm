@@ -113,13 +113,7 @@ function AnimatedNumber({
   return <span>{displayValue}</span>;
 }
 
-// HELPER WARNA DINAMIS: Deteksi status margin
-const getMarginColor = (margin: number) => {
-  if (margin >= 15) return "text-primary";
-  if (margin > 0) return "text-accent";
-  return "text-destructive";
-};
-
+// AUDIT UI: getMarginColor dihapus biar teks gak warna-warni ijo/merah.
 const getMarginBg = (margin: number) => {
   if (margin >= 15) return "border-primary/20 bg-primary/10";
   if (margin > 0) return "border-accent/20 bg-accent/10";
@@ -425,20 +419,20 @@ export function DashboardPage() {
         </div>
 
         {/* --- CARD BUSINESS PULSE & BEP SLIM --- */}
-        {/* AUDIT WARNA: Menambahkan trik [transform:translateZ(0)] buat menambal bug Safari offside pojok kanan */}
         <div className="relative mt-4 overflow-hidden rounded-[2rem] bg-slate-950 p-5 text-white shadow-2xl md:mt-6 md:rounded-[2.5rem] md:p-6 [transform:translateZ(0)]">
           <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/20 blur-[80px]" />
           
           <div className="relative z-10">
             <div className="flex items-start justify-between">
               <div>
-                <p className="mb-1 text-xs font-bold text-white/50">Business pulse</p>
-                <h2 className={`text-2xl font-black md:text-3xl transition-colors duration-500 ${getMarginColor(displayData.margin)}`}>
+                <p className="mb-1 text-xs font-bold text-white/60">Business pulse</p>
+                {/* AUDIT UI: Teks judul kembali ke putih bersih tanpa embel-embel warna ijo */}
+                <h2 className="text-2xl font-black text-white md:text-3xl transition-colors duration-500">
                   {localBusinessStatus}
                 </h2>
               </div>
               <div className="rounded-2xl bg-white/10 p-3 backdrop-blur-md">
-                <Bot className="h-6 w-6 text-primary" />
+                <Bot className="h-6 w-6 text-white" />
               </div>
             </div>
 
@@ -447,7 +441,8 @@ export function DashboardPage() {
                 
                 {/* Kotak Margin */}
                 <div className={`rounded-2xl border p-4 transition-colors duration-500 ${getMarginBg(displayData.margin)}`}>
-                  <p className={`mb-1 text-[10px] font-bold uppercase tracking-[0.15em] ${getMarginColor(displayData.margin)}`}>Margin</p>
+                  {/* AUDIT UI: Label kembali ke putih transparan */}
+                  <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-white/60">Margin</p>
                   <p className="text-2xl font-black text-white">
                     <AnimatedNumber 
                       key={`margin-${selectedAreaId}-${summary?.lastUpdated}`}
@@ -457,9 +452,10 @@ export function DashboardPage() {
                   </p>
                 </div>
 
-                {/* AUDIT WARNA: Kotak HPP disamakan dengan Margin agar tidak terlalu rame warnanya */}
+                {/* Kotak HPP */}
                 <div className={`rounded-2xl border p-4 transition-colors duration-500 ${getMarginBg(displayData.margin)}`}>
-                  <p className={`mb-1 text-[10px] font-bold uppercase tracking-[0.15em] ${getMarginColor(displayData.margin)}`}>HPP / kg</p>
+                  {/* AUDIT UI: Label kembali ke putih transparan */}
+                  <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-white/60">HPP / kg</p>
                   <p className="text-xl font-black text-white">
                     <AnimatedNumber 
                       key={`hpp-${selectedAreaId}-${summary?.lastUpdated}`}
@@ -473,8 +469,9 @@ export function DashboardPage() {
 
               <div className="mt-3 rounded-2xl border border-white/10 bg-white/5 p-3.5">
                 <div className="mb-2 flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.15em]">
-                  <span className="text-white/50">BEP Runway</span>
-                  <span className="text-primary">
+                  <span className="text-white/60">BEP Runway</span>
+                  {/* AUDIT UI: Teks persentase BEP di-set putih tebal */}
+                  <span className="text-white font-bold">
                     <AnimatedNumber 
                       key={`bep-${selectedAreaId}-${summary?.lastUpdated}`}
                       value={bepProgress} 
