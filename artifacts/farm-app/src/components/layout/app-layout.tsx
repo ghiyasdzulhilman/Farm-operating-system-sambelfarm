@@ -59,16 +59,14 @@ export function AppLayout({
     { href: "/settings", icon: Settings, label: "Setelan" },
   ];
 
-  // KALIBRASI BUSUR KIPAS (Lengkungan Organik untuk 4 Balon)
+  // KALIBRASI BUSUR KIPAS (Lengkungan Organik Menyesuaikan Bar Ramping Safari)
   const quickActions = [
-    // Posisi TENGAH KIRI (Nantinya Paling Kiri di x: -80, y: -45)
-    { id: "harvest", component: AddHarvestDialog, position: { x: -40, y: -85 }, delay: 0.03 },
-    // Posisi TENGAH KANAN (Nantinya Paling Kanan di x: 80, y: -45)
-    { id: "expense", component: AddExpenseDialog, position: { x: 40, y: -85 }, delay: 0.08 },
+    { id: "harvest", component: AddHarvestDialog, position: { x: -42, y: -75 }, delay: 0.03 },
+    { id: "expense", component: AddExpenseDialog, position: { x: 42, y: -75 }, delay: 0.08 },
   ];
 
   return (
-    <div className="min-h-screen bg-background pb-28 font-sans text-foreground transition-colors duration-500">
+    <div className="min-h-screen bg-background pb-24 font-sans text-foreground transition-colors duration-500">
       
       {/* HEADER: Top Bar */}
       <header
@@ -106,8 +104,8 @@ export function AppLayout({
                 const label = isInvalid ? "Token Invalid" : isConnected ? "Connected" : "Disconnected";
 
                 return (
-                  <button className={"inline-flex items-center gap-2 text-xs font-medium px-3 py-1 rounded-full border w-fit transition-all " + colorClass}>
-                    <div className={"w-2 h-2 rounded-full " + dotClass} />
+                  <button className={`inline-flex items-center gap-2 text-xs font-medium px-3 py-1 rounded-full border w-fit transition-all ${colorClass}`}>
+                    <div className={`w-2 h-2 rounded-full ${dotClass}`} />
                     {label}
                   </button>
                 );
@@ -122,9 +120,10 @@ export function AppLayout({
         {children}
       </main>
 
-      {/* ----- BOTTOM NAV DOCK ----- */}
-      <nav className="fixed bottom-5 left-4 right-4 z-50 max-w-md mx-auto rounded-[2rem] border border-primary/30 bg-background/70 backdrop-blur-3xl shadow-[0_0_20px] shadow-primary/20 pb-safe transition-all duration-300">
-        <div className="relative max-w-md mx-auto h-16 px-4">
+      {/* ----- SAFARI NATIVE STYLE BOTTOM DOCK ----- */}
+      {/* Perubahan: rounded-t, left-0 right-0 bottom-0 w-full untuk efek rata menyatu ke bawah */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 w-full rounded-t-[1.75rem] border-t border-primary/20 bg-background/80 backdrop-blur-3xl shadow-[0_-10px_30px_rgba(34,197,94,0.08)] pb-safe transition-all duration-300">
+        <div className="relative w-full max-w-md mx-auto h-14 px-6">
           
           <div className="flex items-center justify-between h-full w-full">
             {/* SAYAP KIRI */}
@@ -134,12 +133,12 @@ export function AppLayout({
                 const isActive = location === item.href;
                 return (
                   <Link key={item.label} href={item.href}>
-                    <a className="relative flex flex-col items-center justify-center h-full w-[50px] transition-colors">
-                      <Icon className={"h-[22px] w-[22px] transition-all duration-500 " + (isActive ? "text-primary scale-110 stroke-[2]" : "text-muted-foreground/50 stroke-[1.5]")} />
+                    <a className="relative flex flex-col items-center justify-center h-full w-[45px] transition-colors">
+                      <Icon className={"h-[21px] w-[21px] transition-all duration-500 " + (isActive ? "text-primary scale-110 stroke-[2]" : "text-muted-foreground/50 stroke-[1.5]")} />
                       {isActive && (
                         <motion.div 
                           layoutId="nav-glow-dot"
-                          className="absolute bottom-1.5 h-1 w-1 rounded-full bg-primary shadow-[0_0_8px] shadow-primary"
+                          className="absolute bottom-1 h-1 w-1 rounded-full bg-primary shadow-[0_0_8px] shadow-primary"
                           transition={{ type: "spring", stiffness: 380, damping: 28 }}
                         />
                       )}
@@ -149,6 +148,7 @@ export function AppLayout({
               })}
             </div>
 
+            {/* Spacer Tengah untuk FAB Anchor */}
             <div className="w-1/5 flex justify-center items-center" />
 
             {/* SAYAP KANAN */}
@@ -158,12 +158,12 @@ export function AppLayout({
                 const isActive = location === item.href;
                 return (
                   <Link key={item.label} href={item.href}>
-                    <a className="relative flex flex-col items-center justify-center h-full w-[50px] transition-colors">
-                      <Icon className={"h-[22px] w-[22px] transition-all duration-500 " + (isActive ? "text-primary scale-110 stroke-[2]" : "text-muted-foreground/50 stroke-[1.5]")} />
+                    <a className="relative flex flex-col items-center justify-center h-full w-[45px] transition-colors">
+                      <Icon className={"h-[21px] w-[21px] transition-all duration-500 " + (isActive ? "text-primary scale-110 stroke-[2]" : "text-muted-foreground/50 stroke-[1.5]")} />
                       {isActive && (
                         <motion.div 
                           layoutId="nav-glow-dot"
-                          className="absolute bottom-1.5 h-1 w-1 rounded-full bg-primary shadow-[0_0_8px] shadow-primary"
+                          className="absolute bottom-1 h-1 w-1 rounded-full bg-primary shadow-[0_0_8px] shadow-primary"
                           transition={{ type: "spring", stiffness: 380, damping: 28 }}
                         />
                       )}
@@ -174,8 +174,8 @@ export function AppLayout({
             </div>
           </div>
 
-          {/* ─── COCKPIT "BALLOON CLUSTER" FAB ─── */}
-          <div className="absolute left-1/2 -translate-x-1/2 -top-6 flex justify-center items-center">
+          {/* ─── COCKPIT "BALLOON CLUSTER" FAB (SAFARI CENTERED) ─── */}
+          <div className="absolute left-1/2 -translate-x-1/2 -top-5 flex justify-center items-center">
             
             <AnimatePresence>
               {isFabOpen && (
@@ -205,11 +205,10 @@ export function AppLayout({
                       <div className="relative drop-shadow-2xl">
                         
                         {/* BALON PRIMARY GLASSMORPHISM */}
-                        <div className="relative flex h-[52px] w-[52px] items-center justify-center rounded-full border border-white/30 bg-primary/85 backdrop-blur-xl shadow-[0_8px_20px] shadow-primary/30 active:scale-95 transition-all">
+                        <div className="relative flex h-[50px] w-[50px] items-center justify-center rounded-full border border-white/20 bg-primary/90 backdrop-blur-xl shadow-[0_6px_15px] shadow-primary/20 active:scale-95 transition-all">
                           
-                          {/* CSS MAUT PEMBUNUH TEKS: Force button full circle, font size 0, text transparent */}
-                          <div className="absolute inset-0 h-full w-full overflow-hidden flex items-center justify-center [&_button]:h-full [&_button]:w-full [&_button]:rounded-full [&_button]:bg-transparent [&_button]:p-0 [&_button]:border-none [&_button]:shadow-none [&_button]:text-[0px] [&_button]:text-transparent [&_button>span]:hidden [&_button_svg]:h-6 [&_button_svg]:w-6 [&_button_svg]:text-white [&_button_svg]:m-0 [&_button_svg]:translate-x-[4px]
-">
+                          {/* CSS MAUT PEMBUNUH TEKS */}
+                          <div className="absolute inset-0 h-full w-full overflow-hidden flex items-center justify-center [&_button]:h-full [&_button]:w-full [&_button]:rounded-full [&_button]:bg-transparent [&_button]:p-0 [&_button]:border-none [&_button]:shadow-none [&_button]:text-[0px] [&_button]:text-transparent [&_button>span]:hidden [&_button_svg]:h-5.5 [&_button_svg]:w-5.5 [&_button_svg]:text-white [&_button_svg]:m-0 [&_button_svg]:translate-x-[4px]">
                             <ActionDialog onSuccess={() => setIsFabOpen(false)} />
                           </div>
                           
@@ -222,20 +221,20 @@ export function AppLayout({
               );
             })}
 
-            {/* TOMBOL PUSAT (+) */}
+            {/* TOMBOL PUSAT CORNER RAMPING (+ / X) */}
             <motion.button
               onClick={() => setIsFabOpen(!isFabOpen)}
               animate={{ rotate: isFabOpen ? 45 : 0 }}
               transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
               className={
-                "relative flex h-[64px] w-[64px] items-center justify-center rounded-full transition-all duration-300 active:scale-95 " +
+                "relative flex h-[58px] w-[58px] items-center justify-center rounded-full transition-all duration-300 active:scale-95 " +
                 (isFabOpen 
-                  ? "bg-destructive/80 text-white shadow-[0_0_20px] shadow-destructive/40 border border-destructive/50 backdrop-blur-xl" 
-                  : "bg-background/40 backdrop-blur-2xl border-[1.5px] border-primary/50 shadow-[0_0_25px] shadow-primary/40")
+                  ? "bg-destructive/80 text-white shadow-[0_0_15px] shadow-destructive/40 border border-destructive/40 backdrop-blur-xl" 
+                  : "bg-background/50 backdrop-blur-2xl border border-primary/40 shadow-[0_0_20px] shadow-primary/30")
               }
               aria-label="Aksi Kebun"
             >
-              <Plus className={"h-7 w-7 stroke-[1.5] transition-colors duration-300 " + (isFabOpen ? "text-white" : "text-primary")} />
+              <Plus className={"h-6 w-6 stroke-[1.5] transition-colors duration-300 " + (isFabOpen ? "text-white" : "text-primary")} />
             </motion.button>
           </div>
 
