@@ -30,12 +30,12 @@ interface FinancialSectionProps {
 
 /* AUDIT WARNA: Mengubah gradient kaku menjadi gradient dinamis berdasarkan token tema CSS */
 const metricAccent: Record<string, string> = {
-  modal: "from-primary to-primary/70 text-primary-foreground",
-  pendapatan: "from-primary to-primary/70 text-primary-foreground",
+  modal: "from-secondary to-secondary/70 text-secondary-foreground",
+  pendapatan: "from-secondary to-secondary/70 text-secondary-foreground",
   pengeluaran: "from-secondary to-secondary/70 text-secondary-foreground",
-  profit: "from-accent to-accent/70 text-accent-foreground",
-  margin: "from-accent to-accent/70 text-accent-foreground",
-  hpp: "from-accent to-accent/70 text-accent-foreground",
+  profit: "from-secondary to-secondary/70 text-secondary-foreground",
+  margin: "from-secondary to-secondary/70 text-secondary-foreground",
+  hpp: "from-secondary to-secondary/70 text-secondary-foreground",
 };
 
 // --- METRIC CARD ---
