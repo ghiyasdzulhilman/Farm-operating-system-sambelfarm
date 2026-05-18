@@ -47,7 +47,7 @@ import { cn } from "@/lib/utils";
 // ---------------------------------------------------------------------------
 type DomainType = "finance" | "agronomy" | "lab" | "resource";
 
-// ✨ FIX 1: Nambahin kamus (aliases) buat kolom-kolom baru
+// ✨ KAMUS YANG DIPERLUAS
 const ALIASES: Record<string, string[]> = {
   qty: ["qty", "jumlah", "berat", "quantity", "kg"],
   harga: ["harga", "price", "rp", "jual", "satuan"],
@@ -55,17 +55,20 @@ const ALIASES: Record<string, string[]> = {
   channel: ["channel", "saluran", "tujuan", "pembeli", "penjualan"],
   tanggal: ["tanggal", "date", "waktu", "hari", "created", "pelaksanaan"],
   kategori: ["kategori", "category", "jenis"],
-  area: ["area", "blok", "lahan", "pindah tanam"],
-  kegiatan: ["kegiatan", "judul", "nama", "task", "operasional", "treatment", "inspeksi", "perawatan"],
+  area: ["area", "blok", "lahan", "pindah tanam", "target", "lokasi"],
+  kegiatan: ["kegiatan", "judul", "nama", "task", "operasional", "treatment", "inspeksi", "perawatan", "tindakan"],
   hama: ["hama", "serangga", "kutu", "ulat"],
   penyakit: ["penyakit", "jamur", "virus", "bakteri", "bercak", "patogen"],
   tingkatSerangan: ["serangan", "persentase", "tingkat", "keparahan", "%"],
   radius: ["radius", "meter", "luasan", "jarak"],
   phTanah: ["ph", "asam", "basa", "keasaman"],
-  tags: ["tags", "jenis", "tipe", "metode"],
-  petugas: ["petugas", "pic", "penanggung", "pekerja", "person in charge"],
+  tags: ["tags", "jenis", "tipe", "metode", "kategori", "label"],
+  petugas: ["petugas", "pic", "penanggung", "pekerja", "person in charge", "eksekutor"],
+  status: ["status", "progres", "state", "kondisi"],
+  hst: ["hst", "hari setelah", "umur", "usia", "hari"],
 };
 
+// ✨ SKEMA YANG DISESUAIKAN DENGAN NOTION LU
 const DOMAINS: any[] = [
   {
     id: "finance",
@@ -109,14 +112,22 @@ const DOMAINS: any[] = [
         { key: "area", label: "Area/Blok", expectedType: "title", aliases: ALIASES.area },
         { key: "waktu_tanam", label: "Waktu Tanam", expectedType: "date", aliases: ALIASES.tanggal },
       ]},
-      // ✨ FIX 2: Benerin schema Perawatan & Inspeksi biar persis sama kayak DB_FIELD_SPECS di Backend
-      { id: "perawatan", label: "Riwayat Perawatan (Multi-Blok)", hint: "Data Kocor, Semprot & Pemupukan", isMultiInstance: false, fields: [
-        { key: "kegiatan", label: "Nama Kegiatan", expectedType: "title", aliases: ALIASES.kegiatan },
-        { key: "tanggal", label: "Tanggal", expectedType: "date|created_time", aliases: ALIASES.tanggal },
-        { key: "areaId", label: "Target Area (Relasi)", expectedType: "relation", aliases: ALIASES.area },
-        { key: "tags", label: "Tags / Jenis", expectedType: "select", aliases: ALIASES.tags },
-        { key: "petugasId", label: "Petugas", expectedType: "relation", aliases: ALIASES.petugas },
-      ]},
+            // ✨ KEMBALI KE MULTI-INSTANCE DEMI USER LAMA
+      { 
+        id: "perawatan", 
+        label: "Riwayat Perawatan (Multi-Database)", 
+        hint: "Hubungkan ke berbagai database blok milik user", 
+        isMultiInstance: true, // 👈 Kita nyalain lagi fiturnya bro!
+        fields: [
+          { key: "kegiatan", label: "Nama Kegiatan", expectedType: "title", aliases: ALIASES.kegiatan },
+          { key: "tanggal", label: "Tanggal Pelaksanaan", expectedType: "date|created_time", aliases: ALIASES.tanggal },
+          { key: "areaId", label: "Target Area / Blok", expectedType: "relation", aliases: ALIASES.area },
+          { key: "tags", label: "Jenis / Tags", expectedType: "select|multi_select", aliases: ALIASES.tags },
+          { key: "petugasId", label: "Petugas Lapangan", expectedType: "relation", aliases: ALIASES.petugas },
+          { key: "status", label: "Status Progress", expectedType: "status|select", aliases: ALIASES.status },
+        ]
+      },
+
       { id: "inspeksi", label: "Inspeksi & Kesehatan Tanaman", hint: "Pencatatan Hama Penyakit", fields: [
         { key: "kegiatan", label: "Judul Laporan", expectedType: "title", aliases: ALIASES.kegiatan },
         { key: "tanggal", label: "Tanggal", expectedType: "date|created_time", aliases: ALIASES.tanggal },
