@@ -116,14 +116,17 @@ const DB_FIELD_SPECS: Record<string, FieldSpec[]> = {
     { mappingKey: "labaRugi", dataKey: "areaId", build: (v) => ({ relation: [{ id: String(v) }] }), optional: true },
   ],
   
-  // ✨ TAMBAHAN 2: Mapping untuk Modul Agronomy (Persiapan Sync)
+    // ✨ MAPPING LENGKAP AGRONOMI
   perawatan: [
     { mappingKey: "kegiatan", build: (v) => ({ title: [{ text: { content: String(v ?? "") } }] }) },
     { mappingKey: "tanggal", build: (v) => ({ date: { start: String(v) } }) },
     { mappingKey: "areaId", build: (v) => ({ relation: [{ id: String(v) }] }), optional: true },
     { mappingKey: "tags", build: (v) => ({ select: { name: String(v) } }), optional: true },
     { mappingKey: "petugasId", build: (v) => ({ relation: [{ id: String(v) }] }), optional: true },
+    // Otomatis kasih status "Done/Selesai" ke Notion setiap kali input dari HP
+    { mappingKey: "status", dataKey: "status", build: (v) => ({ status: { name: "Done" } }), optional: true }, 
   ],
+
   inspeksi: [
     { mappingKey: "kegiatan", build: (v) => ({ title: [{ text: { content: String(v ?? "") } }] }) },
     { mappingKey: "tanggal", build: (v) => ({ date: { start: String(v) } }) },
