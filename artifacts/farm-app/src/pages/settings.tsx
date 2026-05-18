@@ -1,3 +1,4 @@
+import { useGetDropdownOptions, getGetDropdownOptionsQueryKey } from "@workspace/api-client-react";
 import { useEffect, useState } from "react";
 import { UserButton } from "@clerk/react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -227,66 +228,55 @@ export function SettingsPage() {
 }
 
 // ---------------------------------------------------------------------------
-// 📦 3. SCHEMA CONTROL CARD (FIXED MULTI-INSTANCE FOR USER COMPATIBILITY)
+// 📦 3. SCHEMA CONTROL CARD (AREA-BASED ROUTING EDITION)
 // ---------------------------------------------------------------------------
 function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { mutateAsync: saveFieldMappings, isPending: isSaving } = useSaveFieldMappings();
 
-  const [linkedIds, setLinkedIds] = useState<string[]>([]);
+  // Load opsi area kebun langsung dari database induk
+  const { data: dropdownOptions } = useGetDropdownOptions({
+    query: { enabled: isExpanded && schema.id === "perawatan", queryKey: getGetDropdownOptionsQueryKey() },
+  });
+  const areas = dropdownOptions?.areas ?? [];
+
+  const [areaDatabaseMap, setAreaDatabaseMap] = useState<Record<string, string>>({});
   const [fieldMappings, setFieldMappings] = useState<Record<string, string>>({});
-  
-  // State tambahan untuk melacak database mana yang sedang aktif dipilih/di-load kolomnya
-  const [activeInstanceIdx, setActiveInstanceIdx] = useState<number>(0);
 
-  const masterId = linkedIds[activeInstanceIdx] || linkedIds[0] || "";
+  // Kita gunakan DB pertama yang dipilih sebagai master untuk membaca struktur kolom via Load
+  const masterId = schema.id === "perawatan" 
+    ? (Object.values(areaDatabaseMap)[0] || "") 
+    : (areaDatabaseMap["single"] || "");
 
-  // ✨ FIX 1: Ambil data mapping secara dinamis berdasarkan indeks yang sedang aktif
-  const fetchType = schema.isMultiInstance ? `${schema.id}_${activeInstanceIdx}` : schema.id;
+  // Ambil data mapping default untuk memunculkan kolom yang sudah tersimpan
+  const fetchType = schema.id === "perawatan" && areas.length > 0 ? `perawatan_${areas[0].id}` : schema.id;
   const { data: savedData } = useGetFieldMappings(
     { type: fetchType as any }, 
-    { query: { queryKey: getGetFieldMappingsQueryKey({ type: fetchType as any }) } }
+    { query: { enabled: !!fetchType, queryKey: getGetFieldMappingsQueryKey({ type: fetchType as any }) } }
   );
 
   useEffect(() => {
     if (savedData) {
-      if (savedData.notionDatabaseId) {
-        setLinkedIds(prev => prev.includes(savedData.notionDatabaseId!) ? prev : [...prev, savedData.notionDatabaseId!]);
+      if (!schema.id === "perawatan" && savedData.notionDatabaseId) {
+        setAreaDatabaseMap({ single: savedData.notionDatabaseId });
       }
       const mapped: Record<string, string> = {};
       Object.entries(savedData.mappings ?? {}).forEach(([k, v]: any) => { if (v?.propertyId) mapped[k] = v.propertyId; });
       setFieldMappings(mapped);
-    } else {
-      // Jika instance baru kosong, bersihkan sisa mapping lama agar tidak bias
-      setFieldMappings({});
     }
-  }, [savedData, activeInstanceIdx]);
+  }, [savedData, areas.length]);
 
-    // ✨ AMAN & BYPASS: Paksa pakai tipe finance agar rute inspect di backend terbuka lebar
-  const inspectType = (schema.id === "perawatan" || schema.id === "inspeksi") 
-    ? "panen" 
-    : schema.id;
-
+  // Bypass aman: Pinjam rute 'panen' murni hanya untuk mengintip susunan kolom di Notion
+  const inspectType = (schema.id === "perawatan" || schema.id === "inspeksi") ? "panen" : schema.id;
   const { data: inspected, isFetching: isInspecting, refetch: inspect } = useInspectDatabase(
     { type: inspectType, databaseId: masterId || "" },
-    { query: { 
-        enabled: !!masterId,
-        queryKey: getInspectDatabaseQueryKey({ type: inspectType, databaseId: masterId || "" }) 
-    } }
+    { query: { enabled: !!masterId, queryKey: getInspectDatabaseQueryKey({ type: inspectType, databaseId: masterId || "" }) } }
   );
   const props = inspected?.properties ?? [];
 
-
-  const handleRemoveDb = (id: string) => {
-    const idx = linkedIds.indexOf(id);
-    setLinkedIds(prev => prev.filter(x => x !== id));
-    if (activeInstanceIdx === idx) setActiveInstanceIdx(0);
-    if (linkedIds.length <= 1) setFieldMappings({}); 
-  };
-
   const handleAutoMap = () => {
-    if (!props.length) return toast({ variant: "destructive", title: "Kolom Kosong", description: "Tunggu loading beres (klik Load) dulu bro." });
+    if (!props.length) return toast({ variant: "destructive", title: "Kolom Kosong", description: "Klik tombol 'Load' dulu bro." });
     const nextMap: Record<string, string> = { ...fieldMappings };
     let count = 0;
     const normalize = (str: string) => str.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -295,22 +285,16 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
       const targetWords = [normalize(field.label), ...(field.aliases || [])];
       const match = props.find((p: any) => {
         const propName = normalize(p.name);
-        const isTypeMatch = field.expectedType.split("|").includes(p.type) || 
-                            (field.expectedType.includes("number") && ["formula", "rollup"].includes(p.type)) ||
-                            (field.expectedType.includes("date") && p.type === "date");
-        if (!isTypeMatch) return false;
-        return targetWords.some(word => propName.includes(word) || word.includes(propName));
+        return (field.expectedType.split("|").includes(p.type) || p.type === "date") &&
+               targetWords.some(word => propName.includes(word) || word.includes(propName));
       });
       if (match) { nextMap[field.key] = match.id; count++; }
     });
-
     setFieldMappings(nextMap);
-    toast({ title: "Auto Map Selesai", description: `${count} kolom berhasil dicocokkan.` });
+    toast({ title: "Auto Map Selesai", description: `${count} kolom cocok.` });
   };
 
   const handleSave = async () => {
-    if (!linkedIds.length) return toast({ variant: "destructive", title: "DB Belum Dipilih", description: "Pilih minimal 1 database." });
-
     const mappingsToSave: Record<string, FieldMappingEntry> = {};
     schema.fields.forEach((f: any) => {
       const p = props.find((p: any) => p.id === fieldMappings[f.key]);
@@ -318,144 +302,116 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
     });
 
     try {
-      // ✨ FIX 2: Simpan dengan format ID unik per instance blok (perawatan_0, perawatan_1, dst)
-      if (schema.isMultiInstance) {
-        await saveFieldMappings({
-          data: {
-            databaseType: `${schema.id}_${activeInstanceIdx}`,
-            notionDatabaseId: linkedIds[activeInstanceIdx],
-            mappings: mappingsToSave as SaveFieldMappingsBody["mappings"],
-          }
-        });
+      if (schema.id === "perawatan") {
+        const activeLinks = Object.entries(areaDatabaseMap).filter(([_, dbId]) => !!dbId);
+        if (!activeLinks.length) return toast({ variant: "destructive", title: "Gagal", description: "Pilih minimal 1 database blok." });
+
+        // 🔥 MAGIC: Simpan duplikasi kolom ke semua DB area secara otomatis
+        await Promise.all(activeLinks.map(([areaId, dbId]) => saveFieldMappings({
+          data: { databaseType: `perawatan_${areaId}`, notionDatabaseId: dbId, mappings: mappingsToSave as any }
+        })));
       } else {
+        if (!masterId) return toast({ variant: "destructive", title: "Gagal", description: "Database belum dipilih." });
         await saveFieldMappings({
-          data: {
-            databaseType: schema.id,
-            notionDatabaseId: linkedIds[0],
-            mappings: mappingsToSave as SaveFieldMappingsBody["mappings"],
-          }
+          data: { databaseType: schema.id, notionDatabaseId: masterId, mappings: mappingsToSave as any }
         });
       }
-      
-      toast({ title: "Schema Saved", description: `Berhasil disimpan untuk database indeks ke-${activeInstanceIdx}.` });
-      queryClient.invalidateQueries({ queryKey: getGetFieldMappingsQueryKey({ type: fetchType as any }) });
-      onToggle(); 
-    } catch (e) { toast({ variant: "destructive", title: "Gagal Simpan", description: "Terjadi kesalahan saat sinkronisasi API." }); }
+
+      toast({ title: "Schema Saved", description: "Konfigurasi jembatan Notion berhasil diamankan." });
+      onToggle();
+    } catch (e) { toast({ variant: "destructive", title: "Error", description: "Gagal sinkronisasi API." }); }
   };
 
   return (
     <Card className={cn(glassCard, isExpanded && "ring-2 ring-primary/40")}>
-      <div className="p-3 sm:p-4 sm:pb-2">
-        <div className="flex flex-col gap-2.5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-1 items-center gap-3 min-w-0">
-              <div className={cn("shrink-0 rounded-[1rem] p-2 text-primary transition-colors", isExpanded ? "bg-primary/10" : "bg-muted")}>
-                {schema.isMultiInstance ? <Workflow className="h-4 w-4" /> : <Database className="h-4 w-4" />}
-              </div>
-              <div className="min-w-0 flex-1">
-                <h3 className="text-sm font-black truncate sm:text-base">{schema.label}</h3>
-                <p className="text-[11px] text-muted-foreground truncate">{schema.hint}</p>
-              </div>
-            </div>
-            <div className="flex shrink-0 w-full sm:w-auto">
-              <Select onValueChange={(val) => {
-                if (!linkedIds.includes(val)) {
-                  setLinkedIds(prev => [...prev, val]);
-                  if (schema.isMultiInstance) setActiveInstanceIdx(linkedIds.length);
-                }
-              }}>
-                <SelectTrigger className="h-9 w-full flex-1 rounded-full border-border/60 bg-muted/50 text-xs font-bold shadow-sm backdrop-blur sm:w-[130px]">
-                  <div className="flex items-center gap-1.5 text-primary"><Plus className="h-3.5 w-3.5"/>Pilih database</div>
-                </SelectTrigger>
-                <SelectContent className="max-h-[300px]">
-                  {allDatabases.map(db => <SelectItem key={db.id} value={db.id} className="text-xs">{db.iconEmoji} {db.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
+      <div className="p-4 pb-2 text-left">
+        <div className="flex items-center gap-3">
+          <div className="rounded-2xl bg-primary/10 p-2 text-primary">
+            {schema.id === "perawatan" ? <Workflow className="h-5 w-5" /> : <Database className="h-5 w-5" />}
           </div>
-          
-          {/* BADGE LIST DATABASES */}
-          <div className="flex w-full flex-wrap items-center justify-center gap-1.5 min-h-[26px]">
-            <AnimatePresence mode="popLayout">
-              {linkedIds.map((id, index) => {
-                const isCurrentActive = schema.isMultiInstance ? activeInstanceIdx === index : index === 0;
-                return (
-                  <motion.div key={id} layout initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}>
-                    <Badge 
-                      variant={isCurrentActive ? "default" : "secondary"} 
-                      className={cn("gap-1 px-2.5 py-1 rounded-full cursor-pointer transition-all", 
-                        isCurrentActive ? "bg-primary text-primary-foreground font-black border-transparent shadow-sm" : "bg-primary/10 text-primary")}
-                      onClick={() => { if (schema.isMultiInstance) setActiveInstanceIdx(index); }}
-                    >
-                      <span className="truncate max-w-[140px] text-[10px]">
-                        {allDatabases.find(d => d.id === id)?.iconEmoji} {allDatabases.find(d => d.id === id)?.name || id}
-                      </span>
-                      <X className="h-3 w-3 opacity-50 transition-colors hover:opacity-100 hover:text-red-500" onClick={(e) => { e.stopPropagation(); handleRemoveDb(id); }} />
-                    </Badge>
-                  </motion.div>
-                );
-              })}
-            </AnimatePresence>
-            {linkedIds.length === 0 && <span className="text-[10px] text-muted-foreground opacity-60">Belum ada database terpilih</span>}
+          <div>
+            <h3 className="text-sm font-black sm:text-base">{schema.label}</h3>
+            <p className="text-[11px] text-muted-foreground">{schema.hint}</p>
           </div>
-          
-          {schema.isMultiInstance && linkedIds.length > 0 && (
-            <p className="text-[10px] text-center text-muted-foreground italic -mt-1">
-              *Ketuk badge database di atas untuk bergantian mengatur mapping tiap blok.
-            </p>
-          )}
         </div>
+
+        {/* 🌿 INTERFAS KHUSUS MULTI-DATABASE PERAWATAN */}
+        {isExpanded && schema.id === "perawatan" && (
+          <div className="mt-4 space-y-2.5 rounded-2xl bg-muted/40 p-3 border border-border/50">
+            <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground/80">Link Database per Blok Tanam</p>
+            {areas.length === 0 ? <Skeleton className="h-10 w-full rounded-xl" /> : areas.map((area) => (
+              <div key={area.id} className="flex items-center justify-between gap-4 py-1">
+                <span className="text-xs font-bold text-foreground shrink-0">📍 {area.name}</span>
+                <Select value={areaDatabaseMap[area.id] || ""} onValueChange={(val) => setAreaDatabaseMap(p => ({ ...p, [area.id]: val }))}>
+                  <SelectTrigger className="h-9 w-[190px] rounded-xl bg-background text-xs font-semibold shadow-sm">
+                    <SelectValue placeholder="Pilih DB Perawatan..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allDatabases.map(db => <SelectItem key={db.id} value={db.id} className="text-xs">{db.iconEmoji} {db.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* INTERFAS STANDARD UNTUK DATA NON-PERAWATAN */}
+        {isExpanded && schema.id !== "perawatan" && (
+          <div className="mt-4 flex items-center justify-between">
+            <span className="text-xs font-bold text-muted-foreground">Target Database</span>
+            <Select value={masterId} onValueChange={(val) => setAreaDatabaseMap({ single: val })}>
+              <SelectTrigger className="h-9 w-[200px] rounded-xl bg-muted/50 text-xs font-bold">
+                <SelectValue placeholder="Hubungkan DB..." />
+              </SelectTrigger>
+              <SelectContent>
+                {allDatabases.map(db => <SelectItem key={db.id} value={db.id} className="text-xs">{db.iconEmoji} {db.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
 
+      {/* PULL TAB CONTROL */}
       <div className="relative z-10 -mt-1 mb-1 flex w-full justify-center">
-        <button onClick={onToggle} className="flex h-4 w-12 items-center justify-center rounded-b-xl border border-t-0 border-border/60 bg-muted/30 shadow-[0_4px_10px_rgba(0,0,0,0.03)] backdrop-blur-md transition-colors hover:bg-muted" aria-label="Toggle mapping config">
+        <button onClick={onToggle} className="flex h-4 w-12 items-center justify-center rounded-b-xl border border-t-0 border-border/60 bg-muted/30 hover:bg-muted" aria-label="Toggle mapping">
           <ChevronDown className={cn("h-3 w-3 text-muted-foreground transition-transform duration-300", isExpanded && "rotate-180")} />
         </button>
       </div>
 
+      {/* PANEL MAPPING KOLOM */}
       <AnimatePresence>
         {isExpanded && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-            <div className="px-3 pb-3 sm:px-4 sm:pb-4">
-              <div className="border-t border-dashed border-border/50 pt-4">
-                <div className="mb-4 flex flex-col items-center justify-center gap-2.5">
-                  <h4 className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
-                    Mapping Controls {schema.isMultiInstance && `(Database #${activeInstanceIdx})`}
-                  </h4>
-                  <div className="flex flex-wrap items-center justify-center gap-1.5">
-                    <Button size="sm" onClick={() => inspect()} disabled={isInspecting || !masterId} className="h-8 rounded-full px-4 text-[10px] font-bold bg-primary/10 text-primary hover:bg-primary/20">
-                      {isInspecting ? "Loading..." : "Load"}
-                    </Button>
-                    <Button size="sm" onClick={handleAutoMap} disabled={!props.length} className="h-8 rounded-full px-4 text-[10px] font-bold bg-primary/10 text-primary hover:bg-primary/20">
-                      Auto map
-                    </Button>
-                    <Button size="sm" onClick={handleSave} disabled={isSaving} className="h-8 rounded-full bg-primary px-5 text-[10px] font-bold text-primary-foreground shadow-sm transition-colors hover:opacity-90">
-                      {isSaving ? "Saving..." : "Save"}
-                    </Button>
-                  </div>
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden text-left">
+            <div className="px-4 pb-4">
+              <div className="border-t border-dashed border-border/50 pt-3">
+                <div className="mb-4 flex items-center justify-center gap-1.5">
+                  <Button size="sm" onClick={() => inspect()} disabled={isInspecting || !masterId} className="h-8 rounded-full text-[10px] font-bold bg-primary/10 text-primary hover:bg-primary/20 px-4">
+                    {isInspecting ? "Loading..." : "1. Load Cols"}
+                  </Button>
+                  <Button size="sm" onClick={handleAutoMap} disabled={!props.length} className="h-8 rounded-full text-[10px] font-bold bg-primary/10 text-primary hover:bg-primary/20 px-4">
+                    2. Auto Map
+                  </Button>
+                  <Button size="sm" onClick={handleSave} className="h-8 rounded-full bg-primary text-[10px] font-bold text-primary-foreground px-5">
+                    3. Save Config
+                  </Button>
                 </div>
+
                 <div className="grid gap-2">
                   {schema.fields.map((field: any) => {
                     const isMapped = !!fieldMappings[field.key];
-                    const pType = field.expectedType.split('|')[0];
                     return (
-                      <div key={field.key} className={cn("flex flex-col gap-2 rounded-xl border p-2.5 transition-colors sm:flex-row sm:items-center sm:justify-between", isMapped ? "bg-primary/[0.04] border-primary/20" : "bg-muted/20 border-transparent")}>
-                        <div className="flex flex-1 items-center gap-2.5 min-w-0">
-                           <Badge variant="outline" className="rounded-full bg-background text-[9px] font-black uppercase text-foreground">{pType}</Badge>
-                           <div className="min-w-0 flex-1">
-                             <p className="truncate text-xs font-bold tracking-tight text-foreground">{field.label}</p>
-                           </div>
+                      <div key={field.key} className={cn("flex flex-col gap-2 rounded-xl border p-2.5 sm:flex-row sm:items-center sm:justify-between transition-colors", isMapped ? "bg-primary/[0.03] border-primary/20" : "bg-muted/10 border-transparent")}>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Badge variant="outline" className="rounded-full bg-background text-[9px] font-black uppercase">{field.expectedType.split('|')[0]}</Badge>
+                          <p className="text-xs font-bold truncate text-foreground">{field.label}</p>
                         </div>
-                        <Select value={fieldMappings[field.key] || ""} onValueChange={(val) => setFieldMappings(prev => ({...prev, [field.key]: val}))}>
-                          <SelectTrigger className="h-9 w-full shrink-0 rounded-lg bg-background text-[11px] font-semibold shadow-sm sm:w-[220px]">
-                            <SelectValue placeholder={isInspecting ? "Memuat kolom..." : (props.length ? "Pilih kolom..." : "Kolom belum di-load")} className="truncate" />
+                        <Select value={fieldMappings[field.key] || ""} onValueChange={(val) => setFieldMappings(p => ({ ...p, [field.key]: val }))}>
+                          <SelectTrigger className="h-9 w-full sm:w-[200px] rounded-lg bg-background text-[11px] font-semibold">
+                            <SelectValue placeholder={props.length ? "Pilih kolom..." : "Belum di-load"} />
                           </SelectTrigger>
                           <SelectContent>
-                            {props.length === 0 && <div className="p-2 text-center text-xs text-muted-foreground">{isInspecting ? "Loading..." : "Tekan Load Cols dulu"}</div>}
                             {props.map((p: any) => (
-                              <SelectItem key={p.id} value={p.id} className="text-[11px]">
-                                <span className="font-medium">{p.name}</span> <span className="ml-1 opacity-50">({p.type})</span>
-                              </SelectItem>
+                              <SelectItem key={p.id} value={p.id} className="text-[11px]">{p.name} <span className="opacity-40">({p.type})</span></SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -471,6 +427,7 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
     </Card>
   );
 }
+
 
 // ---------------------------------------------------------------------------
 // 📦 4. BRAND COLOR & THEME CONTROLLER WIDGET
