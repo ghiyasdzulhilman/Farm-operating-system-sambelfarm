@@ -182,56 +182,98 @@ router.get("/staging/list", async (req, res): Promise<void> => {
   res.json({ records });
 });
 
-// POST /api/staging/sync (Logic Lama - Utuh)
+// POST /api/staging/sync — Unified queue: data + perawatan + inspeksi
 router.post("/staging/sync", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
-  if (!userId) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
   try {
     const connection = await getNotionConnection(userId);
     const { accessToken } = connection;
-    const pendingRecords = await db.select().from(stagingDataTable).where(and(eq(stagingDataTable.userId, userId), eq(stagingDataTable.status, "pending")));
-    if (pendingRecords.length === 0) {
+
+    const [pendingData, pendingPerawatan, pendingInspeksi] = await Promise.all([
+      db.select().from(stagingDataTable).where(and(eq(stagingDataTable.userId, userId), eq(stagingDataTable.status, "pending"))),
+      db.select().from(stagingPerawatanTable).where(and(eq(stagingPerawatanTable.userId, userId), eq(stagingPerawatanTable.status, "pending"))),
+      db.select().from(stagingInspeksiTable).where(and(eq(stagingInspeksiTable.userId, userId), eq(stagingInspeksiTable.status, "pending"))),
+    ]);
+
+    const syncQueue = [
+      ...pendingData.map(r => ({
+        id: r.id, source: "data" as const, databaseType: r.databaseType,
+        data: r.data as Record<string, unknown>,
+      })),
+      ...pendingPerawatan.map(r => ({
+        id: r.id, source: "perawatan" as const, databaseType: "perawatan",
+        data: { areaId: r.areaId, kegiatan: r.kegiatan, tanggal: r.tanggal, tags: r.tags, petugasId: r.petugasId, logProduk: r.logProduk },
+      })),
+      ...pendingInspeksi.map(r => ({
+        id: r.id, source: "inspeksi" as const, databaseType: "inspeksi",
+        data: { areaId: r.areaId, kegiatan: r.kegiatan, tanggal: r.tanggal, hama: r.hama, penyakit: r.penyakit, tingkatSerangan: r.tingkatSerangan, radius: r.radius, phTanah: r.phTanah, petugasId: r.petugasId },
+      })),
+    ];
+
+    if (syncQueue.length === 0) {
       res.json({ success: true, synced: 0, failed: 0, message: "Tidak ada data pending." });
       return;
     }
-    let synced = 0; let failed = 0; const errors: Array<{ stagingId: string; error: string }> = [];
-    for (const record of pendingRecords) {
+
+    let synced = 0;
+    let failed = 0;
+    const errors: Array<{ stagingId: string; error: string }> = [];
+
+    const updateStatus = async (
+      id: string,
+      source: "data" | "perawatan" | "inspeksi",
+      status: string,
+      errorMsg: string | null = null,
+    ) => {
+      const patch = { status, errorMessage: errorMsg, updatedAt: new Date() };
+      if (source === "data")      await db.update(stagingDataTable).set(patch).where(eq(stagingDataTable.id, id));
+      if (source === "perawatan") await db.update(stagingPerawatanTable).set(patch).where(eq(stagingPerawatanTable.id, id));
+      if (source === "inspeksi")  await db.update(stagingInspeksiTable).set(patch).where(eq(stagingInspeksiTable.id, id));
+    };
+
+    for (const task of syncQueue) {
       try {
-        const databaseId = await resolveNotionDatabaseId(userId, accessToken, record.databaseType);
+        const databaseId = await resolveNotionDatabaseId(userId, accessToken, task.databaseType);
         if (!databaseId) {
-          const errMsg = `Database '${record.databaseType}' tidak ditemukan di Notion.`;
-          await db.update(stagingDataTable).set({ status: "failed", errorMessage: errMsg }).where(eq(stagingDataTable.id, record.id));
-          failed++; errors.push({ stagingId: record.id, error: errMsg }); continue;
+          const errMsg = `Database '${task.databaseType}' tidak ditemukan di Notion.`;
+          await updateStatus(task.id, task.source, "failed", errMsg);
+          failed++; errors.push({ stagingId: task.id, error: errMsg }); continue;
         }
-        const mappingRow = await getMappingRow(userId, record.databaseType);
+
+        const mappingRow = await getMappingRow(userId, task.databaseType);
         const mappings = mappingRow?.mappings as FieldMappingData | undefined;
-        const properties = buildNotionProperties(record.databaseType, record.data, mappings);
+        const properties = buildNotionProperties(task.databaseType, task.data as Record<string, unknown>, mappings);
+
         const response = await notionFetch(userId, accessToken, "https://api.notion.com/v1/pages", {
-          method: "POST", body: JSON.stringify({ parent: { database_id: databaseId }, properties }),
+          method: "POST",
+          body: JSON.stringify({ parent: { database_id: databaseId }, properties }),
         });
+
         if (!response.ok) {
           const errText = await response.text();
           const errMsg = `Notion error: ${errText.slice(0, 255)}`;
-          await db.update(stagingDataTable).set({ status: "failed", errorMessage: errMsg }).where(eq(stagingDataTable.id, record.id));
-          failed++; errors.push({ stagingId: record.id, error: errMsg }); continue;
+          await updateStatus(task.id, task.source, "failed", errMsg);
+          failed++; errors.push({ stagingId: task.id, error: errMsg }); continue;
         }
-        const created = await response.json() as { id: string };
-        await db.update(stagingDataTable).set({ status: "synced", errorMessage: null, createdAt: new Date() }).where(eq(stagingDataTable.id, record.id));
-        req.log.info({ userId, stagingId: record.id, notionPageId: created.id }, "Staging: synced to Notion");
+
+        await updateStatus(task.id, task.source, "synced", null);
+        req.log.info({ userId, stagingId: task.id, source: task.source }, "Staging: synced to Notion");
         synced++;
       } catch (err) {
         if (err instanceof NotionTokenInvalidError) throw err;
         const errMsg = err instanceof Error ? err.message.slice(0, 255) : "Kesalahan tidak terduga.";
-        await db.update(stagingDataTable).set({ status: "failed", errorMessage: errMsg }).where(eq(stagingDataTable.id, record.id));
-        failed++; errors.push({ stagingId: record.id, error: errMsg });
+        await updateStatus(task.id, task.source, "failed", errMsg);
+        failed++; errors.push({ stagingId: task.id, error: errMsg });
       }
     }
+
     if (synced > 0) {
-      req.log.info({ userId, synced }, "Staging: Sync kelar, Cache dipertahankan.");
+      notionCache.del(getDashboardCacheKey(userId));
+      req.log.info({ userId, synced }, "Staging: sync selesai, cache dashboard diinvalidasi");
     }
+
     res.json({ success: true, synced, failed, errors });
   } catch (err) {
     if (handleNotionErrors(res, err)) return;
@@ -275,10 +317,11 @@ router.post("/staging/perawatan/save", async (req, res): Promise<void> => {
   try {
     // 🔄 LOGIKA MULTI-BLOK: Pecah array areaIds jadi baris terpisah
     const rowsToInsert = areaIds.map((areaId) => ({
+      userId,
       areaId: String(areaId),
       kegiatan: String(kegiatan),
       tanggal: String(tanggal),
-      logProduk: logProduk || null, // Array JSON produk
+      logProduk: logProduk || null,
       tags: tags ? String(tags) : null,
       petugasId: petugasId ? String(petugasId) : null,
       status: "pending",
@@ -311,11 +354,12 @@ router.post("/staging/inspeksi/save", async (req, res): Promise<void> => {
 
   try {
     const [record] = await db.insert(stagingInspeksiTable).values({
+      userId,
       areaId: String(areaId),
       kegiatan: String(kegiatan),
       tanggal: String(tanggal),
-      hama: hama || null, // Array JSON hama
-      penyakit: penyakit || null, // Array JSON penyakit
+      hama: hama || null,
+      penyakit: penyakit || null,
       tingkatSerangan: tingkatSerangan !== undefined ? Number(tingkatSerangan) : null,
       radius: radius !== undefined ? Number(radius) : null,
       phTanah: phTanah !== undefined ? Number(phTanah) : null,

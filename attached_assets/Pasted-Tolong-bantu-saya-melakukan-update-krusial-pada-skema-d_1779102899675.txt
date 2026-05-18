@@ -1,0 +1,95 @@
+Tolong bantu saya melakukan update krusial pada skema database dan file routing backend. Lakukan tepat seperti instruksi di bawah ini tanpa merusak kode lain:
+
+STEP 1: UPDATE SCHEMA DATABASE
+Buka file `lib/db/src/schema/stagingData.ts`. 
+Temukan `stagingPerawatanTable` dan `stagingInspeksiTable`, lalu tambahkan dua kolom wajib ini di dalam kedua tabel tersebut:
+1. `userId: text("user_id").notNull(),`
+2. `errorMessage: text("error_message"),`
+(Kolom lainnya biarkan persis seperti sebelumnya).
+Setelah di-save, tolong jalankan perintah `cd lib/db && npx drizzle-kit push` di terminal untuk sinkronisasi database.
+
+STEP 2: UPDATE ENDPOINT /SAVE
+Buka file `artifacts/api-server/src/routes/staging.ts`.
+Cari endpoint `POST /staging/perawatan/save` dan `POST /staging/inspeksi/save`. 
+Pastikan sekarang logika `db.insert(...)` di kedua rute tersebut ikut memasukkan nilai `userId: userId,` ke dalam payload data yang akan di-save ke database.
+
+STEP 3: REWRITE ENDPOINT /SYNC (UNIFIED QUEUE)
+Di file `artifacts/api-server/src/routes/staging.ts` yang sama, temukan endpoint `POST /staging/sync`. Tolong REPLACE seluruh isi rute tersebut dengan logika baru berikut ini:
+
+router.post("/staging/sync", async (req, res): Promise<void> => {
+  const { userId } = getAuth(req);
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+  try {
+    const connection = await getNotionConnection(userId);
+    const { accessToken } = connection;
+
+    const pendingData = await db.select().from(stagingDataTable).where(and(eq(stagingDataTable.userId, userId), eq(stagingDataTable.status, "pending")));
+    const pendingPerawatan = await db.select().from(stagingPerawatanTable).where(and(eq(stagingPerawatanTable.userId, userId), eq(stagingPerawatanTable.status, "pending")));
+    const pendingInspeksi = await db.select().from(stagingInspeksiTable).where(and(eq(stagingInspeksiTable.userId, userId), eq(stagingInspeksiTable.status, "pending")));
+
+    const syncQueue = [
+      ...pendingData.map(r => ({ id: r.id, source: "data" as const, databaseType: r.databaseType, data: r.data as Record<string, unknown> })),
+      ...pendingPerawatan.map(r => ({
+        id: r.id, source: "perawatan" as const, databaseType: "perawatan",
+        data: { areaId: r.areaId, kegiatan: r.kegiatan, tanggal: r.tanggal, tags: r.tags, petugasId: r.petugasId, logProduk: r.logProduk }
+      })),
+      ...pendingInspeksi.map(r => ({
+        id: r.id, source: "inspeksi" as const, databaseType: "inspeksi",
+        data: { areaId: r.areaId, kegiatan: r.kegiatan, tanggal: r.tanggal, hama: r.hama, penyakit: r.penyakit, tingkatSerangan: r.tingkatSerangan, radius: r.radius, phTanah: r.phTanah, petugasId: r.petugasId }
+      }))
+    ];
+
+    if (syncQueue.length === 0) {
+      res.json({ success: true, synced: 0, failed: 0, message: "Tidak ada data pending." }); return;
+    }
+
+    let synced = 0; let failed = 0; const errors: Array<{ stagingId: string; error: string }> = [];
+
+    const updateStatus = async (id: string, source: "data"|"perawatan"|"inspeksi", status: string, errorMsg: string | null = null) => {
+      if (source === "data") await db.update(stagingDataTable).set({ status, errorMessage: errorMsg, updatedAt: new Date() }).where(eq(stagingDataTable.id, id));
+      if (source === "perawatan") await db.update(stagingPerawatanTable).set({ status, errorMessage: errorMsg, updatedAt: new Date() }).where(eq(stagingPerawatanTable.id, id));
+      if (source === "inspeksi") await db.update(stagingInspeksiTable).set({ status, errorMessage: errorMsg, updatedAt: new Date() }).where(eq(stagingInspeksiTable.id, id));
+    };
+
+    for (const task of syncQueue) {
+      try {
+        const databaseId = await resolveNotionDatabaseId(userId, accessToken, task.databaseType);
+        if (!databaseId) {
+          const errMsg = `Database '${task.databaseType}' tidak ditemukan di Notion.`;
+          await updateStatus(task.id, task.source, "failed", errMsg);
+          failed++; errors.push({ stagingId: task.id, error: errMsg }); continue;
+        }
+
+        const mappingRow = await getMappingRow(userId, task.databaseType);
+        const mappings = mappingRow?.mappings as FieldMappingData | undefined;
+        const properties = buildNotionProperties(task.databaseType, task.data, mappings);
+
+        const response = await notionFetch(userId, accessToken, "https://api.notion.com/v1/pages", {
+          method: "POST", body: JSON.stringify({ parent: { database_id: databaseId }, properties }),
+        });
+
+        if (!response.ok) {
+          const errText = await response.text();
+          const errMsg = `Notion error: ${errText.slice(0, 255)}`;
+          await updateStatus(task.id, task.source, "failed", errMsg);
+          failed++; errors.push({ stagingId: task.id, error: errMsg }); continue;
+        }
+
+        await updateStatus(task.id, task.source, "synced", null);
+        synced++;
+      } catch (err) {
+        if (err instanceof NotionTokenInvalidError) throw err;
+        const errMsg = err instanceof Error ? err.message.slice(0, 255) : "Kesalahan tidak terduga.";
+        await updateStatus(task.id, task.source, "failed", errMsg);
+        failed++; errors.push({ stagingId: task.id, error: errMsg });
+      }
+    }
+
+    if (synced > 0) req.log.info({ userId, synced }, "Staging: Sync kelar, Cache dipertahankan.");
+    res.json({ success: true, synced, failed, errors });
+  } catch (err) {
+    if (handleNotionErrors(res, err)) return;
+    throw err;
+  }
+});
