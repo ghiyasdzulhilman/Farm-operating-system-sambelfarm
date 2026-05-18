@@ -26,6 +26,7 @@ export const stagingPerawatanTable = pgTable("staging_perawatan", {
   id: uuid("id").defaultRandom().primaryKey(),
   areaId: varchar("area_id", { length: 255 }).notNull(), // Penanda untuk Sync Engine (Misal: "Blok-A")
   kegiatan: varchar("kegiatan", { length: 255 }).notNull(),
+tesButa: text("tes_buta"),
   tanggal: date("tanggal").notNull(),
   status: varchar("status", { length: 100 }), // Rencana / Proses / Selesai
   tags: varchar("tags", { length: 100 }), // Kategori: Pengocoran, Penyemprotan, dll
