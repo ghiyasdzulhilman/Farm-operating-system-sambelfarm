@@ -224,13 +224,15 @@ router.post("/staging/sync", async (req, res): Promise<void> => {
       db.select().from(stagingInspeksiTable).where(and(eq(stagingInspeksiTable.userId, userId), eq(stagingInspeksiTable.status, "pending"))),
     ]);
 
+        // GANTI BAGIAN INI SAJA DI DALAM syncQueue
     const syncQueue = [
       ...pendingData.map(r => ({
         id: r.id, source: "data" as const, databaseType: r.databaseType,
         data: r.data as Record<string, unknown>,
       })),
+      // 🌟 PERUBAHAN: databaseType kita kunci pakai ID Area langsung (perawatan_IDAREA)
       ...pendingPerawatan.map(r => ({
-        id: r.id, source: "perawatan" as const, databaseType: "perawatan",
+        id: r.id, source: "perawatan" as const, databaseType: `perawatan_${r.areaId}`, 
         data: { areaId: r.areaId, kegiatan: r.kegiatan, tanggal: r.tanggal, tags: r.tags, petugasId: r.petugasId, logProduk: r.logProduk },
       })),
       ...pendingInspeksi.map(r => ({
