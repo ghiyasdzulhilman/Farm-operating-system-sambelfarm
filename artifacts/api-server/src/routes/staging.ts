@@ -152,6 +152,21 @@ function buildNotionProperties(
   return props;
 }
 
+function buildNotionPageBody(databaseType: string, data: any): any[] {
+  if (databaseType !== "perawatan" || !Array.isArray(data.logProduk)) return [];
+  return [
+    { object: "block", type: "heading_3", heading_3: { rich_text: [{ type: "text", text: { content: "🌱 Detail Bahan" } }] } },
+    ...data.logProduk.map((item: any) => ({
+      object: "block", type: "bulleted_list_item",
+      bulleted_list_item: { rich_text: [
+        { type: "text", text: { content: item?.produk || "Produk", link: null }, annotations: { bold: true } },
+        { type: "text", text: { content: ` — Dosis: ${item?.dosis || "-"}`, link: null } }
+      ]}
+    }))
+  ];
+}
+
+
 // ---- Routes -----------------------------------------------------------------
 
 // POST /api/staging/save (Logic Lama - Utuh)
