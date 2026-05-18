@@ -227,7 +227,7 @@ export function SettingsPage() {
 }
 
 // ---------------------------------------------------------------------------
-// 📦 3. SCHEMA CONTROL CARD
+// 📦 3. SCHEMA CONTROL CARD (FIXED MULTI-INSTANCE FOR USER COMPATIBILITY)
 // ---------------------------------------------------------------------------
 function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) {
   const { toast } = useToast();
@@ -236,11 +236,14 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
 
   const [linkedIds, setLinkedIds] = useState<string[]>([]);
   const [fieldMappings, setFieldMappings] = useState<Record<string, string>>({});
+  
+  // State tambahan untuk melacak database mana yang sedang aktif dipilih/di-load kolomnya
+  const [activeInstanceIdx, setActiveInstanceIdx] = useState<number>(0);
 
-  const masterId = linkedIds[0] || "";
+  const masterId = linkedIds[activeInstanceIdx] || linkedIds[0] || "";
 
-  // ✨ FIX 3: Ngilangin '_0' (isMultiInstance) buat Perawatan, biar datanya ke-load bener
-  const fetchType = schema.id;
+  // ✨ FIX 1: Ambil data mapping secara dinamis berdasarkan indeks yang sedang aktif
+  const fetchType = schema.isMultiInstance ? `${schema.id}_${activeInstanceIdx}` : schema.id;
   const { data: savedData } = useGetFieldMappings(
     { type: fetchType as any }, 
     { query: { queryKey: getGetFieldMappingsQueryKey({ type: fetchType as any }) } }
@@ -254,8 +257,11 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
       const mapped: Record<string, string> = {};
       Object.entries(savedData.mappings ?? {}).forEach(([k, v]: any) => { if (v?.propertyId) mapped[k] = v.propertyId; });
       setFieldMappings(mapped);
+    } else {
+      // Jika instance baru kosong, bersihkan sisa mapping lama agar tidak bias
+      setFieldMappings({});
     }
-  }, [savedData]);
+  }, [savedData, activeInstanceIdx]);
 
   const inspectType = schema.id as any;
   const { data: inspected, isFetching: isInspecting, refetch: inspect } = useInspectDatabase(
@@ -268,12 +274,14 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
   const props = inspected?.properties ?? [];
 
   const handleRemoveDb = (id: string) => {
+    const idx = linkedIds.indexOf(id);
     setLinkedIds(prev => prev.filter(x => x !== id));
+    if (activeInstanceIdx === idx) setActiveInstanceIdx(0);
     if (linkedIds.length <= 1) setFieldMappings({}); 
   };
 
   const handleAutoMap = () => {
-    if (!props.length) return toast({ variant: "destructive", title: "Kolom Kosong", description: "Tunggu loading beres dulu bro." });
+    if (!props.length) return toast({ variant: "destructive", title: "Kolom Kosong", description: "Tunggu loading beres (klik Load) dulu bro." });
     const nextMap: Record<string, string> = { ...fieldMappings };
     let count = 0;
     const normalize = (str: string) => str.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -282,7 +290,9 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
       const targetWords = [normalize(field.label), ...(field.aliases || [])];
       const match = props.find((p: any) => {
         const propName = normalize(p.name);
-        const isTypeMatch = field.expectedType.split("|").includes(p.type) || (field.expectedType.includes("number") && ["formula", "rollup"].includes(p.type));
+        const isTypeMatch = field.expectedType.split("|").includes(p.type) || 
+                            (field.expectedType.includes("number") && ["formula", "rollup"].includes(p.type)) ||
+                            (field.expectedType.includes("date") && p.type === "date");
         if (!isTypeMatch) return false;
         return targetWords.some(word => propName.includes(word) || word.includes(propName));
       });
@@ -303,14 +313,26 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
     });
 
     try {
-      await Promise.all(linkedIds.map((id, idx) => saveFieldMappings({
-        data: {
-          databaseType: schema.id,
-          notionDatabaseId: id,
-          mappings: mappingsToSave as SaveFieldMappingsBody["mappings"],
-        }
-      })));
-      toast({ title: "Schema Saved", description: `Berhasil disimpan ke ${linkedIds.length} database.` });
+      // ✨ FIX 2: Simpan dengan format ID unik per instance blok (perawatan_0, perawatan_1, dst)
+      if (schema.isMultiInstance) {
+        await saveFieldMappings({
+          data: {
+            databaseType: `${schema.id}_${activeInstanceIdx}`,
+            notionDatabaseId: linkedIds[activeInstanceIdx],
+            mappings: mappingsToSave as SaveFieldMappingsBody["mappings"],
+          }
+        });
+      } else {
+        await saveFieldMappings({
+          data: {
+            databaseType: schema.id,
+            notionDatabaseId: linkedIds[0],
+            mappings: mappingsToSave as SaveFieldMappingsBody["mappings"],
+          }
+        });
+      }
+      
+      toast({ title: "Schema Saved", description: `Berhasil disimpan untuk database indeks ke-${activeInstanceIdx}.` });
       queryClient.invalidateQueries({ queryKey: getGetFieldMappingsQueryKey({ type: fetchType as any }) });
       onToggle(); 
     } catch (e) { toast({ variant: "destructive", title: "Gagal Simpan", description: "Terjadi kesalahan saat sinkronisasi API." }); }
@@ -331,35 +353,52 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
               </div>
             </div>
             <div className="flex shrink-0 w-full sm:w-auto">
-              {(!schema.isMultiInstance && linkedIds.length > 0) ? null : (
-                <Select onValueChange={(val) => {
-                  if (!linkedIds.includes(val)) setLinkedIds(prev => schema.isMultiInstance ? [...prev, val] : [val]);
-                }}>
-                  <SelectTrigger className="h-9 w-full flex-1 rounded-full border-border/60 bg-muted/50 text-xs font-bold shadow-sm backdrop-blur sm:w-[130px]">
-                    <div className="flex items-center gap-1.5 text-primary"><Plus className="h-3.5 w-3.5"/>Pilih database</div>
-                  </SelectTrigger>
-                  <SelectContent className="max-h-[300px]">
-                    {allDatabases.map(db => <SelectItem key={db.id} value={db.id} className="text-xs">{db.iconEmoji} {db.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              )}
+              <Select onValueChange={(val) => {
+                if (!linkedIds.includes(val)) {
+                  setLinkedIds(prev => [...prev, val]);
+                  if (schema.isMultiInstance) setActiveInstanceIdx(linkedIds.length);
+                }
+              }}>
+                <SelectTrigger className="h-9 w-full flex-1 rounded-full border-border/60 bg-muted/50 text-xs font-bold shadow-sm backdrop-blur sm:w-[130px]">
+                  <div className="flex items-center gap-1.5 text-primary"><Plus className="h-3.5 w-3.5"/>Pilih database</div>
+                </SelectTrigger>
+                <SelectContent className="max-h-[300px]">
+                  {allDatabases.map(db => <SelectItem key={db.id} value={db.id} className="text-xs">{db.iconEmoji} {db.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
           </div>
+          
+          {/* BADGE LIST DATABASES */}
           <div className="flex w-full flex-wrap items-center justify-center gap-1.5 min-h-[26px]">
             <AnimatePresence mode="popLayout">
-              {linkedIds.map(id => (
-                <motion.div key={id} layout initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} transition={{ type: "spring", stiffness: 300, damping: 25 }}>
-                  <Badge variant="secondary" className="gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary">
-                    <span className="truncate max-w-[140px] text-[10px] font-semibold">
-                      {allDatabases.find(d => d.id === id)?.iconEmoji} {allDatabases.find(d => d.id === id)?.name || id}
-                    </span>
-                    <X className="h-3 w-3 cursor-pointer opacity-50 transition-colors hover:opacity-100 hover:text-red-500" onClick={() => handleRemoveDb(id)} />
-                  </Badge>
-                </motion.div>
-              ))}
+              {linkedIds.map((id, index) => {
+                const isCurrentActive = schema.isMultiInstance ? activeInstanceIdx === index : index === 0;
+                return (
+                  <motion.div key={id} layout initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}>
+                    <Badge 
+                      variant={isCurrentActive ? "default" : "secondary"} 
+                      className={cn("gap-1 px-2.5 py-1 rounded-full cursor-pointer transition-all", 
+                        isCurrentActive ? "bg-primary text-primary-foreground font-black border-transparent shadow-sm" : "bg-primary/10 text-primary")}
+                      onClick={() => { if (schema.isMultiInstance) setActiveInstanceIdx(index); }}
+                    >
+                      <span className="truncate max-w-[140px] text-[10px]">
+                        {allDatabases.find(d => d.id === id)?.iconEmoji} {allDatabases.find(d => d.id === id)?.name || id}
+                      </span>
+                      <X className="h-3 w-3 opacity-50 transition-colors hover:opacity-100 hover:text-red-500" onClick={(e) => { e.stopPropagation(); handleRemoveDb(id); }} />
+                    </Badge>
+                  </motion.div>
+                );
+              })}
             </AnimatePresence>
             {linkedIds.length === 0 && <span className="text-[10px] text-muted-foreground opacity-60">Belum ada database terpilih</span>}
           </div>
+          
+          {schema.isMultiInstance && linkedIds.length > 0 && (
+            <p className="text-[10px] text-center text-muted-foreground italic -mt-1">
+              *Ketuk badge database di atas untuk bergantian mengatur mapping tiap blok.
+            </p>
+          )}
         </div>
       </div>
 
@@ -375,7 +414,9 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
             <div className="px-3 pb-3 sm:px-4 sm:pb-4">
               <div className="border-t border-dashed border-border/50 pt-4">
                 <div className="mb-4 flex flex-col items-center justify-center gap-2.5">
-                  <h4 className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Mapping Controls</h4>
+                  <h4 className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
+                    Mapping Controls {schema.isMultiInstance && `(Database #${activeInstanceIdx})`}
+                  </h4>
                   <div className="flex flex-wrap items-center justify-center gap-1.5">
                     <Button size="sm" onClick={() => inspect()} disabled={isInspecting || !masterId} className="h-8 rounded-full px-4 text-[10px] font-bold bg-primary/10 text-primary hover:bg-primary/20">
                       {isInspecting ? "Loading..." : "Load"}
