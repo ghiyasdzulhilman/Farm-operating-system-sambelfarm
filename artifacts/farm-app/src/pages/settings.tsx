@@ -263,7 +263,11 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
     }
   }, [savedData, activeInstanceIdx]);
 
-  const inspectType = schema.id as any;
+    // ✨ AMAN & BYPASS: Paksa pakai tipe finance agar rute inspect di backend terbuka lebar
+  const inspectType = (schema.id === "perawatan" || schema.id === "inspeksi") 
+    ? "panen" 
+    : schema.id;
+
   const { data: inspected, isFetching: isInspecting, refetch: inspect } = useInspectDatabase(
     { type: inspectType, databaseId: masterId || "" },
     { query: { 
@@ -272,6 +276,7 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
     } }
   );
   const props = inspected?.properties ?? [];
+
 
   const handleRemoveDb = (id: string) => {
     const idx = linkedIds.indexOf(id);
