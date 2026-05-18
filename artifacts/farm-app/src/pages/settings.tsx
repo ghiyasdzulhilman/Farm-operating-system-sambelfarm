@@ -47,17 +47,23 @@ import { cn } from "@/lib/utils";
 // ---------------------------------------------------------------------------
 type DomainType = "finance" | "agronomy" | "lab" | "resource";
 
+// ✨ FIX 1: Nambahin kamus (aliases) buat kolom-kolom baru
 const ALIASES: Record<string, string[]> = {
   qty: ["qty", "jumlah", "berat", "quantity", "kg"],
   harga: ["harga", "price", "rp", "jual", "satuan"],
   kualitas: ["kualitas", "grade", "mutu"],
   channel: ["channel", "saluran", "tujuan", "pembeli", "penjualan"],
-  tanggal: ["tanggal", "date", "waktu", "hari", "created"],
+  tanggal: ["tanggal", "date", "waktu", "hari", "created", "pelaksanaan"],
   kategori: ["kategori", "category", "jenis"],
   area: ["area", "blok", "lahan", "pindah tanam"],
-  kegiatan: ["kegiatan", "judul", "nama", "task", "operasional", "treatment", "inspeksi"],
+  kegiatan: ["kegiatan", "judul", "nama", "task", "operasional", "treatment", "inspeksi", "perawatan"],
   hama: ["hama", "serangga", "kutu", "ulat"],
-  penyakit: ["penyakit", "jamur", "virus", "bakteri", "bercak"],
+  penyakit: ["penyakit", "jamur", "virus", "bakteri", "bercak", "patogen"],
+  tingkatSerangan: ["serangan", "persentase", "tingkat", "keparahan", "%"],
+  radius: ["radius", "meter", "luasan", "jarak"],
+  phTanah: ["ph", "asam", "basa", "keasaman"],
+  tags: ["tags", "jenis", "tipe", "metode"],
+  petugas: ["petugas", "pic", "penanggung", "pekerja", "person in charge"],
 };
 
 const DOMAINS: any[] = [
@@ -103,26 +109,24 @@ const DOMAINS: any[] = [
         { key: "area", label: "Area/Blok", expectedType: "title", aliases: ALIASES.area },
         { key: "waktu_tanam", label: "Waktu Tanam", expectedType: "date", aliases: ALIASES.tanggal },
       ]},
-      { id: "treatment_blocks", label: "Riwayat Perawatan (Multi-Blok)", hint: "Mapping 1x, terapkan ke banyak blok", isMultiInstance: true, fields: [
-        { key: "kegiatan", label: "Kegiatan", expectedType: "title", aliases: ALIASES.kegiatan },
-        { key: "tanggal", label: "Tanggal", expectedType: "date", aliases: ALIASES.tanggal },
-        { key: "hst", label: "HST", expectedType: "formula|rollup|number" },
-        { key: "status", label: "Status", expectedType: "status|select" },
-        { key: "petugas", label: "Petugas Lapangan", expectedType: "relation" },
-        { key: "area", label: "Area Pindah Tanam", expectedType: "relation", aliases: ALIASES.area },
-      ]},
-      { id: "inspeksi", label: "Inspeksi Rutin", hint: "Pencatatan hama dan penyakit", fields: [
-        { key: "kegiatan", label: "Kegiatan", expectedType: "title", aliases: ALIASES.kegiatan },
+      // ✨ FIX 2: Benerin schema Perawatan & Inspeksi biar persis sama kayak DB_FIELD_SPECS di Backend
+      { id: "perawatan", label: "Riwayat Perawatan (Multi-Blok)", hint: "Data Kocor, Semprot & Pemupukan", isMultiInstance: false, fields: [
+        { key: "kegiatan", label: "Nama Kegiatan", expectedType: "title", aliases: ALIASES.kegiatan },
         { key: "tanggal", label: "Tanggal", expectedType: "date|created_time", aliases: ALIASES.tanggal },
+        { key: "areaId", label: "Target Area (Relasi)", expectedType: "relation", aliases: ALIASES.area },
+        { key: "tags", label: "Tags / Jenis", expectedType: "select", aliases: ALIASES.tags },
+        { key: "petugasId", label: "Petugas", expectedType: "relation", aliases: ALIASES.petugas },
+      ]},
+      { id: "inspeksi", label: "Inspeksi & Kesehatan Tanaman", hint: "Pencatatan Hama Penyakit", fields: [
+        { key: "kegiatan", label: "Judul Laporan", expectedType: "title", aliases: ALIASES.kegiatan },
+        { key: "tanggal", label: "Tanggal", expectedType: "date|created_time", aliases: ALIASES.tanggal },
+        { key: "areaId", label: "Area Terdampak", expectedType: "relation", aliases: ALIASES.area },
         { key: "hama", label: "Hama", expectedType: "multi_select", aliases: ALIASES.hama },
         { key: "penyakit", label: "Penyakit", expectedType: "multi_select", aliases: ALIASES.penyakit },
-        { key: "area", label: "Area", expectedType: "relation", aliases: ALIASES.area },
-      ]},
-      { id: "operasional", label: "Kegiatan Operasional Umum", hint: "Tugas harian", fields: [
-        { key: "kegiatan", label: "Task", expectedType: "title", aliases: ALIASES.kegiatan },
-        { key: "tanggal", label: "Tanggal", expectedType: "date", aliases: ALIASES.tanggal },
-        { key: "keterangan", label: "Catatan", expectedType: "rich_text" },
-        { key: "pic", label: "Penanggung Jawab", expectedType: "relation|people" },
+        { key: "tingkatSerangan", label: "% Serangan", expectedType: "number", aliases: ALIASES.tingkatSerangan },
+        { key: "radius", label: "Radius (m)", expectedType: "number", aliases: ALIASES.radius },
+        { key: "phTanah", label: "pH Tanah", expectedType: "number", aliases: ALIASES.phTanah },
+        { key: "petugasId", label: "Petugas", expectedType: "relation", aliases: ALIASES.petugas },
       ]},
     ]
   },
@@ -130,7 +134,6 @@ const DOMAINS: any[] = [
   { id: "resource", label: "Resources", icon: Users, description: "Manajemen data pekerja", schemas: [] },
 ];
 
-/* AUDIT WARNA: Mengubah class kaku menjadi class transparan dinamis agar ngikut mode */
 const glassCard = "rounded-[1.75rem] border-border/50 bg-card text-card-foreground shadow-sm transition-all duration-300";
 
 // ---------------------------------------------------------------------------
@@ -173,7 +176,6 @@ export function SettingsPage() {
               const isActive = activeDomain === domain.id;
               return (
                 <button key={domain.id} onClick={() => { setActiveDomain(domain.id); setExpandedSchema(null); }}
-                  /* AUDIT WARNA: Teks list menu side diubah biar adaptif */
                   className={cn("group flex w-full items-center gap-3 rounded-2xl p-4 transition-all duration-300", 
                     isActive ? "bg-primary text-primary-foreground shadow-sm" : "hover:bg-primary/5 text-muted-foreground")}>
                   <div className={cn("rounded-xl p-2 transition-colors", isActive ? "bg-primary-foreground/20 text-white" : "bg-muted text-muted-foreground")}>
@@ -189,7 +191,6 @@ export function SettingsPage() {
             })}
           </div>
 
-          {/* SAKLAR TRIPLE KENDALI WARNA */}
           <ColorControl />
         </aside>
 
@@ -215,7 +216,7 @@ export function SettingsPage() {
 }
 
 // ---------------------------------------------------------------------------
-// 📦 3. SCHEMA CONTROL CARD (Compact Edition)
+// 📦 3. SCHEMA CONTROL CARD
 // ---------------------------------------------------------------------------
 function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) {
   const { toast } = useToast();
@@ -227,7 +228,8 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
 
   const masterId = linkedIds[0] || "";
 
-  const fetchType = schema.isMultiInstance ? `${schema.id}_0` : schema.id;
+  // ✨ FIX 3: Ngilangin '_0' (isMultiInstance) buat Perawatan, biar datanya ke-load bener
+  const fetchType = schema.id;
   const { data: savedData } = useGetFieldMappings(
     { type: fetchType as any }, 
     { query: { queryKey: getGetFieldMappingsQueryKey({ type: fetchType as any }) } }
@@ -292,7 +294,7 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
     try {
       await Promise.all(linkedIds.map((id, idx) => saveFieldMappings({
         data: {
-          databaseType: schema.isMultiInstance ? `${schema.id}_${idx}` : schema.id,
+          databaseType: schema.id,
           notionDatabaseId: id,
           mappings: mappingsToSave as SaveFieldMappingsBody["mappings"],
         }
@@ -309,7 +311,6 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
         <div className="flex flex-col gap-2.5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-1 items-center gap-3 min-w-0">
-              {/* AUDIT WARNA: Background icon menyesuaikan dengan class muted */}
               <div className={cn("shrink-0 rounded-[1rem] p-2 text-primary transition-colors", isExpanded ? "bg-primary/10" : "bg-muted")}>
                 {schema.isMultiInstance ? <Workflow className="h-4 w-4" /> : <Database className="h-4 w-4" />}
               </div>
@@ -323,7 +324,6 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
                 <Select onValueChange={(val) => {
                   if (!linkedIds.includes(val)) setLinkedIds(prev => schema.isMultiInstance ? [...prev, val] : [val]);
                 }}>
-                  {/* AUDIT WARNA: Select trigger warna background diset murni agar tidak bentrok */}
                   <SelectTrigger className="h-9 w-full flex-1 rounded-full border-border/60 bg-muted/50 text-xs font-bold shadow-sm backdrop-blur sm:w-[130px]">
                     <div className="flex items-center gap-1.5 text-primary"><Plus className="h-3.5 w-3.5"/>Pilih database</div>
                   </SelectTrigger>
@@ -353,7 +353,6 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
       </div>
 
       <div className="relative z-10 -mt-1 mb-1 flex w-full justify-center">
-        {/* AUDIT WARNA: Tombol pull tab diselaraskan */}
         <button onClick={onToggle} className="flex h-4 w-12 items-center justify-center rounded-b-xl border border-t-0 border-border/60 bg-muted/30 shadow-[0_4px_10px_rgba(0,0,0,0.03)] backdrop-blur-md transition-colors hover:bg-muted" aria-label="Toggle mapping config">
           <ChevronDown className={cn("h-3 w-3 text-muted-foreground transition-transform duration-300", isExpanded && "rotate-180")} />
         </button>
@@ -417,7 +416,7 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
 }
 
 // ---------------------------------------------------------------------------
-// 📦 4. BRAND COLOR & THEME CONTROLLER WIDGET (AUTO ADAPTIVE EDITION)
+// 📦 4. BRAND COLOR & THEME CONTROLLER WIDGET
 // ---------------------------------------------------------------------------
 function hexToHsl(hex: string) {
   hex = hex.replace(/^#/, "");
@@ -453,18 +452,14 @@ function hexToHsl(hex: string) {
 
 function ColorControl() {
   const [isDark, setIsDark] = useState(false);
-
-  // State Hex Dasar 3 Warna Identitas
   const [primaryHex, setPrimaryHex] = useState("#16a34a");
   const [secondaryHex, setSecondaryHex] = useState("#a3e635");
   const [accentHex, setAccentHex] = useState("#f97316");
 
-  // Load warna awal dari LocalStorage & Suntik Muted UI otomatis
   useEffect(() => {
     if (typeof window !== "undefined") {
       const activeDark = document.documentElement.classList.contains("dark");
       setIsDark(activeDark);
-      
       const savedPrimary = localStorage.getItem("sf-primary-hex") || "#16a34a";
       const savedSecondary = localStorage.getItem("sf-secondary-hex") || "#a3e635";
       const savedAccent = localStorage.getItem("sf-accent-hex") || "#f97316";
@@ -472,20 +467,9 @@ function ColorControl() {
       setPrimaryHex(savedPrimary);
       setSecondaryHex(savedSecondary);
       setAccentHex(savedAccent);
-
-      // Pipa Sinkronisasi Otomatis untuk Muted UI
-      const p = hexToHsl(savedPrimary);
-      if (activeDark) {
-        document.documentElement.style.setProperty("--muted", `${p.h} 8% 12%`);
-        document.documentElement.style.setProperty("--muted-foreground", `${p.h} 8% 65%`);
-      } else {
-        document.documentElement.style.setProperty("--muted", `${p.h} 15% 94%`);
-        document.documentElement.style.setProperty("--muted-foreground", `${p.h} 20% 45%`);
-      }
     }
   }, []);
 
-  // Sync Mode Gelap/Terang
   const toggleTheme = () => {
     const newIsDark = !isDark;
     setIsDark(newIsDark);
@@ -504,7 +488,6 @@ function ColorControl() {
     }
   };
 
-  // Handler Ganti Warna Utama
   const handlePrimaryChange = (hex: string) => {
     setPrimaryHex(hex);
     localStorage.setItem("sf-primary-hex", hex);
@@ -558,60 +541,36 @@ function ColorControl() {
       </div>
 
       <div className="space-y-3 pt-1">
-        {/* PICKER 1 */}
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
             <span className="text-xs font-bold block">Warna Utama</span>
             <span className="text-[10px] text-muted-foreground block">UI Utama & Basis Muted</span>
           </div>
           <div className="relative h-7 w-14 rounded-xl border border-border/60 shadow-sm overflow-hidden" style={{ backgroundColor: primaryHex }}>
-            <input 
-              type="color" 
-              value={primaryHex} 
-              onChange={(e) => handlePrimaryChange(e.target.value)}
-              className="absolute inset-0 opacity-0 cursor-pointer h-full w-full"
-            />
-            <div className="w-full h-full flex items-center justify-center pointer-events-none mix-blend-difference text-white text-[10px] font-mono font-bold">
-              {primaryHex.toUpperCase()}
-            </div>
+            <input type="color" value={primaryHex} onChange={(e) => handlePrimaryChange(e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer h-full w-full" />
+            <div className="w-full h-full flex items-center justify-center pointer-events-none mix-blend-difference text-white text-[10px] font-mono font-bold">{primaryHex.toUpperCase()}</div>
           </div>
         </div>
 
-        {/* PICKER 2 */}
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
             <span className="text-xs font-bold block">Warna Kedua</span>
             <span className="text-[10px] text-muted-foreground block">Badge & Secondary UI</span>
           </div>
           <div className="relative h-7 w-14 rounded-xl border border-border/60 shadow-sm overflow-hidden" style={{ backgroundColor: secondaryHex }}>
-            <input 
-              type="color" 
-              value={secondaryHex} 
-              onChange={(e) => handleSecondaryChange(e.target.value)}
-              className="absolute inset-0 opacity-0 cursor-pointer h-full w-full"
-            />
-            <div className="w-full h-full flex items-center justify-center pointer-events-none mix-blend-difference text-white text-[10px] font-mono font-bold">
-              {secondaryHex.toUpperCase()}
-            </div>
+            <input type="color" value={secondaryHex} onChange={(e) => handleSecondaryChange(e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer h-full w-full" />
+            <div className="w-full h-full flex items-center justify-center pointer-events-none mix-blend-difference text-white text-[10px] font-mono font-bold">{secondaryHex.toUpperCase()}</div>
           </div>
         </div>
 
-        {/* PICKER 3 */}
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
             <span className="text-xs font-bold block">Warna Aksen</span>
             <span className="text-[10px] text-muted-foreground block">Notifikasi & Alert</span>
           </div>
           <div className="relative h-7 w-14 rounded-xl border border-border/60 shadow-sm overflow-hidden" style={{ backgroundColor: accentHex }}>
-            <input 
-              type="color" 
-              value={accentHex} 
-              onChange={(e) => handleAccentChange(e.target.value)}
-              className="absolute inset-0 opacity-0 cursor-pointer h-full w-full"
-            />
-            <div className="w-full h-full flex items-center justify-center pointer-events-none mix-blend-difference text-white text-[10px] font-mono font-bold">
-              {accentHex.toUpperCase()}
-            </div>
+            <input type="color" value={accentHex} onChange={(e) => handleAccentChange(e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer h-full w-full" />
+            <div className="w-full h-full flex items-center justify-center pointer-events-none mix-blend-difference text-white text-[10px] font-mono font-bold">{accentHex.toUpperCase()}</div>
           </div>
         </div>
       </div>
