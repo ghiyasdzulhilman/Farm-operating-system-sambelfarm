@@ -1,4 +1,3 @@
-import { useGetDropdownOptions, getGetDropdownOptionsQueryKey } from "@workspace/api-client-react";
 import { useEffect, useState } from "react";
 import { UserButton } from "@clerk/react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -33,6 +32,8 @@ import {
   useInspectDatabase,
   useListDatabases,
   useSaveFieldMappings,
+  useGetDropdownOptions,
+  getGetDropdownOptionsQueryKey
 } from "@workspace/api-client-react";
 import type { FieldMappingEntry, SaveFieldMappingsBody } from "@workspace/api-client-react";
 
@@ -42,13 +43,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // ---------------------------------------------------------------------------
 // 📂 1. ARCHITECTURE & DICTIONARY
 // ---------------------------------------------------------------------------
 type DomainType = "finance" | "agronomy" | "lab" | "resource";
 
-// ✨ KAMUS YANG DIPERLUAS
 const ALIASES: Record<string, string[]> = {
   qty: ["qty", "jumlah", "berat", "quantity", "kg"],
   harga: ["harga", "price", "rp", "jual", "satuan"],
@@ -69,7 +70,6 @@ const ALIASES: Record<string, string[]> = {
   hst: ["hst", "hari setelah", "umur", "usia", "hari"],
 };
 
-// ✨ SKEMA YANG DISESUAIKAN DENGAN NOTION LU
 const DOMAINS: any[] = [
   {
     id: "finance",
@@ -113,12 +113,11 @@ const DOMAINS: any[] = [
         { key: "area", label: "Area/Blok", expectedType: "title", aliases: ALIASES.area },
         { key: "waktu_tanam", label: "Waktu Tanam", expectedType: "date", aliases: ALIASES.tanggal },
       ]},
-            // ✨ KEMBALI KE MULTI-INSTANCE DEMI USER LAMA
       { 
         id: "perawatan", 
         label: "Riwayat Perawatan (Multi-Database)", 
         hint: "Hubungkan ke berbagai database blok milik user", 
-        isMultiInstance: true, // 👈 Kita nyalain lagi fiturnya bro!
+        isMultiInstance: true,
         fields: [
           { key: "kegiatan", label: "Nama Kegiatan", expectedType: "title", aliases: ALIASES.kegiatan },
           { key: "tanggal", label: "Tanggal Pelaksanaan", expectedType: "date|created_time", aliases: ALIASES.tanggal },
@@ -128,7 +127,6 @@ const DOMAINS: any[] = [
           { key: "status", label: "Status Progress", expectedType: "status|select", aliases: ALIASES.status },
         ]
       },
-
       { id: "inspeksi", label: "Inspeksi & Kesehatan Tanaman", hint: "Pencatatan Hama Penyakit", fields: [
         { key: "kegiatan", label: "Judul Laporan", expectedType: "title", aliases: ALIASES.kegiatan },
         { key: "tanggal", label: "Tanggal", expectedType: "date|created_time", aliases: ALIASES.tanggal },
@@ -162,8 +160,6 @@ export function SettingsPage() {
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6">
-      
-      {/* HEADER */}
       <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-black tracking-tight md:text-4xl">System Center</h1>
@@ -179,8 +175,6 @@ export function SettingsPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr]">
-        
-        {/* SIDEBAR CONTAINER */}
         <aside className="space-y-4">
           <div className="space-y-2">
             {DOMAINS.map((domain) => {
@@ -202,11 +196,9 @@ export function SettingsPage() {
               );
             })}
           </div>
-
           <ColorControl />
         </aside>
 
-        {/* MAIN CONTENT */}
         <main className="space-y-4">
           <AnimatePresence mode="wait">
             <motion.div key={activeDomain} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className="space-y-3">
@@ -228,14 +220,13 @@ export function SettingsPage() {
 }
 
 // ---------------------------------------------------------------------------
-// 📦 3. SCHEMA CONTROL CARD (AREA-BASED ROUTING EDITION)
+// 📦 3. SCHEMA CONTROL CARD (FIXED INDEKS & SKELETON)
 // ---------------------------------------------------------------------------
 function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { mutateAsync: saveFieldMappings, isPending: isSaving } = useSaveFieldMappings();
 
-  // Load opsi area kebun langsung dari database induk
   const { data: dropdownOptions } = useGetDropdownOptions({
     query: { enabled: isExpanded && schema.id === "perawatan", queryKey: getGetDropdownOptionsQueryKey() },
   });
@@ -243,31 +234,31 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
 
   const [areaDatabaseMap, setAreaDatabaseMap] = useState<Record<string, string>>({});
   const [fieldMappings, setFieldMappings] = useState<Record<string, string>>({});
+  const [activeInstanceIdx, setActiveInstanceIdx] = useState<number>(0);
 
-  // Kita gunakan DB pertama yang dipilih sebagai master untuk membaca struktur kolom via Load
   const masterId = schema.id === "perawatan" 
-    ? (Object.values(areaDatabaseMap)[0] || "") 
+    ? (Object.values(areaDatabaseMap)[activeInstanceIdx] || Object.values(areaDatabaseMap)[0] || "") 
     : (areaDatabaseMap["single"] || "");
 
-  // Ambil data mapping default untuk memunculkan kolom yang sudah tersimpan
-  const fetchType = schema.id === "perawatan" && areas.length > 0 ? `perawatan_${areas[0].id}` : schema.id;
+  const fetchType = schema.isMultiInstance ? `${schema.id}_${activeInstanceIdx}` : schema.id;
   const { data: savedData } = useGetFieldMappings(
     { type: fetchType as any }, 
-    { query: { enabled: !!fetchType, queryKey: getGetFieldMappingsQueryKey({ type: fetchType as any }) } }
+    { query: { enabled: isExpanded && !!fetchType, queryKey: getGetFieldMappingsQueryKey({ type: fetchType as any }) } }
   );
 
   useEffect(() => {
     if (savedData) {
-      if (!schema.id === "perawatan" && savedData.notionDatabaseId) {
+      if (!schema.isMultiInstance && savedData.notionDatabaseId) {
         setAreaDatabaseMap({ single: savedData.notionDatabaseId });
+      } else if (schema.id === "perawatan" && savedData.notionDatabaseId && areas[activeInstanceIdx]) {
+        setAreaDatabaseMap(p => ({ ...p, [areas[activeInstanceIdx].id]: savedData.notionDatabaseId! }));
       }
       const mapped: Record<string, string> = {};
       Object.entries(savedData.mappings ?? {}).forEach(([k, v]: any) => { if (v?.propertyId) mapped[k] = v.propertyId; });
       setFieldMappings(mapped);
     }
-  }, [savedData, areas.length]);
+  }, [savedData, activeInstanceIdx, areas.length]);
 
-  // Bypass aman: Pinjam rute 'panen' murni hanya untuk mengintip susunan kolom di Notion
   const inspectType = (schema.id === "perawatan" || schema.id === "inspeksi") ? "panen" : schema.id;
   const { data: inspected, isFetching: isInspecting, refetch: inspect } = useInspectDatabase(
     { type: inspectType, databaseId: masterId || "" },
@@ -303,13 +294,13 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
 
     try {
       if (schema.id === "perawatan") {
-        const activeLinks = Object.entries(areaDatabaseMap).filter(([_, dbId]) => !!dbId);
-        if (!activeLinks.length) return toast({ variant: "destructive", title: "Gagal", description: "Pilih minimal 1 database blok." });
+        const currentAreaId = areas[activeInstanceIdx]?.id;
+        const currentDbId = areaDatabaseMap[currentAreaId];
+        if (!currentDbId) return toast({ variant: "destructive", title: "Gagal", description: "Pilih database untuk blok aktif." });
 
-        // 🔥 MAGIC: Simpan duplikasi kolom ke semua DB area secara otomatis
-        await Promise.all(activeLinks.map(([areaId, dbId]) => saveFieldMappings({
-          data: { databaseType: `perawatan_${areaId}`, notionDatabaseId: dbId, mappings: mappingsToSave as any }
-        })));
+        await saveFieldMappings({
+          data: { databaseType: `${schema.id}_${activeInstanceIdx}`, notionDatabaseId: currentDbId, mappings: mappingsToSave as any }
+        });
       } else {
         if (!masterId) return toast({ variant: "destructive", title: "Gagal", description: "Database belum dipilih." });
         await saveFieldMappings({
@@ -318,7 +309,7 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
       }
 
       toast({ title: "Schema Saved", description: "Konfigurasi jembatan Notion berhasil diamankan." });
-      onToggle();
+      queryClient.invalidateQueries({ queryKey: getGetFieldMappingsQueryKey({ type: fetchType as any }) });
     } catch (e) { toast({ variant: "destructive", title: "Error", description: "Gagal sinkronisasi API." }); }
   };
 
@@ -327,7 +318,7 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
       <div className="p-4 pb-2 text-left">
         <div className="flex items-center gap-3">
           <div className="rounded-2xl bg-primary/10 p-2 text-primary">
-            {schema.id === "perawatan" ? <Workflow className="h-5 w-5" /> : <Database className="h-5 w-5" />}
+            {schema.isMultiInstance ? <Workflow className="h-5 w-5" /> : <Database className="h-5 w-5" />}
           </div>
           <div>
             <h3 className="text-sm font-black sm:text-base">{schema.label}</h3>
@@ -335,16 +326,18 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
           </div>
         </div>
 
-        {/* 🌿 INTERFAS KHUSUS MULTI-DATABASE PERAWATAN */}
         {isExpanded && schema.id === "perawatan" && (
           <div className="mt-4 space-y-2.5 rounded-2xl bg-muted/40 p-3 border border-border/50">
             <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground/80">Link Database per Blok Tanam</p>
-            {areas.length === 0 ? <Skeleton className="h-10 w-full rounded-xl" /> : areas.map((area) => (
+            {areas.length === 0 ? <Skeleton className="h-10 w-full rounded-xl" /> : areas.map((area, idx) => (
               <div key={area.id} className="flex items-center justify-between gap-4 py-1">
                 <span className="text-xs font-bold text-foreground shrink-0">📍 {area.name}</span>
-                <Select value={areaDatabaseMap[area.id] || ""} onValueChange={(val) => setAreaDatabaseMap(p => ({ ...p, [area.id]: val }))}>
+                <Select value={areaDatabaseMap[area.id] || ""} onValueChange={(val) => {
+                  setAreaDatabaseMap(p => ({ ...p, [area.id]: val }));
+                  setActiveInstanceIdx(idx);
+                }}>
                   <SelectTrigger className="h-9 w-[190px] rounded-xl bg-background text-xs font-semibold shadow-sm">
-                    <SelectValue placeholder="Pilih DB Perawatan..." />
+                    <SelectValue placeholder="Pilih DB..." />
                   </SelectTrigger>
                   <SelectContent>
                     {allDatabases.map(db => <SelectItem key={db.id} value={db.id} className="text-xs">{db.iconEmoji} {db.name}</SelectItem>)}
@@ -355,7 +348,6 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
           </div>
         )}
 
-        {/* INTERFAS STANDARD UNTUK DATA NON-PERAWATAN */}
         {isExpanded && schema.id !== "perawatan" && (
           <div className="mt-4 flex items-center justify-between">
             <span className="text-xs font-bold text-muted-foreground">Target Database</span>
@@ -371,14 +363,12 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
         )}
       </div>
 
-      {/* PULL TAB CONTROL */}
       <div className="relative z-10 -mt-1 mb-1 flex w-full justify-center">
-        <button onClick={onToggle} className="flex h-4 w-12 items-center justify-center rounded-b-xl border border-t-0 border-border/60 bg-muted/30 hover:bg-muted" aria-label="Toggle mapping">
+        <button onClick={onToggle} className="flex h-4 w-12 items-center justify-center rounded-b-xl border border-t-0 border-border/60 bg-muted/30 hover:bg-muted">
           <ChevronDown className={cn("h-3 w-3 text-muted-foreground transition-transform duration-300", isExpanded && "rotate-180")} />
         </button>
       </div>
 
-      {/* PANEL MAPPING KOLOM */}
       <AnimatePresence>
         {isExpanded && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden text-left">
@@ -428,9 +418,8 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
   );
 }
 
-
 // ---------------------------------------------------------------------------
-// 📦 4. BRAND COLOR & THEME CONTROLLER WIDGET
+// 📦 4. BRAND COLOR & THEME CONTROLLER WIDGET (REKONSILIASI PENUH)
 // ---------------------------------------------------------------------------
 function hexToHsl(hex: string) {
   hex = hex.replace(/^#/, "");
@@ -456,12 +445,7 @@ function hexToHsl(hex: string) {
   const roundedS = Math.round(s * 100);
   const roundedL = Math.round(l * 100);
 
-  return {
-    h: roundedH,
-    s: roundedS,
-    l: roundedL,
-    toString: () => `${roundedH} ${roundedS}% ${roundedL}%`
-  };
+  return { h: roundedH, s: roundedS, l: roundedL, toString: () => `${roundedH} ${roundedS}% ${roundedL}%` };
 }
 
 function ColorControl() {
@@ -474,6 +458,7 @@ function ColorControl() {
     if (typeof window !== "undefined") {
       const activeDark = document.documentElement.classList.contains("dark");
       setIsDark(activeDark);
+      
       const savedPrimary = localStorage.getItem("sf-primary-hex") || "#16a34a";
       const savedSecondary = localStorage.getItem("sf-secondary-hex") || "#a3e635";
       const savedAccent = localStorage.getItem("sf-accent-hex") || "#f97316";
@@ -481,6 +466,15 @@ function ColorControl() {
       setPrimaryHex(savedPrimary);
       setSecondaryHex(savedSecondary);
       setAccentHex(savedAccent);
+
+      const p = hexToHsl(savedPrimary);
+      if (activeDark) {
+        document.documentElement.style.setProperty("--muted", `${p.h} 8% 12%`);
+        document.documentElement.style.setProperty("--muted-foreground", `${p.h} 8% 65%`);
+      } else {
+        document.documentElement.style.setProperty("--muted", `${p.h} 15% 94%`);
+        document.documentElement.style.setProperty("--muted-foreground", `${p.h} 20% 45%`);
+      }
     }
   }, []);
 
@@ -488,7 +482,6 @@ function ColorControl() {
     const newIsDark = !isDark;
     setIsDark(newIsDark);
     localStorage.setItem("theme", newIsDark ? "dark" : "light");
-    
     const root = document.documentElement;
     const p = hexToHsl(primaryHex);
     if (newIsDark) {
@@ -505,10 +498,8 @@ function ColorControl() {
   const handlePrimaryChange = (hex: string) => {
     setPrimaryHex(hex);
     localStorage.setItem("sf-primary-hex", hex);
-    
     const p = hexToHsl(hex);
     document.documentElement.style.setProperty("--primary", p.toString());
-    
     if (isDark) {
       document.documentElement.style.setProperty("--muted", `${p.h} 8% 12%`);
       document.documentElement.style.setProperty("--muted-foreground", `${p.h} 8% 65%`);
@@ -539,16 +530,8 @@ function ColorControl() {
 
       <div className="flex items-center justify-between border-b pb-3 border-border/50">
         <span className="text-xs font-semibold">Mode Layar</span>
-        <button
-          onClick={toggleTheme}
-          className="relative inline-flex h-7 w-12 items-center rounded-full bg-muted transition-colors focus:outline-none"
-        >
-          <motion.div
-            layout
-            className="flex h-5 w-5 items-center justify-center rounded-full bg-background shadow-sm"
-            animate={{ x: isDark ? 22 : 4 }}
-            transition={{ type: "spring", stiffness: 500, damping: 30 }}
-          >
+        <button onClick={toggleTheme} className="relative inline-flex h-7 w-12 items-center rounded-full bg-muted focus:outline-none">
+          <motion.div layout className="flex h-5 w-5 items-center justify-center rounded-full bg-background shadow-sm" animate={{ x: isDark ? 22 : 4 }}>
             {isDark ? <Moon className="h-3 w-3 text-primary" /> : <Sun className="h-3 w-3 text-amber-500" />}
           </motion.div>
         </button>
