@@ -15,6 +15,7 @@ import { AddHarvestDialog } from "@/components/harvest/add-harvest-dialog";
 import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog";
 // ✨ IMPORT BARU: Form Perawatan yang barusan kita bikin
 import { AddPerawatanDialog } from "@/components/agronomy/AddPerawatanDialog";
+import { AddInspeksiDialog } from "@/components/agronomy/AddInspeksiDialog";
 
 import {
   useGetNotionConnectionStatus,
@@ -60,12 +61,14 @@ export function AppLayout({
     { href: "/settings", icon: Settings, label: "Setelan" },
   ];
 
-  // ✨ KALIBRASI BUSUR KIPAS (Diubah jadi 3 tombol melengkung)
+    // KALIBRASI BUSUR KIPAS (4 Tombol Melengkung Sempurna)
   const quickActions = [
-    { id: "harvest", component: AddHarvestDialog, position: { x: -62, y: -40 }, delay: 0.03 },
-    { id: "perawatan", component: AddPerawatanDialog, position: { x: 0, y: -75 }, delay: 0.06 },
-    { id: "expense", component: AddExpenseDialog, position: { x: 62, y: -40 }, delay: 0.09 },
+    { id: "harvest", component: AddHarvestDialog, position: { x: -75, y: -20 }, delay: 0.03 },
+    { id: "perawatan", component: AddPerawatanDialog, position: { x: -35, y: -72 }, delay: 0.06 },
+    { id: "inspeksi", component: AddInspeksiDialog, position: { x: 35, y: -72 }, delay: 0.09 },
+    { id: "expense", component: AddExpenseDialog, position: { x: 75, y: -20 }, delay: 0.12 },
   ];
+
 
   return (
     <div className="min-h-screen bg-background pb-28 font-sans text-foreground transition-colors duration-500">
