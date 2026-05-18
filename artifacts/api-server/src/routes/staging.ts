@@ -42,10 +42,19 @@ async function findDatabaseByName(
   name: string,
 ): Promise<string | null> {
   try {
-    const response = await notionFetch(userId, accessToken, "https://api.notion.com/v1/search", {
-      method: "POST",
-      body: JSON.stringify({ query: name, filter: { value: "database", property: "object" } }),
-    });
+    
+const childrenBlocks = buildNotionPageBody(task.databaseType, task.data);
+
+const response = await notionFetch(userId, accessToken, "https://api.notion.com/v1/pages", {
+  method: "POST",
+  body: JSON.stringify({
+    parent: { database_id: databaseId },
+    properties,
+    ...(childrenBlocks.length > 0 ? { children: childrenBlocks } : {})
+  }),
+});
+
+
     if (!response.ok) return null;
     const data = await response.json() as {
       results: Array<{ id: string; title?: Array<{ plain_text: string }> }>;
