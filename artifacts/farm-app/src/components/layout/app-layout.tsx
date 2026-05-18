@@ -9,12 +9,13 @@ import {
   Settings, 
   Wheat,
   ClipboardList,
-  Sprout, 
-  Coins,
 } from "lucide-react";
 
 import { AddHarvestDialog } from "@/components/harvest/add-harvest-dialog";
 import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog";
+// ✨ IMPORT BARU: Form Perawatan yang barusan kita bikin
+import { AddPerawatanDialog } from "@/components/agronomy/AddPerawatanDialog";
+
 import {
   useGetNotionConnectionStatus,
   getGetNotionConnectionStatusQueryKey,
@@ -59,10 +60,11 @@ export function AppLayout({
     { href: "/settings", icon: Settings, label: "Setelan" },
   ];
 
-  // KALIBRASI BUSUR KIPAS MINI EDISI CAPSULE SAFARI
+  // ✨ KALIBRASI BUSUR KIPAS (Diubah jadi 3 tombol melengkung)
   const quickActions = [
-    { id: "harvest", component: AddHarvestDialog, position: { x: -36, y: -65 }, delay: 0.03 },
-    { id: "expense", component: AddExpenseDialog, position: { x: 36, y: -65 }, delay: 0.08 },
+    { id: "harvest", component: AddHarvestDialog, position: { x: -62, y: -40 }, delay: 0.03 },
+    { id: "perawatan", component: AddPerawatanDialog, position: { x: 0, y: -75 }, delay: 0.06 },
+    { id: "expense", component: AddExpenseDialog, position: { x: 62, y: -40 }, delay: 0.09 },
   ];
 
   return (
@@ -121,7 +123,6 @@ export function AppLayout({
       </main>
 
       {/* ─── EVAKUASI AMAN: BACKDROP OVERLAY DI LUAR TRAP TRANSFORMASI (z-40) ─── */}
-      {/* Sekarang benar-benar full screen bebas hambatan dan bisa diclose dari mana aja! */}
       <AnimatePresence>
         {isFabOpen && (
           <motion.div 
