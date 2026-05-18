@@ -32,8 +32,6 @@ import {
   useInspectDatabase,
   useListDatabases,
   useSaveFieldMappings,
-  useGetDropdownOptions,
-  getGetDropdownOptionsQueryKey
 } from "@workspace/api-client-react";
 import type { FieldMappingEntry, SaveFieldMappingsBody } from "@workspace/api-client-react";
 
@@ -43,7 +41,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { Skeleton } from "@/components/ui/skeleton";
 
 // ---------------------------------------------------------------------------
 // 📂 1. ARCHITECTURE & DICTIONARY
@@ -55,19 +52,12 @@ const ALIASES: Record<string, string[]> = {
   harga: ["harga", "price", "rp", "jual", "satuan"],
   kualitas: ["kualitas", "grade", "mutu"],
   channel: ["channel", "saluran", "tujuan", "pembeli", "penjualan"],
-  tanggal: ["tanggal", "date", "waktu", "hari", "created", "pelaksanaan"],
+  tanggal: ["tanggal", "date", "waktu", "hari", "created"],
   kategori: ["kategori", "category", "jenis"],
-  area: ["area", "blok", "lahan", "pindah tanam", "target", "lokasi"],
-  kegiatan: ["kegiatan", "judul", "nama", "task", "operasional", "treatment", "inspeksi", "perawatan", "tindakan"],
+  area: ["area", "blok", "lahan", "pindah tanam"],
+  kegiatan: ["kegiatan", "judul", "nama", "task", "operasional", "treatment", "inspeksi"],
   hama: ["hama", "serangga", "kutu", "ulat"],
-  penyakit: ["penyakit", "jamur", "virus", "bakteri", "bercak", "patogen"],
-  tingkatSerangan: ["serangan", "persentase", "tingkat", "keparahan", "%"],
-  radius: ["radius", "meter", "luasan", "jarak"],
-  phTanah: ["ph", "asam", "basa", "keasaman"],
-  tags: ["tags", "jenis", "tipe", "metode", "kategori", "label"],
-  petugas: ["petugas", "pic", "penanggung", "pekerja", "person in charge", "eksekutor"],
-  status: ["status", "progres", "state", "kondisi"],
-  hst: ["hst", "hari setelah", "umur", "usia", "hari"],
+  penyakit: ["penyakit", "jamur", "virus", "bakteri", "bercak"],
 };
 
 const DOMAINS: any[] = [
@@ -113,30 +103,26 @@ const DOMAINS: any[] = [
         { key: "area", label: "Area/Blok", expectedType: "title", aliases: ALIASES.area },
         { key: "waktu_tanam", label: "Waktu Tanam", expectedType: "date", aliases: ALIASES.tanggal },
       ]},
-      { 
-        id: "perawatan", 
-        label: "Riwayat Perawatan (Multi-Database)", 
-        hint: "Hubungkan ke berbagai database blok milik user", 
-        isMultiInstance: true,
-        fields: [
-          { key: "kegiatan", label: "Nama Kegiatan", expectedType: "title", aliases: ALIASES.kegiatan },
-          { key: "tanggal", label: "Tanggal Pelaksanaan", expectedType: "date|created_time", aliases: ALIASES.tanggal },
-          { key: "areaId", label: "Target Area / Blok", expectedType: "relation", aliases: ALIASES.area },
-          { key: "tags", label: "Jenis / Tags", expectedType: "select|multi_select", aliases: ALIASES.tags },
-          { key: "petugasId", label: "Petugas Lapangan", expectedType: "relation", aliases: ALIASES.petugas },
-          { key: "status", label: "Status Progress", expectedType: "status|select", aliases: ALIASES.status },
-        ]
-      },
-      { id: "inspeksi", label: "Inspeksi & Kesehatan Tanaman", hint: "Pencatatan Hama Penyakit", fields: [
-        { key: "kegiatan", label: "Judul Laporan", expectedType: "title", aliases: ALIASES.kegiatan },
+      { id: "treatment_blocks", label: "Riwayat Perawatan (Multi-Blok)", hint: "Mapping 1x, terapkan ke banyak blok", isMultiInstance: true, fields: [
+        { key: "kegiatan", label: "Kegiatan", expectedType: "title", aliases: ALIASES.kegiatan },
+        { key: "tanggal", label: "Tanggal", expectedType: "date", aliases: ALIASES.tanggal },
+        { key: "hst", label: "HST", expectedType: "formula|rollup|number" },
+        { key: "status", label: "Status", expectedType: "status|select" },
+        { key: "petugas", label: "Petugas Lapangan", expectedType: "relation" },
+        { key: "area", label: "Area Pindah Tanam", expectedType: "relation", aliases: ALIASES.area },
+      ]},
+      { id: "inspeksi", label: "Inspeksi Rutin", hint: "Pencatatan hama dan penyakit", fields: [
+        { key: "kegiatan", label: "Kegiatan", expectedType: "title", aliases: ALIASES.kegiatan },
         { key: "tanggal", label: "Tanggal", expectedType: "date|created_time", aliases: ALIASES.tanggal },
-        { key: "areaId", label: "Area Terdampak", expectedType: "relation", aliases: ALIASES.area },
         { key: "hama", label: "Hama", expectedType: "multi_select", aliases: ALIASES.hama },
         { key: "penyakit", label: "Penyakit", expectedType: "multi_select", aliases: ALIASES.penyakit },
-        { key: "tingkatSerangan", label: "% Serangan", expectedType: "number", aliases: ALIASES.tingkatSerangan },
-        { key: "radius", label: "Radius (m)", expectedType: "number", aliases: ALIASES.radius },
-        { key: "phTanah", label: "pH Tanah", expectedType: "number", aliases: ALIASES.phTanah },
-        { key: "petugasId", label: "Petugas", expectedType: "relation", aliases: ALIASES.petugas },
+        { key: "area", label: "Area", expectedType: "relation", aliases: ALIASES.area },
+      ]},
+      { id: "operasional", label: "Kegiatan Operasional Umum", hint: "Tugas harian", fields: [
+        { key: "kegiatan", label: "Task", expectedType: "title", aliases: ALIASES.kegiatan },
+        { key: "tanggal", label: "Tanggal", expectedType: "date", aliases: ALIASES.tanggal },
+        { key: "keterangan", label: "Catatan", expectedType: "rich_text" },
+        { key: "pic", label: "Penanggung Jawab", expectedType: "relation|people" },
       ]},
     ]
   },
@@ -144,6 +130,7 @@ const DOMAINS: any[] = [
   { id: "resource", label: "Resources", icon: Users, description: "Manajemen data pekerja", schemas: [] },
 ];
 
+/* AUDIT WARNA: Mengubah class kaku menjadi class transparan dinamis agar ngikut mode */
 const glassCard = "rounded-[1.75rem] border-border/50 bg-card text-card-foreground shadow-sm transition-all duration-300";
 
 // ---------------------------------------------------------------------------
@@ -160,6 +147,8 @@ export function SettingsPage() {
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6">
+      
+      {/* HEADER */}
       <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-black tracking-tight md:text-4xl">System Center</h1>
@@ -175,6 +164,8 @@ export function SettingsPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr]">
+        
+        {/* SIDEBAR CONTAINER */}
         <aside className="space-y-4">
           <div className="space-y-2">
             {DOMAINS.map((domain) => {
@@ -182,6 +173,7 @@ export function SettingsPage() {
               const isActive = activeDomain === domain.id;
               return (
                 <button key={domain.id} onClick={() => { setActiveDomain(domain.id); setExpandedSchema(null); }}
+                  /* AUDIT WARNA: Teks list menu side diubah biar adaptif */
                   className={cn("group flex w-full items-center gap-3 rounded-2xl p-4 transition-all duration-300", 
                     isActive ? "bg-primary text-primary-foreground shadow-sm" : "hover:bg-primary/5 text-muted-foreground")}>
                   <div className={cn("rounded-xl p-2 transition-colors", isActive ? "bg-primary-foreground/20 text-white" : "bg-muted text-muted-foreground")}>
@@ -196,9 +188,12 @@ export function SettingsPage() {
               );
             })}
           </div>
+
+          {/* SAKLAR TRIPLE KENDALI WARNA */}
           <ColorControl />
         </aside>
 
+        {/* MAIN CONTENT */}
         <main className="space-y-4">
           <AnimatePresence mode="wait">
             <motion.div key={activeDomain} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className="space-y-3">
@@ -220,54 +215,52 @@ export function SettingsPage() {
 }
 
 // ---------------------------------------------------------------------------
-// 📦 3. SCHEMA CONTROL CARD (FIXED INDEKS & SKELETON)
+// 📦 3. SCHEMA CONTROL CARD (Compact Edition)
 // ---------------------------------------------------------------------------
 function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { mutateAsync: saveFieldMappings, isPending: isSaving } = useSaveFieldMappings();
 
-  const { data: dropdownOptions } = useGetDropdownOptions({
-    query: { enabled: isExpanded && schema.id === "perawatan", queryKey: getGetDropdownOptionsQueryKey() },
-  });
-  const areas = dropdownOptions?.areas ?? [];
-
-  const [areaDatabaseMap, setAreaDatabaseMap] = useState<Record<string, string>>({});
+  const [linkedIds, setLinkedIds] = useState<string[]>([]);
   const [fieldMappings, setFieldMappings] = useState<Record<string, string>>({});
-  const [activeInstanceIdx, setActiveInstanceIdx] = useState<number>(0);
 
-  const masterId = schema.id === "perawatan" 
-    ? (Object.values(areaDatabaseMap)[activeInstanceIdx] || Object.values(areaDatabaseMap)[0] || "") 
-    : (areaDatabaseMap["single"] || "");
+  const masterId = linkedIds[0] || "";
 
-  const fetchType = schema.isMultiInstance ? `${schema.id}_${activeInstanceIdx}` : schema.id;
+  const fetchType = schema.isMultiInstance ? `${schema.id}_0` : schema.id;
   const { data: savedData } = useGetFieldMappings(
     { type: fetchType as any }, 
-    { query: { enabled: isExpanded && !!fetchType, queryKey: getGetFieldMappingsQueryKey({ type: fetchType as any }) } }
+    { query: { queryKey: getGetFieldMappingsQueryKey({ type: fetchType as any }) } }
   );
 
   useEffect(() => {
     if (savedData) {
-      if (!schema.isMultiInstance && savedData.notionDatabaseId) {
-        setAreaDatabaseMap({ single: savedData.notionDatabaseId });
-      } else if (schema.id === "perawatan" && savedData.notionDatabaseId && areas[activeInstanceIdx]) {
-        setAreaDatabaseMap(p => ({ ...p, [areas[activeInstanceIdx].id]: savedData.notionDatabaseId! }));
+      if (savedData.notionDatabaseId) {
+        setLinkedIds(prev => prev.includes(savedData.notionDatabaseId!) ? prev : [...prev, savedData.notionDatabaseId!]);
       }
       const mapped: Record<string, string> = {};
       Object.entries(savedData.mappings ?? {}).forEach(([k, v]: any) => { if (v?.propertyId) mapped[k] = v.propertyId; });
       setFieldMappings(mapped);
     }
-  }, [savedData, activeInstanceIdx, areas.length]);
+  }, [savedData]);
 
-  const inspectType = (schema.id === "perawatan" || schema.id === "inspeksi") ? "panen" : schema.id;
+  const inspectType = schema.id as any;
   const { data: inspected, isFetching: isInspecting, refetch: inspect } = useInspectDatabase(
     { type: inspectType, databaseId: masterId || "" },
-    { query: { enabled: !!masterId, queryKey: getInspectDatabaseQueryKey({ type: inspectType, databaseId: masterId || "" }) } }
+    { query: { 
+        enabled: !!masterId,
+        queryKey: getInspectDatabaseQueryKey({ type: inspectType, databaseId: masterId || "" }) 
+    } }
   );
   const props = inspected?.properties ?? [];
 
+  const handleRemoveDb = (id: string) => {
+    setLinkedIds(prev => prev.filter(x => x !== id));
+    if (linkedIds.length <= 1) setFieldMappings({}); 
+  };
+
   const handleAutoMap = () => {
-    if (!props.length) return toast({ variant: "destructive", title: "Kolom Kosong", description: "Klik tombol 'Load' dulu bro." });
+    if (!props.length) return toast({ variant: "destructive", title: "Kolom Kosong", description: "Tunggu loading beres dulu bro." });
     const nextMap: Record<string, string> = { ...fieldMappings };
     let count = 0;
     const normalize = (str: string) => str.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -276,16 +269,20 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
       const targetWords = [normalize(field.label), ...(field.aliases || [])];
       const match = props.find((p: any) => {
         const propName = normalize(p.name);
-        return (field.expectedType.split("|").includes(p.type) || p.type === "date") &&
-               targetWords.some(word => propName.includes(word) || word.includes(propName));
+        const isTypeMatch = field.expectedType.split("|").includes(p.type) || (field.expectedType.includes("number") && ["formula", "rollup"].includes(p.type));
+        if (!isTypeMatch) return false;
+        return targetWords.some(word => propName.includes(word) || word.includes(propName));
       });
       if (match) { nextMap[field.key] = match.id; count++; }
     });
+
     setFieldMappings(nextMap);
-    toast({ title: "Auto Map Selesai", description: `${count} kolom cocok.` });
+    toast({ title: "Auto Map Selesai", description: `${count} kolom berhasil dicocokkan.` });
   };
 
   const handleSave = async () => {
+    if (!linkedIds.length) return toast({ variant: "destructive", title: "DB Belum Dipilih", description: "Pilih minimal 1 database." });
+
     const mappingsToSave: Record<string, FieldMappingEntry> = {};
     schema.fields.forEach((f: any) => {
       const p = props.find((p: any) => p.id === fieldMappings[f.key]);
@@ -293,115 +290,116 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
     });
 
     try {
-      if (schema.id === "perawatan") {
-        const currentAreaId = areas[activeInstanceIdx]?.id;
-        const currentDbId = areaDatabaseMap[currentAreaId];
-        if (!currentDbId) return toast({ variant: "destructive", title: "Gagal", description: "Pilih database untuk blok aktif." });
-
-        await saveFieldMappings({
-          data: { databaseType: `${schema.id}_${activeInstanceIdx}`, notionDatabaseId: currentDbId, mappings: mappingsToSave as any }
-        });
-      } else {
-        if (!masterId) return toast({ variant: "destructive", title: "Gagal", description: "Database belum dipilih." });
-        await saveFieldMappings({
-          data: { databaseType: schema.id, notionDatabaseId: masterId, mappings: mappingsToSave as any }
-        });
-      }
-
-      toast({ title: "Schema Saved", description: "Konfigurasi jembatan Notion berhasil diamankan." });
+      await Promise.all(linkedIds.map((id, idx) => saveFieldMappings({
+        data: {
+          databaseType: schema.isMultiInstance ? `${schema.id}_${idx}` : schema.id,
+          notionDatabaseId: id,
+          mappings: mappingsToSave as SaveFieldMappingsBody["mappings"],
+        }
+      })));
+      toast({ title: "Schema Saved", description: `Berhasil disimpan ke ${linkedIds.length} database.` });
       queryClient.invalidateQueries({ queryKey: getGetFieldMappingsQueryKey({ type: fetchType as any }) });
-    } catch (e) { toast({ variant: "destructive", title: "Error", description: "Gagal sinkronisasi API." }); }
+      onToggle(); 
+    } catch (e) { toast({ variant: "destructive", title: "Gagal Simpan", description: "Terjadi kesalahan saat sinkronisasi API." }); }
   };
 
   return (
     <Card className={cn(glassCard, isExpanded && "ring-2 ring-primary/40")}>
-      <div className="p-4 pb-2 text-left">
-        <div className="flex items-center gap-3">
-          <div className="rounded-2xl bg-primary/10 p-2 text-primary">
-            {schema.isMultiInstance ? <Workflow className="h-5 w-5" /> : <Database className="h-5 w-5" />}
-          </div>
-          <div>
-            <h3 className="text-sm font-black sm:text-base">{schema.label}</h3>
-            <p className="text-[11px] text-muted-foreground">{schema.hint}</p>
-          </div>
-        </div>
-
-        {isExpanded && schema.id === "perawatan" && (
-          <div className="mt-4 space-y-2.5 rounded-2xl bg-muted/40 p-3 border border-border/50">
-            <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground/80">Link Database per Blok Tanam</p>
-            {areas.length === 0 ? <Skeleton className="h-10 w-full rounded-xl" /> : areas.map((area, idx) => (
-              <div key={area.id} className="flex items-center justify-between gap-4 py-1">
-                <span className="text-xs font-bold text-foreground shrink-0">📍 {area.name}</span>
-                <Select value={areaDatabaseMap[area.id] || ""} onValueChange={(val) => {
-                  setAreaDatabaseMap(p => ({ ...p, [area.id]: val }));
-                  setActiveInstanceIdx(idx);
+      <div className="p-3 sm:p-4 sm:pb-2">
+        <div className="flex flex-col gap-2.5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-1 items-center gap-3 min-w-0">
+              {/* AUDIT WARNA: Background icon menyesuaikan dengan class muted */}
+              <div className={cn("shrink-0 rounded-[1rem] p-2 text-primary transition-colors", isExpanded ? "bg-primary/10" : "bg-muted")}>
+                {schema.isMultiInstance ? <Workflow className="h-4 w-4" /> : <Database className="h-4 w-4" />}
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-sm font-black truncate sm:text-base">{schema.label}</h3>
+                <p className="text-[11px] text-muted-foreground truncate">{schema.hint}</p>
+              </div>
+            </div>
+            <div className="flex shrink-0 w-full sm:w-auto">
+              {(!schema.isMultiInstance && linkedIds.length > 0) ? null : (
+                <Select onValueChange={(val) => {
+                  if (!linkedIds.includes(val)) setLinkedIds(prev => schema.isMultiInstance ? [...prev, val] : [val]);
                 }}>
-                  <SelectTrigger className="h-9 w-[190px] rounded-xl bg-background text-xs font-semibold shadow-sm">
-                    <SelectValue placeholder="Pilih DB..." />
+                  {/* AUDIT WARNA: Select trigger warna background diset murni agar tidak bentrok */}
+                  <SelectTrigger className="h-9 w-full flex-1 rounded-full border-border/60 bg-muted/50 text-xs font-bold shadow-sm backdrop-blur sm:w-[130px]">
+                    <div className="flex items-center gap-1.5 text-primary"><Plus className="h-3.5 w-3.5"/>Pilih database</div>
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-[300px]">
                     {allDatabases.map(db => <SelectItem key={db.id} value={db.id} className="text-xs">{db.iconEmoji} {db.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
-              </div>
-            ))}
+              )}
+            </div>
           </div>
-        )}
-
-        {isExpanded && schema.id !== "perawatan" && (
-          <div className="mt-4 flex items-center justify-between">
-            <span className="text-xs font-bold text-muted-foreground">Target Database</span>
-            <Select value={masterId} onValueChange={(val) => setAreaDatabaseMap({ single: val })}>
-              <SelectTrigger className="h-9 w-[200px] rounded-xl bg-muted/50 text-xs font-bold">
-                <SelectValue placeholder="Hubungkan DB..." />
-              </SelectTrigger>
-              <SelectContent>
-                {allDatabases.map(db => <SelectItem key={db.id} value={db.id} className="text-xs">{db.iconEmoji} {db.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
+          <div className="flex w-full flex-wrap items-center justify-center gap-1.5 min-h-[26px]">
+            <AnimatePresence mode="popLayout">
+              {linkedIds.map(id => (
+                <motion.div key={id} layout initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} transition={{ type: "spring", stiffness: 300, damping: 25 }}>
+                  <Badge variant="secondary" className="gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary">
+                    <span className="truncate max-w-[140px] text-[10px] font-semibold">
+                      {allDatabases.find(d => d.id === id)?.iconEmoji} {allDatabases.find(d => d.id === id)?.name || id}
+                    </span>
+                    <X className="h-3 w-3 cursor-pointer opacity-50 transition-colors hover:opacity-100 hover:text-red-500" onClick={() => handleRemoveDb(id)} />
+                  </Badge>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+            {linkedIds.length === 0 && <span className="text-[10px] text-muted-foreground opacity-60">Belum ada database terpilih</span>}
           </div>
-        )}
+        </div>
       </div>
 
       <div className="relative z-10 -mt-1 mb-1 flex w-full justify-center">
-        <button onClick={onToggle} className="flex h-4 w-12 items-center justify-center rounded-b-xl border border-t-0 border-border/60 bg-muted/30 hover:bg-muted">
+        {/* AUDIT WARNA: Tombol pull tab diselaraskan */}
+        <button onClick={onToggle} className="flex h-4 w-12 items-center justify-center rounded-b-xl border border-t-0 border-border/60 bg-muted/30 shadow-[0_4px_10px_rgba(0,0,0,0.03)] backdrop-blur-md transition-colors hover:bg-muted" aria-label="Toggle mapping config">
           <ChevronDown className={cn("h-3 w-3 text-muted-foreground transition-transform duration-300", isExpanded && "rotate-180")} />
         </button>
       </div>
 
       <AnimatePresence>
         {isExpanded && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden text-left">
-            <div className="px-4 pb-4">
-              <div className="border-t border-dashed border-border/50 pt-3">
-                <div className="mb-4 flex items-center justify-center gap-1.5">
-                  <Button size="sm" onClick={() => inspect()} disabled={isInspecting || !masterId} className="h-8 rounded-full text-[10px] font-bold bg-primary/10 text-primary hover:bg-primary/20 px-4">
-                    {isInspecting ? "Loading..." : "1. Load Cols"}
-                  </Button>
-                  <Button size="sm" onClick={handleAutoMap} disabled={!props.length} className="h-8 rounded-full text-[10px] font-bold bg-primary/10 text-primary hover:bg-primary/20 px-4">
-                    2. Auto Map
-                  </Button>
-                  <Button size="sm" onClick={handleSave} className="h-8 rounded-full bg-primary text-[10px] font-bold text-primary-foreground px-5">
-                    3. Save Config
-                  </Button>
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+            <div className="px-3 pb-3 sm:px-4 sm:pb-4">
+              <div className="border-t border-dashed border-border/50 pt-4">
+                <div className="mb-4 flex flex-col items-center justify-center gap-2.5">
+                  <h4 className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Mapping Controls</h4>
+                  <div className="flex flex-wrap items-center justify-center gap-1.5">
+                    <Button size="sm" onClick={() => inspect()} disabled={isInspecting || !masterId} className="h-8 rounded-full px-4 text-[10px] font-bold bg-primary/10 text-primary hover:bg-primary/20">
+                      {isInspecting ? "Loading..." : "Load"}
+                    </Button>
+                    <Button size="sm" onClick={handleAutoMap} disabled={!props.length} className="h-8 rounded-full px-4 text-[10px] font-bold bg-primary/10 text-primary hover:bg-primary/20">
+                      Auto map
+                    </Button>
+                    <Button size="sm" onClick={handleSave} disabled={isSaving} className="h-8 rounded-full bg-primary px-5 text-[10px] font-bold text-primary-foreground shadow-sm transition-colors hover:opacity-90">
+                      {isSaving ? "Saving..." : "Save"}
+                    </Button>
+                  </div>
                 </div>
-
                 <div className="grid gap-2">
                   {schema.fields.map((field: any) => {
                     const isMapped = !!fieldMappings[field.key];
+                    const pType = field.expectedType.split('|')[0];
                     return (
-                      <div key={field.key} className={cn("flex flex-col gap-2 rounded-xl border p-2.5 sm:flex-row sm:items-center sm:justify-between transition-colors", isMapped ? "bg-primary/[0.03] border-primary/20" : "bg-muted/10 border-transparent")}>
-                        <div className="flex items-center gap-2 min-w-0">
-                          <Badge variant="outline" className="rounded-full bg-background text-[9px] font-black uppercase">{field.expectedType.split('|')[0]}</Badge>
-                          <p className="text-xs font-bold truncate text-foreground">{field.label}</p>
+                      <div key={field.key} className={cn("flex flex-col gap-2 rounded-xl border p-2.5 transition-colors sm:flex-row sm:items-center sm:justify-between", isMapped ? "bg-primary/[0.04] border-primary/20" : "bg-muted/20 border-transparent")}>
+                        <div className="flex flex-1 items-center gap-2.5 min-w-0">
+                           <Badge variant="outline" className="rounded-full bg-background text-[9px] font-black uppercase text-foreground">{pType}</Badge>
+                           <div className="min-w-0 flex-1">
+                             <p className="truncate text-xs font-bold tracking-tight text-foreground">{field.label}</p>
+                           </div>
                         </div>
-                        <Select value={fieldMappings[field.key] || ""} onValueChange={(val) => setFieldMappings(p => ({ ...p, [field.key]: val }))}>
-                          <SelectTrigger className="h-9 w-full sm:w-[200px] rounded-lg bg-background text-[11px] font-semibold">
-                            <SelectValue placeholder={props.length ? "Pilih kolom..." : "Belum di-load"} />
+                        <Select value={fieldMappings[field.key] || ""} onValueChange={(val) => setFieldMappings(prev => ({...prev, [field.key]: val}))}>
+                          <SelectTrigger className="h-9 w-full shrink-0 rounded-lg bg-background text-[11px] font-semibold shadow-sm sm:w-[220px]">
+                            <SelectValue placeholder={isInspecting ? "Memuat kolom..." : (props.length ? "Pilih kolom..." : "Kolom belum di-load")} className="truncate" />
                           </SelectTrigger>
                           <SelectContent>
+                            {props.length === 0 && <div className="p-2 text-center text-xs text-muted-foreground">{isInspecting ? "Loading..." : "Tekan Load Cols dulu"}</div>}
                             {props.map((p: any) => (
-                              <SelectItem key={p.id} value={p.id} className="text-[11px]">{p.name} <span className="opacity-40">({p.type})</span></SelectItem>
+                              <SelectItem key={p.id} value={p.id} className="text-[11px]">
+                                <span className="font-medium">{p.name}</span> <span className="ml-1 opacity-50">({p.type})</span>
+                              </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -419,7 +417,7 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
 }
 
 // ---------------------------------------------------------------------------
-// 📦 4. BRAND COLOR & THEME CONTROLLER WIDGET (REKONSILIASI PENUH)
+// 📦 4. BRAND COLOR & THEME CONTROLLER WIDGET (AUTO ADAPTIVE EDITION)
 // ---------------------------------------------------------------------------
 function hexToHsl(hex: string) {
   hex = hex.replace(/^#/, "");
@@ -445,15 +443,23 @@ function hexToHsl(hex: string) {
   const roundedS = Math.round(s * 100);
   const roundedL = Math.round(l * 100);
 
-  return { h: roundedH, s: roundedS, l: roundedL, toString: () => `${roundedH} ${roundedS}% ${roundedL}%` };
+  return {
+    h: roundedH,
+    s: roundedS,
+    l: roundedL,
+    toString: () => `${roundedH} ${roundedS}% ${roundedL}%`
+  };
 }
 
 function ColorControl() {
   const [isDark, setIsDark] = useState(false);
+
+  // State Hex Dasar 3 Warna Identitas
   const [primaryHex, setPrimaryHex] = useState("#16a34a");
   const [secondaryHex, setSecondaryHex] = useState("#a3e635");
   const [accentHex, setAccentHex] = useState("#f97316");
 
+  // Load warna awal dari LocalStorage & Suntik Muted UI otomatis
   useEffect(() => {
     if (typeof window !== "undefined") {
       const activeDark = document.documentElement.classList.contains("dark");
@@ -467,6 +473,7 @@ function ColorControl() {
       setSecondaryHex(savedSecondary);
       setAccentHex(savedAccent);
 
+      // Pipa Sinkronisasi Otomatis untuk Muted UI
       const p = hexToHsl(savedPrimary);
       if (activeDark) {
         document.documentElement.style.setProperty("--muted", `${p.h} 8% 12%`);
@@ -478,10 +485,12 @@ function ColorControl() {
     }
   }, []);
 
+  // Sync Mode Gelap/Terang
   const toggleTheme = () => {
     const newIsDark = !isDark;
     setIsDark(newIsDark);
     localStorage.setItem("theme", newIsDark ? "dark" : "light");
+    
     const root = document.documentElement;
     const p = hexToHsl(primaryHex);
     if (newIsDark) {
@@ -495,11 +504,14 @@ function ColorControl() {
     }
   };
 
+  // Handler Ganti Warna Utama
   const handlePrimaryChange = (hex: string) => {
     setPrimaryHex(hex);
     localStorage.setItem("sf-primary-hex", hex);
+    
     const p = hexToHsl(hex);
     document.documentElement.style.setProperty("--primary", p.toString());
+    
     if (isDark) {
       document.documentElement.style.setProperty("--muted", `${p.h} 8% 12%`);
       document.documentElement.style.setProperty("--muted-foreground", `${p.h} 8% 65%`);
@@ -530,44 +542,76 @@ function ColorControl() {
 
       <div className="flex items-center justify-between border-b pb-3 border-border/50">
         <span className="text-xs font-semibold">Mode Layar</span>
-        <button onClick={toggleTheme} className="relative inline-flex h-7 w-12 items-center rounded-full bg-muted focus:outline-none">
-          <motion.div layout className="flex h-5 w-5 items-center justify-center rounded-full bg-background shadow-sm" animate={{ x: isDark ? 22 : 4 }}>
+        <button
+          onClick={toggleTheme}
+          className="relative inline-flex h-7 w-12 items-center rounded-full bg-muted transition-colors focus:outline-none"
+        >
+          <motion.div
+            layout
+            className="flex h-5 w-5 items-center justify-center rounded-full bg-background shadow-sm"
+            animate={{ x: isDark ? 22 : 4 }}
+            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+          >
             {isDark ? <Moon className="h-3 w-3 text-primary" /> : <Sun className="h-3 w-3 text-amber-500" />}
           </motion.div>
         </button>
       </div>
 
       <div className="space-y-3 pt-1">
+        {/* PICKER 1 */}
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
             <span className="text-xs font-bold block">Warna Utama</span>
             <span className="text-[10px] text-muted-foreground block">UI Utama & Basis Muted</span>
           </div>
           <div className="relative h-7 w-14 rounded-xl border border-border/60 shadow-sm overflow-hidden" style={{ backgroundColor: primaryHex }}>
-            <input type="color" value={primaryHex} onChange={(e) => handlePrimaryChange(e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer h-full w-full" />
-            <div className="w-full h-full flex items-center justify-center pointer-events-none mix-blend-difference text-white text-[10px] font-mono font-bold">{primaryHex.toUpperCase()}</div>
+            <input 
+              type="color" 
+              value={primaryHex} 
+              onChange={(e) => handlePrimaryChange(e.target.value)}
+              className="absolute inset-0 opacity-0 cursor-pointer h-full w-full"
+            />
+            <div className="w-full h-full flex items-center justify-center pointer-events-none mix-blend-difference text-white text-[10px] font-mono font-bold">
+              {primaryHex.toUpperCase()}
+            </div>
           </div>
         </div>
 
+        {/* PICKER 2 */}
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
             <span className="text-xs font-bold block">Warna Kedua</span>
             <span className="text-[10px] text-muted-foreground block">Badge & Secondary UI</span>
           </div>
           <div className="relative h-7 w-14 rounded-xl border border-border/60 shadow-sm overflow-hidden" style={{ backgroundColor: secondaryHex }}>
-            <input type="color" value={secondaryHex} onChange={(e) => handleSecondaryChange(e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer h-full w-full" />
-            <div className="w-full h-full flex items-center justify-center pointer-events-none mix-blend-difference text-white text-[10px] font-mono font-bold">{secondaryHex.toUpperCase()}</div>
+            <input 
+              type="color" 
+              value={secondaryHex} 
+              onChange={(e) => handleSecondaryChange(e.target.value)}
+              className="absolute inset-0 opacity-0 cursor-pointer h-full w-full"
+            />
+            <div className="w-full h-full flex items-center justify-center pointer-events-none mix-blend-difference text-white text-[10px] font-mono font-bold">
+              {secondaryHex.toUpperCase()}
+            </div>
           </div>
         </div>
 
+        {/* PICKER 3 */}
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
             <span className="text-xs font-bold block">Warna Aksen</span>
             <span className="text-[10px] text-muted-foreground block">Notifikasi & Alert</span>
           </div>
           <div className="relative h-7 w-14 rounded-xl border border-border/60 shadow-sm overflow-hidden" style={{ backgroundColor: accentHex }}>
-            <input type="color" value={accentHex} onChange={(e) => handleAccentChange(e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer h-full w-full" />
-            <div className="w-full h-full flex items-center justify-center pointer-events-none mix-blend-difference text-white text-[10px] font-mono font-bold">{accentHex.toUpperCase()}</div>
+            <input 
+              type="color" 
+              value={accentHex} 
+              onChange={(e) => handleAccentChange(e.target.value)}
+              className="absolute inset-0 opacity-0 cursor-pointer h-full w-full"
+            />
+            <div className="w-full h-full flex items-center justify-center pointer-events-none mix-blend-difference text-white text-[10px] font-mono font-bold">
+              {accentHex.toUpperCase()}
+            </div>
           </div>
         </div>
       </div>

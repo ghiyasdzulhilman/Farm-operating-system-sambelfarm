@@ -116,17 +116,14 @@ const DB_FIELD_SPECS: Record<string, FieldSpec[]> = {
     { mappingKey: "labaRugi", dataKey: "areaId", build: (v) => ({ relation: [{ id: String(v) }] }), optional: true },
   ],
   
-    // ✨ MAPPING LENGKAP AGRONOMI
+  // ✨ TAMBAHAN 2: Mapping untuk Modul Agronomy (Persiapan Sync)
   perawatan: [
     { mappingKey: "kegiatan", build: (v) => ({ title: [{ text: { content: String(v ?? "") } }] }) },
     { mappingKey: "tanggal", build: (v) => ({ date: { start: String(v) } }) },
     { mappingKey: "areaId", build: (v) => ({ relation: [{ id: String(v) }] }), optional: true },
     { mappingKey: "tags", build: (v) => ({ select: { name: String(v) } }), optional: true },
     { mappingKey: "petugasId", build: (v) => ({ relation: [{ id: String(v) }] }), optional: true },
-    // Otomatis kasih status "Done/Selesai" ke Notion setiap kali input dari HP
-    { mappingKey: "status", dataKey: "status", build: (v) => ({ status: { name: "Done" } }), optional: true }, 
   ],
-
   inspeksi: [
     { mappingKey: "kegiatan", build: (v) => ({ title: [{ text: { content: String(v ?? "") } }] }) },
     { mappingKey: "tanggal", build: (v) => ({ date: { start: String(v) } }) },
@@ -224,15 +221,13 @@ router.post("/staging/sync", async (req, res): Promise<void> => {
       db.select().from(stagingInspeksiTable).where(and(eq(stagingInspeksiTable.userId, userId), eq(stagingInspeksiTable.status, "pending"))),
     ]);
 
-        // GANTI BAGIAN INI SAJA DI DALAM syncQueue
     const syncQueue = [
       ...pendingData.map(r => ({
         id: r.id, source: "data" as const, databaseType: r.databaseType,
         data: r.data as Record<string, unknown>,
       })),
-      // 🌟 PERUBAHAN: databaseType kita kunci pakai ID Area langsung (perawatan_IDAREA)
       ...pendingPerawatan.map(r => ({
-        id: r.id, source: "perawatan" as const, databaseType: `perawatan_${r.areaId}`, 
+        id: r.id, source: "perawatan" as const, databaseType: "perawatan",
         data: { areaId: r.areaId, kegiatan: r.kegiatan, tanggal: r.tanggal, tags: r.tags, petugasId: r.petugasId, logProduk: r.logProduk },
       })),
       ...pendingInspeksi.map(r => ({
