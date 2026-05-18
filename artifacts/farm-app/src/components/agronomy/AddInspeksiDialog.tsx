@@ -108,10 +108,14 @@ export function AddInspeksiDialog({ onSuccess }: AddInspeksiDialogProps) {
     if (isStepValid) setStep((prev) => prev + 1);
   };
 
-  function onSubmit(values: InspeksiFormValues) {
-    // Bersihkan data angka sebelum dikirim
+    function onSubmit(values: InspeksiFormValues) {
     const payload = {
-      ...values,
+      areaId: values.areaId,
+      tanggal: values.tanggal,
+      // ✨ KITA SELIPIN SECARA GHOIB BIAR BACKEND SENENG
+      kegiatan: "Inspeksi Rutin", 
+      hama: values.hamaPenyakit,
+      penyakit: [], // Kita biarin kosong, karena udah gabung di atas
       phTanah: values.phTanah ? Number(values.phTanah) : null,
       tingkatSerangan: values.tingkatSerangan ? Number(values.tingkatSerangan) : null,
     };
