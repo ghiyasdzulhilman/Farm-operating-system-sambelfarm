@@ -115,19 +115,24 @@ export function StagingQueueCard({ stagingStats }: StagingQueueCardProps) {
 
   // Only fetch list when sheet is open
   const {
-    data: listData,
-    isLoading: isLoadingList,
-    refetch: refetchList,
-  } = useQuery<{ records: StagingRecord[] }>({
-    queryKey: ["staging", "list"],
-    queryFn: async () => {
-      const res = await fetch("/api/staging/list");
-      if (!res.ok) throw new Error("Gagal mengambil data staging");
-      return res.json();
-    },
-    enabled: open,
-    staleTime: 0,
-  });
+  data: listData,
+  isLoading: isLoadingList,
+  refetch: refetchList,
+} = useQuery<{ records: StagingRecord[] }>({
+  queryKey: ["staging", "list"],
+  queryFn: async () => {
+    const res = await fetch("/api/staging/list", {
+      cache: "no-store",
+      credentials: "include",
+    });
+    if (!res.ok) throw new Error("Gagal mengambil data staging");
+    return res.json();
+  },
+  enabled: open,
+  staleTime: 0,
+  refetchOnMount: "always",
+  refetchOnWindowFocus: true,
+});
 
   const records = listData?.records ?? [];
   const failedCount = records.filter((r) => r.status === "failed").length;
