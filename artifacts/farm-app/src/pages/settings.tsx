@@ -80,7 +80,6 @@ const DOMAINS: any[] = [
         { key: "hargaJualPerKg", label: "Harga Jual per Kg", expectedType: "number", aliases: ALIASES.harga },
         { key: "kualitas", label: "Kualitas / Grade", expectedType: "select", aliases: ALIASES.kualitas },
         { key: "channelPenjualan", label: "Channel Penjualan", expectedType: "select", aliases: ALIASES.channel },
-        { key: "areaPindahTanam", label: "Area Pindah Tanam", expectedType: "relation", aliases: ALIASES.area },
         { key: "labaRugi", label: "Area Laba Rugi", expectedType: "relation", aliases: ALIASES.area },
       ]},
       { id: "expenses", label: "Pengeluaran Operasional", hint: "Biaya Pupuk, pestisida, upah dll", fields: [
@@ -99,10 +98,7 @@ const DOMAINS: any[] = [
     icon: Leaf,
     description: "Perawatan, inspeksi, dan kegiatan umum",
     schemas: [
-      { id: "pindah_tanam", label: "Pindah Tanam", hint: "Patokan hari pindah tanam", fields: [
-        { key: "area", label: "Area/Blok", expectedType: "title", aliases: ALIASES.area },
-        { key: "waktu_tanam", label: "Waktu Tanam", expectedType: "date", aliases: ALIASES.tanggal },
-      ]},
+      
       { id: "treatment_blocks", label: "Riwayat Perawatan (Multi-Blok)", hint: "Mapping 1x, terapkan ke banyak blok", isMultiInstance: true, fields: [
         { key: "kegiatan", label: "Kegiatan", expectedType: "title", aliases: ALIASES.kegiatan },
         { key: "tanggal", label: "Tanggal", expectedType: "date", aliases: ALIASES.tanggal },
