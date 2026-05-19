@@ -172,14 +172,20 @@ function buildPerawatanProperties(
   const props: Record<string, unknown> = {};
 
   const setProp = (
-    mappingKey: string,
-    value: unknown,
-    builder: (val: any) => unknown,
-  ) => {
-    const mapping = mappings?.[mappingKey];
-    if (!mapping?.propertyId) return;
-    props[decodePropertyId(mapping.propertyId)] = builder(value);
-  };
+  mappingKey: string,
+  value: unknown,
+  builder: (val: any) => unknown,
+) => {
+
+  console.log("MAPPING KEY", mappingKey);
+  console.log("MAPPING DATA", mappings?.[mappingKey]);
+
+  const mapping = mappings?.[mappingKey];
+
+  if (!mapping?.propertyId) return;
+
+  props[decodePropertyId(mapping.propertyId)] = builder(value);
+};
 
   setProp("kegiatan", data.kegiatan, (v) => ({
     title: [{ text: { content: String(v) } }],
