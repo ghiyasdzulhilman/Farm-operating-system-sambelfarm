@@ -58,24 +58,17 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
   });
 
   const form = useForm<PerawatanFormValues>({
-    resolver: zodResolver(perawatanSchema),
-    
-defaultValues: {
-  ...Object.fromEntries(
-    PERAWATAN_SCHEMA.fields.map((field) => [
-      field.key,
-      field.expectedType === "multi_select" ? [] : "",
-    ])
-  ),
+  resolver: zodResolver(perawatanSchema),
 
-  tanggal: format(new Date(), "yyyy-MM-dd"),
-
-  areaIds: [],
-
-  detailNotes: "",
-
-  logProduk: [],
-},
+  defaultValues: {
+    kegiatan: "",
+    tanggal: format(new Date(), "yyyy-MM-dd"),
+    areaIds: [],
+    tags: "",
+    detailNotes: "",
+    logProduk: [],
+  },
+});
 
   // Fitur Dynamic Array untuk Bahan & Dosis
   const { fields: produkFields, append: appendProduk, remove: removeProduk } = useFieldArray({
