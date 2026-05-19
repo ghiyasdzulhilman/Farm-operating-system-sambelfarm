@@ -5,9 +5,7 @@ import {
   fieldMappingsTable,
   type FieldMappingData,
 } from "@workspace/db";
-
 import { eq, and } from "drizzle-orm";
-
 import {
   getNotionConnection,
   notionFetch,
@@ -31,6 +29,26 @@ interface NotionPage {
 interface NotionDatabase {
   id: string;
   title?: Array<{ plain_text: string }>;
+}
+
+interface AddPerawatanBody {
+  kegiatan: string;
+  tanggal: string;
+  labaRugiId: string;
+  tags?: string[] | string;
+  detailNotes?: string;
+  logProduk?: Array<{
+    produk: string;
+    dosis: string;
+  }>;
+}
+
+function decodePropertyId(id: string): string {
+  try {
+    return decodeURIComponent(id);
+  } catch {
+    return id;
+  }
 }
 
 async function findDatabaseByName(
@@ -103,8 +121,7 @@ async function queryAllPages(
         (p) => p.type === "title",
       );
 
-      const name =
-        titleProp?.title?.[0]?.plain_text ?? "Tanpa Nama";
+      const name = titleProp?.title?.[0]?.plain_text ?? "Tanpa Nama";
 
       return {
         id: page.id,
@@ -131,84 +148,216 @@ async function getMappingRow(
       ),
     );
 
-  return row;
+  return row ?? null;
 }
 
-router.get(
-  "/notion/perawatan-dropdown-options",
-  async (req, res): Promise<void> => {
-    const { userId } = getAuth(req);
+function buildRichText(content: string) {
+  return {
+    rich_text: [
+      {
+        type: "text",
+        text: {
+          content,
+        },
+      },
+    ],
+  };
+}
 
-    if (!userId) {
-      res.status(401).json({
-        error: "Unauthorized",
+function buildPerawatanProperties(
+  data: AddPerawatanBody,
+  mappings: FieldMappingData | undefined,
+): Record<string, unknown> {
+  const props: Record<string, unknown> = {};
+
+  const setProp = (
+    mappingKey: string,
+    value: unknown,
+    builder: (val: any) => unknown,
+  ) => {
+    const mapping = mappings?.[mappingKey];
+    if (!mapping?.propertyId) return;
+    props[decodePropertyId(mapping.propertyId)] = builder(value);
+  };
+
+  setProp("kegiatan", data.kegiatan, (v) => ({
+    title: [{ text: { content: String(v) } }],
+  }));
+
+  setProp("tanggal", data.tanggal, (v) => ({
+    date: { start: String(v) },
+  }));
+
+  const tags = Array.isArray(data.tags)
+    ? data.tags
+    : typeof data.tags === "string" && data.tags
+      ? [data.tags]
+      : [];
+
+  if (tags.length > 0) {
+    setProp("tags", tags, (vals: string[]) => ({
+      multi_select: vals.map((name) => ({ name })),
+    }));
+  }
+
+  if (data.detailNotes?.trim()) {
+    setProp("detailNotes", data.detailNotes.trim(), (v) =>
+      buildRichText(String(v)),
+    );
+  }
+
+  if (Array.isArray(data.logProduk) && data.logProduk.length > 0) {
+    const logText = data.logProduk
+      .map((item, index) => `${index + 1}. ${item.produk} — ${item.dosis}`)
+      .join("\n");
+
+    setProp("logProduk", logText, (v) => buildRichText(String(v)));
+  }
+
+  setProp("labaRugi", data.labaRugiId, (v) => ({
+    relation: [{ id: String(v) }],
+  }));
+
+  return props;
+}
+
+router.get("/notion/perawatan-dropdown-options", async (req, res): Promise<void> => {
+  const { userId } = getAuth(req);
+
+  if (!userId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  try {
+    const connection = await getNotionConnection(userId);
+    const { accessToken } = connection;
+
+    const mappingRow = await getMappingRow(userId, "perawatan");
+    const mappings = mappingRow?.mappings as FieldMappingData | undefined;
+
+    const [labaRugiDbId, petugasDbId] = await Promise.all([
+      mappings?.labaRugi?.relatedDatabaseId ||
+        findDatabaseByName(userId, accessToken, "Laba Rugi"),
+      mappings?.petugas?.relatedDatabaseId ||
+        findDatabaseByName(userId, accessToken, "Petugas"),
+    ]);
+
+    const [labaRugi, petugas] = await Promise.all([
+      labaRugiDbId
+        ? queryAllPages(userId, accessToken, labaRugiDbId)
+        : Promise.resolve([]),
+      petugasDbId
+        ? queryAllPages(userId, accessToken, petugasDbId)
+        : Promise.resolve([]),
+    ]);
+
+    res.json({
+      areas: labaRugi,
+      petugas,
+    });
+  } catch (err) {
+    if (handleNotionErrors(res, err)) return;
+
+    res.status(500).json({
+      error: "Internal Server Error",
+    });
+  }
+});
+
+router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
+  const { userId } = getAuth(req);
+
+  if (!userId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  const body = req.body as Partial<AddPerawatanBody>;
+
+  const kegiatan = (body.kegiatan ?? "").trim();
+  const tanggal = (body.tanggal ?? "").trim();
+  const labaRugiId = (body.labaRugiId ?? "").trim();
+
+  if (!kegiatan || !tanggal || !labaRugiId) {
+    res.status(400).json({
+      error: "Field 'kegiatan', 'tanggal', dan 'labaRugiId' wajib diisi.",
+    });
+    return;
+  }
+
+  try {
+    const connection = await getNotionConnection(userId);
+    const { accessToken } = connection;
+
+    const mappingRow = await getMappingRow(userId, "perawatan");
+    const mappings = mappingRow?.mappings as FieldMappingData | undefined;
+
+    const databaseId =
+      mappingRow?.notionDatabaseId ||
+      (await findDatabaseByName(userId, accessToken, "Perawatan"));
+
+    if (!databaseId) {
+      res.status(404).json({
+        error: "Database 'Perawatan' tidak ditemukan di Notion.",
       });
-
       return;
     }
 
-    try {
-      const connection =
-        await getNotionConnection(userId);
+    const properties = buildPerawatanProperties(
+      {
+        kegiatan,
+        tanggal,
+        labaRugiId,
+        tags: body.tags,
+        detailNotes: body.detailNotes,
+        logProduk: body.logProduk,
+      },
+      mappings,
+    );
 
-      const { accessToken } = connection;
+    const requiredKeys = ["kegiatan", "tanggal", "labaRugi"];
+    const missingRequired = requiredKeys.filter(
+      (key) => !mappings?.[key]?.propertyId,
+    );
 
-      const mappingRow = await getMappingRow(
-        userId,
-        "perawatan",
-      );
-
-      const mappings =
-        mappingRow?.mappings as FieldMappingData;
-
-      const [labaRugiDbId, petugasDbId] =
-        await Promise.all([
-          mappings?.labaRugi?.relatedDatabaseId ||
-            findDatabaseByName(
-              userId,
-              accessToken,
-              "Laba Rugi",
-            ),
-
-          mappings?.petugas?.relatedDatabaseId ||
-            findDatabaseByName(
-              userId,
-              accessToken,
-              "Petugas",
-            ),
-        ]);
-
-      const [labaRugi, petugas] =
-        await Promise.all([
-          labaRugiDbId
-            ? queryAllPages(
-                userId,
-                accessToken,
-                labaRugiDbId,
-              )
-            : Promise.resolve([]),
-
-          petugasDbId
-            ? queryAllPages(
-                userId,
-                accessToken,
-                petugasDbId,
-              )
-            : Promise.resolve([]),
-        ]);
-
-      res.json({
-  areas: labaRugi,
-  petugas,
-});
-    } catch (err) {
-      if (handleNotionErrors(res, err)) return;
-
-      res.status(500).json({
-        error: "Internal Server Error",
+    if (missingRequired.length > 0) {
+      res.status(400).json({
+        error: `Mapping perawatan belum lengkap: ${missingRequired.join(", ")}`,
       });
+      return;
     }
-  },
-);
+
+    const response = await notionFetch(userId, accessToken, "https://api.notion.com/v1/pages", {
+      method: "POST",
+      body: JSON.stringify({
+        parent: { database_id: databaseId },
+        properties,
+      }),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      res.status(502).json({
+        error: "Notion error",
+        detail: errText.slice(0, 500),
+      });
+      return;
+    }
+
+    const created = (await response.json()) as { id: string };
+
+    res.status(201).json({
+      success: true,
+      notionPageId: created.id,
+    });
+  } catch (err) {
+    if (handleNotionErrors(res, err)) return;
+
+    res.status(500).json({
+      error: err instanceof Error ? err.message : "Internal Server Error",
+    });
+  }
+});
 
 export default router;
