@@ -396,7 +396,7 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                       className="space-y-4 text-left"
                     >
                       <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-                        4. Hubungkan ke Database
+                        4. Pilih kategori dan Area
                       </p>
                       
                       <FormField
