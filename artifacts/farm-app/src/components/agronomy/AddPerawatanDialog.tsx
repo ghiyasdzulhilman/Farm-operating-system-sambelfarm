@@ -64,7 +64,7 @@ console.log("dropdownOptions", dropdownOptions);
   defaultValues: {
     kegiatan: "",
     tanggal: format(new Date(), "yyyy-MM-dd"),
-    areaIds: [],
+    labaRugiIds: [],
     tags: "",
     detailNotes: "",
     logProduk: [],
@@ -81,7 +81,7 @@ console.log("dropdownOptions", dropdownOptions);
  const savePerawatan = useMutation({
   mutationFn: async (payload: PerawatanFormValues) => {
 
-    const promises = payload.areaIds.map(async (areaId) => {
+    const promises = payload.labaRugiIds.map(async (areaId) => {
 
       const cleanData = {
         kegiatan: payload.kegiatan,
