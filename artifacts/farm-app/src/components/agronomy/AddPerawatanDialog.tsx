@@ -56,6 +56,7 @@ const perawatanSchema = z.object({
   kegiatan: z.string().min(1, "Nama kegiatan wajib diisi"),
   tanggal: z.string().min(1, "Tanggal wajib diisi"),
   labaRugiIds: z.array(z.string()).min(1, "Minimal pilih 1 area"),
+  petugasId: z.string().optional(),
   tags: z.string().optional(),
   detailNotes: z.string().optional(),
   logProduk: z
@@ -78,6 +79,7 @@ const EMPTY_VALUES: PerawatanFormValues = {
   kegiatan: "",
   tanggal: format(new Date(), "yyyy-MM-dd"),
   labaRugiIds: [],
+  petugasId: "",
   tags: "",
   detailNotes: "",
   logProduk: [],
@@ -115,6 +117,7 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
           tanggal: payload.tanggal,
           tags: payload.tags || "",
           labaRugiId: areaId,
+          petugasId: payload.petugasId,
           logProduk: payload.logProduk,
           detailNotes: payload.detailNotes,
         };
@@ -490,6 +493,40 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                           </FormItem>
                         )}
                       />
+
+<FormField
+  control={form.control}
+  name="petugasId"
+  render={({ field }) => (
+    <FormItem className="space-y-1.5">
+      <FormLabel className="text-[11px] font-bold text-muted-foreground">
+        Petugas Lapangan
+      </FormLabel>
+
+      <Select
+        onValueChange={field.onChange}
+        value={field.value || ""}
+      >
+        <FormControl>
+          <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-green-600/20">
+            <SelectValue placeholder="Pilih petugas..." />
+          </SelectTrigger>
+        </FormControl>
+
+        <SelectContent className="rounded-xl">
+          {dropdownOptions?.petugas?.map((item) => (
+            <SelectItem
+              key={item.id}
+              value={item.id}
+            >
+              {item.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </FormItem>
+  )}
+/>
 
                       <FormField
                         control={form.control}
