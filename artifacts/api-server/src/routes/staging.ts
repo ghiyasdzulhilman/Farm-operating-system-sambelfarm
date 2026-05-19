@@ -168,6 +168,41 @@ const DB_FIELD_SPECS: Record<string, FieldSpec[]> = {
   ],
 };
 
+  perawatan: [
+    { mappingKey: "kegiatan", build: (v) => ({ title: [{ text: { content: String(v ?? "") } }] }) },
+    { mappingKey: "tanggal", build: (v) => ({ date: { start: String(v) } }), optional: true },
+    { 
+      mappingKey: "tags", 
+      build: (v) => ({ multi_select: (Array.isArray(v) ? v : [v]).filter(Boolean).map(x => ({ name: String(x) })) }), 
+      optional: true 
+    },
+    { mappingKey: "status", build: (v) => ({ status: { name: String(v) } }), optional: true },
+    { mappingKey: "petugas", dataKey: "petugasId", build: (v) => ({ relation: [{ id: String(v) }] }), optional: true },
+    { mappingKey: "labaRugi", dataKey: "labaRugiId", build: (v) => ({ relation: [{ id: String(v) }] }), optional: true },
+  ],
+
+  inspeksi: [
+    { mappingKey: "kegiatan", build: (v) => ({ title: [{ text: { content: String(v ?? "") } }] }) },
+    { mappingKey: "tanggal", build: (v) => ({ date: { start: String(v) } }), optional: true },
+    // Catatan: 'hst' sengaja tidak dimasukkan ke backend karena di Notion sifatnya Formula/Rollup (otomatis terisi)
+    { 
+      mappingKey: "hama", 
+      build: (v) => ({ multi_select: (Array.isArray(v) ? v : [v]).filter(Boolean).map(x => ({ name: String(x) })) }), 
+      optional: true 
+    },
+    { 
+      mappingKey: "penyakit", 
+      build: (v) => ({ multi_select: (Array.isArray(v) ? v : [v]).filter(Boolean).map(x => ({ name: String(x) })) }), 
+      optional: true 
+    },
+    { mappingKey: "tingkatSerangan", build: (v) => ({ number: Number(v ?? 0) }), optional: true },
+    { mappingKey: "radius", build: (v) => ({ number: Number(v ?? 0) }), optional: true },
+    { mappingKey: "phTanah", build: (v) => ({ number: Number(v ?? 0) }), optional: true },
+    { mappingKey: "status", build: (v) => ({ status: { name: String(v) } }), optional: true },
+    { mappingKey: "petugas", dataKey: "petugasId", build: (v) => ({ relation: [{ id: String(v) }] }), optional: true },
+    { mappingKey: "labaRugi", dataKey: "labaRugiId", build: (v) => ({ relation: [{ id: String(v) }] }), optional: true },
+  ],
+
 /**
  * Build Notion properties object dari data form + konfigurasi field_mappings.
  *
