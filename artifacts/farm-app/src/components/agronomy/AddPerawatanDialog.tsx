@@ -66,27 +66,47 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
     name: "logProduk",
   });
 
-  // Fetch API langsung untuk menyimpan perawatan (Multi-blok support)
+    // Fetch API untuk menyimpan perawatan (Standard Notion V2)
   const savePerawatan = useMutation({
     mutationFn: async (payload: PerawatanFormValues) => {
-      const response = await fetch("/api/staging/perawatan/save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+      
+      // Loop & Kirim data per Area (Laba Rugi) yang dipilih
+      const promises = payload.areaIds.map(async (areaId) => {
+        
+        const cleanData = {
+          kegiatan: payload.kegiatan,
+          tanggal: payload.tanggal,
+          tags: payload.tags ? [payload.tags] : [], 
+          labaRugiId: areaId,
+          // 👇 KITA KIRIM DATA RACIKANNYA UTUH KE BACKEND
+          logProduk: payload.logProduk 
+        };
+
+        const response = await fetch("/api/staging/save", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            databaseType: "perawatan", 
+            data: cleanData
+          }),
+        });
+
+        if (!response.ok) throw new Error(`Gagal menyimpan untuk area ${areaId}`);
+        return response.json();
       });
-      if (!response.ok) throw new Error("Gagal menyimpan data");
-      return response.json();
+
+      return Promise.all(promises);
     },
     onSuccess: async (_, variables) => {
       toast({
         description: (
           <div className="w-full space-y-3 pt-1 text-left">
             <div className="flex items-start gap-3">
-              <div className="h-2 w-2 rounded-full bg-primary animate-pulse mt-1.5 shrink-0" />
+              <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse mt-1.5 shrink-0 shadow-[0_0_8px_var(--green-500)]" />
               <div className="space-y-0.5">
                 <p className="font-black text-sm text-foreground tracking-tight">Perawatan Tersimpan</p>
                 <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  Disimpan ke antrean untuk <span className="text-primary font-semibold">{variables.areaIds.length} blok</span> area.
+                  Sukses disimpan untuk <span className="text-green-600 font-semibold">{variables.areaIds.length} blok</span>.
                 </p>
               </div>
             </div>
@@ -95,17 +115,16 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
       });
 
       await queryClient.invalidateQueries({ queryKey: ["staging", "list"] });
-
       form.reset();
       setStep(1);
       setOpen(false);
       onSuccess?.();
     },
-    onError: () => {
+    onError: (error) => {
       toast({
         variant: "destructive",
         title: "Gagal menyimpan",
-        description: "Cek kembali koneksi internet atau server Anda.",
+        description: error instanceof Error ? error.message : "Cek kembali koneksi internet.",
       });
     },
   });
