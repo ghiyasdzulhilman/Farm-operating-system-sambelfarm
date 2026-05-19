@@ -20,6 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 
 import { PERAWATAN_SCHEMA } from "@/config/schemas/perawatan.config";
+import { getGetDashboardSummaryQueryKey } from "@workspace/api-client-react";
 
 // --- SCHEMA VALIDASI ---
 const perawatanSchema = z.object(
@@ -141,7 +142,15 @@ return response.json();
         ),
       });
 
-      await queryClient.invalidateQueries({ queryKey: ["staging", "list"] });
+      await queryClient.invalidateQueries({
+  queryKey: ["staging", "list"],
+});
+
+await queryClient.invalidateQueries({
+  queryKey: getGetDashboardSummaryQueryKey(),
+  refetchType: "all",
+});
+
       form.reset();
       setStep(1);
       setOpen(false);
