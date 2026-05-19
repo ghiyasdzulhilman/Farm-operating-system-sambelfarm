@@ -35,6 +35,7 @@ interface AddPerawatanBody {
   kegiatan: string;
   tanggal: string;
   labaRugiId: string;
+  petugasId?: string;
   tags?: string[] | string;
   detailNotes?: string;
   logProduk?: Array<{
@@ -220,7 +221,7 @@ if (tag) {
 }));
 
 if (data.petugasId) {
-  setProp("petugasLapangan", data.petugasId, (v) => ({
+  setProp("petugas", data.petugasId, (v) => ({
     relation: [{ id: String(v) }],
   }));
 }
@@ -316,6 +317,7 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
         kegiatan,
         tanggal,
         labaRugiId,
+        petugasId: body.petugasId,
         tags: body.tags,
         detailNotes: body.detailNotes,
         logProduk: body.logProduk,
