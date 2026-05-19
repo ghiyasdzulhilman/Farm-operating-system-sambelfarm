@@ -113,7 +113,7 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
         const cleanData = {
           kegiatan: payload.kegiatan,
           tanggal: payload.tanggal,
-          tags: payload.tags ? [payload.tags] : [],
+          tags: payload.tags || "",
           labaRugiId: areaId,
           logProduk: payload.logProduk,
           detailNotes: payload.detailNotes,
