@@ -198,9 +198,9 @@ router.get(
         ]);
 
       res.json({
-        labaRugi,
-        petugas,
-      });
+  areas: labaRugi,
+  petugas,
+});
     } catch (err) {
       if (handleNotionErrors(res, err)) return;
 
