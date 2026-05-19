@@ -220,7 +220,7 @@ if (tag) {
 }));
 
 if (data.petugasId) {
-  setProp("petugas", data.petugasId, (v) => ({
+  setProp("petugasLapangan", data.petugasId, (v) => ({
     relation: [{ id: String(v) }],
   }));
 }
