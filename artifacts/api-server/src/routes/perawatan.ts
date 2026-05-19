@@ -216,10 +216,16 @@ if (tag) {
   }
 
   setProp("labaRugi", data.labaRugiId, (v) => ({
+  relation: [{ id: String(v) }],
+}));
+
+if (data.petugasId) {
+  setProp("petugasLapangan", data.petugasId, (v) => ({
     relation: [{ id: String(v) }],
   }));
+}
 
-  return props;
+return props;
 }
 
 router.get("/notion/perawatan-dropdown-options", async (req, res): Promise<void> => {
