@@ -117,7 +117,7 @@ const DB_FIELD_SPECS: Record<string, FieldSpec[]> = {
     { mappingKey: "labaRugi", dataKey: "areaId", build: (v) => ({ relation: [{ id: String(v) }] }), optional: true },
   ],
 
-    treatment_blocks: [
+    perawatan: [
     { mappingKey: "kegiatan", build: (v) => ({ title: [{ text: { content: String(v ?? "") } }] }) },
     { mappingKey: "tanggal", build: (v) => ({ date: { start: String(v) } }), optional: true },
     { 
