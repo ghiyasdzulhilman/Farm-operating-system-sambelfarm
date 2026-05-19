@@ -432,7 +432,7 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
                         name="areaId"
                         render={({ field }) => (
                           <FormItem className="space-y-1.5">
-                            <FormLabel className="text-[11px] font-bold text-muted-foreground">Target Area Laba Rugi</FormLabel>
+                            <FormLabel className="text-[11px] font-bold text-muted-foreground">Area</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value || ""}>
                               <FormControl>
                                 <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-primary/20 dark:bg-muted/50" data-testid="select-area">
