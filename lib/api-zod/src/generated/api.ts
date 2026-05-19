@@ -100,7 +100,6 @@ export const ListDatabasesResponse = zod.object({
  * @summary Inspect Notion database properties
  */
 export const InspectDatabaseQueryParams = zod.object({
-  export const InspectDatabaseQueryParams = zod.object({
   type: zod.enum([
     "panen",
     "expenses",
