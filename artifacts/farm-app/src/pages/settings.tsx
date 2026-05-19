@@ -247,9 +247,8 @@ function SchemaControlCard({ schema, allDatabases, isExpanded, onToggle }: any) 
     }
   }, [savedData]);
 
-    // HACK: Nipu API Client biar selalu lolos validasi strict-type
-  const inspectType = "inspeksi" as any;
-
+    
+const inspectType = schema.id as any;
   const { data: inspected, isFetching: isInspecting, refetch: inspect } = useInspectDatabase(
     { type: inspectType, databaseId: masterId || "" },
     { query: { 
