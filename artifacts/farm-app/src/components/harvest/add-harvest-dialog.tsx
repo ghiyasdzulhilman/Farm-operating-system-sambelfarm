@@ -422,7 +422,7 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
                       className="space-y-4 text-left"
                     >
                       <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-                        4. Klasifikasi Hasil & Target Database
+                        4. Klasifikasi Hasil
                       </p>
 
                       <FormField
@@ -481,7 +481,7 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
                         name="labaRugiId"
                         render={({ field }) => (
                           <FormItem className="space-y-1.5">
-                            <FormLabel className="text-[11px] font-bold text-muted-foreground">Target Mapping Laba Rugi</FormLabel>
+                            <FormLabel className="text-[11px] font-bold text-muted-foreground">Area</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value || ""}>
                               <FormControl>
                                 <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-primary/20 dark:bg-muted/50" data-testid="select-laba-rugi">
