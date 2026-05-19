@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +25,8 @@ const perawatanSchema = z.object({
   tanggal: z.string().min(1, "Tanggal wajib diisi"),
   areaIds: z.array(z.string()).min(1, "Minimal pilih 1 area"),
   tags: z.string().optional(),
-  logProduk: z.array(
+detailNotes: z.string().optional(),
+logProduk: z.array(
     z.object({
       produk: z.string().min(1, "Nama produk wajib diisi"),
       dosis: z.string().min(1, "Dosis wajib diisi"),
@@ -56,7 +58,8 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
       tanggal: format(new Date(), "yyyy-MM-dd"),
       areaIds: [],
       tags: "",
-      logProduk: [],
+detailNotes: "",
+logProduk: [],
     },
   });
 
@@ -79,7 +82,8 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
           tags: payload.tags ? [payload.tags] : [], 
           labaRugiId: areaId,
           // 👇 KITA KIRIM DATA RACIKANNYA UTUH KE BACKEND
-          logProduk: payload.logProduk 
+          logProduk: payload.logProduk,
+detailNotes: payload.detailNotes, 
         };
 
         const response = await fetch("/api/staging/save", {
@@ -324,6 +328,27 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                           </Select>
                         </FormItem>
                       )} />
+<FormField
+  control={form.control}
+  name="detailNotes"
+  render={({ field }) => (
+    <FormItem className="space-y-1.5 pt-2">
+      <FormLabel className="text-[11px] font-bold text-muted-foreground">
+        Catatan Detail Perawatan
+      </FormLabel>
+
+      <FormControl>
+        <Textarea
+          placeholder="Tulis observasi, kondisi tanaman, kendala, atau catatan lapangan..."
+          className="min-h-[120px] rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm"
+          {...field}
+        />
+      </FormControl>
+
+      <FormMessage />
+    </FormItem>
+  )}
+/>
                     </motion.div>
                   )}
                 </AnimatePresence>
