@@ -56,6 +56,7 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
   const { data: dropdownOptions, isLoading: isLoadingOptions } = useGetDropdownOptions({
     query: { enabled: open, queryKey: getGetDropdownOptionsQueryKey() },
   });
+console.log("dropdownOptions", dropdownOptions);
 
   const form = useForm<PerawatanFormValues>({
   resolver: zodResolver(perawatanSchema),
@@ -247,11 +248,11 @@ detailNotes: payload.detailNotes,
 
       <div className="flex flex-wrap gap-2 pt-2">
         {dropdownOptions?.labaRugi?.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Tidak ada data area ditemukan.
-          </p>
-        ) : (
-          dropdownOptions?.labaRugi?.map((item) => {
+  <p className="text-sm text-muted-foreground">
+    Tidak ada data area ditemukan.
+  </p>
+) : (
+  dropdownOptions?.labaRugi?.map((item) => {
             const isSelected = form.watch("areaIds").includes(item.id);
 
             return (
