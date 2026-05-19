@@ -288,6 +288,9 @@ router.post("/staging/sync", async (req, res): Promise<void> => {
         const mappings = mappingRow?.mappings as FieldMappingData | undefined;
         const properties = buildNotionProperties(record.databaseType, record.data, mappings);
 
+console.log("DATABASE ID:", databaseId);
+console.log("PROPERTIES:", JSON.stringify(properties, null, 2));
+
         const response = await notionFetch(userId, accessToken, "https://api.notion.com/v1/pages", {
           method: "POST",
           body: JSON.stringify({ parent: { database_id: databaseId }, properties }),
