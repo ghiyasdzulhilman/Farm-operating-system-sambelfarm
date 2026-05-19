@@ -360,16 +360,15 @@ export function StagingQueueCard({ stagingStats }: StagingQueueCardProps) {
           {/* Footer action */}
           <div className="border-t border-border px-5 py-4 shrink-0">
             <Button
-              className={[
-                "h-11 w-full rounded-xl text-sm font-bold transition-all",
-                /* AUDIT WARNA: Tombol eksekusi dikonversi ke token Primary biar sama persis sama form submit */
-                hasData || records.length > 0
-                  ? "bg-primary text-primary-foreground hover:opacity-90 active:scale-[0.98] shadow-sm"
-                  : "bg-muted text-muted-foreground cursor-not-allowed",
-              ].join(" ")}
-              disabled={isSyncing || isLoadingList || records.length === 0}
-              onClick={handleSync}
-            >
+  className={[
+    "h-11 w-full rounded-xl text-sm font-bold transition-all",
+    hasData || records.length > 0
+      ? "bg-primary text-primary-foreground hover:opacity-90 active:scale-[0.98] shadow-sm"
+      : "bg-muted text-muted-foreground cursor-not-allowed",
+  ].join(" ")}
+  disabled={isSyncing || isLoadingList || records.length === 0}
+  onClick={handleSync}
+>
               {isSyncing ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
