@@ -101,12 +101,8 @@ const DOMAINS: any[] = [
     description: "Perawatan, inspeksi, dan kegiatan umum",
     schemas: [
       
-                  {
-  id: "perawatan",
-  label: "Riwayat Perawatan",
-  hint: "Pencatatan pupuk & pestisida",
-  fields: PERAWATAN_SCHEMA,
-}, 
+  schemas: [
+  PERAWATAN_SCHEMA,
 
       { id: "inspeksi", label: "Inspeksi Rutin", hint: "Pencatatan hama dan penyakit", fields: [
         { key: "kegiatan", label: "Kegiatan", expectedType: "title", aliases: ALIASES.kegiatan },
