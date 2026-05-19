@@ -118,7 +118,10 @@ detailNotes: payload.detailNotes,
               <div className="space-y-0.5">
                 <p className="font-black text-sm text-foreground tracking-tight">Perawatan Tersimpan</p>
                 <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  Sukses disimpan untuk <span className="text-green-600 font-semibold">{variables.areaIds.length} blok</span>.
+        Sukses disimpan untuk
+<span>
+  {variables.areaIds?.length ?? 0} blok
+</span>
                 </p>
               </div>
             </div>
