@@ -166,7 +166,6 @@ const DB_FIELD_SPECS: Record<string, FieldSpec[]> = {
       optional: true,
     },
   ],
-};
 
   perawatan: [
     { mappingKey: "kegiatan", build: (v) => ({ title: [{ text: { content: String(v ?? "") } }] }) },
