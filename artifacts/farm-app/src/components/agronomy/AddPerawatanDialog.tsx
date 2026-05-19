@@ -93,13 +93,19 @@ console.log("dropdownOptions", dropdownOptions);
       };
 
       const response = await fetch("/api/staging/save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          databaseType: "perawatan",
-          data: cleanData,
-        }),
-      });
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    databaseType: "perawatan",
+    data: cleanData,
+  }),
+});
+
+if (!response.ok) {
+  throw new Error(`Gagal menyimpan untuk area ${areaId}`);
+}
+
+return response.json();
 
       if (!response.ok) {
         throw new Error(`Gagal menyimpan untuk area ${areaId}`);
