@@ -64,6 +64,8 @@ async function findDatabaseByName(
 const DEFAULT_DB_NAMES: Record<string, string> = {
   panen: "Panen",
   expenses: "Expenses",
+  perawatan: "Perawatan",
+  inspeksi: "Inspeksi",
 };
 
 async function resolveNotionDatabaseId(
