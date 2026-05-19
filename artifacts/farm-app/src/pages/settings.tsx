@@ -104,30 +104,37 @@ const DOMAINS: any[] = [
   schemas: [
   PERAWATAN_SCHEMA,
 
-      { id: "inspeksi", label: "Inspeksi Rutin", hint: "Pencatatan hama dan penyakit", fields: [
-        { key: "kegiatan", label: "Kegiatan", expectedType: "title", aliases: ALIASES.kegiatan },
-        { key: "labaRugi", label: "Area Laba Rugi", expectedType: "relation", aliases: ALIASES.area },
-        { key: "tanggal", label: "Tanggal", expectedType: "date", aliases: ALIASES.tanggal },
-        { key: "hst", label: "HST", expectedType: "formula|rollup|number" },
-        { key: "hama", label: "Hama", expectedType: "multi_select", aliases: ALIASES.hama },
-        { key: "penyakit", label: "Penyakit", expectedType: "multi_select", aliases: ALIASES.penyakit },
-        { key: "tingkatSerangan", label: "Tingkat Serangan (%)", expectedType: "number" },
-        { key: "radius", label: "Radius (m2)", expectedType: "number" },
-        { key: "phTanah", label: "pH Tanah", expectedType: "number" },
-        { key: "petugas", label: "Petugas Lapangan", expectedType: "relation" },
-        { key: "status", label: "Status", expectedType: "status|select" },
-      ]},
+  {
+    id: "inspeksi",
+    label: "Inspeksi Rutin",
+    hint: "Pencatatan hama dan penyakit",
+    fields: [
+      { key: "kegiatan", label: "Kegiatan", expectedType: "title", aliases: ALIASES.kegiatan },
+      { key: "labaRugi", label: "Area Laba Rugi", expectedType: "relation", aliases: ALIASES.area },
+      { key: "tanggal", label: "Tanggal", expectedType: "date", aliases: ALIASES.tanggal },
+      { key: "hst", label: "HST", expectedType: "formula|rollup|number" },
+      { key: "hama", label: "Hama", expectedType: "multi_select", aliases: ALIASES.hama },
+      { key: "penyakit", label: "Penyakit", expectedType: "multi_select", aliases: ALIASES.penyakit },
+      { key: "tingkatSerangan", label: "Tingkat Serangan (%)", expectedType: "number" },
+      { key: "radius", label: "Radius (m2)", expectedType: "number" },
+      { key: "phTanah", label: "pH Tanah", expectedType: "number" },
+      { key: "petugas", label: "Petugas Lapangan", expectedType: "relation" },
+      { key: "status", label: "Status", expectedType: "status|select" },
+    ],
+  },
 
-      { id: "operasional", label: "Kegiatan Operasional Umum", hint: "Tugas harian", fields: [
-        { key: "kegiatan", label: "Task", expectedType: "title", aliases: ALIASES.kegiatan },
-        { key: "tanggal", label: "Tanggal", expectedType: "date", aliases: ALIASES.tanggal },
-        { key: "keterangan", label: "Catatan", expectedType: "rich_text" },
-        { key: "pic", label: "Penanggung Jawab", expectedType: "relation|people" },
-      ]
-},
-  { id: "lab", label: "Lab & Tools", icon: FlaskConical, description: "Kalkulator nutrisi & pupuk", schemas: [] },
-  { id: "resource", label: "Resources", icon: Users, description: "Manajemen data pekerja", schemas: [] },
-];
+  {
+    id: "operasional",
+    label: "Kegiatan Operasional Umum",
+    hint: "Tugas harian",
+    fields: [
+      { key: "kegiatan", label: "Task", expectedType: "title", aliases: ALIASES.kegiatan },
+      { key: "tanggal", label: "Tanggal", expectedType: "date", aliases: ALIASES.tanggal },
+      { key: "keterangan", label: "Catatan", expectedType: "rich_text" },
+      { key: "pic", label: "Penanggung Jawab", expectedType: "relation|people" },
+    ],
+  },
+],
 
 /* AUDIT WARNA: Mengubah class kaku menjadi class transparan dinamis agar ngikut mode */
 const glassCard = "rounded-[1.75rem] border-border/50 bg-card text-card-foreground shadow-sm transition-all duration-300";
