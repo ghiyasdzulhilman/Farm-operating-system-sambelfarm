@@ -126,7 +126,7 @@ console.log("dropdownOptions", dropdownOptions);
                 <p className="text-[11px] text-muted-foreground leading-relaxed">
         Sukses disimpan untuk
 <span>
-  {form.getValues("areaIds")?.length ?? 0} blok
+  {form.getValues("labaRugiIds")?.length ?? 0} blok
 </span>
                 </p>
               </div>
@@ -153,7 +153,7 @@ console.log("dropdownOptions", dropdownOptions);
   const handleNextStep = async () => {
     let fieldsToValidate: any[] = [];
     if (step === 1) fieldsToValidate = ["kegiatan", "tanggal"];
-    if (step === 2) fieldsToValidate = ["areaIds"];
+    if (step === 2) fieldsToValidate = ["labaRugiIds"];
     if (step === 3) fieldsToValidate = ["logProduk"]; // Validasi semua produk di step 3
 
     const isStepValid = await form.trigger(fieldsToValidate);
@@ -166,11 +166,11 @@ console.log("dropdownOptions", dropdownOptions);
 
   // Helper untuk toggle pilihan area (Multi-select ramah jempol)
   const toggleArea = (areaId: string) => {
-    const currentAreas = form.getValues("areaIds");
+    const currentAreas = form.getValues("labaRugiIds")
     if (currentAreas.includes(areaId)) {
-      form.setValue("areaIds", currentAreas.filter((id) => id !== areaId), { shouldValidate: true });
+      form.setValue("labaRugiIds", currentAreas.filter((id) => id !== areaId), { shouldValidate: true });
     } else {
-      form.setValue("areaIds", [...currentAreas, areaId], { shouldValidate: true });
+      form.setValue("labaRugiIds", [...currentAreas, areaId], { shouldValidate: true });
     }
   };
 
@@ -262,7 +262,7 @@ console.log("dropdownOptions", dropdownOptions);
   </p>
 ) : (
   dropdownOptions?.areas?.map((item) => {
-    const isSelected = form.watch("areaIds").includes(item.id);
+    const isSelected = form.watch("labaRugiIds").includes(item.id);
 
     return (
       <Badge
@@ -282,9 +282,9 @@ console.log("dropdownOptions", dropdownOptions);
 )}
       </div>
 
-      {form.formState.errors.areaIds && (
+      {form.formState.errors.labaRugiIds && (
         <p className="text-xs text-red-500 mt-2 font-medium">
-          {form.formState.errors.areaIds.message}
+          {form.formState.errors.labaRugiIds.message}
         </p>
       )}
     </div>
