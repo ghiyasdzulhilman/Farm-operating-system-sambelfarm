@@ -14,6 +14,7 @@ router.use(healthRouter);
 router.use(notionRouter);
 router.use(expensesRouter);
 router.use(harvestRouter);
+router.use(perawatanRoutes);
 router.use(mappingsRouter);
 router.use(dashboardRouter);
 router.use(stagingRouter);
