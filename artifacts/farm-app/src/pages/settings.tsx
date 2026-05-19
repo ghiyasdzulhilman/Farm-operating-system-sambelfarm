@@ -123,9 +123,8 @@ const DOMAINS: any[] = [
         { key: "tanggal", label: "Tanggal", expectedType: "date", aliases: ALIASES.tanggal },
         { key: "keterangan", label: "Catatan", expectedType: "rich_text" },
         { key: "pic", label: "Penanggung Jawab", expectedType: "relation|people" },
-      ]},
-    ]
-  },
+      ]
+},
   { id: "lab", label: "Lab & Tools", icon: FlaskConical, description: "Kalkulator nutrisi & pupuk", schemas: [] },
   { id: "resource", label: "Resources", icon: Users, description: "Manajemen data pekerja", schemas: [] },
 ];
