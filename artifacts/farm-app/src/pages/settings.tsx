@@ -42,6 +42,8 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
+import { PERAWATAN_FIELDS } from "@/config/perawatan.config";
+
 // ---------------------------------------------------------------------------
 // 📂 1. ARCHITECTURE & DICTIONARY
 // ---------------------------------------------------------------------------
@@ -99,14 +101,13 @@ const DOMAINS: any[] = [
     description: "Perawatan, inspeksi, dan kegiatan umum",
     schemas: [
       
-                  { id: "perawatan", label: "Riwayat Perawatan", hint: "Pencatatan pupuk & pestisida", fields: [
-        { key: "kegiatan", label: "Kegiatan", expectedType: "title", aliases: ALIASES.kegiatan },
-        { key: "tanggal", label: "Tanggal", expectedType: "date", aliases: ALIASES.tanggal },
-        { key: "tags", label: "Tags / Jenis Kegiatan", expectedType: "multi_select|select" },
-        { key: "status", label: "Status", expectedType: "status|select" },
-        { key: "petugas", label: "Petugas Lapangan", expectedType: "relation" },
-        { key: "labaRugi", label: "Area Laba Rugi", expectedType: "relation", aliases: ALIASES.area },
-      ]},
+                  {
+  id: "perawatan",
+  label: "Riwayat Perawatan",
+  hint: "Pencatatan pupuk & pestisida",
+  fields: PERAWATAN_FIELDS,
+}, 
+
       { id: "inspeksi", label: "Inspeksi Rutin", hint: "Pencatatan hama dan penyakit", fields: [
         { key: "kegiatan", label: "Kegiatan", expectedType: "title", aliases: ALIASES.kegiatan },
         { key: "labaRugi", label: "Area Laba Rugi", expectedType: "relation", aliases: ALIASES.area },
