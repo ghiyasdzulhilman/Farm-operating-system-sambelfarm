@@ -99,7 +99,7 @@ const DOMAINS: any[] = [
     label: "Agronomy & Ops",
     icon: Leaf,
     description: "Perawatan, inspeksi, dan kegiatan umum",
-    schemas: [
+    
       
   schemas: [
   PERAWATAN_SCHEMA,
