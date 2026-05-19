@@ -105,7 +105,7 @@ const DOMAINS: any[] = [
   id: "perawatan",
   label: "Riwayat Perawatan",
   hint: "Pencatatan pupuk & pestisida",
-  fields: PERAWATAN_FIELDS,
+  fields: PERAWATAN_SCHEMA,
 }, 
 
       { id: "inspeksi", label: "Inspeksi Rutin", hint: "Pencatatan hama dan penyakit", fields: [
