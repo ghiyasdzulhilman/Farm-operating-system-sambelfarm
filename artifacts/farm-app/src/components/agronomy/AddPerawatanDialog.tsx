@@ -225,42 +225,54 @@ detailNotes: payload.detailNotes,
                   )}
 
                                     {/* STEP 2: MULTI-SELECT AREA LABA RUGI */}
-                  {step === 2 && (
-                    <motion.div key="step2" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="space-y-4">
-                      <div className="space-y-1.5">
-                        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">2. Pilih Area Laba Rugi (Bisa Lebih dari 1)</p>
-                        
-                        <div className="flex flex-wrap gap-2 pt-2">
-                          {dropdownOptions?.labaRugi?.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">Tidak ada data laba rugi ditemukan.</p>
-                          ) : (
-                            dropdownOptions?.labaRugi?.map((item) => {
-                              // Cek apakah area ini sudah terpilih
-                              const isSelected = form.watch("areaIds").includes(item.id);
-                              return (
-                                <Badge 
-                                  key={item.id} 
-                                  variant="outline"
-                                  className={`px-4 py-2.5 text-sm cursor-pointer rounded-xl transition-all ${
-                                    isSelected 
-                                      ? "bg-green-600 text-white border-green-600 font-bold shadow-md scale-[1.02]" 
-                                      : "bg-muted/50 text-muted-foreground hover:bg-muted"
-                                  }`}
-                                  onClick={() => toggleArea(item.id)}
-                                >
-                                  {item.name}
-                                </Badge>
-                              );
-                            })
-                          )}
-                        </div>
-                        
-                        {form.formState.errors.areaIds && (
-                          <p className="text-xs text-red-500 mt-2 font-medium">{form.formState.errors.areaIds.message}</p>
-                        )}
-                      </div>
-                    </motion.div>
-                  )}
+{step === 2 && (
+  <motion.div
+    key="step2"
+    initial={{ opacity: 0, y: -10 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: 10 }}
+    className="space-y-4"
+  >
+    <div className="space-y-1.5">
+      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
+        2. Pilih Area Laba Rugi (Bisa Lebih dari 1)
+      </p>
+
+      <div className="flex flex-wrap gap-2 pt-2">
+        {dropdownOptions?.areas?.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Tidak ada data area ditemukan.
+          </p>
+        ) : (
+          dropdownOptions?.areas?.map((item) => {
+            const isSelected = form.watch("areaIds").includes(item.id);
+
+            return (
+              <Badge
+                key={item.id}
+                variant="outline"
+                className={`px-4 py-2.5 text-sm cursor-pointer rounded-xl transition-all ${
+                  isSelected
+                    ? "bg-green-600 text-white border-green-600 font-bold shadow-md scale-[1.02]"
+                    : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                }`}
+                onClick={() => toggleArea(item.id)}
+              >
+                {item.name}
+              </Badge>
+            );
+          })
+        )}
+      </div>
+
+      {form.formState.errors.areaIds && (
+        <p className="text-xs text-red-500 mt-2 font-medium">
+          {form.formState.errors.areaIds.message}
+        </p>
+      )}
+    </div>
+  </motion.div>
+)}
 
                   {/* STEP 3: RACIKAN BAHAN & DOSIS */}
                   {step === 3 && (
