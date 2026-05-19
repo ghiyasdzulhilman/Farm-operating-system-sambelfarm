@@ -188,17 +188,18 @@ function buildPerawatanProperties(
     date: { start: String(v) },
   }));
 
-  const tags = Array.isArray(data.tags)
-    ? data.tags
-    : typeof data.tags === "string" && data.tags
-      ? [data.tags]
-      : [];
+  const tag =
+  Array.isArray(data.tags)
+    ? data.tags[0]
+    : typeof data.tags === "string"
+      ? data.tags
+      : "";
 
-  if (tags.length > 0) {
-    setProp("tags", tags, (vals: string[]) => ({
-      multi_select: vals.map((name) => ({ name })),
-    }));
-  }
+if (tag) {
+  setProp("tags", tag, (value: string) => ({
+    select: { name: value },
+  }));
+}
 
   if (data.detailNotes?.trim()) {
     setProp("detailNotes", data.detailNotes.trim(), (v) =>
