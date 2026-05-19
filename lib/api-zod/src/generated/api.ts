@@ -100,7 +100,15 @@ export const ListDatabasesResponse = zod.object({
  * @summary Inspect Notion database properties
  */
 export const InspectDatabaseQueryParams = zod.object({
-  type: zod.enum(["panen", "expenses"]),
+  export const InspectDatabaseQueryParams = zod.object({
+  type: zod.enum([
+    "panen",
+    "expenses",
+    "laba_rugi",
+    "perawatan",
+    "inspeksi",
+    "operasional",
+  ]),
   databaseId: zod.coerce
     .string()
     .optional()
@@ -126,7 +134,14 @@ export const InspectDatabaseResponse = zod.object({
  * @summary Get saved field mappings for a database
  */
 export const GetFieldMappingsQueryParams = zod.object({
-  type: zod.enum(["panen", "expenses", "laba_rugi"]),
+  type: zod.enum([
+    "panen",
+    "expenses",
+    "laba_rugi",
+    "perawatan",
+    "inspeksi",
+    "operasional",
+  ]),
 });
 
 export const GetFieldMappingsResponse = zod.object({
