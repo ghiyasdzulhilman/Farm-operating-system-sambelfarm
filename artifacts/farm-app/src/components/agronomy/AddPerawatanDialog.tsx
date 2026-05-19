@@ -78,44 +78,44 @@ console.log("dropdownOptions", dropdownOptions);
   });
 
     // Fetch API untuk menyimpan perawatan (Standard Notion V2)
-  const savePerawatan = useMutation({
-    mutationFn: async (payload: PerawatanFormValues) => {
-      
-      // Loop & Kirim data per Area (Laba Rugi) yang dipilih
-      const promises = (payload.areaIds || []).map(async (areaId) => {
+ const savePerawatan = useMutation({
+  mutationFn: async (payload: PerawatanFormValues) => {
 
-        const cleanData = {
-          kegiatan: payload.kegiatan,
-          tanggal: payload.tanggal,
-          tags: payload.tags ? [payload.tags] : [], 
-          labaRugiId: areaId,
-          // 👇 KITA KIRIM DATA RACIKANNYA UTUH KE BACKEND
-          logProduk: payload.logProduk,
-detailNotes: payload.detailNotes, 
-        };
+    const promises = payload.areaIds.map(async (areaId) => {
 
-        const response = await fetch("/api/staging/save", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    databaseType: "perawatan",
-    data: cleanData,
-  }),
-});
+      const cleanData = {
+        kegiatan: payload.kegiatan,
+        tanggal: payload.tanggal,
+        tags: payload.tags ? [payload.tags] : [],
+        labaRugiId: areaId,
+        logProduk: payload.logProduk,
+        detailNotes: payload.detailNotes,
+      };
 
-if (!response.ok) {
-  throw new Error(`Gagal menyimpan untuk area ${areaId}`);
-}
+      const response = await fetch("/api/staging/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          databaseType: "perawatan",
+          data: cleanData,
+        }),
+      });
 
-await fetch("/api/staging/sync", {
-  method: "POST",
-});
+      if (!response.ok) {
+        throw new Error(`Gagal menyimpan untuk area ${areaId}`);
+      }
 
-return response.json();
+      await fetch("/api/staging/sync", {
+        method: "POST",
+      });
 
-      return Promise.all(promises);
-    },
-    onSuccess: async (_, variables) => {
+      return response.json();
+    });
+
+    return Promise.all(promises);
+  },
+
+  onSuccess: async (_, variables) => {
       toast({
         description: (
           <div className="w-full space-y-3 pt-1 text-left">
