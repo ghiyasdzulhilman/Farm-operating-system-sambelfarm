@@ -412,7 +412,7 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
                     </motion.div>
                   )}
 
-                  {/* STEP 4: GRADE KUALITAS & CHANNEL */}
+                                    {/* STEP 4: GRADE KUALITAS, CHANNEL, & DATABASE MAPPING */}
                   {step === 4 && (
                     <motion.div
                       key="step4"
@@ -422,7 +422,7 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
                       className="space-y-4 text-left"
                     >
                       <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-                        4. Klasifikasi Hasil & Jalur Distribusi
+                        4. Klasifikasi Hasil & Target Database
                       </p>
 
                       <FormField
@@ -474,23 +474,8 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
                           </FormItem>
                         )}
                       />
-                    </motion.div>
-                  )}
 
-                  {/* STEP 5: PEMETAAN NOTION DATABASE */}
-                  {step === 5 && (
-                    <motion.div
-                      key="step5"
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      className="space-y-4 text-left"
-                    >
-                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-                        5. Hubungkan Ke Database
-                      </p>
-
-
+                      {/* ✨ DROPDOWN LABA RUGI SEKARANG DI SINI */}
                       <FormField
                         control={form.control}
                         name="labaRugiId"
@@ -520,7 +505,6 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
                       />
                     </motion.div>
                   )}
-
                 </AnimatePresence>
 
                 {/* DYNAMIC NAVIGATION CONTROL FOOTER */}
