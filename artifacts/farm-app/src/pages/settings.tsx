@@ -42,7 +42,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
-import { PERAWATAN_FIELDS } from "@/config/perawatan.config";
+import { PERAWATAN_SCHEMA } from "@/config/schemas/perawatan.config";
 
 // ---------------------------------------------------------------------------
 // 📂 1. ARCHITECTURE & DICTIONARY
