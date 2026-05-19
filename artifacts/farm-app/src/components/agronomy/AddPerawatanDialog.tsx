@@ -81,7 +81,7 @@ console.log("dropdownOptions", dropdownOptions);
  const savePerawatan = useMutation({
   mutationFn: async (payload: PerawatanFormValues) => {
 
-    const promises = payload.labaRugiIds.map(async (areaId) => {
+    const promises = (payload.labaRugiIds || []).map(async (areaId) => {
 
       const cleanData = {
         kegiatan: payload.kegiatan,
