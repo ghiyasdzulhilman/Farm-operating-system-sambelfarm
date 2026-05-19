@@ -136,6 +136,23 @@ const DOMAINS: any[] = [
   },
 ],
 
+},
+{
+  id: "lab",
+  label: "Lab & Tools",
+  icon: FlaskConical,
+  description: "Kalkulator nutrisi & pupuk",
+  schemas: [],
+},
+{
+  id: "resource",
+  label: "Resources",
+  icon: Users,
+  description: "Manajemen data pekerja",
+  schemas: [],
+},
+];
+
 /* AUDIT WARNA: Mengubah class kaku menjadi class transparan dinamis agar ngikut mode */
 const glassCard = "rounded-[1.75rem] border-border/50 bg-card text-card-foreground shadow-sm transition-all duration-300";
 
