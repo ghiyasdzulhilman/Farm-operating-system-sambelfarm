@@ -226,6 +226,11 @@ if (data.petugasId) {
   }));
 }
 
+console.log(
+  "PERAWATAN PROPS",
+  JSON.stringify(props, null, 2)
+);
+
 return props;
 }
 
