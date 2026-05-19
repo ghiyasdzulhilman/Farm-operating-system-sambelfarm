@@ -19,20 +19,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 
+import { PERAWATAN_SCHEMA } from "@/config/schemas/perawatan.config";
+
 // --- SCHEMA VALIDASI ---
-const perawatanSchema = z.object({
-  kegiatan: z.string().min(1, "Nama kegiatan wajib diisi"),
-  tanggal: z.string().min(1, "Tanggal wajib diisi"),
-  areaIds: z.array(z.string()).min(1, "Minimal pilih 1 area"),
-  tags: z.string().optional(),
-detailNotes: z.string().optional(),
-logProduk: z.array(
-    z.object({
-      produk: z.string().min(1, "Nama produk wajib diisi"),
-      dosis: z.string().min(1, "Dosis wajib diisi"),
+const perawatanSchema = z.object(
+  Object.fromEntries(
+    PERAWATAN_SCHEMA.fields.map((field) => {
+      let validator: any = z.string().optional();
+
+      if (field.expectedType === "title") {
+        validator = z.string().min(1, `${field.label} wajib diisi`);
+      }
+
+      if (field.expectedType === "date") {
+        validator = z.string().min(1, `${field.label} wajib diisi`);
+      }
+
+      return [field.key, validator];
     })
-  ).default([]),
-});
+  )
+);
 
 type PerawatanFormValues = z.infer<typeof perawatanSchema>;
 
@@ -53,15 +59,23 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
 
   const form = useForm<PerawatanFormValues>({
     resolver: zodResolver(perawatanSchema),
-    defaultValues: {
-      kegiatan: "",
-      tanggal: format(new Date(), "yyyy-MM-dd"),
-      areaIds: [],
-      tags: "",
-detailNotes: "",
-logProduk: [],
-    },
-  });
+    
+defaultValues: {
+  ...Object.fromEntries(
+    PERAWATAN_SCHEMA.fields.map((field) => [
+      field.key,
+      field.expectedType === "multi_select" ? [] : "",
+    ])
+  ),
+
+  tanggal: format(new Date(), "yyyy-MM-dd"),
+
+  areaIds: [],
+
+  detailNotes: "",
+
+  logProduk: [],
+},
 
   // Fitur Dynamic Array untuk Bahan & Dosis
   const { fields: produkFields, append: appendProduk, remove: removeProduk } = useFieldArray({
