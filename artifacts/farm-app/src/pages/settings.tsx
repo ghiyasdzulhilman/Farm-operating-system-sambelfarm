@@ -99,7 +99,7 @@ const DOMAINS: any[] = [
     description: "Perawatan, inspeksi, dan kegiatan umum",
     schemas: [
       
-            { id: "perawatan", label: "Riwayat Perawatan", hint: "Pencatatan pupuk & pestisida", fields: [
+                  { id: "treatment_blocks", label: "Riwayat Perawatan", hint: "Pencatatan pupuk & pestisida", fields: [
         { key: "kegiatan", label: "Kegiatan", expectedType: "title", aliases: ALIASES.kegiatan },
         { key: "tanggal", label: "Tanggal", expectedType: "date", aliases: ALIASES.tanggal },
         { key: "tags", label: "Tags / Jenis Kegiatan", expectedType: "multi_select|select" },
