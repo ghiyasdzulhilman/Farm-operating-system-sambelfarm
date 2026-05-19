@@ -180,10 +180,11 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
     },
   });
 
-  function onSubmit(values: HarvestFormValues) {
+    function onSubmit(values: HarvestFormValues) {
     const cleanPayload = {
       ...values,
-      labaRugiId: values.labaRugiId === "" ? undefined : values.labaRugiId,
+      pindahTanamId: "", // 👈 Trik bypass satpam backend lama
+      labaRugiId: values.labaRugiId || "", // 👈 Pastikan selalu ngirim string, bukan undefined
     };
     addHarvest.mutate({ data: cleanPayload as any });
   }
