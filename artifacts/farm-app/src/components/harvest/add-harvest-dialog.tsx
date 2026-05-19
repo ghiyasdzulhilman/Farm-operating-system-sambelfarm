@@ -63,7 +63,6 @@ const harvestSchema = z.object({
   hargaJualPerKg: z.coerce.number().min(0, "Harga tidak boleh negatif"),
   kualitas: z.string().min(1, "Pilih kualitas"),
   channelPenjualan: z.string().min(1, "Pilih channel penjualan"),
-  pindahTanamId: z.string().optional(),
   labaRugiId: z.string().optional(),
 });
 
@@ -77,7 +76,6 @@ const EMPTY_VALUES: HarvestFormValues = {
   hargaJualPerKg: "" as any,
   kualitas: "",
   channelPenjualan: "",
-  pindahTanamId: "",
   labaRugiId: "",
 };
 
@@ -105,9 +103,9 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
       // FIX LOGIC: Menangkap data variables input untuk di-render ke Cyber Toast
       onSuccess: async (data, variables) => {
         
-        // Pemetaan otomatis ID panen ke nama lokasi asli manusia
-        const resolvedArea = dropdownOptions?.pindahTanam?.find(
-          (p) => p.id === variables?.pindahTanamId
+                // Pemetaan otomatis ID panen ke nama lokasi asli manusia (Notion V2: Menggunakan Laba Rugi)
+        const resolvedArea = dropdownOptions?.labaRugi?.find(
+          (p) => p.id === variables?.labaRugiId
         )?.name || variables?.kegiatan || "Panen Cabe";
 
         const resolvedChannel = variables?.channelPenjualan || "Pasar Distribusi";
@@ -196,14 +194,6 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
     }
   };
 
-  function onSubmit(values: HarvestFormValues) {
-    const cleanPayload = {
-      ...values,
-      pindahTanamId: values.pindahTanamId === "" ? undefined : values.pindahTanamId,
-      labaRugiId: values.labaRugiId === "" ? undefined : values.labaRugiId,
-    };
-    addHarvest.mutate({ data: cleanPayload as any });
-  }
 
   const totalPendapatan =
     (form.watch("jumlahPanen") || 0) * (form.watch("hargaJualPerKg") || 0);
@@ -240,12 +230,14 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
             </div>
             <div className="text-left">
               <SheetTitle className="text-base font-black tracking-tight">Shortcut Panen</SheetTitle>
-              <p className="text-[10px] font-bold text-primary tracking-wider uppercase">Step {step} dari 5</p>
+              
+              <p className="text-[10px] font-bold text-primary tracking-wider uppercase">Step {step} dari 4</p>
             </div>
           </div>
           
           <div className="flex gap-1.5">
-            {[1, 2, 3, 4, 5].map((i) => (
+            {[1, 2, 3, 4].map((i) => (
+
               <div 
                 key={i} 
                 className={[
@@ -489,33 +481,6 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
                         5. Hubungkan Ke Database
                       </p>
 
-                      <FormField
-                        control={form.control}
-                        name="pindahTanamId"
-                        render={({ field }) => (
-                          <FormItem className="space-y-1.5">
-                            <FormLabel className="text-[11px] font-bold text-muted-foreground">Area Pindah Tanam</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value || ""}>
-                              <FormControl>
-                                <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-primary/20 dark:bg-muted/50" data-testid="select-pindah-tanam">
-                                  <SelectValue placeholder="Pilih area pindah tanam" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent className="rounded-xl shadow-xl">
-                                {dropdownOptions?.pindahTanam?.length === 0 ? (
-                                  <SelectItem value="_empty" disabled>Tidak ada data ditemukan</SelectItem>
-                                ) : (
-                                  dropdownOptions?.pindahTanam?.map((item) => (
-                                    <SelectItem key={item.id} value={item.id} className="rounded-lg">
-                                      {item.name}
-                                    </SelectItem>
-                                  ))
-                                )}
-                              </SelectContent>
-                            </Select>
-                          </FormItem>
-                        )}
-                      />
 
                       <FormField
                         control={form.control}
@@ -574,7 +539,7 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
                     </Button>
                   )}
 
-                  {step < 5 ? (
+                                    {step < 4 ? (
                     <Button
                       type="button"
                       className="h-11 rounded-xl px-5 font-bold bg-primary text-primary-foreground hover:opacity-90 transition-all"
