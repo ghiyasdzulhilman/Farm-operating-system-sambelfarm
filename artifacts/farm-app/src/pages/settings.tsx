@@ -99,21 +99,28 @@ const DOMAINS: any[] = [
     description: "Perawatan, inspeksi, dan kegiatan umum",
     schemas: [
       
-      { id: "treatment_blocks", label: "Riwayat Perawatan (Multi-Blok)", hint: "Mapping 1x, terapkan ke banyak blok", isMultiInstance: true, fields: [
+            { id: "perawatan", label: "Riwayat Perawatan", hint: "Pencatatan pupuk & pestisida", fields: [
         { key: "kegiatan", label: "Kegiatan", expectedType: "title", aliases: ALIASES.kegiatan },
         { key: "tanggal", label: "Tanggal", expectedType: "date", aliases: ALIASES.tanggal },
-        { key: "hst", label: "HST", expectedType: "formula|rollup|number" },
+        { key: "tags", label: "Tags / Jenis Kegiatan", expectedType: "multi_select|select" },
         { key: "status", label: "Status", expectedType: "status|select" },
         { key: "petugas", label: "Petugas Lapangan", expectedType: "relation" },
-        { key: "area", label: "Area Pindah Tanam", expectedType: "relation", aliases: ALIASES.area },
+        { key: "labaRugi", label: "Area Laba Rugi", expectedType: "relation", aliases: ALIASES.area },
       ]},
       { id: "inspeksi", label: "Inspeksi Rutin", hint: "Pencatatan hama dan penyakit", fields: [
         { key: "kegiatan", label: "Kegiatan", expectedType: "title", aliases: ALIASES.kegiatan },
-        { key: "tanggal", label: "Tanggal", expectedType: "date|created_time", aliases: ALIASES.tanggal },
+        { key: "labaRugi", label: "Area Laba Rugi", expectedType: "relation", aliases: ALIASES.area },
+        { key: "tanggal", label: "Tanggal", expectedType: "date", aliases: ALIASES.tanggal },
+        { key: "hst", label: "HST", expectedType: "formula|rollup|number" },
         { key: "hama", label: "Hama", expectedType: "multi_select", aliases: ALIASES.hama },
         { key: "penyakit", label: "Penyakit", expectedType: "multi_select", aliases: ALIASES.penyakit },
-        { key: "area", label: "Area", expectedType: "relation", aliases: ALIASES.area },
+        { key: "tingkatSerangan", label: "Tingkat Serangan (%)", expectedType: "number" },
+        { key: "radius", label: "Radius (m2)", expectedType: "number" },
+        { key: "phTanah", label: "pH Tanah", expectedType: "number" },
+        { key: "petugas", label: "Petugas Lapangan", expectedType: "relation" },
+        { key: "status", label: "Status", expectedType: "status|select" },
       ]},
+
       { id: "operasional", label: "Kegiatan Operasional Umum", hint: "Tugas harian", fields: [
         { key: "kegiatan", label: "Task", expectedType: "title", aliases: ALIASES.kegiatan },
         { key: "tanggal", label: "Tanggal", expectedType: "date", aliases: ALIASES.tanggal },
