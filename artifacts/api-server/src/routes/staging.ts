@@ -126,12 +126,7 @@ const DB_FIELD_SPECS: Record<string, FieldSpec[]> = {
       build: (v) => ({ select: { name: String(v) } }),
       optional: true,
     },
-    {
-      mappingKey: "areaPindahTanam", // 100% Cocok sama SettingsPage
-      dataKey: "pindahTanamId", // Ini nangkep data 'pindahTanamId' dari Form Dialog lu
-      build: (v) => ({ relation: [{ id: String(v) }] }),
-      optional: true,
-    },
+    
     {
       mappingKey: "labaRugi",
       dataKey: "labaRugiId",
