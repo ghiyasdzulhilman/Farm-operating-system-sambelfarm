@@ -99,72 +99,22 @@ interface FieldSpec {
 
 const DB_FIELD_SPECS: Record<string, FieldSpec[]> = {
   panen: [
-    {
-      mappingKey: "kegiatan",
-      build: (v) => ({ title: [{ text: { content: String(v ?? "") } }] }),
-    },
-    {
-      mappingKey: "tanggal", // 100% Cocok sama SettingsPage
-      build: (v) => ({ date: { start: String(v) } }),
-      optional: true,
-    },
-    {
-      mappingKey: "jumlahPanen", // 100% Cocok sama SettingsPage & Form
-      build: (v) => ({ number: Number(v ?? 0) }),
-    },
-    {
-      mappingKey: "hargaJualPerKg",
-      build: (v) => ({ number: Number(v ?? 0) }),
-    },
-    {
-      mappingKey: "kualitas", // 100% Cocok sama SettingsPage & Form
-      build: (v) => ({ select: { name: String(v) } }),
-      optional: true,
-    },
-    {
-      mappingKey: "channelPenjualan",
-      build: (v) => ({ select: { name: String(v) } }),
-      optional: true,
-    },
-    
-    {
-      mappingKey: "labaRugi",
-      dataKey: "labaRugiId",
-      build: (v) => ({ relation: [{ id: String(v) }] }),
-      optional: true,
-    },
+    { mappingKey: "kegiatan", build: (v) => ({ title: [{ text: { content: String(v ?? "") } }] }) },
+    { mappingKey: "tanggal", build: (v) => ({ date: { start: String(v) } }), optional: true },
+    { mappingKey: "jumlahPanen", build: (v) => ({ number: Number(v ?? 0) }) },
+    { mappingKey: "hargaJualPerKg", build: (v) => ({ number: Number(v ?? 0) }) },
+    { mappingKey: "kualitas", build: (v) => ({ select: { name: String(v) } }), optional: true },
+    { mappingKey: "channelPenjualan", build: (v) => ({ select: { name: String(v) } }), optional: true },
+    { mappingKey: "labaRugi", dataKey: "labaRugiId", build: (v) => ({ relation: [{ id: String(v) }] }), optional: true },
   ],
 
-
   expenses: [
-    {
-      mappingKey: "pengeluaran",
-      build: (v) => ({ title: [{ text: { content: String(v ?? "") } }] }),
-    },
-    {
-      mappingKey: "qty",
-      build: (v) => ({ number: Number(v ?? 0) }),
-    },
-    {
-      mappingKey: "hargaPerPcs",
-      build: (v) => ({ number: Number(v ?? 0) }),
-    },
-    {
-      mappingKey: "date",
-      build: (v) => ({ date: { start: String(v) } }),
-    },
-    {
-      mappingKey: "kategori",
-      dataKey: "kategoriId",
-      build: (v) => ({ relation: [{ id: String(v) }] }),
-      optional: true,
-    },
-    {
-      mappingKey: "labaRugi",
-      dataKey: "areaId",
-      build: (v) => ({ relation: [{ id: String(v) }] }),
-      optional: true,
-    },
+    { mappingKey: "pengeluaran", build: (v) => ({ title: [{ text: { content: String(v ?? "") } }] }) },
+    { mappingKey: "qty", build: (v) => ({ number: Number(v ?? 0) }) },
+    { mappingKey: "hargaPerPcs", build: (v) => ({ number: Number(v ?? 0) }) },
+    { mappingKey: "date", build: (v) => ({ date: { start: String(v) } }) },
+    { mappingKey: "kategori", dataKey: "kategoriId", build: (v) => ({ relation: [{ id: String(v) }] }), optional: true },
+    { mappingKey: "labaRugi", dataKey: "areaId", build: (v) => ({ relation: [{ id: String(v) }] }), optional: true },
   ],
 
   perawatan: [
@@ -183,7 +133,6 @@ const DB_FIELD_SPECS: Record<string, FieldSpec[]> = {
   inspeksi: [
     { mappingKey: "kegiatan", build: (v) => ({ title: [{ text: { content: String(v ?? "") } }] }) },
     { mappingKey: "tanggal", build: (v) => ({ date: { start: String(v) } }), optional: true },
-    // Catatan: 'hst' sengaja tidak dimasukkan ke backend karena di Notion sifatnya Formula/Rollup (otomatis terisi)
     { 
       mappingKey: "hama", 
       build: (v) => ({ multi_select: (Array.isArray(v) ? v : [v]).filter(Boolean).map(x => ({ name: String(x) })) }), 
@@ -201,6 +150,7 @@ const DB_FIELD_SPECS: Record<string, FieldSpec[]> = {
     { mappingKey: "petugas", dataKey: "petugasId", build: (v) => ({ relation: [{ id: String(v) }] }), optional: true },
     { mappingKey: "labaRugi", dataKey: "labaRugiId", build: (v) => ({ relation: [{ id: String(v) }] }), optional: true },
   ],
+}; // 👈 PENUTUP UTAMANYA ADA DI SINI SEKARANG
 
 /**
  * Build Notion properties object dari data form + konfigurasi field_mappings.
