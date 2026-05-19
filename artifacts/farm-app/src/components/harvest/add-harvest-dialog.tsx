@@ -180,6 +180,14 @@ export function AddHarvestDialog({ onSuccess }: AddHarvestDialogProps) {
     },
   });
 
+  function onSubmit(values: HarvestFormValues) {
+    const cleanPayload = {
+      ...values,
+      labaRugiId: values.labaRugiId === "" ? undefined : values.labaRugiId,
+    };
+    addHarvest.mutate({ data: cleanPayload as any });
+  }
+
   const handleNextStep = async () => {
     let fieldsToValidate: ("kegiatan" | "tanggal" | "jumlahPanen" | "hargaJualPerKg" | "kualitas" | "channelPenjualan")[] = [];
     if (step === 1) fieldsToValidate = ["kegiatan"];
