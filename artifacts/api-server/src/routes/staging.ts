@@ -242,6 +242,7 @@ router.get("/staging/list", async (req, res): Promise<void> => {
 
 // POST /api/staging/sync
 router.post("/staging/sync", async (req, res): Promise<void> => {
+console.log("🔥 GPTKONTTL");
   const { userId } = getAuth(req);
   if (!userId) {
     res.status(401).json({ error: "Unauthorized" });
