@@ -3,6 +3,7 @@ import healthRouter from "./health";
 import notionRouter from "./notion";
 import expensesRouter from "./expenses";
 import harvestRouter from "./harvest";
+import perawatanRoutes from "./perawatan";
 import mappingsRouter from "./mappings";
 import dashboardRouter from "./dashboard";
 import stagingRouter from "./staging";
