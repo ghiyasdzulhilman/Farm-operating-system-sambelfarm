@@ -247,30 +247,30 @@ detailNotes: payload.detailNotes,
       </p>
 
       <div className="flex flex-wrap gap-2 pt-2">
-        {dropdownOptions?.labaRugi?.length === 0 ? (
+        {dropdownOptions?.areas?.length === 0 ? (
   <p className="text-sm text-muted-foreground">
     Tidak ada data area ditemukan.
   </p>
 ) : (
-  dropdownOptions?.labaRugi?.map((item) => {
-            const isSelected = form.watch("areaIds").includes(item.id);
+  dropdownOptions?.areas?.map((item) => {
+    const isSelected = form.watch("areaIds").includes(item.id);
 
-            return (
-              <Badge
-                key={item.id}
-                variant="outline"
-                className={`px-4 py-2.5 text-sm cursor-pointer rounded-xl transition-all ${
-                  isSelected
-                    ? "bg-green-600 text-white border-green-600 font-bold shadow-md scale-[1.02]"
-                    : "bg-muted/50 text-muted-foreground hover:bg-muted"
-                }`}
-                onClick={() => toggleArea(item.id)}
-              >
-                {item.name}
-              </Badge>
-            );
-          })
-        )}
+    return (
+      <Badge
+        key={item.id}
+        variant="outline"
+        className={`px-4 py-2.5 text-sm cursor-pointer rounded-xl transition-all ${
+          isSelected
+            ? "bg-green-600 text-white border-green-600 font-bold shadow-md scale-[1.02]"
+            : "bg-muted/50 text-muted-foreground hover:bg-muted"
+        }`}
+        onClick={() => toggleArea(item.id)}
+      >
+        {item.name}
+      </Badge>
+    );
+  })
+)}
       </div>
 
       {form.formState.errors.areaIds && (
