@@ -1,46 +1,43 @@
 export const PERAWATAN_SCHEMA = {
   id: "perawatan",
-
   label: "Riwayat Perawatan",
-
-  notionDatabaseName: "Perawatan",
+  hint: "Pencatatan pupuk & pestisida",
 
   fields: [
     {
       key: "kegiatan",
       label: "Kegiatan",
-      type: "title",
-      required: true,
+      expectedType: "title",
     },
 
     {
       key: "tanggal",
       label: "Tanggal",
-      type: "date",
+      expectedType: "date",
     },
 
     {
       key: "tags",
       label: "Tags",
-      type: "multi_select",
+      expectedType: "multi_select",
     },
 
     {
       key: "status",
       label: "Status",
-      type: "status",
+      expectedType: "status",
     },
 
     {
       key: "petugas",
       label: "Petugas",
-      type: "relation",
+      expectedType: "relation",
     },
 
     {
       key: "labaRugi",
       label: "Area Laba Rugi",
-      type: "relation",
+      expectedType: "relation",
     },
   ],
 } as const;
