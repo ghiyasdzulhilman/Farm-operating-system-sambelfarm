@@ -206,6 +206,8 @@ router.post("/staging/save", async (req, res): Promise<void> => {
     data?: Record<string, unknown>;
   };
 
+console.log("SAVE BODY:", req.body);
+
   if (!databaseType || !data || typeof data !== "object") {
     res.status(400).json({ error: "Field 'databaseType' dan 'data' diperlukan." });
     return;
@@ -215,6 +217,8 @@ router.post("/staging/save", async (req, res): Promise<void> => {
     .insert(stagingDataTable)
     .values({ userId, databaseType, data, status: "pending" })
     .returning();
+
+console.log("STAGING RECORD CREATED:", record);
 
   req.log.info({ userId, databaseType, stagingId: record.id }, "Staging: data saved");
 
