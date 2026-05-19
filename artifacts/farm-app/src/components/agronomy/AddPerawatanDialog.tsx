@@ -81,8 +81,8 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
     mutationFn: async (payload: PerawatanFormValues) => {
       
       // Loop & Kirim data per Area (Laba Rugi) yang dipilih
-      const promises = payload.areaIds.map(async (areaId) => {
-        
+      const promises = (payload.areaIds || []).map(async (areaId) => {
+
         const cleanData = {
           kegiatan: payload.kegiatan,
           tanggal: payload.tanggal,
@@ -246,12 +246,12 @@ detailNotes: payload.detailNotes,
       </p>
 
       <div className="flex flex-wrap gap-2 pt-2">
-        {dropdownOptions?.areas?.length === 0 ? (
+        {dropdownOptions?.labaRugi?.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             Tidak ada data area ditemukan.
           </p>
         ) : (
-          dropdownOptions?.areas?.map((item) => {
+          dropdownOptions?.labaRugi?.map((item) => {
             const isSelected = form.watch("areaIds").includes(item.id);
 
             return (
