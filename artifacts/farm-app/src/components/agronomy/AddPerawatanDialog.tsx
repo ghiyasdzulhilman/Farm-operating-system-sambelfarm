@@ -120,7 +120,7 @@ detailNotes: payload.detailNotes,
                 <p className="text-[11px] text-muted-foreground leading-relaxed">
         Sukses disimpan untuk
 <span>
-  {variables.areaIds?.length ?? 0} blok
+  {form.getValues("areaIds")?.length ?? 0} blok
 </span>
                 </p>
               </div>
