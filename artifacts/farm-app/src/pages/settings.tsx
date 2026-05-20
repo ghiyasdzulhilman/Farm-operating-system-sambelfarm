@@ -154,6 +154,8 @@ const DOMAINS: any[] = [
     PEKERJA_SCHEMA,
   ],
 },
+];
+
 
 /* AUDIT WARNA: Mengubah class kaku menjadi class transparan dinamis agar ngikut mode */
 const glassCard = "rounded-[1.75rem] border-border/50 bg-card text-card-foreground shadow-sm transition-all duration-300";
