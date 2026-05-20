@@ -298,6 +298,10 @@ router.post("/notion/field-mappings", async (req, res): Promise<void> => {
   }
 
   const { databaseType, notionDatabaseId, mappings } = body;
+console.log(
+  "MAPPINGS DEBUG",
+  JSON.stringify(mappings, null, 2)
+);
 
   if (!VALID_DB_TYPES.has(databaseType)) {
     res.status(400).json({ error: "Tipe database tidak valid untuk ekosistem Sambel Farm." });
