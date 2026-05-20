@@ -29,10 +29,17 @@ export const PERAWATAN_SCHEMA = {
     },
 
     {
-      key: "petugas",
-      label: "Petugas",
-      expectedType: "relation",
-    },
+  key: "petugas",
+  label: "Petugas",
+  expectedType: "relation",
+  aliases: [
+    "petugas",
+    "petugaslapangan",
+    "pekerja",
+    "team",
+    "operator",
+  ],
+},
 
     {
       key: "labaRugi",
