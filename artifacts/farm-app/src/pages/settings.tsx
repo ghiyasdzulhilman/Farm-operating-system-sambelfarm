@@ -43,6 +43,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 import { PERAWATAN_SCHEMA } from "@/config/schemas/perawatan.config";
+import { PEKERJA_SCHEMA } from "@/config/schemas/pekerja.config";
 
 // ---------------------------------------------------------------------------
 // 📂 1. ARCHITECTURE & DICTIONARY
@@ -149,9 +150,10 @@ const DOMAINS: any[] = [
   label: "Resources",
   icon: Users,
   description: "Manajemen data pekerja",
-  schemas: [],
+  schemas: [
+    PEKERJA_SCHEMA,
+  ],
 },
-];
 
 /* AUDIT WARNA: Mengubah class kaku menjadi class transparan dinamis agar ngikut mode */
 const glassCard = "rounded-[1.75rem] border-border/50 bg-card text-card-foreground shadow-sm transition-all duration-300";
