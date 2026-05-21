@@ -44,6 +44,7 @@ import { cn } from "@/lib/utils";
 
 import { PERAWATAN_SCHEMA } from "@/config/schemas/perawatan.config";
 import { PEKERJA_SCHEMA } from "@/config/schemas/pekerja.config";
+import { INSPEKSI_SCHEMA } from "@/config/schemas/inspeksi.config";
 
 // ---------------------------------------------------------------------------
 // 📂 1. ARCHITECTURE & DICTIONARY
@@ -96,48 +97,28 @@ const DOMAINS: any[] = [
     ]
   },
   {
+      {
     id: "agronomy",
     label: "Agronomy & Ops",
     icon: Leaf,
     description: "Perawatan, inspeksi, dan kegiatan umum",
-    
-      
-  schemas: [
-  PERAWATAN_SCHEMA,
-
-  {
-    id: "inspeksi",
-    label: "Inspeksi Rutin",
-    hint: "Pencatatan hama dan penyakit",
-    fields: [
-      { key: "kegiatan", label: "Kegiatan", expectedType: "title", aliases: ALIASES.kegiatan },
-      { key: "labaRugi", label: "Area Laba Rugi", expectedType: "relation", aliases: ALIASES.area },
-      { key: "tanggal", label: "Tanggal", expectedType: "date", aliases: ALIASES.tanggal },
-      { key: "hst", label: "HST", expectedType: "formula|rollup|number" },
-      { key: "hama", label: "Hama", expectedType: "multi_select", aliases: ALIASES.hama },
-      { key: "penyakit", label: "Penyakit", expectedType: "multi_select", aliases: ALIASES.penyakit },
-      { key: "tingkatSerangan", label: "Tingkat Serangan (%)", expectedType: "number" },
-      { key: "radius", label: "Radius (m2)", expectedType: "number" },
-      { key: "phTanah", label: "pH Tanah", expectedType: "number" },
-      { key: "petugas", label: "Petugas Lapangan", expectedType: "relation" },
-      { key: "status", label: "Status", expectedType: "status|select" },
-    ],
+    schemas: [
+      PERAWATAN_SCHEMA,
+      INSPEKSI_SCHEMA,
+      {
+        id: "operasional",
+        label: "Kegiatan Operasional Umum",
+        hint: "Tugas harian",
+        fields: [
+          { key: "kegiatan", label: "Task", expectedType: "title", aliases: ALIASES.kegiatan },
+          { key: "tanggal", label: "Tanggal", expectedType: "date", aliases: ALIASES.tanggal },
+          { key: "keterangan", label: "Catatan", expectedType: "rich_text" },
+          { key: "pic", label: "Penanggung Jawab", expectedType: "relation|people" },
+        ],
+      },
+    ], 
   },
 
-  {
-    id: "operasional",
-    label: "Kegiatan Operasional Umum",
-    hint: "Tugas harian",
-    fields: [
-      { key: "kegiatan", label: "Task", expectedType: "title", aliases: ALIASES.kegiatan },
-      { key: "tanggal", label: "Tanggal", expectedType: "date", aliases: ALIASES.tanggal },
-      { key: "keterangan", label: "Catatan", expectedType: "rich_text" },
-      { key: "pic", label: "Penanggung Jawab", expectedType: "relation|people" },
-    ],
-  },
-],
-
-},
 {
   id: "lab",
   label: "Lab & Tools",
