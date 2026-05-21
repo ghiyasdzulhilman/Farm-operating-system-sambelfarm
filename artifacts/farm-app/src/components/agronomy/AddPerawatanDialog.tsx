@@ -58,6 +58,7 @@ const perawatanSchema = z.object({
   labaRugiIds: z.array(z.string()).min(1, "Minimal pilih 1 area"),
   petugasId: z.string().optional(),
   tags: z.string().optional(),
+  status: z.string().optional(),
   detailNotes: z.string().optional(),
   logProduk: z
     .array(
@@ -81,6 +82,7 @@ const EMPTY_VALUES: PerawatanFormValues = {
   labaRugiIds: [],
   petugasId: "",
   tags: "",
+  status: "Rencana",
   detailNotes: "",
   logProduk: [],
 };
@@ -122,6 +124,7 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
           kegiatan: payload.kegiatan,
           tanggal: payload.tanggal,
           tags: payload.tags || "",
+          status: payload.status,
           labaRugiId: areaId,
           petugasId: payload.petugasId,
           logProduk: payload.logProduk,
@@ -499,6 +502,35 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                           </FormItem>
                         )}
                       />
+
+                      {/* 👇 TAMBAHIN BLOK STATUS INI 👇 */}
+                      <FormField
+                        control={form.control}
+                        name="status"
+                        render={({ field }) => (
+                          <FormItem className="space-y-1.5">
+                            <FormLabel className="text-[11px] font-bold text-muted-foreground">
+                              Status Pekerjaan
+                            </FormLabel>
+                            <Select
+                              onValueChange={field.onChange}
+                              value={field.value || ""}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-green-600/20">
+                                  <SelectValue placeholder="Pilih status..." />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent className="rounded-xl">
+                                <SelectItem value="Rencana">Rencana</SelectItem>
+                                <SelectItem value="Proses">Sedang Berlangsung (Proses)</SelectItem>
+                                <SelectItem value="Selesai">Selesai</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </FormItem>
+                        )}
+                      />
+                      {/* 👆 BATAS BLOK STATUS 👆 */}
 
 <FormField
   control={form.control}
