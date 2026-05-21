@@ -64,7 +64,6 @@ async function findDatabaseByName(
 const DEFAULT_DB_NAMES: Record<string, string> = {
   panen: "Panen",
   expenses: "Expenses",
-  perawatan: "Perawatan",
   inspeksi: "Inspeksi",
 };
 
@@ -117,19 +116,6 @@ const DB_FIELD_SPECS: Record<string, FieldSpec[]> = {
     { mappingKey: "date", build: (v) => ({ date: { start: String(v) } }) },
     { mappingKey: "kategori", dataKey: "kategoriId", build: (v) => ({ relation: [{ id: String(v) }] }), optional: true },
     { mappingKey: "labaRugi", dataKey: "areaId", build: (v) => ({ relation: [{ id: String(v) }] }), optional: true },
-  ],
-
-    perawatan: [
-    { mappingKey: "kegiatan", build: (v) => ({ title: [{ text: { content: String(v ?? "") } }] }) },
-    { mappingKey: "tanggal", build: (v) => ({ date: { start: String(v) } }), optional: true },
-    { 
-      mappingKey: "tags", 
-      build: (v) => ({ multi_select: (Array.isArray(v) ? v : [v]).filter(Boolean).map(x => ({ name: String(x) })) }), 
-      optional: true 
-    },
-    { mappingKey: "status", build: (v) => ({ status: { name: String(v) } }), optional: true },
-    { mappingKey: "petugas", dataKey: "petugasId", build: (v) => ({ relation: [{ id: String(v) }] }), optional: true },
-    { mappingKey: "labaRugi", dataKey: "labaRugiId", build: (v) => ({ relation: [{ id: String(v) }] }), optional: true },
   ],
 
   inspeksi: [
