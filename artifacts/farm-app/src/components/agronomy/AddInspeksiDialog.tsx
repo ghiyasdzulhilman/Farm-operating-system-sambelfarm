@@ -3,11 +3,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
-import { Loader2, CalendarIcon, ArrowRight, ArrowLeft, CheckCircle2, Activity, Bug } from "lucide-react";
-import { useQueryClient, useMutation } from "@tanstack/react-query";
+import { Loader2, CalendarIcon, ArrowRight, ArrowLeft, CheckCircle2, Activity } from "lucide-react";
+import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 
-import { useGetDropdownOptions, getGetDropdownOptionsQueryKey } from "@workspace/api-client-react";
+import { getGetDashboardSummaryQueryKey } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 
 import { Button } from "@/components/ui/button";
@@ -44,8 +44,15 @@ export function AddInspeksiDialog({ onSuccess }: AddInspeksiDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: dropdownOptions, isLoading: isLoadingOptions } = useGetDropdownOptions({
-    query: { enabled: open, queryKey: getGetDropdownOptionsQueryKey() },
+  // 1. Fetch data dropdown langsung mengarah ke rute Inspeksi baru
+  const { data: dropdownOptions, isLoading: isLoadingOptions } = useQuery({
+    queryKey: ["inspeksi-dropdown-options"],
+    queryFn: async () => {
+      const res = await fetch("/api/notion/inspeksi-dropdown-options");
+      if (!res.ok) throw new Error("Gagal mengambil data dropdown");
+      return res.json();
+    },
+    enabled: open,
   });
 
   const form = useForm<InspeksiFormValues>({
@@ -59,27 +66,33 @@ export function AddInspeksiDialog({ onSuccess }: AddInspeksiDialogProps) {
     },
   });
 
+  // 2. Mutasi kirim data beralih ke Direct Notion
   const saveInspeksi = useMutation({
     mutationFn: async (payload: any) => {
-      const response = await fetch("/api/staging/inspeksi/save", {
+      const response = await fetch("/api/notion/add-inspeksi", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (!response.ok) throw new Error("Gagal menyimpan data");
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(errText || "Gagal menyimpan data ke Notion");
+      }
       return response.json();
     },
     onSuccess: async (_, variables) => {
-      const areaName = dropdownOptions?.areas?.find(a => a.id === variables.areaId)?.name || "Area";
+      const areaName = dropdownOptions?.areas?.find((a: any) => a.id === variables.labaRugiId)?.name || "Area";
+      
+      // 3. Pesan Toast disesuaikan (Bukan antrean lagi!)
       toast({
         description: (
           <div className="w-full space-y-3 pt-1 text-left">
             <div className="flex items-start gap-3">
-              <div className="h-2 w-2 rounded-full bg-orange-500 animate-pulse mt-1.5 shrink-0" />
+              <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse mt-1.5 shrink-0" />
               <div className="space-y-0.5">
-                <p className="font-black text-sm text-foreground tracking-tight">Inspeksi Disimpan</p>
+                <p className="font-black text-sm text-foreground tracking-tight">Inspeksi Berhasil</p>
                 <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  Laporan untuk <span className="text-orange-500 font-semibold">{areaName}</span> masuk antrean.
+                  Laporan untuk <span className="text-green-600 font-semibold">{areaName}</span> sukses disimpan langsung ke Notion.
                 </p>
               </div>
             </div>
@@ -87,42 +100,48 @@ export function AddInspeksiDialog({ onSuccess }: AddInspeksiDialogProps) {
         ),
       });
 
-      await queryClient.invalidateQueries({ queryKey: ["staging", "list"] });
+      // 4. Invalidate cache dashboard utama biar data langsung sinkron terupdate
+      await queryClient.invalidateQueries({
+        queryKey: getGetDashboardSummaryQueryKey(),
+        refetchType: "all",
+      });
 
       form.reset();
       setStep(1);
       setOpen(false);
       onSuccess?.();
     },
-    onError: () => {
-      toast({ variant: "destructive", title: "Gagal menyimpan", description: "Cek koneksi internet Anda." });
+    onError: (error) => {
+      toast({ 
+        variant: "destructive", 
+        title: "Gagal menyimpan", 
+        description: error instanceof Error ? error.message : "Cek koneksi internet Anda." 
+      });
     },
   });
 
   const handleNextStep = async () => {
     let fieldsToValidate: any[] = [];
     if (step === 1) fieldsToValidate = ["areaId", "tanggal"];
-    // Step 2 & 3 opsional, langsung lanjut aja
     
     const isStepValid = await form.trigger(fieldsToValidate);
     if (isStepValid) setStep((prev) => prev + 1);
   };
 
-    function onSubmit(values: InspeksiFormValues) {
+  function onSubmit(values: InspeksiFormValues) {
     const payload = {
-      areaId: values.areaId,
+      labaRugiId: values.areaId, // Kita kirim key 'labaRugiId' biar pas sama backend
       tanggal: values.tanggal,
-      // ✨ KITA SELIPIN SECARA GHOIB BIAR BACKEND SENENG
       kegiatan: "Inspeksi Rutin", 
       hama: values.hamaPenyakit,
-      penyakit: [], // Kita biarin kosong, karena udah gabung di atas
+      penyakit: [], 
       phTanah: values.phTanah ? Number(values.phTanah) : null,
       tingkatSerangan: values.tingkatSerangan ? Number(values.tingkatSerangan) : null,
+      status: "Selesai"
     };
     saveInspeksi.mutate(payload);
   }
 
-  // Helper untuk toggle Hama Penyakit
   const toggleHama = (item: string) => {
     const current = form.getValues("hamaPenyakit");
     if (current.includes(item)) {
@@ -174,7 +193,7 @@ export function AddInspeksiDialog({ onSuccess }: AddInspeksiDialogProps) {
                       <div className="space-y-1.5">
                         <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">1. Area yang Diinspeksi</p>
                         <div className="flex flex-wrap gap-2 pt-2">
-                          {dropdownOptions?.areas?.map((area) => {
+                          {dropdownOptions?.areas?.map((area: any) => {
                             const isSelected = form.watch("areaId") === area.id;
                             return (
                               <Badge 
