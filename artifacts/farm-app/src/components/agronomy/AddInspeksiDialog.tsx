@@ -16,6 +16,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 
 // --- DAFTAR HAMA & PENYAKIT BAWAAN ---
 const PRESET_HAMA_PENYAKIT = [
@@ -30,6 +32,7 @@ const inspeksiSchema = z.object({
   hamaPenyakit: z.array(z.string()).default([]),
   phTanah: z.string().optional(),
   tingkatSerangan: z.string().optional(),
+  status: z.string().optional(),
 });
 
 type InspeksiFormValues = z.infer<typeof inspeksiSchema>;
@@ -63,6 +66,7 @@ export function AddInspeksiDialog({ onSuccess }: AddInspeksiDialogProps) {
       hamaPenyakit: [],
       phTanah: "",
       tingkatSerangan: "",
+      status: "Baru ditemukan",
     },
   });
 
@@ -137,7 +141,7 @@ export function AddInspeksiDialog({ onSuccess }: AddInspeksiDialogProps) {
       penyakit: [], 
       phTanah: values.phTanah ? Number(values.phTanah) : null,
       tingkatSerangan: values.tingkatSerangan ? Number(values.tingkatSerangan) : null,
-      status: "Selesai"
+      status: values.status || "Baru di temukan"
     };
     saveInspeksi.mutate(payload);
   }
@@ -245,10 +249,11 @@ export function AddInspeksiDialog({ onSuccess }: AddInspeksiDialogProps) {
                     </motion.div>
                   )}
 
-                  {/* STEP 3: INDIKATOR ANGKA */}
+                                    {/* STEP 3: INDIKATOR ANGKA */}
                   {step === 3 && (
                     <motion.div key="step3" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="space-y-4">
                       <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">3. Indikator Lapangan (Opsional)</p>
+                      
                       <div className="grid grid-cols-2 gap-4">
                         <FormField control={form.control} name="phTanah" render={({ field }) => (
                           <FormItem className="space-y-1.5">
@@ -268,6 +273,27 @@ export function AddInspeksiDialog({ onSuccess }: AddInspeksiDialogProps) {
                           </FormItem>
                         )} />
                       </div>
+
+                      {/* 👇 TAMBAHKAN BLOK STATUS INI DI SINI 👇 */}
+                      <FormField control={form.control} name="status" render={({ field }) => (
+                        <FormItem className="space-y-1.5 pt-2">
+                          <FormLabel className="text-[11px] font-bold text-muted-foreground">Status Penanganan</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value || ""}>
+                            <FormControl>
+                              <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-orange-500/20 text-sm font-bold">
+                                <SelectValue placeholder="Pilih status..." />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent className="rounded-xl">
+                              <SelectItem value="Baru di temukan">Baru di temukan</SelectItem>
+                              <SelectItem value="Sedang ditangani">Sedang ditangani</SelectItem>
+                              <SelectItem value="Sudah ditangani">Sudah ditangani</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </FormItem>
+                      )} />
+                      {/* 👆 BATAS BLOK STATUS 👆 */}
+
                     </motion.div>
                   )}
                 </AnimatePresence>
