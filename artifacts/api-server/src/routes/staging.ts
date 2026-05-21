@@ -64,7 +64,6 @@ async function findDatabaseByName(
 const DEFAULT_DB_NAMES: Record<string, string> = {
   panen: "Panen",
   expenses: "Expenses",
-  inspeksi: "Inspeksi",
 };
 
 async function resolveNotionDatabaseId(
@@ -117,37 +116,8 @@ const DB_FIELD_SPECS: Record<string, FieldSpec[]> = {
     { mappingKey: "kategori", dataKey: "kategoriId", build: (v) => ({ relation: [{ id: String(v) }] }), optional: true },
     { mappingKey: "labaRugi", dataKey: "areaId", build: (v) => ({ relation: [{ id: String(v) }] }), optional: true },
   ],
-
-  inspeksi: [
-    { mappingKey: "kegiatan", build: (v) => ({ title: [{ text: { content: String(v ?? "") } }] }) },
-    { mappingKey: "tanggal", build: (v) => ({ date: { start: String(v) } }), optional: true },
-    { 
-      mappingKey: "hama", 
-      build: (v) => ({ multi_select: (Array.isArray(v) ? v : [v]).filter(Boolean).map(x => ({ name: String(x) })) }), 
-      optional: true 
-    },
-    { 
-      mappingKey: "penyakit", 
-      build: (v) => ({ multi_select: (Array.isArray(v) ? v : [v]).filter(Boolean).map(x => ({ name: String(x) })) }), 
-      optional: true 
-    },
-    { mappingKey: "tingkatSerangan", build: (v) => ({ number: Number(v ?? 0) }), optional: true },
-    { mappingKey: "radius", build: (v) => ({ number: Number(v ?? 0) }), optional: true },
-    { mappingKey: "phTanah", build: (v) => ({ number: Number(v ?? 0) }), optional: true },
-    { mappingKey: "status", build: (v) => ({ status: { name: String(v) } }), optional: true },
-    { mappingKey: "petugas", dataKey: "petugasId", build: (v) => ({ relation: [{ id: String(v) }] }), optional: true },
-    { mappingKey: "labaRugi", dataKey: "labaRugiId", build: (v) => ({ relation: [{ id: String(v) }] }), optional: true },
-  ],
 }; // 👈 PENUTUP UTAMANYA ADA DI SINI SEKARANG
 
-/**
- * Build Notion properties object dari data form + konfigurasi field_mappings.
- *
- * Aturan:
- * - Field yang belum dikonfigurasi di field_mappings → di-skip (tidak ada hardcoded fallback)
- * - propertyId di-decode dari URL encoding sebelum dipakai sebagai key Notion
- * - Field optional → di-skip jika nilai kosong/null/undefined
- */
 function buildNotionProperties(
   databaseType: string,
   data: Record<string, unknown>,
@@ -192,8 +162,6 @@ router.post("/staging/save", async (req, res): Promise<void> => {
     data?: Record<string, unknown>;
   };
 
-console.log("SAVE BODY:", req.body);
-
   if (!databaseType || !data || typeof data !== "object") {
     res.status(400).json({ error: "Field 'databaseType' dan 'data' diperlukan." });
     return;
@@ -203,8 +171,6 @@ console.log("SAVE BODY:", req.body);
     .insert(stagingDataTable)
     .values({ userId, databaseType, data, status: "pending" })
     .returning();
-
-console.log("STAGING RECORD CREATED:", record);
 
   req.log.info({ userId, databaseType, stagingId: record.id }, "Staging: data saved");
 
@@ -232,7 +198,7 @@ router.get("/staging/list", async (req, res): Promise<void> => {
 
 // POST /api/staging/sync
 router.post("/staging/sync", async (req, res): Promise<void> => {
-console.log("🔥 GPTKONTTL");
+
   const { userId } = getAuth(req);
   if (!userId) {
     res.status(401).json({ error: "Unauthorized" });
@@ -279,9 +245,6 @@ console.log("🔥 GPTKONTTL");
         const mappings = mappingRow?.mappings as FieldMappingData | undefined;
         const properties = buildNotionProperties(record.databaseType, record.data, mappings);
 
-console.log("DATABASE ID:", databaseId);
-console.log("PROPERTIES:", JSON.stringify(properties, null, 2));
-
         const response = await notionFetch(userId, accessToken, "https://api.notion.com/v1/pages", {
           method: "POST",
           body: JSON.stringify({ parent: { database_id: databaseId }, properties }),
@@ -302,7 +265,7 @@ console.log("PROPERTIES:", JSON.stringify(properties, null, 2));
                 const created = await response.json() as { id: string };
         await db
           .update(stagingDataTable)
-          .set({ status: "synced", errorMessage: null, createdAt: new Date() }) // 👈 HACK NYA DI SINI
+          .set({ status: "synced", errorMessage: null, createdAt: new Date() }) 
           .where(eq(stagingDataTable.id, record.id));
 
         req.log.info({ userId, stagingId: record.id, notionPageId: created.id }, "Staging: synced to Notion");
@@ -319,19 +282,15 @@ console.log("PROPERTIES:", JSON.stringify(properties, null, 2));
       }
     }
 
-    // Invalidate dashboard cache so the next request forces a fresh Notion fetch
-        // Invalidate ALL related caches so the next request forces a fresh Notion fetch
-        if (synced > 0) {
-      // MATIKAN HAPUS CACHE BIAR NOTION BISA NAPAS DAN GAK GHOSTING
-      // notionCache.del(getDashboardCacheKey(userId));
+        // Invalidate dashboard cache biar data terbaru muncul
+    if (synced > 0) {
+      // Kasih jeda 2 detik biar Notion selesai indexing (mencegah ghosting)
+      setTimeout(() => {
+        const cacheKey = getDashboardCacheKey(userId);
+        if (cacheKey) notionCache.del(cacheKey);
+      }, 2000);
       
-      // notionCache.keys().forEach((key) => {
-      //   if (key.includes(userId)) {
-      //     notionCache.del(key);
-      //   }
-      // });
-      
-      req.log.info({ userId, synced }, "Staging: Sync kelar, Cache dipertahankan.");
+      req.log.info({ userId, synced }, "Staging: Sync kelar, cache akan dihapus dalam 2 detik.");
     }
 
     res.json({ success: true, synced, failed, errors });
