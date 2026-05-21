@@ -12,8 +12,6 @@ import {
   handleNotionErrors,
   NotionTokenInvalidError,
 } from "../lib/notionClient";
-import { PERAWATAN_SCHEMA } from "../config/schemas/perawatan.config"; // Sesuaikan path-nya ya bro!
-
 
 const router: IRouter = Router();
 
@@ -213,30 +211,37 @@ function buildNotionBlocks(
 }
 
 
+// Taruh ini tepat di atas fungsi buildPerawatanProperties
+const PERAWATAN_FIELDS = [
+  { key: "kegiatan", expectedType: "title" },
+  { key: "tanggal", expectedType: "date" },
+  { key: "tags", expectedType: "multi_select" },
+  { key: "status", expectedType: "status" },
+  { key: "petugas", expectedType: "relation" },
+  { key: "labaRugi", expectedType: "relation" },
+];
+
 function buildPerawatanProperties(
   data: AddPerawatanBody,
   mappings: FieldMappingData | undefined,
 ): Record<string, unknown> {
   const props: Record<string, unknown> = {};
 
-  // Robot ini bakal muterin semua field yang ada di config SCHEMA
-  PERAWATAN_SCHEMA.fields.forEach((field) => {
-    // 1. Cari mapping-nya di database
+  // Sekarang dia baca dari variabel PERAWATAN_FIELDS di atas
+  PERAWATAN_FIELDS.forEach((field) => {
     const mapping = mappings?.[field.key as keyof FieldMappingData];
     if (!mapping?.propertyId) return;
 
     const propertyId = decodePropertyId(mapping.propertyId);
     
-    // 2. Ambil nilai datanya dari input (Gua tambahin toleransi pencarian keyId)
     let value = data[field.key as keyof AddPerawatanBody];
     
-    // Trik toleransi jika di schema namanya 'labaRugi' tapi di data namanya 'labaRugiId'
+    // Trik toleransi ID relasi
     if (!value && field.key === "labaRugi") value = (data as any).labaRugiId;
     if (!value && field.key === "petugas") value = (data as any).petugasId;
     
     if (!value) return;
 
-    // 3. Engine Switch: Nentuin format Notion berdasarkan tipe field
     switch (field.expectedType) {
       case "title":
         props[propertyId] = { title: [{ text: { content: String(value) } }] };
@@ -248,7 +253,6 @@ function buildPerawatanProperties(
         props[propertyId] = { select: { name: String(value) } };
         break;
       case "multi_select":
-        // Jika bertipe array, petakan menjadi struktur multi_select milik Notion
         if (Array.isArray(value)) {
           props[propertyId] = { multi_select: value.map((t) => ({ name: String(t) })) };
         } else {
