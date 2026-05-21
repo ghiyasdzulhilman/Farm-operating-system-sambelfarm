@@ -172,55 +172,44 @@ function buildNotionBlocks(
 ): any[] {
   const blocks: any[] = [];
 
-  // Block untuk Detail Notes
+  // 1. Block untuk Detail Notes
   if (detailNotes && detailNotes.trim() !== "") {
     blocks.push({
       object: "block",
       type: "heading_3",
-      heading_3: {
-        rich_text: [{ type: "text", text: { content: "📝 Catatan Detail" } }]
-      }
+      heading_3: { rich_text: [{ type: "text", text: { content: "📝 Catatan Detail" } }] }
     });
     blocks.push({
       object: "block",
       type: "paragraph",
-      paragraph: {
-        rich_text: [{ type: "text", text: { content: detailNotes.trim() } }]
-      }
+      paragraph: { rich_text: [{ type: "text", text: { content: detailNotes.trim() } }] }
     });
   }
 
-    // 2. Block untuk Racikan (Kita buat tabel rapi pakai format teks)
+  // 2. Block untuk Racikan (Kita pakai bulleted_list_item biar aman dari validasi Notion)
   if (logProduk && logProduk.length > 0) {
     blocks.push({
       object: "block",
       type: "heading_3",
-      heading_3: {
-        rich_text: [{ type: "text", text: { content: "🌱 Racikan Bahan / Produk" } }]
-      }
+      heading_3: { rich_text: [{ type: "text", text: { content: "🌱 Racikan Bahan / Produk" } }] }
     });
-
-    // Kita bikin header tabel
-    const header = "Produk              | Dosis\n" + 
-                   "--------------------|-------\n";
     
-    // Kita list isinya
-    const rows = logProduk
-      .map(p => `${p.produk.padEnd(20)} | ${p.dosis}`)
-      .join("\n");
-
-    blocks.push({
+    // Kita buat setiap baris produk sebagai bullet list item
+    blocks.push(...logProduk.map((p) => ({
       object: "block",
-      type: "code",
-      code: {
-        rich_text: [{ type: "text", text: { content: header + rows } }],
-        language: "text" // Kita pakai block 'code' biar rapi (font monospace)
+      type: "bulleted_list_item",
+      bulleted_list_item: {
+        rich_text: [
+          { type: "text", text: { content: `${p.produk} ` } },
+          { type: "text", text: { content: `(Dosis: ${p.dosis})`, link: null }, annotations: { bold: true, color: "green" } }
+        ]
       }
-    });
+    })));
   }
 
   return blocks;
 }
+
 
 function buildPerawatanProperties(
   data: AddPerawatanBody,
