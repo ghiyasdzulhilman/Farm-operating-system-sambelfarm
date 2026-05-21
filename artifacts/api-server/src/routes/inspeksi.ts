@@ -42,6 +42,8 @@ interface AddInspeksiBody {
   radius?: number | string;
   phTanah?: number | string;
   status: string;
+  temuan?: Array<{ nama: string; catatan: string }>; 
+  keterangan?: string; 
 }
 
 function decodePropertyId(id: string): string {
@@ -136,6 +138,51 @@ const INSPEKSI_FIELDS = [
   { key: "petugas", expectedType: "relation" },
   { key: "status", expectedType: "status" },
 ];
+
+
+function buildNotionBlocks(
+  temuan: Array<{ nama: string; catatan: string }> | undefined,
+  detailNotes: string | undefined
+): any[] {
+  const blocks: any[] = [];
+
+  // 1. Block untuk Catatan Umum
+  if (detailNotes && detailNotes.trim() !== "") {
+    blocks.push({
+      object: "block",
+      type: "heading_3",
+      heading_3: { rich_text: [{ type: "text", text: { content: "📝 Catatan Umum" } }] }
+    });
+    blocks.push({
+      object: "block",
+      type: "paragraph",
+      paragraph: { rich_text: [{ type: "text", text: { content: detailNotes.trim() } }] }
+    });
+  }
+
+  // 2. Block untuk Detail Hama/Penyakit (Per Baris)
+  if (temuan && temuan.length > 0) {
+    blocks.push({
+      object: "block",
+      type: "heading_3",
+      heading_3: { rich_text: [{ type: "text", text: { content: "🐛 Detail Temuan" } }] }
+    });
+    
+    blocks.push(...temuan.map((t) => ({
+      object: "block",
+      type: "bulleted_list_item",
+      bulleted_list_item: {
+        rich_text: [
+          { type: "text", text: { content: `${t.nama} `, link: null }, annotations: { bold: true } },
+          { type: "text", text: { content: t.catatan ? `— ${t.catatan}` : "" } }
+        ]
+      }
+    })));
+  }
+
+  return blocks;
+}
+
 
 function buildInspeksiProperties(
   data: AddInspeksiBody,
@@ -255,7 +302,7 @@ router.post("/notion/add-inspeksi", async (req, res): Promise<void> => {
       return;
     }
 
-    const properties = buildInspeksiProperties(
+        const properties = buildInspeksiProperties(
       {
         kegiatan,
         tanggal,
@@ -271,10 +318,18 @@ router.post("/notion/add-inspeksi", async (req, res): Promise<void> => {
       mappings,
     );
 
-    const payload = {
+    // 👇 RAKIT BLOKNYA DI SINI
+    const blocks = buildNotionBlocks(body.temuan, body.keterangan); 
+
+    const payload: any = {
       parent: { database_id: databaseId },
       properties,
     };
+
+    // 👇 Cuma kirim children kalau ada isinya (biar nggak error Notion API)
+    if (blocks.length > 0) {
+      payload.children = blocks;
+    }
 
     const response = await notionFetch(userId, accessToken, "https://api.notion.com/v1/pages", {
       method: "POST",
