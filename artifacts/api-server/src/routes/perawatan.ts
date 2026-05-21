@@ -217,68 +217,43 @@ function buildPerawatanProperties(
 ): Record<string, unknown> {
   const props: Record<string, unknown> = {};
 
-  const setProp = (
-  mappingKey: string,
-  value: unknown,
-  builder: (val: any) => unknown,
-) => {
+  // Robot ini bakal muterin semua field yang ada di config SCHEMA
+  PERAWATAN_SCHEMA.fields.forEach((field) => {
+    // 1. Cari mapping-nya di database
+    const mapping = mappings?.[field.key as keyof FieldMappingData];
+    if (!mapping?.propertyId) return;
 
-  console.log("MAPPING KEY", mappingKey);
-  console.log("MAPPING DATA", mappings?.[mappingKey]);
+    const propertyId = decodePropertyId(mapping.propertyId);
+    
+    // 2. Ambil nilai datanya dari input (AddPerawatanBody)
+    // Kita kasih fallback biar aman
+    const value = data[field.key as keyof AddPerawatanBody];
+    if (!value) return;
 
-  const mapping = mappings?.[mappingKey];
+    // 3. Engine Switch: Nentuin format Notion berdasarkan tipe field
+    switch (field.expectedType) {
+      case "title":
+        props[propertyId] = { title: [{ text: { content: String(value) } }] };
+        break;
+      case "date":
+        props[propertyId] = { date: { start: String(value) } };
+        break;
+      case "multi_select":
+      case "select":
+        props[propertyId] = { select: { name: String(value) } };
+        break;
+      case "status":
+        props[propertyId] = { status: { name: String(value) } };
+        break;
+      case "relation":
+        props[propertyId] = { relation: [{ id: String(value) }] };
+        break;
+    }
+  });
 
-  if (!mapping?.propertyId) return;
-
-  props[decodePropertyId(mapping.propertyId)] = builder(value);
-};
-
-  setProp("kegiatan", data.kegiatan, (v) => ({
-    title: [{ text: { content: String(v) } }],
-  }));
-
-  setProp("tanggal", data.tanggal, (v) => ({
-    date: { start: String(v) },
-  }));
-
-  const tag =
-  Array.isArray(data.tags)
-    ? data.tags[0]
-    : typeof data.tags === "string"
-      ? data.tags
-      : "";
-
-if (tag) {
-  setProp("tags", tag, (value: string) => ({
-    select: { name: value },
-  }));
+  return props;
 }
 
-// 👇 TAMBAHIN LOGIKA STATUS INI 👇
-if (data.status) {
-  setProp("status", data.status, (v) => ({
-    status: { name: String(v) }
-  }));
-}
-// 👆 BATAS LOGIKA STATUS 👆
-
-  setProp("labaRugi", data.labaRugiId, (v) => ({
-  relation: [{ id: String(v) }],
-}));
-
-if (data.petugasId) {
-  setProp("petugas", data.petugasId, (v) => ({
-    relation: [{ id: String(v) }],
-  }));
-}
-
-console.log(
-  "PERAWATAN PROPS",
-  JSON.stringify(props, null, 2)
-);
-
-return props;
-}
 
 router.get("/notion/perawatan-dropdown-options", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
