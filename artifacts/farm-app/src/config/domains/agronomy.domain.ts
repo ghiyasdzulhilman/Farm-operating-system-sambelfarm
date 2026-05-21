@@ -1,7 +1,7 @@
 import { Leaf } from "lucide-react";
 
 import { PERAWATAN_SCHEMA } from "../schemas/perawatan.config";
-
+import { INSPEKSI_SCHEMA } from "../schemas/inspeksi.config";
 export const AGRONOMY_DOMAIN = {
   id: "agronomy",
 
@@ -13,5 +13,6 @@ export const AGRONOMY_DOMAIN = {
 
   schemas: [
     PERAWATAN_SCHEMA,
+    INSPEKSI_SCHEMA,
   ],
 };
