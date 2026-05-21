@@ -12,6 +12,8 @@ import {
   handleNotionErrors,
   NotionTokenInvalidError,
 } from "../lib/notionClient";
+import { PERAWATAN_SCHEMA } from "../config/schemas/perawatan.config"; // Sesuaikan path-nya ya bro!
+
 
 const router: IRouter = Router();
 
@@ -225,9 +227,13 @@ function buildPerawatanProperties(
 
     const propertyId = decodePropertyId(mapping.propertyId);
     
-    // 2. Ambil nilai datanya dari input (AddPerawatanBody)
-    // Kita kasih fallback biar aman
-    const value = data[field.key as keyof AddPerawatanBody];
+    // 2. Ambil nilai datanya dari input (Gua tambahin toleransi pencarian keyId)
+    let value = data[field.key as keyof AddPerawatanBody];
+    
+    // Trik toleransi jika di schema namanya 'labaRugi' tapi di data namanya 'labaRugiId'
+    if (!value && field.key === "labaRugi") value = (data as any).labaRugiId;
+    if (!value && field.key === "petugas") value = (data as any).petugasId;
+    
     if (!value) return;
 
     // 3. Engine Switch: Nentuin format Notion berdasarkan tipe field
@@ -238,9 +244,16 @@ function buildPerawatanProperties(
       case "date":
         props[propertyId] = { date: { start: String(value) } };
         break;
-      case "multi_select":
       case "select":
         props[propertyId] = { select: { name: String(value) } };
+        break;
+      case "multi_select":
+        // Jika bertipe array, petakan menjadi struktur multi_select milik Notion
+        if (Array.isArray(value)) {
+          props[propertyId] = { multi_select: value.map((t) => ({ name: String(t) })) };
+        } else {
+          props[propertyId] = { multi_select: [{ name: String(value) }] };
+        }
         break;
       case "status":
         props[propertyId] = { status: { name: String(value) } };
