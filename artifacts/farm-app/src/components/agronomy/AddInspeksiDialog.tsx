@@ -33,7 +33,8 @@ const inspeksiSchema = z.object({
   radius: z.string().optional(),     
   status: z.string().optional(),     
   petugasId: z.string().optional(),
-  temuan: z.record(z.string()).default({}), 
+  temuan: z.record(z.string()).default({}),
+  keterangan: z.string().optional(),
 });
 
 type InspeksiFormValues = z.infer<typeof inspeksiSchema>;
@@ -70,6 +71,7 @@ export function AddInspeksiDialog({ onSuccess }: AddInspeksiDialogProps) {
       radius: "",
       status: "Baru di temukan",
       petugasId: "",
+      keterangan: "",
     },
   });
 
@@ -153,7 +155,8 @@ export function AddInspeksiDialog({ onSuccess }: AddInspeksiDialogProps) {
     radius: values.radius ? Number(values.radius) : null,
     status: values.status || "Baru di temukan",
     petugasId: values.petugasId,
-    temuan: formattedTemuan, // ✨ Sekarang bentuknya Array yang diharapkan backend
+    temuan: formattedTemuan,
+    keterangan: values.keterangan,
   };
   saveInspeksi.mutate(payload);
 }
@@ -291,7 +294,7 @@ const toggleHama = (item: string) => {
 
 
                                   
-                  {/* STEP 3: INDIKATOR LAPANGAN & PETUGAS */}
+                                    {/* STEP 3: INDIKATOR LAPANGAN & PETUGAS */}
                   {step === 3 && (
                     <motion.div key="step3" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="space-y-4">
                       <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">3. Detail Lapangan</p>
@@ -364,6 +367,16 @@ const toggleHama = (item: string) => {
                           </FormItem>
                         )} />
                       </div>
+
+                      {/* ✨ BLOK CATATAN UMUM (BARU) ✨ */}
+                      <FormField control={form.control} name="keterangan" render={({ field }) => (
+                        <FormItem className="space-y-1.5 pt-4">
+                          <FormLabel className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Catatan Umum / Cuaca</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Cth: Hujan deras semalaman, pipa irigasi aman..." className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-orange-500/20 text-sm font-medium" {...field} />
+                          </FormControl>
+                        </FormItem>
+                      )} />
 
                     </motion.div>
                   )}
