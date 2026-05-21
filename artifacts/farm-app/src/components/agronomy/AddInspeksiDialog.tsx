@@ -33,6 +33,7 @@ const inspeksiSchema = z.object({
   radius: z.string().optional(),     
   status: z.string().optional(),     
   petugasId: z.string().optional(),
+  temuan: z.record(z.string()).default({}), 
 });
 
 type InspeksiFormValues = z.infer<typeof inspeksiSchema>;
@@ -63,6 +64,7 @@ export function AddInspeksiDialog({ onSuccess }: AddInspeksiDialogProps) {
       tanggal: format(new Date(), "yyyy-MM-dd"),
       areaId: "",
       hamaPenyakit: [],
+      temuan: {},
       phTanah: "",
       tingkatSerangan: "",
       radius: "",
@@ -139,25 +141,28 @@ export function AddInspeksiDialog({ onSuccess }: AddInspeksiDialogProps) {
       labaRugiId: values.areaId,
       tanggal: values.tanggal,
       kegiatan: "Inspeksi Rutin", 
-      hama: hamaTerpilih,          // Udah dipisah murni hama
-      penyakit: penyakitTerpilih,  // Udah dipisah murni penyakit
+      hama: hamaTerpilih,          
+      penyakit: penyakitTerpilih,  
       phTanah: values.phTanah ? Number(values.phTanah) : null,
       tingkatSerangan: values.tingkatSerangan ? Number(values.tingkatSerangan) / 100 : null,
       radius: values.radius ? Number(values.radius) : null,
       status: values.status || "Baru di temukan",
-      petugasId: values.petugasId
+      petugasId: values.petugasId,
+      temuan: values.temuan,
     };
     saveInspeksi.mutate(payload);
   }
 
-  const toggleHama = (item: string) => {
-    const current = form.getValues("hamaPenyakit");
-    if (current.includes(item)) {
-      form.setValue("hamaPenyakit", current.filter((i) => i !== item), { shouldValidate: true });
-    } else {
-      form.setValue("hamaPenyakit", [...current, item], { shouldValidate: true });
-    }
-  };
+const toggleHama = (item: string) => {
+  const current = form.getValues("hamaPenyakit");
+  if (current.includes(item)) {
+    // Kalau di-uncheck, hapus juga catatannya
+    form.setValue("hamaPenyakit", current.filter((i) => i !== item));
+  } else {
+    form.setValue("hamaPenyakit", [...current, item]);
+  }
+};
+
 
   return (
     <Sheet open={open} onOpenChange={(val) => { setOpen(val); if (!val) setStep(1); }}>
@@ -231,30 +236,47 @@ export function AddInspeksiDialog({ onSuccess }: AddInspeksiDialogProps) {
                     </motion.div>
                   )}
 
-                  {/* STEP 2: CEKLIS HAMA & PENYAKIT */}
+                                    {/* STEP 2: CEKLIS HAMA & PENYAKIT */}
                   {step === 2 && (
                     <motion.div key="step2" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="space-y-4">
                       <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">2. Temuan Hama / Penyakit</p>
-                      <div className="flex flex-wrap gap-2">
+                      
+                      {/* --- BATAS ATAS LIST HAMA --- */}
+                      <div className="space-y-3">
                         {PRESET_HAMA_PENYAKIT.map((item) => {
                           const isSelected = form.watch("hamaPenyakit").includes(item);
-                          const isPenyakit = DAFTAR_PENYAKIT.includes(item); // Bedain warna dikit biar keren
+                          const isPenyakit = DAFTAR_PENYAKIT.includes(item);
+                          
                           return (
-                            <Badge 
-                              key={item} variant="outline"
-                              className={`px-3 py-2 text-xs cursor-pointer rounded-lg transition-all ${
-                                isSelected 
-                                  ? isPenyakit ? "bg-purple-600 text-white border-purple-600 font-bold" : "bg-red-500 text-white border-red-500 font-bold" 
-                                  : "bg-muted/30 text-muted-foreground hover:bg-muted"
-                              }`}
-                              onClick={() => toggleHama(item)}
-                            >
-                              {item}
-                            </Badge>
+                            <div key={item} className="space-y-2">
+                              <Badge 
+                                variant="outline"
+                                className={`px-3 py-2 text-xs cursor-pointer rounded-lg transition-all ${
+                                  isSelected 
+                                    ? isPenyakit ? "bg-purple-600 text-white border-purple-600 font-bold" : "bg-red-500 text-white border-red-500 font-bold" 
+                                    : "bg-muted/30 text-muted-foreground hover:bg-muted"
+                                }`}
+                                onClick={() => toggleHama(item)}
+                              >
+                                {item}
+                              </Badge>
+                              
+                              {/* Input catatan muncul otomatis kalau terpilih */}
+                              {isSelected && (
+                                <Input 
+                                  placeholder={`Catatan untuk ${item}...`}
+                                  className="h-9 text-xs bg-white border-muted-foreground/20 focus-visible:ring-1 focus-visible:ring-orange-500"
+                                  // Data ini bakal disimpen di temuan object
+                                  {...form.register(`temuan.${item}` as any)} 
+                                />
+                              )}
+                            </div>
                           );
                         })}
                       </div>
-                      <p className="text-[10px] text-muted-foreground italic">*Bisa pilih lebih dari satu, biarkan kosong jika aman.</p>
+                      {/* --- BATAS BAWAH LIST HAMA --- */}
+                      
+                      <p className="text-[10px] text-muted-foreground italic">*Klik untuk pilih, lalu tulis catatan jika ada.</p>
                     </motion.div>
                   )}
 
