@@ -14,7 +14,7 @@ import {
   Plus,
   Trash2,
 } from "lucide-react";
-import { useQueryClient, useMutation } from "@tanstack/react-query";
+import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 
 import {
@@ -91,10 +91,16 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: dropdownOptions, isLoading: isLoadingOptions } =
-    useGetDropdownOptions({
-      query: { enabled: open, queryKey: getGetDropdownOptionsQueryKey() },
-    });
+    // Fetch manual langsung tembak ke rute Perawatan baru lu
+  const { data: dropdownOptions, isLoading: isLoadingOptions } = useQuery({
+    queryKey: ["perawatan-dropdown-options"],
+    queryFn: async () => {
+      const res = await fetch("/api/notion/perawatan-dropdown-options");
+      if (!res.ok) throw new Error("Gagal mengambil data dropdown");
+      return res.json();
+    },
+    enabled: open,
+  });
 
   const form = useForm<PerawatanFormValues>({
     resolver: zodResolver(perawatanSchema),
