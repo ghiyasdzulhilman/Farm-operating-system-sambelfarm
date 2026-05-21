@@ -33,7 +33,6 @@ const inspeksiSchema = z.object({
   radius: z.string().optional(),     
   status: z.string().optional(),     
   petugasId: z.string().optional(),
-  keterangan: z.string().optional(),
 });
 
 type InspeksiFormValues = z.infer<typeof inspeksiSchema>;
@@ -69,7 +68,6 @@ export function AddInspeksiDialog({ onSuccess }: AddInspeksiDialogProps) {
       radius: "",
       status: "Baru di temukan",
       petugasId: "",
-      keterangan: "",
     },
   });
 
@@ -333,15 +331,6 @@ export function AddInspeksiDialog({ onSuccess }: AddInspeksiDialogProps) {
                           </FormItem>
                         )} />
                       </div>
-
-<FormField control={form.control} name="keterangan" render={({ field }) => (
-  <FormItem className="space-y-1.5 pt-2">
-    <FormLabel className="text-[11px] font-bold text-muted-foreground">Catatan Tambahan</FormLabel>
-    <FormControl>
-      <Input className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-orange-500/20 text-sm font-bold" placeholder="Tulis kondisi khusus..." {...field} />
-    </FormControl>
-  </FormItem>
-)} />
 
                     </motion.div>
                   )}
