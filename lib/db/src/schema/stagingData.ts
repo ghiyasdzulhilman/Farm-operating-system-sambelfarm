@@ -20,24 +20,6 @@ export type StagingData = typeof stagingDataTable.$inferSelect;
 export type InsertStagingData = typeof stagingDataTable.$inferInsert;
 
 // =====================================================================
-// 🌱 1. TABEL STAGING PERAWATAN (Revisi: +userId, +errorMessage)
-// =====================================================================
-export const stagingPerawatanTable = pgTable("staging_perawatan", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  userId: text("user_id").notNull(), // ✨ WAJIB ADA
-  areaId: varchar("area_id", { length: 255 }).notNull(),
-  kegiatan: varchar("kegiatan", { length: 255 }).notNull(),
-  tanggal: date("tanggal").notNull(),
-  status: varchar("status", { length: 100 }), 
-  errorMessage: text("error_message"), // ✨ WAJIB ADA
-  tags: varchar("tags", { length: 100 }), 
-  petugasId: varchar("petugas_id", { length: 255 }), 
-  logProduk: jsonb("log_produk"), 
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-// =====================================================================
 // 🐛 2. TABEL STAGING INSPEKSI (Revisi: +userId, +errorMessage)
 // =====================================================================
 export const stagingInspeksiTable = pgTable("staging_inspeksi", {
