@@ -96,8 +96,8 @@ const DOMAINS: any[] = [
       ]},
     ]
   },
+
   {
-      {
     id: "agronomy",
     label: "Agronomy & Ops",
     icon: Leaf,
