@@ -30,7 +30,6 @@ interface StagingStats {
   pendingFinanceAmount: number;
   pendingWeight: number;
   pendingInspeksiCount?: number;
-  pendingPerawatanCount?: number;
 }
 
 interface StagingRecord {
@@ -53,7 +52,6 @@ const TYPE_LABELS: Record<string, string> = {
   expenses: "Pengeluaran",
   laba_rugi: "Laba Rugi",
   inspeksi: "Inspeksi",
-  perawatan: "Perawatan",
 };
 
 /* AUDIT WARNA: Mengubah semua badge warna statis ke Semantic Tokens */
@@ -62,7 +60,6 @@ const TYPE_COLORS: Record<string, string> = {
   expenses: "bg-secondary/10 text-secondary border-secondary/20",
   laba_rugi: "bg-accent/10 text-accent border-accent/20",
   inspeksi: "bg-primary/10 text-primary border-primary/20",
-  perawatan: "bg-secondary/10 text-secondary border-secondary/20",
 };
 
 function formatCurrency(amount: number) {
@@ -95,8 +92,6 @@ function getRecordSummary(record: StagingRecord): string {
         .join(" · ") || "Data pengeluaran";
     case "inspeksi":
       return String(d.judul ?? d.catatan ?? "Data inspeksi");
-    case "perawatan":
-      return String(d.kegiatan ?? d.catatan ?? "Data perawatan");
     default:
       return `Data ${record.databaseType}`;
   }
