@@ -12,18 +12,16 @@ import { useToast } from "@/hooks/use-toast";
 
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-
 // --- DAFTAR HAMA & PENYAKIT BAWAAN ---
-const PRESET_HAMA_PENYAKIT = [
-  "Thrips", "Kutu Kebul", "Aphids", "Tungau", "Ulat", "Lalat Buah", 
-  "Antraknosa / Patek", "Bercak Daun", "Layu Fusarium", "Layu Bakteri", "Virus Kuning / Bule"
-];
+const DAFTAR_HAMA = ["Thrips", "Kutu Kebul", "Aphids", "Tungau", "Ulat", "Lalat Buah"];
+const DAFTAR_PENYAKIT = ["Antraknosa / Patek", "Bercak Daun", "Layu Fusarium", "Layu Bakteri", "Virus Kuning / Bule"];
+const PRESET_HAMA_PENYAKIT = [...DAFTAR_HAMA, ...DAFTAR_PENYAKIT];
 
 // --- SCHEMA VALIDASI ---
 const inspeksiSchema = z.object({
@@ -32,7 +30,9 @@ const inspeksiSchema = z.object({
   hamaPenyakit: z.array(z.string()).default([]),
   phTanah: z.string().optional(),
   tingkatSerangan: z.string().optional(),
-  status: z.string().optional(),
+  radius: z.string().optional(),     // ✨ Tambahan Schema Radius
+  status: z.string().optional(),     // ✨ Tambahan Schema Status
+  petugasId: z.string().optional(),  // ✨ Tambahan Schema Petugas
 });
 
 type InspeksiFormValues = z.infer<typeof inspeksiSchema>;
@@ -47,7 +47,6 @@ export function AddInspeksiDialog({ onSuccess }: AddInspeksiDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // 1. Fetch data dropdown langsung mengarah ke rute Inspeksi baru
   const { data: dropdownOptions, isLoading: isLoadingOptions } = useQuery({
     queryKey: ["inspeksi-dropdown-options"],
     queryFn: async () => {
@@ -66,11 +65,12 @@ export function AddInspeksiDialog({ onSuccess }: AddInspeksiDialogProps) {
       hamaPenyakit: [],
       phTanah: "",
       tingkatSerangan: "",
-      status: "Baru ditemukan",
+      radius: "",
+      status: "Baru di temukan",
+      petugasId: "",
     },
   });
 
-  // 2. Mutasi kirim data beralih ke Direct Notion
   const saveInspeksi = useMutation({
     mutationFn: async (payload: any) => {
       const response = await fetch("/api/notion/add-inspeksi", {
@@ -87,7 +87,6 @@ export function AddInspeksiDialog({ onSuccess }: AddInspeksiDialogProps) {
     onSuccess: async (_, variables) => {
       const areaName = dropdownOptions?.areas?.find((a: any) => a.id === variables.labaRugiId)?.name || "Area";
       
-      // 3. Pesan Toast disesuaikan (Bukan antrean lagi!)
       toast({
         description: (
           <div className="w-full space-y-3 pt-1 text-left">
@@ -96,7 +95,7 @@ export function AddInspeksiDialog({ onSuccess }: AddInspeksiDialogProps) {
               <div className="space-y-0.5">
                 <p className="font-black text-sm text-foreground tracking-tight">Inspeksi Berhasil</p>
                 <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  Laporan untuk <span className="text-green-600 font-semibold">{areaName}</span> sukses disimpan langsung ke Notion.
+                  Laporan untuk <span className="text-green-600 font-semibold">{areaName}</span> sukses masuk ke Notion.
                 </p>
               </div>
             </div>
@@ -104,7 +103,6 @@ export function AddInspeksiDialog({ onSuccess }: AddInspeksiDialogProps) {
         ),
       });
 
-      // 4. Invalidate cache dashboard utama biar data langsung sinkron terupdate
       await queryClient.invalidateQueries({
         queryKey: getGetDashboardSummaryQueryKey(),
         refetchType: "all",
@@ -133,15 +131,21 @@ export function AddInspeksiDialog({ onSuccess }: AddInspeksiDialogProps) {
   };
 
   function onSubmit(values: InspeksiFormValues) {
+    // ✨ MESIN PINTAR PEMISAH HAMA & PENYAKIT
+    const hamaTerpilih = values.hamaPenyakit.filter(item => DAFTAR_HAMA.includes(item));
+    const penyakitTerpilih = values.hamaPenyakit.filter(item => DAFTAR_PENYAKIT.includes(item));
+
     const payload = {
-      labaRugiId: values.areaId, // Kita kirim key 'labaRugiId' biar pas sama backend
+      labaRugiId: values.areaId,
       tanggal: values.tanggal,
       kegiatan: "Inspeksi Rutin", 
-      hama: values.hamaPenyakit,
-      penyakit: [], 
+      hama: hamaTerpilih,          // Udah dipisah murni hama
+      penyakit: penyakitTerpilih,  // Udah dipisah murni penyakit
       phTanah: values.phTanah ? Number(values.phTanah) : null,
       tingkatSerangan: values.tingkatSerangan ? Number(values.tingkatSerangan) : null,
-      status: values.status || "Baru di temukan"
+      radius: values.radius ? Number(values.radius) : null,
+      status: values.status || "Baru di temukan",
+      petugasId: values.petugasId
     };
     saveInspeksi.mutate(payload);
   }
@@ -190,7 +194,7 @@ export function AddInspeksiDialog({ onSuccess }: AddInspeksiDialogProps) {
               <form onSubmit={(e) => e.preventDefault()} className="space-y-5 text-left">
                 
                 <AnimatePresence mode="wait">
-                  {/* STEP 1: PILIH 1 AREA & TANGGAL */}
+                  {/* STEP 1: PILIH AREA & TANGGAL */}
                   {step === 1 && (
                     <motion.div key="step1" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="space-y-4">
                       
@@ -234,10 +238,15 @@ export function AddInspeksiDialog({ onSuccess }: AddInspeksiDialogProps) {
                       <div className="flex flex-wrap gap-2">
                         {PRESET_HAMA_PENYAKIT.map((item) => {
                           const isSelected = form.watch("hamaPenyakit").includes(item);
+                          const isPenyakit = DAFTAR_PENYAKIT.includes(item); // Bedain warna dikit biar keren
                           return (
                             <Badge 
                               key={item} variant="outline"
-                              className={`px-3 py-2 text-xs cursor-pointer rounded-lg transition-all ${isSelected ? "bg-red-500 text-white border-red-500 font-bold" : "bg-muted/30 text-muted-foreground hover:bg-muted"}`}
+                              className={`px-3 py-2 text-xs cursor-pointer rounded-lg transition-all ${
+                                isSelected 
+                                  ? isPenyakit ? "bg-purple-600 text-white border-purple-600 font-bold" : "bg-red-500 text-white border-red-500 font-bold" 
+                                  : "bg-muted/30 text-muted-foreground hover:bg-muted"
+                              }`}
                               onClick={() => toggleHama(item)}
                             >
                               {item}
@@ -249,12 +258,13 @@ export function AddInspeksiDialog({ onSuccess }: AddInspeksiDialogProps) {
                     </motion.div>
                   )}
 
-                                    {/* STEP 3: INDIKATOR ANGKA */}
+                  {/* STEP 3: INDIKATOR LAPANGAN & PETUGAS */}
                   {step === 3 && (
                     <motion.div key="step3" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="space-y-4">
-                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">3. Indikator Lapangan (Opsional)</p>
+                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">3. Detail Lapangan</p>
                       
-                      <div className="grid grid-cols-2 gap-4">
+                      {/* Grid Angka */}
+                      <div className="grid grid-cols-3 gap-3">
                         <FormField control={form.control} name="phTanah" render={({ field }) => (
                           <FormItem className="space-y-1.5">
                             <FormLabel className="text-[11px] font-bold text-muted-foreground">pH Tanah</FormLabel>
@@ -266,33 +276,61 @@ export function AddInspeksiDialog({ onSuccess }: AddInspeksiDialogProps) {
 
                         <FormField control={form.control} name="tingkatSerangan" render={({ field }) => (
                           <FormItem className="space-y-1.5">
-                            <FormLabel className="text-[11px] font-bold text-muted-foreground">Tingkat Serangan (%)</FormLabel>
+                            <FormLabel className="text-[11px] font-bold text-muted-foreground">Serangan(%)</FormLabel>
                             <FormControl>
                               <Input type="number" className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-orange-500/20 text-sm font-bold" placeholder="Cth: 15" onFocus={(e) => e.target.select()} {...field} />
                             </FormControl>
                           </FormItem>
                         )} />
+
+                        <FormField control={form.control} name="radius" render={({ field }) => (
+                          <FormItem className="space-y-1.5">
+                            <FormLabel className="text-[11px] font-bold text-muted-foreground">Radius (m²)</FormLabel>
+                            <FormControl>
+                              <Input type="number" className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-orange-500/20 text-sm font-bold" placeholder="Cth: 10" onFocus={(e) => e.target.select()} {...field} />
+                            </FormControl>
+                          </FormItem>
+                        )} />
                       </div>
 
-                      {/* 👇 TAMBAHKAN BLOK STATUS INI DI SINI 👇 */}
-                      <FormField control={form.control} name="status" render={({ field }) => (
-                        <FormItem className="space-y-1.5 pt-2">
-                          <FormLabel className="text-[11px] font-bold text-muted-foreground">Status Penanganan</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value || ""}>
-                            <FormControl>
-                              <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-orange-500/20 text-sm font-bold">
-                                <SelectValue placeholder="Pilih status..." />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent className="rounded-xl">
-                              <SelectItem value="Baru di temukan">Baru di temukan</SelectItem>
-                              <SelectItem value="Sedang ditangani">Sedang ditangani</SelectItem>
-                              <SelectItem value="Sudah ditangani">Sudah ditangani</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </FormItem>
-                      )} />
-                      {/* 👆 BATAS BLOK STATUS 👆 */}
+                      {/* Grid Status & Petugas */}
+                      <div className="grid grid-cols-2 gap-3 pt-2">
+                        <FormField control={form.control} name="status" render={({ field }) => (
+                          <FormItem className="space-y-1.5">
+                            <FormLabel className="text-[11px] font-bold text-muted-foreground">Status</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value || ""}>
+                              <FormControl>
+                                <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-orange-500/20 text-[11px] font-bold">
+                                  <SelectValue placeholder="Pilih status..." />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent className="rounded-xl">
+                                <SelectItem value="Baru di temukan">Baru di temukan</SelectItem>
+                                <SelectItem value="Sedang ditangani">Sedang ditangani</SelectItem>
+                                <SelectItem value="Sudah ditangani">Sudah ditangani</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </FormItem>
+                        )} />
+
+                        <FormField control={form.control} name="petugasId" render={({ field }) => (
+                          <FormItem className="space-y-1.5">
+                            <FormLabel className="text-[11px] font-bold text-muted-foreground">Petugas</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value || ""}>
+                              <FormControl>
+                                <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-orange-500/20 text-[11px] font-bold">
+                                  <SelectValue placeholder="Pilih petugas..." />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent className="rounded-xl">
+                                {dropdownOptions?.petugas?.map((item: any) => (
+                                  <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </FormItem>
+                        )} />
+                      </div>
 
                     </motion.div>
                   )}
@@ -319,7 +357,7 @@ export function AddInspeksiDialog({ onSuccess }: AddInspeksiDialogProps) {
                       {saveInspeksi.isPending ? (
                         <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Menyimpan...</>
                       ) : (
-                        <><CheckCircle2 className="mr-2 h-4 w-4" /> Simpan</>
+                        <><CheckCircle2 className="mr-2 h-4 w-4" /> Simpan ke Notion</>
                       )}
                     </Button>
                   )}
