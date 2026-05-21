@@ -1,0 +1,300 @@
+import { Router, type IRouter } from "express";
+import { getAuth } from "@clerk/express";
+import {
+  db,
+  fieldMappingsTable,
+  type FieldMappingData,
+} from "@workspace/db";
+import { eq, and } from "drizzle-orm";
+import {
+  getNotionConnection,
+  notionFetch,
+  handleNotionErrors,
+  NotionTokenInvalidError,
+} from "../lib/notionClient";
+
+const router: IRouter = Router();
+
+interface NotionPage {
+  id: string;
+  properties: Record<
+    string,
+    {
+      type: string;
+      title?: Array<{ plain_text: string }>;
+    }
+  >;
+}
+
+interface NotionDatabase {
+  id: string;
+  title?: Array<{ plain_text: string }>;
+}
+
+interface AddInspeksiBody {
+  kegiatan: string;
+  tanggal: string;
+  labaRugiId: string;
+  petugasId?: string;
+  hama?: string[];
+  penyakit?: string[];
+  tingkatSerangan?: number | string;
+  radius?: number | string;
+  phTanah?: number | string;
+  status: string;
+}
+
+function decodePropertyId(id: string): string {
+  try {
+    return decodeURIComponent(id);
+  } catch {
+    return id;
+  }
+}
+
+async function findDatabaseByName(
+  userId: string,
+  accessToken: string,
+  name: string,
+): Promise<string | null> {
+  try {
+    const response = await notionFetch(
+      userId,
+      accessToken,
+      "https://api.notion.com/v1/search",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          query: name,
+          filter: { value: "database", property: "object" },
+        }),
+      },
+    );
+    if (!response.ok) return null;
+    const data = (await response.json()) as { results: NotionDatabase[] };
+    const found = data.results.find((r) =>
+      r.title?.some((t) => t.plain_text.toLowerCase().includes(name.toLowerCase())),
+    );
+    return found?.id ?? null;
+  } catch (err) {
+    if (err instanceof NotionTokenInvalidError) throw err;
+    return null;
+  }
+}
+
+async function queryAllPages(
+  userId: string,
+  accessToken: string,
+  databaseId: string,
+): Promise<Array<{ id: string; name: string }>> {
+  try {
+    const response = await notionFetch(
+      userId,
+      accessToken,
+      `https://api.notion.com/v1/databases/${databaseId}/query`,
+      {
+        method: "POST",
+        body: JSON.stringify({ page_size: 100 }),
+      },
+    );
+    if (!response.ok) return [];
+    const data = (await response.json()) as { results: NotionPage[] };
+    return data.results.map((page) => {
+      const titleProp = Object.values(page.properties).find((p) => p.type === "title");
+      const name = titleProp?.title?.[0]?.plain_text ?? "Tanpa Nama";
+      return { id: page.id, name };
+    });
+  } catch (err) {
+    if (err instanceof NotionTokenInvalidError) throw err;
+    return [];
+  }
+}
+
+async function getMappingRow(userId: string, databaseType: string) {
+  const [row] = await db
+    .select()
+    .from(fieldMappingsTable)
+    .where(
+      and(
+        eq(fieldMappingsTable.userId, userId),
+        eq(fieldMappingsTable.databaseType, databaseType),
+      ),
+    );
+  return row ?? null;
+}
+
+// Cetak Biru Field Inspeksi untuk Engine Pemetaan Dinamis
+const INSPEKSI_FIELDS = [
+  { key: "kegiatan", expectedType: "title" },
+  { key: "tanggal", expectedType: "date" },
+  { key: "labaRugi", expectedType: "relation" },
+  { key: "hama", expectedType: "multi_select" },
+  { key: "penyakit", expectedType: "multi_select" },
+  { key: "tingkatSerangan", expectedType: "number" },
+  { key: "radius", expectedType: "number" },
+  { key: "phTanah", expectedType: "number" },
+  { key: "petugas", expectedType: "relation" },
+  { key: "status", expectedType: "status" },
+];
+
+function buildInspeksiProperties(
+  data: AddInspeksiBody,
+  mappings: FieldMappingData | undefined,
+): Record<string, unknown> {
+  const props: Record<string, unknown> = {};
+
+  INSPEKSI_FIELDS.forEach((field) => {
+    const mapping = mappings?.[field.key as keyof FieldMappingData];
+    if (!mapping?.propertyId) return;
+
+    const propertyId = decodePropertyId(mapping.propertyId);
+    let value = data[field.key as keyof AddInspeksiBody];
+
+    // Toleransi pencarian keyId dari frontend form payload
+    if (!value && field.key === "labaRugi") value = (data as any).labaRugiId;
+    if (!value && field.key === "petugas") value = (data as any).petugasId;
+
+    if (value === undefined || value === null || value === "") return;
+
+    switch (field.expectedType) {
+      case "title":
+        props[propertyId] = { title: [{ text: { content: String(value) } }] };
+        break;
+      case "date":
+        props[propertyId] = { date: { start: String(value) } };
+        break;
+      case "number":
+        props[propertyId] = { number: Number(value) };
+        break;
+      case "multi_select":
+        if (Array.isArray(value)) {
+          props[propertyId] = { multi_select: value.map((v) => ({ name: String(v) })) };
+        } else {
+          props[propertyId] = { multi_select: [{ name: String(value) }] };
+        }
+        break;
+      case "status":
+        props[propertyId] = { status: { name: String(value) } };
+        break;
+      case "relation":
+        props[propertyId] = { relation: [{ id: String(value) }] };
+        break;
+    }
+  });
+
+  return props;
+}
+
+// Endpoint Dropdown Options untuk Form Inspeksi
+router.get("/notion/inspeksi-dropdown-options", async (req, res): Promise<void> => {
+  const { userId } = getAuth(req);
+  if (!userId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  try {
+    const connection = await getNotionConnection(userId);
+    const { accessToken } = connection;
+
+    const mappingRow = await getMappingRow(userId, "inspeksi");
+    const mappings = mappingRow?.mappings as FieldMappingData | undefined;
+
+    const [labaRugiDbId, petugasDbId] = await Promise.all([
+      mappings?.labaRugi?.relatedDatabaseId || findDatabaseByName(userId, accessToken, "Laba Rugi"),
+      mappings?.petugas?.relatedDatabaseId || findDatabaseByName(userId, accessToken, "Data pekerja"),
+    ]);
+
+    const [labaRugi, petugas] = await Promise.all([
+      labaRugiDbId ? queryAllPages(userId, accessToken, labaRugiDbId) : Promise.resolve([]),
+      petugasDbId ? queryAllPages(userId, accessToken, petugasDbId) : Promise.resolve([]),
+    ]);
+
+    res.json({
+      areas: labaRugi,
+      petugas,
+    });
+  } catch (err) {
+    if (handleNotionErrors(res, err)) return;
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// Endpoint Utama Input Data Inspeksi Langsung Tembak ke Notion
+router.post("/notion/add-inspeksi", async (req, res): Promise<void> => {
+  const { userId } = getAuth(req);
+  if (!userId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  const body = req.body as Partial<AddInspeksiBody>;
+  const kegiatan = (body.kegiatan ?? "").trim();
+  const tanggal = (body.tanggal ?? "").trim();
+  const labaRugiId = (body.labaRugiId ?? "").trim();
+
+  if (!kegiatan || !tanggal || !labaRugiId) {
+    res.status(400).json({
+      error: "Field 'kegiatan', 'tanggal', dan 'labaRugiId' wajib diisi.",
+    });
+    return;
+  }
+
+  try {
+    const connection = await getNotionConnection(userId);
+    const { accessToken } = connection;
+
+    const mappingRow = await getMappingRow(userId, "inspeksi");
+    const mappings = mappingRow?.mappings as FieldMappingData | undefined;
+
+    const databaseId =
+      mappingRow?.notionDatabaseId || (await findDatabaseByName(userId, accessToken, "Inspeksi"));
+
+    if (!databaseId) {
+      res.status(404).json({ error: "Database 'Inspeksi' tidak ditemukan di Notion." });
+      return;
+    }
+
+    const properties = buildInspeksiProperties(
+      {
+        kegiatan,
+        tanggal,
+        labaRugiId,
+        petugasId: body.petugasId,
+        hama: body.hama,
+        penyakit: body.penyakit,
+        tingkatSerangan: body.tingkatSerangan,
+        radius: body.radius,
+        phTanah: body.phTanah,
+        status: body.status || "Selesai", // Fallback default Inspeksi biasanya langsung selesai
+      },
+      mappings,
+    );
+
+    const payload = {
+      parent: { database_id: databaseId },
+      properties,
+    };
+
+    const response = await notionFetch(userId, accessToken, "https://api.notion.com/v1/pages", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      res.status(502).json({ error: "Notion error", detail: errText.slice(0, 500) });
+      return;
+    }
+
+    const created = (await response.json()) as { id: string };
+    res.status(201).json({ success: true, notionPageId: created.id });
+  } catch (err) {
+    if (handleNotionErrors(res, err)) return;
+    res.status(500).json({
+      error: err instanceof Error ? err.message : "Internal Server Error",
+    });
+  }
+});
+
+export default router;
