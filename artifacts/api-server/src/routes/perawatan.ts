@@ -259,7 +259,7 @@ router.get("/notion/perawatan-dropdown-options", async (req, res): Promise<void>
       mappings?.labaRugi?.relatedDatabaseId ||
         findDatabaseByName(userId, accessToken, "Laba Rugi"),
       mappings?.petugas?.relatedDatabaseId ||
-        findDatabaseByName(userId, accessToken, "Petugas"),
+        findDatabaseByName(userId, accessToken, "Data pekerja"),
     ]);
 
     const [labaRugi, petugas] = await Promise.all([
