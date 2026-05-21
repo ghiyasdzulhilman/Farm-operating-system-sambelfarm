@@ -266,7 +266,7 @@ router.post("/notion/add-inspeksi", async (req, res): Promise<void> => {
         tingkatSerangan: body.tingkatSerangan,
         radius: body.radius,
         phTanah: body.phTanah,
-        status: body.status || "Selesai", // Fallback default Inspeksi biasanya langsung selesai
+        status: body.status, 
       },
       mappings,
     );
