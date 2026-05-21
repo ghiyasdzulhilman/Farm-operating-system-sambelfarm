@@ -19,7 +19,7 @@ export const PERAWATAN_SCHEMA = {
     {
       key: "tags",
       label: "Tags",
-      expectedType: "multi_select",
+      expectedType: "select",
     },
 
     {
