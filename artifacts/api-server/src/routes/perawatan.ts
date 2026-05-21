@@ -37,6 +37,7 @@ interface AddPerawatanBody {
   labaRugiId: string;
   petugasId?: string;
   tags?: string[] | string;
+  status: string;
   detailNotes?: string;
   logProduk?: Array<{
     produk: string;
@@ -165,18 +166,40 @@ function buildRichText(content: string) {
   };
 }
 
-function buildNotionBlocks(logProduk: Array<{ produk: string; dosis: string }> | undefined): any[] {
-  if (!logProduk || logProduk.length === 0) return [];
+function buildNotionBlocks(
+  logProduk: Array<{ produk: string; dosis: string }> | undefined,
+  detailNotes: string | undefined
+): any[] {
+  const blocks: any[] = [];
 
-  return [
-    {
+  // Block untuk Detail Notes
+  if (detailNotes && detailNotes.trim() !== "") {
+    blocks.push({
+      object: "block",
+      type: "heading_3",
+      heading_3: {
+        rich_text: [{ type: "text", text: { content: "📝 Catatan Detail" } }]
+      }
+    });
+    blocks.push({
+      object: "block",
+      type: "paragraph",
+      paragraph: {
+        rich_text: [{ type: "text", text: { content: detailNotes.trim() } }]
+      }
+    });
+  }
+
+  // Block untuk Racikan
+  if (logProduk && logProduk.length > 0) {
+    blocks.push({
       object: "block",
       type: "heading_3",
       heading_3: {
         rich_text: [{ type: "text", text: { content: "🌱 Racikan Bahan / Produk" } }]
       }
-    },
-    ...logProduk.map((p) => ({
+    });
+    blocks.push(...logProduk.map((p) => ({
       object: "block",
       type: "bulleted_list_item",
       bulleted_list_item: {
@@ -185,10 +208,11 @@ function buildNotionBlocks(logProduk: Array<{ produk: string; dosis: string }> |
           { type: "text", text: { content: `(Dosis: ${p.dosis})`, link: null }, annotations: { bold: true, color: "green" } }
         ]
       }
-    }))
-  ];
-}
+    })));
+  }
 
+  return blocks;
+}
 
 function buildPerawatanProperties(
   data: AddPerawatanBody,
@@ -233,11 +257,13 @@ if (tag) {
   }));
 }
 
-  if (data.detailNotes?.trim()) {
-    setProp("detailNotes", data.detailNotes.trim(), (v) =>
-      buildRichText(String(v)),
-    );
-  }
+// 👇 TAMBAHIN LOGIKA STATUS INI 👇
+if (data.status) {
+  setProp("status", data.status, (v) => ({
+    status: { name: String(v) }
+  }));
+}
+// 👆 BATAS LOGIKA STATUS 👆
 
   setProp("labaRugi", data.labaRugiId, (v) => ({
   relation: [{ id: String(v) }],
@@ -350,32 +376,28 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
         labaRugiId,
         petugasId: body.petugasId,
         tags: body.tags,
+        status: body.status || "Rencana", // Fallback ke Rencana jika kosong
         detailNotes: body.detailNotes,
         logProduk: body.logProduk,
       },
       mappings,
     );
 
-    const requiredKeys = ["kegiatan", "tanggal", "labaRugi"];
-    const missingRequired = requiredKeys.filter(
-      (key) => !mappings?.[key]?.propertyId,
-    );
+    // 1. Panggil penyihir untuk merakit isi halaman
+    const childrenBlocks = buildNotionBlocks(body.logProduk, body.detailNotes);
 
-            // 1. Panggil penyihir untuk merakit isi halaman
-    const childrenBlocks = buildNotionBlocks(body.logProduk);
-
-    // 2. Siapkan payload dasar (properties)
+    // 2. Siapkan payload
     const payload: any = {
       parent: { database_id: databaseId },
       properties,
     };
 
-    // 3. Kalau ada racikan produk, suntikkan ke dalam halamannya
+    // 3. Suntikkan children jika ada isinya
     if (childrenBlocks.length > 0) {
       payload.children = childrenBlocks;
     }
 
-    // 4. Tembak ke Notion!
+    // 4. Tembak ke Notion
     const response = await notionFetch(userId, accessToken, "https://api.notion.com/v1/pages", {
       method: "POST",
       body: JSON.stringify(payload),
@@ -404,5 +426,6 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
     });
   }
 });
+
 
 export default router;
