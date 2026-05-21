@@ -30,9 +30,10 @@ const inspeksiSchema = z.object({
   hamaPenyakit: z.array(z.string()).default([]),
   phTanah: z.string().optional(),
   tingkatSerangan: z.string().optional(),
-  radius: z.string().optional(),     // ✨ Tambahan Schema Radius
-  status: z.string().optional(),     // ✨ Tambahan Schema Status
-  petugasId: z.string().optional(),  // ✨ Tambahan Schema Petugas
+  radius: z.string().optional(),     
+  status: z.string().optional(),     
+  petugasId: z.string().optional(),
+  keterangan: z.string().optional(),
 });
 
 type InspeksiFormValues = z.infer<typeof inspeksiSchema>;
@@ -68,6 +69,7 @@ export function AddInspeksiDialog({ onSuccess }: AddInspeksiDialogProps) {
       radius: "",
       status: "Baru di temukan",
       petugasId: "",
+      keterangan: "",
     },
   });
 
@@ -142,7 +144,7 @@ export function AddInspeksiDialog({ onSuccess }: AddInspeksiDialogProps) {
       hama: hamaTerpilih,          // Udah dipisah murni hama
       penyakit: penyakitTerpilih,  // Udah dipisah murni penyakit
       phTanah: values.phTanah ? Number(values.phTanah) : null,
-      tingkatSerangan: values.tingkatSerangan ? Number(values.tingkatSerangan) : null,
+      tingkatSerangan: values.tingkatSerangan ? Number(values.tingkatSerangan) / 100 : null,
       radius: values.radius ? Number(values.radius) : null,
       status: values.status || "Baru di temukan",
       petugasId: values.petugasId
@@ -331,6 +333,15 @@ export function AddInspeksiDialog({ onSuccess }: AddInspeksiDialogProps) {
                           </FormItem>
                         )} />
                       </div>
+
+<FormField control={form.control} name="keterangan" render={({ field }) => (
+  <FormItem className="space-y-1.5 pt-2">
+    <FormLabel className="text-[11px] font-bold text-muted-foreground">Catatan Tambahan</FormLabel>
+    <FormControl>
+      <Input className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-orange-500/20 text-sm font-bold" placeholder="Tulis kondisi khusus..." {...field} />
+    </FormControl>
+  </FormItem>
+)} />
 
                     </motion.div>
                   )}
