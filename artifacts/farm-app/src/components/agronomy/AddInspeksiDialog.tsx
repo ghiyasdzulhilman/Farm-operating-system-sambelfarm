@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
-import { Loader2, CalendarIcon, ArrowRight, ArrowLeft, CheckCircle2, Activity } from "lucide-react";
+import { Loader2, CalendarIcon, ArrowRight, ArrowLeft, CheckCircle2, Activity, Trash2} from "lucide-react";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -253,23 +253,23 @@ const toggleHama = (item: string) => {
   <motion.div key="step2" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="space-y-4">
     <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">2. Pilih Temuan</p>
     
-    {/* Dropdown buat milih hama, biar gak menuhin layar */}
+    {/* Dropdown buat milih, jadi layar gak penuh */}
     <Select onValueChange={(val) => {
       const current = form.getValues("hamaPenyakit");
       if (!current.includes(val)) form.setValue("hamaPenyakit", [...current, val]);
     }}>
       <SelectTrigger className="w-full h-10 rounded-xl bg-muted border-none font-bold text-xs">
-        <SelectValue placeholder="+ Tambah Temuan Baru" />
+        <SelectValue placeholder="+ Tambah Temuan" />
       </SelectTrigger>
       <SelectContent className="max-h-60">
         {PRESET_HAMA_PENYAKIT.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
       </SelectContent>
     </Select>
 
-    {/* List temuan terpilih aja yang dimunculin (biar irit tempat) */}
-    <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-2">
+    {/* Cuma tampilin yang dipilih aja */}
+    <div className="space-y-3 max-h-[40vh] overflow-y-auto">
       {form.watch("hamaPenyakit").map((item) => (
-        <div key={item} className="bg-muted/30 p-3 rounded-xl border border-border/50 animate-in fade-in">
+        <div key={item} className="bg-muted/30 p-3 rounded-xl border border-border/50">
           <div className="flex justify-between items-center mb-2">
             <Badge className={DAFTAR_PENYAKIT.includes(item) ? "bg-purple-600" : "bg-red-500"}>
               {item}
@@ -288,6 +288,7 @@ const toggleHama = (item: string) => {
     </div>
   </motion.div>
 )}
+
 
                                   
                   {/* STEP 3: INDIKATOR LAPANGAN & PETUGAS */}
