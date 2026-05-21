@@ -271,6 +271,9 @@ router.get("/notion/perawatan-dropdown-options", async (req, res): Promise<void>
         : Promise.resolve([]),
     ]);
 
+console.log("PETUGAS DB ID", petugasDbId);
+console.log("PETUGAS DATA", petugas);
+
     res.json({
       areas: labaRugi,
       petugas,
