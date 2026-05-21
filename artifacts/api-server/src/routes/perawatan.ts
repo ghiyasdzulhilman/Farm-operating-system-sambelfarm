@@ -190,7 +190,7 @@ function buildNotionBlocks(
     });
   }
 
-  // Block untuk Racikan
+    // 2. Block untuk Racikan (Kita buat tabel rapi pakai format teks)
   if (logProduk && logProduk.length > 0) {
     blocks.push({
       object: "block",
@@ -199,16 +199,24 @@ function buildNotionBlocks(
         rich_text: [{ type: "text", text: { content: "🌱 Racikan Bahan / Produk" } }]
       }
     });
-    blocks.push(...logProduk.map((p) => ({
+
+    // Kita bikin header tabel
+    const header = "Produk              | Dosis\n" + 
+                   "--------------------|-------\n";
+    
+    // Kita list isinya
+    const rows = logProduk
+      .map(p => `${p.produk.padEnd(20)} | ${p.dosis}`)
+      .join("\n");
+
+    blocks.push({
       object: "block",
-      type: "bulleted_list_item",
-      bulleted_list_item: {
-        rich_text: [
-          { type: "text", text: { content: `${p.produk} ` } },
-          { type: "text", text: { content: `(Dosis: ${p.dosis})`, link: null }, annotations: { bold: true, color: "green" } }
-        ]
+      type: "code",
+      code: {
+        rich_text: [{ type: "text", text: { content: header + rows } }],
+        language: "text" // Kita pakai block 'code' biar rapi (font monospace)
       }
-    })));
+    });
   }
 
   return blocks;
