@@ -215,7 +215,7 @@ function buildNotionBlocks(
 const PERAWATAN_FIELDS = [
   { key: "kegiatan", expectedType: "title" },
   { key: "tanggal", expectedType: "date" },
-  { key: "tags", expectedType: "multi_select" },
+  { key: "tags", expectedType: "select" },
   { key: "status", expectedType: "status" },
   { key: "petugas", expectedType: "relation" },
   { key: "labaRugi", expectedType: "relation" },
