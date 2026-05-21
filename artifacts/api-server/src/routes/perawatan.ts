@@ -165,6 +165,31 @@ function buildRichText(content: string) {
   };
 }
 
+function buildNotionBlocks(logProduk: Array<{ produk: string; dosis: string }> | undefined): any[] {
+  if (!logProduk || logProduk.length === 0) return [];
+
+  return [
+    {
+      object: "block",
+      type: "heading_3",
+      heading_3: {
+        rich_text: [{ type: "text", text: { content: "🌱 Racikan Bahan / Produk" } }]
+      }
+    },
+    ...logProduk.map((p) => ({
+      object: "block",
+      type: "bulleted_list_item",
+      bulleted_list_item: {
+        rich_text: [
+          { type: "text", text: { content: `${p.produk} ` } },
+          { type: "text", text: { content: `(Dosis: ${p.dosis})`, link: null }, annotations: { bold: true, color: "green" } }
+        ]
+      }
+    }))
+  ];
+}
+
+
 function buildPerawatanProperties(
   data: AddPerawatanBody,
   mappings: FieldMappingData | undefined,
@@ -212,14 +237,6 @@ if (tag) {
     setProp("detailNotes", data.detailNotes.trim(), (v) =>
       buildRichText(String(v)),
     );
-  }
-
-  if (Array.isArray(data.logProduk) && data.logProduk.length > 0) {
-    const logText = data.logProduk
-      .map((item, index) => `${index + 1}. ${item.produk} — ${item.dosis}`)
-      .join("\n");
-
-    setProp("logProduk", logText, (v) => buildRichText(String(v)));
   }
 
   setProp("labaRugi", data.labaRugiId, (v) => ({
@@ -344,19 +361,24 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
       (key) => !mappings?.[key]?.propertyId,
     );
 
-    if (missingRequired.length > 0) {
-      res.status(400).json({
-        error: `Mapping perawatan belum lengkap: ${missingRequired.join(", ")}`,
-      });
-      return;
+            // 1. Panggil penyihir untuk merakit isi halaman
+    const childrenBlocks = buildNotionBlocks(body.logProduk);
+
+    // 2. Siapkan payload dasar (properties)
+    const payload: any = {
+      parent: { database_id: databaseId },
+      properties,
+    };
+
+    // 3. Kalau ada racikan produk, suntikkan ke dalam halamannya
+    if (childrenBlocks.length > 0) {
+      payload.children = childrenBlocks;
     }
 
+    // 4. Tembak ke Notion!
     const response = await notionFetch(userId, accessToken, "https://api.notion.com/v1/pages", {
       method: "POST",
-      body: JSON.stringify({
-        parent: { database_id: databaseId },
-        properties,
-      }),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
