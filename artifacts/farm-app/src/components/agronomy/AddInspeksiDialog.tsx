@@ -133,36 +133,48 @@ export function AddInspeksiDialog({ onSuccess }: AddInspeksiDialogProps) {
   };
 
   function onSubmit(values: InspeksiFormValues) {
-    // ✨ MESIN PINTAR PEMISAH HAMA & PENYAKIT
-    const hamaTerpilih = values.hamaPenyakit.filter(item => DAFTAR_HAMA.includes(item));
-    const penyakitTerpilih = values.hamaPenyakit.filter(item => DAFTAR_PENYAKIT.includes(item));
+  const hamaTerpilih = values.hamaPenyakit.filter(item => DAFTAR_HAMA.includes(item));
+  const penyakitTerpilih = values.hamaPenyakit.filter(item => DAFTAR_PENYAKIT.includes(item));
 
-    const payload = {
-      labaRugiId: values.areaId,
-      tanggal: values.tanggal,
-      kegiatan: "Inspeksi Rutin", 
-      hama: hamaTerpilih,          
-      penyakit: penyakitTerpilih,  
-      phTanah: values.phTanah ? Number(values.phTanah) : null,
-      tingkatSerangan: values.tingkatSerangan ? Number(values.tingkatSerangan) / 100 : null,
-      radius: values.radius ? Number(values.radius) : null,
-      status: values.status || "Baru di temukan",
-      petugasId: values.petugasId,
-      temuan: values.temuan,
-    };
-    saveInspeksi.mutate(payload);
-  }
+  // Konversi Record temuan ke Array agar backend gak pusing
+  const formattedTemuan = Object.entries(values.temuan).map(([nama, catatan]) => ({
+    nama,
+    catatan
+  }));
+
+  const payload = {
+    labaRugiId: values.areaId,
+    tanggal: values.tanggal,
+    kegiatan: "Inspeksi Rutin", 
+    hama: hamaTerpilih,          
+    penyakit: penyakitTerpilih,  
+    phTanah: values.phTanah ? Number(values.phTanah) : null,
+    tingkatSerangan: values.tingkatSerangan ? Number(values.tingkatSerangan) / 100 : null,
+    radius: values.radius ? Number(values.radius) : null,
+    status: values.status || "Baru di temukan",
+    petugasId: values.petugasId,
+    temuan: formattedTemuan, // ✨ Sekarang bentuknya Array yang diharapkan backend
+  };
+  saveInspeksi.mutate(payload);
+}
 
 const toggleHama = (item: string) => {
   const current = form.getValues("hamaPenyakit");
+  const currentTemuan = form.getValues("temuan");
+  
   if (current.includes(item)) {
-    // Kalau di-uncheck, hapus juga catatannya
+    // Hapus dari daftar checklist
     form.setValue("hamaPenyakit", current.filter((i) => i !== item));
+    
+    // Hapus juga catatannya dari objek temuan biar bersih
+    const newTemuan = { ...currentTemuan };
+    delete newTemuan[item];
+    form.setValue("temuan", newTemuan);
   } else {
+    // Tambah ke daftar checklist
     form.setValue("hamaPenyakit", [...current, item]);
   }
 };
-
 
   return (
     <Sheet open={open} onOpenChange={(val) => { setOpen(val); if (!val) setStep(1); }}>
