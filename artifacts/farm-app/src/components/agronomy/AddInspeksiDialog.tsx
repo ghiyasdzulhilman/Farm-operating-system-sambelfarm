@@ -247,51 +247,49 @@ const toggleHama = (item: string) => {
                       )} />
                     </motion.div>
                   )}
+ 
+{/* STEP 2: CEKLIS HAMA & PENYAKIT */}
+{step === 2 && (
+  <motion.div key="step2" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="space-y-4">
+    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">2. Pilih Temuan</p>
+    
+    {/* Dropdown buat milih hama, biar gak menuhin layar */}
+    <Select onValueChange={(val) => {
+      const current = form.getValues("hamaPenyakit");
+      if (!current.includes(val)) form.setValue("hamaPenyakit", [...current, val]);
+    }}>
+      <SelectTrigger className="w-full h-10 rounded-xl bg-muted border-none font-bold text-xs">
+        <SelectValue placeholder="+ Tambah Temuan Baru" />
+      </SelectTrigger>
+      <SelectContent className="max-h-60">
+        {PRESET_HAMA_PENYAKIT.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+      </SelectContent>
+    </Select>
 
-                                    {/* STEP 2: CEKLIS HAMA & PENYAKIT */}
-                  {step === 2 && (
-                    <motion.div key="step2" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="space-y-4">
-                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">2. Temuan Hama / Penyakit</p>
-                      
-                      {/* --- BATAS ATAS LIST HAMA --- */}
-                      <div className="space-y-3">
-                        {PRESET_HAMA_PENYAKIT.map((item) => {
-                          const isSelected = form.watch("hamaPenyakit").includes(item);
-                          const isPenyakit = DAFTAR_PENYAKIT.includes(item);
-                          
-                          return (
-                            <div key={item} className="space-y-2">
-                              <Badge 
-                                variant="outline"
-                                className={`px-3 py-2 text-xs cursor-pointer rounded-lg transition-all ${
-                                  isSelected 
-                                    ? isPenyakit ? "bg-purple-600 text-white border-purple-600 font-bold" : "bg-red-500 text-white border-red-500 font-bold" 
-                                    : "bg-muted/30 text-muted-foreground hover:bg-muted"
-                                }`}
-                                onClick={() => toggleHama(item)}
-                              >
-                                {item}
-                              </Badge>
-                              
-                              {/* Input catatan muncul otomatis kalau terpilih */}
-                              {isSelected && (
-                                <Input 
-                                  placeholder={`Catatan untuk ${item}...`}
-                                  className="h-9 text-xs bg-white border-muted-foreground/20 focus-visible:ring-1 focus-visible:ring-orange-500"
-                                  // Data ini bakal disimpen di temuan object
-                                  {...form.register(`temuan.${item}` as any)} 
-                                />
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                      {/* --- BATAS BAWAH LIST HAMA --- */}
-                      
-                      <p className="text-[10px] text-muted-foreground italic">*Klik untuk pilih, lalu tulis catatan jika ada.</p>
-                    </motion.div>
-                  )}
+    {/* List temuan terpilih aja yang dimunculin (biar irit tempat) */}
+    <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-2">
+      {form.watch("hamaPenyakit").map((item) => (
+        <div key={item} className="bg-muted/30 p-3 rounded-xl border border-border/50 animate-in fade-in">
+          <div className="flex justify-between items-center mb-2">
+            <Badge className={DAFTAR_PENYAKIT.includes(item) ? "bg-purple-600" : "bg-red-500"}>
+              {item}
+            </Badge>
+            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => toggleHama(item)}>
+              <Trash2 className="h-3 w-3 text-red-500" />
+            </Button>
+          </div>
+          <Input 
+            placeholder={`Catatan untuk ${item}...`}
+            className="h-8 text-xs bg-white"
+            {...form.register(`temuan.${item}` as any)} 
+          />
+        </div>
+      ))}
+    </div>
+  </motion.div>
+)}
 
+                                  
                   {/* STEP 3: INDIKATOR LAPANGAN & PETUGAS */}
                   {step === 3 && (
                     <motion.div key="step3" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="space-y-4">
