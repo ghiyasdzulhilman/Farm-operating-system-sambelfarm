@@ -4,7 +4,6 @@ import * as schema from "./schema";
 
 const { Pool } = pg;
 
-// Debugging buat mastiin URL yang kebaca emang yang "oqhyd..." itu
 console.log("--- DEBUGGING CONNECTION ---");
 const dbUrl = process.env.DATABASE_URL;
 console.log("Database URL is set:", !!dbUrl);
@@ -15,10 +14,11 @@ if (!dbUrl) {
   throw new Error("DATABASE_URL must be set in Secrets!");
 }
 
-// Koneksi Direct (Tanpa SSL/SSL mode disable)
-// Ini cara paling stabil buat Replit ke Supabase Direct Port 5432
-export const pool = new Pool({ 
+export const pool = new Pool({
   connectionString: dbUrl,
+  ssl: {
+    rejectUnauthorized: false,
+  },
 });
 
 export const db = drizzle(pool, { schema });
