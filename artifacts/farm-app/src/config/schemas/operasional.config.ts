@@ -1,113 +1,84 @@
 export const OPERASIONAL_SCHEMA = {
-  key: "operasional",
-
+  id: "operasional",
   label: "Operasional Kebun",
-
-  notion: {
-    databaseType: "operasional",
-  },
+  hint: "Aktivitas & tugas operasional harian",
 
   fields: [
     {
       key: "namaPekerjaan",
       label: "Nama pekerjaan",
-      expectedType:: "title",
-      required: true,
+      expectedType: "title",
+      aliases: ["task", "pekerjaan", "nama pekerjaan", "operasional"],
     },
 
     {
       key: "kategori",
       label: "Kategori",
-      expectedType:: "select",
-      required: true,
-
-      options: [
-        "Penyemprotan",
-        "Panen",
-        "Sanitasi",
-        "Maintenance",
-        "Pengairan",
-        "Pengangkutan",
-        "Monitoring",
-      ],
+      expectedType: "select",
+      aliases: ["kategori", "activity", "jenis kegiatan", "aktivitas"],
     },
 
     {
       key: "status",
       label: "Status",
-      expectedType:: "status",
-      required: true,
-
-      options: [
-        "Belum dikerjakan",
-        "Dalam proses",
-        "Selesai",
-      ],
+      expectedType: "status",
+      aliases: ["status", "progress", "state"],
     },
 
     {
       key: "ditugaskanKe",
       label: "Ditugaskan ke",
-      expectedType:: "relation",
-      relation: "pekerja",
-      required: true,
+      expectedType: "relation",
+      aliases: ["ditugaskan ke", "petugas", "pekerja", "worker", "team"],
     },
 
     {
       key: "jenisTenagaKerja",
       label: "Jenis tenaga kerja",
-      expectedType:: "rollup",
-      source: "ditugaskanKe",
-      property: "jenisTenagaKerja",
+      expectedType: "rollup|select|text",
+      aliases: ["jenis tenaga kerja", "tipe pekerja", "employment type"],
     },
 
     {
       key: "area",
       label: "Area",
-      expectedType:: "relation",
-      relation: "laba_rugi",
-      required: true,
+      expectedType: "relation",
+      aliases: ["area", "blok", "lahan", "blok area"],
     },
 
     {
       key: "prioritas",
       label: "Prioritas",
-      expectedType:: "select",
-
-      options: [
-        "Low",
-        "Medium",
-        "High",
-      ],
+      expectedType: "select",
+      aliases: ["prioritas", "priority"],
     },
 
     {
       key: "waktuPengerjaan",
       label: "Waktu pengerjaan",
-      expectedType:: "dateRange",
-      required: true,
+      expectedType: "date",
+      aliases: ["waktu pengerjaan", "jam kerja", "start end", "tanggal waktu"],
     },
 
     {
       key: "durasiKerja",
       label: "Durasi kerja",
-      expectedType:: "number",
-
-      metadata: {
-        unit: "jam",
-      },
+      expectedType: "number",
+      aliases: ["durasi", "lama kerja", "jam"],
     },
 
     {
       key: "catatan",
       label: "Catatan",
-      expectedType:: "text",
+      expectedType: "rich_text",
+      aliases: ["catatan", "notes", "keterangan"],
     },
 
     {
       key: "lampiran",
       label: "Lampiran",
-      expectedType:: "files",
+      expectedType: "files",
+      aliases: ["lampiran", "media", "attachment", "foto"],
     },
   ],
 } as const;
