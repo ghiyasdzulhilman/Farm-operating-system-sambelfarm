@@ -13,6 +13,7 @@ import { HomePage } from "@/pages/home";
 import { DashboardPage } from "@/pages/dashboard";
 import { ConnectPage } from "@/pages/connect";
 import { SettingsPage } from "@/pages/settings";
+import { AgronomyHubPage } from "@/pages/agronomy-hub";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -204,6 +205,11 @@ function ClerkProviderWithRoutes() {
                 <SettingsPage />
               </ProtectedRoute>
             </Route>
+<Route path="/operasional">
+  <ProtectedRoute>
+    <AgronomyHubPage />
+  </ProtectedRoute>
+</Route>
             <Route component={NotFound} />
           </Switch>
         </AppLayout>
