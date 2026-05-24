@@ -340,12 +340,21 @@ function buildOperasionalProperties(
         };
         break;
 
-      case "relation":
-  // 1. Cek dulu, kalau value-nya ga ada, atau berupa string kosong setelah di-trim, langsung skip!
-  if (!value || String(value).trim() === "") {
-    props[propertyId] = { relation: [] }; // Kirim array kosong aman di Notion
-    break;
-  }
+      case "relation": {
+  const relationIds = Array.isArray(value)
+    ? value
+        .filter((id) => id && String(id).trim() !== "")
+        .map((id) => ({ id: String(id).trim() }))
+    : value && String(value).trim() !== ""
+      ? [{ id: String(value).trim() }]
+      : [];
+
+  props[propertyId] = {
+    relation: relationIds,
+  };
+
+  break;
+}
 
   // 2. Kalau ada isinya, baru rakit datanya dengan aman
   props[propertyId] = {
@@ -363,11 +372,17 @@ function buildOperasionalProperties(
         }
         break;
 
-      case "number":
-        props[propertyId] = {
-          number: Number(value),
-        };
-        break;
+      case "number": {
+  const parsed = Number(value);
+
+  if (!Number.isNaN(parsed)) {
+    props[propertyId] = {
+      number: parsed,
+    };
+  }
+
+  break;
+}
 
       case "rich_text":
         props[propertyId] = buildRichText(String(value));
