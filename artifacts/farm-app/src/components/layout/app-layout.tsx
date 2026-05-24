@@ -16,6 +16,7 @@ import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog";
 // ✨ IMPORT BARU: Form Perawatan yang barusan kita bikin
 import { AddPerawatanDialog } from "@/components/agronomy/AddPerawatanDialog";
 import { AddInspeksiDialog } from "@/components/agronomy/AddInspeksiDialog";
+import { AddOperasionalDialog } from "@/components/agronomy/AddOperasionalDialog";
 
 import {
   useGetNotionConnectionStatus,
@@ -63,11 +64,12 @@ export function AppLayout({
 
     // KALIBRASI BUSUR KIPAS (4 Tombol Melengkung Sempurna)
   const quickActions = [
-    { id: "harvest", component: AddHarvestDialog, position: { x: -75, y: -20 }, delay: 0.03 },
-    { id: "perawatan", component: AddPerawatanDialog, position: { x: -35, y: -72 }, delay: 0.06 },
-    { id: "inspeksi", component: AddInspeksiDialog, position: { x: 35, y: -72 }, delay: 0.09 },
-    { id: "expense", component: AddExpenseDialog, position: { x: 75, y: -20 }, delay: 0.12 },
-  ];
+  { id: "harvest", component: AddHarvestDialog, position: { x: -88, y: -14 }, delay: 0.03 },
+  { id: "perawatan", component: AddPerawatanDialog, position: { x: -48, y: -68 }, delay: 0.06 },
+  { id: "operasional", component: AddOperasionalDialog, position: { x: 0, y: -88 }, delay: 0.09 },
+  { id: "inspeksi", component: AddInspeksiDialog, position: { x: 48, y: -68 }, delay: 0.12 },
+  { id: "expense", component: AddExpenseDialog, position: { x: 88, y: -14 }, delay: 0.15 },
+];
 
 
   return (
