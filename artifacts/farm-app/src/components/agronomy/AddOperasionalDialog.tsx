@@ -448,6 +448,7 @@ export function AddOperasionalDialog({ onSuccess }: AddOperasionalDialogProps) {
                           </p>
                         )}
                       </div>
+                      </div>
 
                       <FormField
                         control={form.control}
