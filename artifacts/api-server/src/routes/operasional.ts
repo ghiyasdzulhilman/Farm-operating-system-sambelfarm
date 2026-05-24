@@ -340,13 +340,13 @@ function buildOperasionalProperties(
         };
         break;
 
-            case "relation":
-        props[propertyId] = {
-          relation: Array.isArray(value)
-            ? value.filter(Boolean).map((id) => ({ id: String(id) }))
-            : [{ id: String(value) }],
-        };
-        break;
+      case "relation":
+  props[propertyId] = {
+    relation: Array.isArray(value)
+      ? value.filter(Boolean).map((id) => ({ id: String(id) }))
+      : [{ id: String(value) }],
+  };
+  break;
 
       case "date":
         if (typeof value === "object" && value && "start" in value) {
@@ -440,7 +440,7 @@ router.post("/notion/add-operasional", async (req, res): Promise<void> => {
 
   const ditugaskanKeId = Array.isArray(body.ditugaskanKeId)
     ? body.ditugaskanKeId.filter(Boolean)
-    : (body.ditugaskanKeId ?? "").trim();
+    : (body.ditugaskanKeId ?? "");
 
   const hasWorker =
     Array.isArray(ditugaskanKeId) ? ditugaskanKeId.length > 0 : !!ditugaskanKeId;
