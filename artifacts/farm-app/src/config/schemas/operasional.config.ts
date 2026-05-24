@@ -11,14 +11,14 @@ export const OPERASIONAL_SCHEMA = {
     {
       key: "namaPekerjaan",
       label: "Nama pekerjaan",
-      type: "title",
+      expectedType:: "title",
       required: true,
     },
 
     {
       key: "kategori",
       label: "Kategori",
-      type: "select",
+      expectedType:: "select",
       required: true,
 
       options: [
@@ -35,7 +35,7 @@ export const OPERASIONAL_SCHEMA = {
     {
       key: "status",
       label: "Status",
-      type: "status",
+      expectedType:: "status",
       required: true,
 
       options: [
@@ -48,7 +48,7 @@ export const OPERASIONAL_SCHEMA = {
     {
       key: "ditugaskanKe",
       label: "Ditugaskan ke",
-      type: "relation",
+      expectedType:: "relation",
       relation: "pekerja",
       required: true,
     },
@@ -56,7 +56,7 @@ export const OPERASIONAL_SCHEMA = {
     {
       key: "jenisTenagaKerja",
       label: "Jenis tenaga kerja",
-      type: "rollup",
+      expectedType:: "rollup",
       source: "ditugaskanKe",
       property: "jenisTenagaKerja",
     },
@@ -64,7 +64,7 @@ export const OPERASIONAL_SCHEMA = {
     {
       key: "area",
       label: "Area",
-      type: "relation",
+      expectedType:: "relation",
       relation: "laba_rugi",
       required: true,
     },
@@ -72,7 +72,7 @@ export const OPERASIONAL_SCHEMA = {
     {
       key: "prioritas",
       label: "Prioritas",
-      type: "select",
+      expectedType:: "select",
 
       options: [
         "Low",
@@ -84,14 +84,14 @@ export const OPERASIONAL_SCHEMA = {
     {
       key: "waktuPengerjaan",
       label: "Waktu pengerjaan",
-      type: "dateRange",
+      expectedType:: "dateRange",
       required: true,
     },
 
     {
       key: "durasiKerja",
       label: "Durasi kerja",
-      type: "number",
+      expectedType:: "number",
 
       metadata: {
         unit: "jam",
@@ -101,13 +101,13 @@ export const OPERASIONAL_SCHEMA = {
     {
       key: "catatan",
       label: "Catatan",
-      type: "text",
+      expectedType:: "text",
     },
 
     {
       key: "lampiran",
       label: "Lampiran",
-      type: "files",
+      expectedType:: "files",
     },
   ],
 } as const;
