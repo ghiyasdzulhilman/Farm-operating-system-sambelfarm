@@ -394,7 +394,7 @@ export function AddOperasionalDialog({ onSuccess }: AddOperasionalDialogProps) {
                         )}
                       />
 
-                      <div className="space-y-1.5">
+<div className="space-y-1.5">
   <div className="flex items-center justify-between">
     <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
       <Users className="inline-block h-3.5 w-3.5 mr-1" />
@@ -441,14 +441,6 @@ export function AddOperasionalDialog({ onSuccess }: AddOperasionalDialogProps) {
     </p>
   )}
 </div>
-
-                        {form.formState.errors.ditugaskanKeId && (
-                          <p className="text-xs text-red-500 mt-2 font-medium">
-                            {form.formState.errors.ditugaskanKeId.message}
-                          </p>
-                        )}
-                      </div>
-                      </div>
 
                       <FormField
                         control={form.control}
