@@ -45,6 +45,7 @@ import { cn } from "@/lib/utils";
 import { PERAWATAN_SCHEMA } from "@/config/schemas/perawatan.config";
 import { PEKERJA_SCHEMA } from "@/config/schemas/pekerja.config";
 import { INSPEKSI_SCHEMA } from "@/config/schemas/inspeksi.config";
+import { OPERASIONAL_SCHEMA } from "@/config/schemas/operasional.config";
 
 // ---------------------------------------------------------------------------
 // 📂 1. ARCHITECTURE & DICTIONARY
@@ -105,17 +106,7 @@ const DOMAINS: any[] = [
     schemas: [
       PERAWATAN_SCHEMA,
       INSPEKSI_SCHEMA,
-      {
-        id: "operasional",
-        label: "Kegiatan Operasional Umum",
-        hint: "Tugas harian",
-        fields: [
-          { key: "kegiatan", label: "Task", expectedType: "title", aliases: ALIASES.kegiatan },
-          { key: "tanggal", label: "Tanggal", expectedType: "date", aliases: ALIASES.tanggal },
-          { key: "keterangan", label: "Catatan", expectedType: "rich_text" },
-          { key: "pic", label: "Penanggung Jawab", expectedType: "relation|people" },
-        ],
-      },
+      OPERASIONAL_SCHEMA,
     ], 
   },
 
