@@ -13,7 +13,7 @@ import { HomePage } from "@/pages/home";
 import { DashboardPage } from "@/pages/dashboard";
 import { ConnectPage } from "@/pages/connect";
 import { SettingsPage } from "@/pages/settings";
-import { AgronomyHubPage } from "@/pages/agronomy-hub";
+import { AgronomyHubPage } from "@/pages/agronomyhubpage";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
