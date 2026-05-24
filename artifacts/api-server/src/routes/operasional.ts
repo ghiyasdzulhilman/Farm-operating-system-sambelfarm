@@ -422,6 +422,7 @@ router.get("/notion/operasional-dropdown-options", async (req, res): Promise<voi
   }
 });
 
+
 router.post("/notion/add-operasional", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
 
@@ -445,17 +446,11 @@ router.post("/notion/add-operasional", async (req, res): Promise<void> => {
   const hasWorker =
     Array.isArray(ditugaskanKeId) ? ditugaskanKeId.length > 0 : !!ditugaskanKeId;
 
+  // Hapus validasi ganda yang ngambang, cukup pakai yang ini
   if (!namaPekerjaan || !kategori || !areaId || !waktuMulai || !hasWorker) {
     res.status(400).json({
       error:
         "Field 'namaPekerjaan', 'kategori', 'areaId', 'waktuMulai', dan 'ditugaskanKeId' wajib diisi.",
-    });
-    return;
-  }
-
-    res.status(400).json({
-      error:
-        "Field 'namaPekerjaan', 'kategori', 'status', 'ditugaskanKeId', dan 'areaId' wajib diisi.",
     });
     return;
   }
@@ -478,6 +473,7 @@ router.post("/notion/add-operasional", async (req, res): Promise<void> => {
       return;
     }
 
+    // 👇 INI YANG GUA PERBAIKI, DITUTUP DENGAN MAPPINGS 👇
     const properties = buildOperasionalProperties(
       {
         namaPekerjaan,
@@ -493,6 +489,8 @@ router.post("/notion/add-operasional", async (req, res): Promise<void> => {
         catatan: body.catatan,
         lampiran: body.lampiran,
       },
+      mappings // <-- Argumen kedua diselipkan di sini
+    ); // <-- Kurung tutup fungsi ditambah di sini
 
     const response = await notionFetch(
       userId,
@@ -530,5 +528,6 @@ router.post("/notion/add-operasional", async (req, res): Promise<void> => {
     });
   }
 });
+
 
 export default router;
