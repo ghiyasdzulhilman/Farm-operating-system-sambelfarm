@@ -31,9 +31,6 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { cn } from "@/lib/utils";
 import { OperasionalWorkspace } from "@/components/operasional/OperasionalWorkspace";
 
-export function AgronomyHubPage() {
-  return <OperasionalWorkspace />;
-}
 
 type ModuleKey = "all" | "perawatan" | "inspeksi" | "operasional";
 type ViewKey = "feed" | "modules" | "table";
