@@ -34,8 +34,8 @@ interface NotionDatabase {
 interface AddOperasionalBody {
   namaPekerjaan: string;
   kategori: string;
-  status: string;
-  ditugaskanKeId: string;
+  status?: string;
+  ditugaskanKeId: string | string[];
   areaId: string;
   prioritas?: string;
   waktuPengerjaan?:
@@ -190,29 +190,48 @@ function normalizeDateRange(
   waktuSelesai?: string,
 ) {
   if (typeof value === "string") {
-    return { start: value };
+    const start = value.trim();
+    return start ? { start } : null;
   }
 
   if (value && typeof value === "object") {
-    return {
-      start: value.start,
-      ...(value.end ? { end: value.end } : {}),
-    };
+    const start = value.start?.trim();
+    if (!start) return null;
+
+    const normalized: { start: string; end?: string } = { start };
+
+    if (value.end?.trim()) {
+      const startTime = new Date(start).getTime();
+      const endTime = new Date(value.end.trim()).getTime();
+
+      if (!Number.isNaN(startTime) && !Number.isNaN(endTime) && endTime >= startTime) {
+        normalized.end = value.end.trim();
+      }
+    }
+
+    return normalized;
   }
 
-  if (waktuMulai) {
-    return {
-      start: waktuMulai,
-      ...(waktuSelesai ? { end: waktuSelesai } : {}),
-    };
+  if (waktuMulai?.trim()) {
+    const start = waktuMulai.trim();
+    const normalized: { start: string; end?: string } = { start };
+
+    if (waktuSelesai?.trim()) {
+      const startTime = new Date(start).getTime();
+      const endTime = new Date(waktuSelesai.trim()).getTime();
+
+      if (!Number.isNaN(startTime) && !Number.isNaN(endTime) && endTime >= startTime) {
+        normalized.end = waktuSelesai.trim();
+      }
+    }
+
+    return normalized;
   }
 
   return null;
 }
 
-function normalizeFiles(
-  lampiran: AddOperasionalBody["lampiran"],
-) {
+function normalizeFiles(lampiran: AddOperasionalBody["lampiran"]) {
   if (!Array.isArray(lampiran) || lampiran.length === 0) return null;
 
   const files = lampiran
@@ -227,7 +246,12 @@ function normalizeFiles(
         };
       }
 
-      if (item && typeof item === "object" && item.url.trim()) {
+      if (
+        item &&
+        typeof item === "object" &&
+        typeof item.url === "string" &&
+        item.url.trim()
+      ) {
         return {
           name: item.name?.trim() || `Lampiran ${index + 1}`,
           type: "external" as const,
@@ -316,9 +340,11 @@ function buildOperasionalProperties(
         };
         break;
 
-      case "relation":
+            case "relation":
         props[propertyId] = {
-          relation: [{ id: String(value) }],
+          relation: Array.isArray(value)
+            ? value.filter(Boolean).map((id) => ({ id: String(id) }))
+            : [{ id: String(value) }],
         };
         break;
 
@@ -409,10 +435,24 @@ router.post("/notion/add-operasional", async (req, res): Promise<void> => {
   const namaPekerjaan = (body.namaPekerjaan ?? "").trim();
   const kategori = (body.kategori ?? "").trim();
   const status = (body.status ?? "").trim();
-  const ditugaskanKeId = (body.ditugaskanKeId ?? "").trim();
   const areaId = (body.areaId ?? "").trim();
+  const waktuMulai = (body.waktuMulai ?? "").trim();
 
-  if (!namaPekerjaan || !kategori || !status || !ditugaskanKeId || !areaId) {
+  const ditugaskanKeId = Array.isArray(body.ditugaskanKeId)
+    ? body.ditugaskanKeId.filter(Boolean)
+    : (body.ditugaskanKeId ?? "").trim();
+
+  const hasWorker =
+    Array.isArray(ditugaskanKeId) ? ditugaskanKeId.length > 0 : !!ditugaskanKeId;
+
+  if (!namaPekerjaan || !kategori || !areaId || !waktuMulai || !hasWorker) {
+    res.status(400).json({
+      error:
+        "Field 'namaPekerjaan', 'kategori', 'areaId', 'waktuMulai', dan 'ditugaskanKeId' wajib diisi.",
+    });
+    return;
+  }
+
     res.status(400).json({
       error:
         "Field 'namaPekerjaan', 'kategori', 'status', 'ditugaskanKeId', dan 'areaId' wajib diisi.",
@@ -447,14 +487,12 @@ router.post("/notion/add-operasional", async (req, res): Promise<void> => {
         areaId,
         prioritas: body.prioritas,
         waktuPengerjaan: body.waktuPengerjaan,
-        waktuMulai: body.waktuMulai,
+        waktuMulai,
         waktuSelesai: body.waktuSelesai,
         durasiKerja: body.durasiKerja,
         catatan: body.catatan,
         lampiran: body.lampiran,
       },
-      mappings,
-    );
 
     const response = await notionFetch(
       userId,
