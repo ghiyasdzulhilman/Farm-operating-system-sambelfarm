@@ -20,9 +20,7 @@ import {
   Users,
 } from "lucide-react";
 
-import {
-  getGetDashboardSummaryQueryKey,
-} from "@workspace/api-client-react";
+import { getGetDashboardSummaryQueryKey } from "@workspace/api-client-react";
 
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -51,13 +49,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 
 const operasionalSchema = z.object({
   namaPekerjaan: z.string().min(1, "Nama pekerjaan wajib diisi"),
   kategori: z.string().min(1, "Kategori wajib dipilih"),
-  status: z.string().min(1, "Status wajib dipilih"),
+  status: z.string().optional(),
   areaId: z.string().min(1, "Area wajib dipilih"),
-  ditugaskanKeId: z.string().min(1, "Pekerja wajib dipilih"),
+  ditugaskanKeId: z.array(z.string()).min(1, "Minimal pilih 1 pekerja"),
   prioritas: z.string().min(1, "Prioritas wajib dipilih"),
   waktuMulai: z.string().min(1, "Waktu mulai wajib diisi"),
   waktuSelesai: z.string().optional(),
@@ -80,9 +79,9 @@ interface AddOperasionalDialogProps {
 const EMPTY_VALUES: OperasionalFormValues = {
   namaPekerjaan: "",
   kategori: "",
-  status: "Belum dikerjakan",
+  status: "Selesai",
   areaId: "",
-  ditugaskanKeId: "",
+  ditugaskanKeId: [],
   prioritas: "Medium",
   waktuMulai: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
   waktuSelesai: "",
@@ -128,7 +127,7 @@ export function AddOperasionalDialog({ onSuccess }: AddOperasionalDialogProps) {
       const cleanData = {
         namaPekerjaan: payload.namaPekerjaan,
         kategori: payload.kategori,
-        status: payload.status,
+        status: payload.status || "Selesai",
         ditugaskanKeId: payload.ditugaskanKeId,
         areaId: payload.areaId,
         prioritas: payload.prioritas,
@@ -180,10 +179,26 @@ export function AddOperasionalDialog({ onSuccess }: AddOperasionalDialogProps) {
     },
   });
 
+  const toggleWorker = (workerId: string) => {
+    const current = form.getValues("ditugaskanKeId");
+
+    if (current.includes(workerId)) {
+      form.setValue(
+        "ditugaskanKeId",
+        current.filter((id) => id !== workerId),
+        { shouldValidate: true },
+      );
+    } else {
+      form.setValue("ditugaskanKeId", [...current, workerId], {
+        shouldValidate: true,
+      });
+    }
+  };
+
   const handleNextStep = async () => {
     let fieldsToValidate: Array<keyof OperasionalFormValues> = [];
 
-    if (step === 1) fieldsToValidate = ["namaPekerjaan", "kategori", "status"];
+    if (step === 1) fieldsToValidate = ["namaPekerjaan", "kategori"];
     if (step === 2) fieldsToValidate = ["areaId", "ditugaskanKeId", "prioritas"];
     if (step === 3) fieldsToValidate = ["waktuMulai"];
 
@@ -194,6 +209,8 @@ export function AddOperasionalDialog({ onSuccess }: AddOperasionalDialogProps) {
   function onSubmit(values: OperasionalFormValues) {
     saveOperasional.mutate(values);
   }
+
+  const selectedWorkers = form.watch("ditugaskanKeId");
 
   return (
     <Sheet
@@ -315,7 +332,7 @@ export function AddOperasionalDialog({ onSuccess }: AddOperasionalDialogProps) {
                         render={({ field }) => (
                           <FormItem className="space-y-1.5">
                             <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-                              Status
+                              Status Dokumentasi
                             </FormLabel>
                             <Select onValueChange={field.onChange} value={field.value || ""}>
                               <FormControl>
@@ -329,6 +346,9 @@ export function AddOperasionalDialog({ onSuccess }: AddOperasionalDialogProps) {
                                 <SelectItem value="Selesai">Selesai</SelectItem>
                               </SelectContent>
                             </Select>
+                            <p className="text-[10px] text-muted-foreground">
+                              Opsional, tidak mempengaruhi validasi tanggal.
+                            </p>
                             <FormMessage className="text-xs text-red-500" />
                           </FormItem>
                         )}
@@ -372,33 +392,45 @@ export function AddOperasionalDialog({ onSuccess }: AddOperasionalDialogProps) {
                         )}
                       />
 
-                      <FormField
-                        control={form.control}
-                        name="ditugaskanKeId"
-                        render={({ field }) => (
-                          <FormItem className="space-y-1.5">
-                            <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-                              <Users className="inline-block h-3.5 w-3.5 mr-1" />
-                              Ditugaskan ke
-                            </FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value || ""}>
-                              <FormControl>
-                                <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-green-600/20">
-                                  <SelectValue placeholder="Pilih pekerja..." />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent className="rounded-xl">
-                                {dropdownOptions?.petugas?.map((item) => (
-                                  <SelectItem key={item.id} value={item.id}>
-                                    {item.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage className="text-xs text-red-500" />
-                          </FormItem>
+                      <div className="space-y-1.5">
+                        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
+                          <Users className="inline-block h-3.5 w-3.5 mr-1" />
+                          Ditugaskan ke
+                        </p>
+
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          {dropdownOptions?.petugas?.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                              Tidak ada data pekerja ditemukan.
+                            </p>
+                          ) : (
+                            dropdownOptions?.petugas?.map((item) => {
+                              const isSelected = selectedWorkers.includes(item.id);
+
+                              return (
+                                <Badge
+                                  key={item.id}
+                                  variant="outline"
+                                  className={`px-4 py-2.5 text-sm cursor-pointer rounded-xl transition-all ${
+                                    isSelected
+                                      ? "bg-green-600 text-white border-green-600 font-bold shadow-md scale-[1.02]"
+                                      : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                                  }`}
+                                  onClick={() => toggleWorker(item.id)}
+                                >
+                                  {item.name}
+                                </Badge>
+                              );
+                            })
+                          )}
+                        </div>
+
+                        {form.formState.errors.ditugaskanKeId && (
+                          <p className="text-xs text-red-500 mt-2 font-medium">
+                            {form.formState.errors.ditugaskanKeId.message}
+                          </p>
                         )}
-                      />
+                      </div>
 
                       <FormField
                         control={form.control}
@@ -452,6 +484,9 @@ export function AddOperasionalDialog({ onSuccess }: AddOperasionalDialogProps) {
                                 {...field}
                               />
                             </FormControl>
+                            <p className="text-[10px] text-muted-foreground">
+                              Bisa diisi untuk aktivitas yang terjadi kemarin atau sebelumnya.
+                            </p>
                             <FormMessage className="text-xs text-red-500" />
                           </FormItem>
                         )}
