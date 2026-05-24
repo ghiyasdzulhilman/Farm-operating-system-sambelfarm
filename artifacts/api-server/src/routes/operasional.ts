@@ -341,10 +341,17 @@ function buildOperasionalProperties(
         break;
 
       case "relation":
+  // 1. Cek dulu, kalau value-nya ga ada, atau berupa string kosong setelah di-trim, langsung skip!
+  if (!value || String(value).trim() === "") {
+    props[propertyId] = { relation: [] }; // Kirim array kosong aman di Notion
+    break;
+  }
+
+  // 2. Kalau ada isinya, baru rakit datanya dengan aman
   props[propertyId] = {
     relation: Array.isArray(value)
-      ? value.filter(Boolean).map((id) => ({ id: String(id) }))
-      : [{ id: String(value) }],
+      ? value.filter((id) => id && String(id).trim() !== "").map((id) => ({ id: String(id) }))
+      : [{ id: String(value).trim() }],
   };
   break;
 
