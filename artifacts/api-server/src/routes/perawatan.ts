@@ -6,10 +6,6 @@ import {
   type FieldMappingData,
 } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
-
-// 1. IMPORT SKEMA ZOD PERAWATAN YANG KITA BIKIN KEMARIN
-import { AddPerawatanBody, type AddPerawatanBodyType } from "@workspace/api-zod";
-
 import {
   getNotionConnection,
   notionFetch,
@@ -33,6 +29,20 @@ interface NotionPage {
 interface NotionDatabase {
   id: string;
   title?: Array<{ plain_text: string }>;
+}
+
+interface AddPerawatanBody {
+  kegiatan: string;
+  tanggal: string;
+  labaRugiId: string;
+  petugasId?: string;
+  tags?: string[] | string;
+  status: string;
+  detailNotes?: string;
+  logProduk?: Array<{
+    produk: string;
+    dosis: string;
+  }>;
 }
 
 function decodePropertyId(id: string): string {
@@ -176,7 +186,7 @@ function buildNotionBlocks(
     });
   }
 
-  // 2. Block untuk Racikan
+  // 2. Block untuk Racikan (Kita pakai bulleted_list_item biar aman dari validasi Notion)
   if (logProduk && logProduk.length > 0) {
     blocks.push({
       object: "block",
@@ -184,6 +194,7 @@ function buildNotionBlocks(
       heading_3: { rich_text: [{ type: "text", text: { content: "🌱 Racikan Bahan / Produk" } }] }
     });
     
+    // Kita buat setiap baris produk sebagai bullet list item
     blocks.push(...logProduk.map((p) => ({
       object: "block",
       type: "bulleted_list_item",
@@ -199,38 +210,37 @@ function buildNotionBlocks(
   return blocks;
 }
 
+
+// Taruh ini tepat di atas fungsi buildPerawatanProperties
 const PERAWATAN_FIELDS = [
   { key: "kegiatan", expectedType: "title" },
   { key: "tanggal", expectedType: "date" },
-  { key: "tags", expectedType: "select" }, // Asumsi di Notion lu pakai multi_select (di-handle di switch bawah)
+  { key: "tags", expectedType: "select" },
   { key: "status", expectedType: "status" },
   { key: "petugas", expectedType: "relation" },
   { key: "labaRugi", expectedType: "relation" },
-] as const;
+];
 
-// 2. TIPE DATA MENGGUNAKAN BAWAAN ZOD
 function buildPerawatanProperties(
-  data: AddPerawatanBodyType,
+  data: AddPerawatanBody,
   mappings: FieldMappingData | undefined,
 ): Record<string, unknown> {
   const props: Record<string, unknown> = {};
 
+  // Sekarang dia baca dari variabel PERAWATAN_FIELDS di atas
   PERAWATAN_FIELDS.forEach((field) => {
     const mapping = mappings?.[field.key as keyof FieldMappingData];
     if (!mapping?.propertyId) return;
 
     const propertyId = decodePropertyId(mapping.propertyId);
     
-    // Sinkronisasi penamaan field lokal ke skema Zod
-    let value: unknown;
-    if (field.key === "kegiatan") value = data.kegiatan;
-    if (field.key === "tanggal") value = data.tanggal;
-    if (field.key === "tags") value = data.tags;
-    if (field.key === "status") value = data.status;
-    if (field.key === "petugas") value = data.petugasId;
-    if (field.key === "labaRugi") value = data.labaRugiId;
+    let value = data[field.key as keyof AddPerawatanBody];
     
-    if (value === undefined || value === null || value === "") return;
+    // Trik toleransi ID relasi
+    if (!value && field.key === "labaRugi") value = (data as any).labaRugiId;
+    if (!value && field.key === "petugas") value = (data as any).petugasId;
+    
+    if (!value) return;
 
     switch (field.expectedType) {
       case "title":
@@ -240,14 +250,12 @@ function buildPerawatanProperties(
         props[propertyId] = { date: { start: String(value) } };
         break;
       case "select":
-      // Notion API nolak format string biasa kalau property-nya bertipe multi_select
-      // Tapi kita cek kondisi, apakah Notion di-set jadi `select` biasa atau `multi_select`
-      // Di kode lama lu lu siapin `multi_select`, jadi kita amankan:
+        props[propertyId] = { select: { name: String(value) } };
+        break;
+      case "multi_select":
         if (Array.isArray(value)) {
           props[propertyId] = { multi_select: value.map((t) => ({ name: String(t) })) };
         } else {
-          // Tetep jaga kompatibilitas sama select biasa
-          // (Pastikan config di Notion sesuai sama mapping lu)
           props[propertyId] = { multi_select: [{ name: String(value) }] };
         }
         break;
@@ -255,20 +263,14 @@ function buildPerawatanProperties(
         props[propertyId] = { status: { name: String(value) } };
         break;
       case "relation":
-        // 3. PENGAMANAN RELASI (Mencegah Error 400 Bad Request dari Notion)
-        if (Array.isArray(value)) {
-          props[propertyId] = { relation: value.filter(id => id.trim()).map(id => ({ id: String(id) })) };
-        } else if (String(value).trim()) {
-          props[propertyId] = { relation: [{ id: String(value).trim() }] };
-        } else {
-           props[propertyId] = { relation: [] }; // Aman
-        }
+        props[propertyId] = { relation: [{ id: String(value) }] };
         break;
     }
   });
 
   return props;
 }
+
 
 router.get("/notion/perawatan-dropdown-options", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
@@ -301,6 +303,9 @@ router.get("/notion/perawatan-dropdown-options", async (req, res): Promise<void>
         : Promise.resolve([]),
     ]);
 
+console.log("PETUGAS DB ID", petugasDbId);
+console.log("PETUGAS DATA", petugas);
+
     res.json({
       areas: labaRugi,
       petugas,
@@ -322,17 +327,18 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
     return;
   }
 
-  // 4. MENGGUNAKAN ZOD UNTUK VALIDASI (Bye-bye logika if-else manual yang panjang!)
-  const parsed = AddPerawatanBody.safeParse(req.body);
+  const body = req.body as Partial<AddPerawatanBody>;
 
-  if (!parsed.success) {
-    const firstError = parsed.error.issues[0]?.message || "Request data tidak valid.";
-    res.status(400).json({ error: firstError });
+  const kegiatan = (body.kegiatan ?? "").trim();
+  const tanggal = (body.tanggal ?? "").trim();
+  const labaRugiId = (body.labaRugiId ?? "").trim();
+
+  if (!kegiatan || !tanggal || !labaRugiId) {
+    res.status(400).json({
+      error: "Field 'kegiatan', 'tanggal', dan 'labaRugiId' wajib diisi.",
+    });
     return;
   }
-
-  // 5. Data sudah dijamin valid dan bersih (termasuk auto-trim dan default status="Rencana")
-  const validData = parsed.data;
 
   try {
     const connection = await getNotionConnection(userId);
@@ -352,21 +358,35 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
       return;
     }
 
-    // Builder Properties
-    const properties = buildPerawatanProperties(validData, mappings);
+    const properties = buildPerawatanProperties(
+      {
+        kegiatan,
+        tanggal,
+        labaRugiId,
+        petugasId: body.petugasId,
+        tags: body.tags,
+        status: body.status || "Rencana", // Fallback ke Rencana jika kosong
+        detailNotes: body.detailNotes,
+        logProduk: body.logProduk,
+      },
+      mappings,
+    );
 
-    // Builder Blocks untuk Catatan Panjang / Detail Produk
-    const childrenBlocks = buildNotionBlocks(validData.logProduk, validData.detailNotes);
+    // 1. Panggil penyihir untuk merakit isi halaman
+    const childrenBlocks = buildNotionBlocks(body.logProduk, body.detailNotes);
 
+    // 2. Siapkan payload
     const payload: any = {
       parent: { database_id: databaseId },
       properties,
     };
 
+    // 3. Suntikkan children jika ada isinya
     if (childrenBlocks.length > 0) {
       payload.children = childrenBlocks;
     }
 
+    // 4. Tembak ke Notion
     const response = await notionFetch(userId, accessToken, "https://api.notion.com/v1/pages", {
       method: "POST",
       body: JSON.stringify(payload),
@@ -395,5 +415,6 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
     });
   }
 });
+
 
 export default router;

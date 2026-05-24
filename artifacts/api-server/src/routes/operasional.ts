@@ -6,8 +6,6 @@ import {
   type FieldMappingData,
 } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
-// 1. IMPORT SKEMA ZOD KITA DI SINI
-import { AddOperasionalBody, type AddOperasionalBodyType } from "@workspace/api-zod"; 
 import {
   getNotionConnection,
   notionFetch,
@@ -33,8 +31,31 @@ interface NotionDatabase {
   title?: Array<{ plain_text: string }>;
 }
 
-// INTERFACE MANUAL KITA HAPUS, GANTI PAKE TIPE DARI ZOD
-// Biar ga ada duplicate logic kalau ada perubahan field di masa depan
+interface AddOperasionalBody {
+  namaPekerjaan: string;
+  kategori: string;
+  status?: string;
+  ditugaskanKeId: string | string[];
+  areaId: string;
+  prioritas?: string;
+  waktuPengerjaan?:
+    | string
+    | {
+        start: string;
+        end?: string;
+      };
+  waktuMulai?: string;
+  waktuSelesai?: string;
+  durasiKerja?: number;
+  catatan?: string;
+  lampiran?: Array<
+    | string
+    | {
+        url: string;
+        name?: string;
+      }
+  >;
+}
 
 function decodePropertyId(id: string): string {
   try {
@@ -210,7 +231,7 @@ function normalizeDateRange(
   return null;
 }
 
-function normalizeFiles(lampiran: AddOperasionalBodyType["lampiran"]) {
+function normalizeFiles(lampiran: AddOperasionalBody["lampiran"]) {
   if (!Array.isArray(lampiran) || lampiran.length === 0) return null;
 
   const files = lampiran
@@ -260,9 +281,8 @@ const OPERASIONAL_FIELDS = [
   { key: "lampiran", expectedType: "files" },
 ] as const;
 
-// 2. Ganti tipe datanya menjadi Type bawaan Zod
 function buildOperasionalProperties(
-  data: AddOperasionalBodyType,
+  data: AddOperasionalBody,
   mappings: FieldMappingData | undefined,
 ): Record<string, unknown> {
   const props: Record<string, unknown> = {};
@@ -321,18 +341,19 @@ function buildOperasionalProperties(
         break;
 
       case "relation":
-        // Sudah diperbaiki, aman dari API ngambek
-        if (!value || String(value).trim() === "") {
-          props[propertyId] = { relation: [] };
-          break;
-        }
+  // 1. Cek dulu, kalau value-nya ga ada, atau berupa string kosong setelah di-trim, langsung skip!
+  if (!value || String(value).trim() === "") {
+    props[propertyId] = { relation: [] }; // Kirim array kosong aman di Notion
+    break;
+  }
 
-        props[propertyId] = {
-          relation: Array.isArray(value)
-            ? value.filter((id) => id && String(id).trim() !== "").map((id) => ({ id: String(id) }))
-            : [{ id: String(value).trim() }],
-        };
-        break;
+  // 2. Kalau ada isinya, baru rakit datanya dengan aman
+  props[propertyId] = {
+    relation: Array.isArray(value)
+      ? value.filter((id) => id && String(id).trim() !== "").map((id) => ({ id: String(id) }))
+      : [{ id: String(value).trim() }],
+  };
+  break;
 
       case "date":
         if (typeof value === "object" && value && "start" in value) {
@@ -353,7 +374,7 @@ function buildOperasionalProperties(
         break;
 
       case "files":
-        const files = normalizeFiles(value as AddOperasionalBodyType["lampiran"]);
+        const files = normalizeFiles(value as AddOperasionalBody["lampiran"]);
         if (files) {
           props[propertyId] = { files };
         }
@@ -408,6 +429,7 @@ router.get("/notion/operasional-dropdown-options", async (req, res): Promise<voi
   }
 });
 
+
 router.post("/notion/add-operasional", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
 
@@ -416,18 +438,29 @@ router.post("/notion/add-operasional", async (req, res): Promise<void> => {
     return;
   }
 
-  // 3. DI SINI KODENYA JADI SANGAT BERSIH 🚀
-  // Semua logika .trim(), pengecekan id ganda, pengecekan null manual KITA HAPUS TOTAL!
-  // Biarkan Zod yang kerja keras merapihkan datanya
-  const parsed = AddOperasionalBody.safeParse(req.body);
+  const body = req.body as Partial<AddOperasionalBody>;
 
-  if (!parsed.success) {
-    const firstError = parsed.error.issues[0]?.message || "Request data tidak valid.";
-    res.status(400).json({ error: firstError });
+  const namaPekerjaan = (body.namaPekerjaan ?? "").trim();
+  const kategori = (body.kategori ?? "").trim();
+  const status = (body.status ?? "").trim();
+  const areaId = (body.areaId ?? "").trim();
+  const waktuMulai = (body.waktuMulai ?? "").trim();
+
+  const ditugaskanKeId = Array.isArray(body.ditugaskanKeId)
+    ? body.ditugaskanKeId.filter(Boolean)
+    : (body.ditugaskanKeId ?? "");
+
+  const hasWorker =
+    Array.isArray(ditugaskanKeId) ? ditugaskanKeId.length > 0 : !!ditugaskanKeId;
+
+  // Hapus validasi ganda yang ngambang, cukup pakai yang ini
+  if (!namaPekerjaan || !kategori || !areaId || !waktuMulai || !hasWorker) {
+    res.status(400).json({
+      error:
+        "Field 'namaPekerjaan', 'kategori', 'areaId', 'waktuMulai', dan 'ditugaskanKeId' wajib diisi.",
+    });
     return;
   }
-
-  const validData = parsed.data;
 
   try {
     const connection = await getNotionConnection(userId);
@@ -447,8 +480,24 @@ router.post("/notion/add-operasional", async (req, res): Promise<void> => {
       return;
     }
 
-    // 4. Tinggal lempar validData yang udah bersih ke builder
-    const properties = buildOperasionalProperties(validData, mappings); 
+    // 👇 INI YANG GUA PERBAIKI, DITUTUP DENGAN MAPPINGS 👇
+    const properties = buildOperasionalProperties(
+      {
+        namaPekerjaan,
+        kategori,
+        status,
+        ditugaskanKeId,
+        areaId,
+        prioritas: body.prioritas,
+        waktuPengerjaan: body.waktuPengerjaan,
+        waktuMulai,
+        waktuSelesai: body.waktuSelesai,
+        durasiKerja: body.durasiKerja,
+        catatan: body.catatan,
+        lampiran: body.lampiran,
+      },
+      mappings // <-- Argumen kedua diselipkan di sini
+    ); // <-- Kurung tutup fungsi ditambah di sini
 
     const response = await notionFetch(
       userId,
@@ -486,5 +535,6 @@ router.post("/notion/add-operasional", async (req, res): Promise<void> => {
     });
   }
 });
+
 
 export default router;

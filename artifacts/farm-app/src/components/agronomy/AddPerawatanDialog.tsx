@@ -17,7 +17,11 @@ import {
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 
-import { getGetDashboardSummaryQueryKey } from "@workspace/api-client-react";
+import {
+  useGetDropdownOptions,
+  getGetDropdownOptionsQueryKey,
+  getGetDashboardSummaryQueryKey,
+} from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 
 import { Button } from "@/components/ui/button";
@@ -48,24 +52,28 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 
-// 1. IMPORT SKEMA DARI MONOREPO SHARED PACKAGE
-import { AddPerawatanBody, type AddPerawatanBodyType } from "@workspace/api-zod";
-
-// 2. EXTEND SKEMA KHUSUS UI (Karena di UI milih banyak area, di backend per area)
-const perawatanFormSchema = AddPerawatanBody.extend({
+const perawatanSchema = z.object({
+  kegiatan: z.string().min(1, "Nama kegiatan wajib diisi"),
+  tanggal: z.string().min(1, "Tanggal wajib diisi"),
   labaRugiIds: z.array(z.string()).min(1, "Minimal pilih 1 area"),
-}).omit({ labaRugiId: true }); 
+  petugasId: z.string().optional(),
+  tags: z.string().optional(),
+  status: z.string().optional(),
+  detailNotes: z.string().optional(),
+  logProduk: z
+    .array(
+      z.object({
+        produk: z.string().min(1, "Nama produk wajib diisi"),
+        dosis: z.string().min(1, "Dosis wajib diisi"),
+      }),
+    )
+    .default([]),
+});
 
-type PerawatanFormValues = z.infer<typeof perawatanFormSchema>;
+type PerawatanFormValues = z.infer<typeof perawatanSchema>;
 
 interface AddPerawatanDialogProps {
   onSuccess?: () => void;
-}
-
-// 3. INTERFACE UNTUK DROPDOWN AGAR TYPESCRIPT TIDAK NGAMUK (MENGHILANGKAN GARIS MERAH)
-interface DropdownOptionsResponse {
-  areas: Array<{ id: string; name: string }>;
-  petugas: Array<{ id: string; name: string }>;
 }
 
 const EMPTY_VALUES: PerawatanFormValues = {
@@ -85,19 +93,19 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // 4. KASIH TIPE GENERIC <DropdownOptionsResponse> KE USEQUERY
-  const { data: dropdownOptions, isLoading: isLoadingOptions } = useQuery<DropdownOptionsResponse>({
+    // Fetch manual langsung tembak ke rute Perawatan baru lu
+  const { data: dropdownOptions, isLoading: isLoadingOptions } = useQuery({
     queryKey: ["perawatan-dropdown-options"],
     queryFn: async () => {
       const res = await fetch("/api/notion/perawatan-dropdown-options");
       if (!res.ok) throw new Error("Gagal mengambil data dropdown");
-      return res.json() as Promise<DropdownOptionsResponse>;
+      return res.json();
     },
     enabled: open,
   });
 
   const form = useForm<PerawatanFormValues>({
-    resolver: zodResolver(perawatanFormSchema),
+    resolver: zodResolver(perawatanSchema),
     defaultValues: EMPTY_VALUES,
   });
 
@@ -112,16 +120,15 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
       const selectedAreas = payload.labaRugiIds || [];
 
       const requests = selectedAreas.map(async (areaId) => {
-        // 5. PASTIKAN TIPE DATA PAYLOAD 100% SAMA DENGAN BACKEND (AddPerawatanBodyType)
-        const cleanData: AddPerawatanBodyType = {
+        const cleanData = {
           kegiatan: payload.kegiatan,
           tanggal: payload.tanggal,
-          tags: payload.tags || undefined,
-          status: payload.status || "Rencana",
-          labaRugiId: areaId, // <-- Diambil dari iterasi array labaRugiIds UI
-          petugasId: payload.petugasId || undefined,
+          tags: payload.tags || "",
+          status: payload.status,
+          labaRugiId: areaId,
+          petugasId: payload.petugasId,
           logProduk: payload.logProduk,
-          detailNotes: payload.detailNotes || undefined,
+          detailNotes: payload.detailNotes,
         };
 
         const response = await fetch("/api/notion/add-perawatan", {
@@ -496,6 +503,7 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                         )}
                       />
 
+                      {/* 👇 TAMBAHIN BLOK STATUS INI 👇 */}
                       <FormField
                         control={form.control}
                         name="status"
@@ -522,38 +530,41 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                           </FormItem>
                         )}
                       />
+                      {/* 👆 BATAS BLOK STATUS 👆 */}
 
-                      <FormField
-                        control={form.control}
-                        name="petugasId"
-                        render={({ field }) => (
-                          <FormItem className="space-y-1.5">
-                            <FormLabel className="text-[11px] font-bold text-muted-foreground">
-                              Petugas Lapangan
-                            </FormLabel>
-                            <Select
-                              onValueChange={field.onChange}
-                              value={field.value || ""}
-                            >
-                              <FormControl>
-                                <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-green-600/20">
-                                  <SelectValue placeholder="Pilih petugas..." />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent className="rounded-xl">
-                                {dropdownOptions?.petugas?.map((item) => (
-                                  <SelectItem
-                                    key={item.id}
-                                    value={item.id}
-                                  >
-                                    {item.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </FormItem>
-                        )}
-                      />
+<FormField
+  control={form.control}
+  name="petugasId"
+  render={({ field }) => (
+    <FormItem className="space-y-1.5">
+      <FormLabel className="text-[11px] font-bold text-muted-foreground">
+        Petugas Lapangan
+      </FormLabel>
+
+      <Select
+        onValueChange={field.onChange}
+        value={field.value || ""}
+      >
+        <FormControl>
+          <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-green-600/20">
+            <SelectValue placeholder="Pilih petugas..." />
+          </SelectTrigger>
+        </FormControl>
+
+        <SelectContent className="rounded-xl">
+          {dropdownOptions?.petugas?.map((item) => (
+            <SelectItem
+              key={item.id}
+              value={item.id}
+            >
+              {item.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </FormItem>
+  )}
+/>
 
                       <FormField
                         control={form.control}
