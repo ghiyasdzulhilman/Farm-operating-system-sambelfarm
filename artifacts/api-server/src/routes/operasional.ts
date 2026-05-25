@@ -364,7 +364,16 @@ router.post("/notion/add-operasional", async (req, res): Promise<void> => {
         const errText = await response.text();
         throw new Error(errText || `Gagal menyimpan untuk area ${currentAreaId}`);
       }
-      return response.json();
+
+      // --- DISINI KUNCINYA ---
+      const pageData = await response.json();
+      
+      // Kita kembalikan ID dan URL-nya sekalian!
+      return { 
+        pageId: pageData.id, 
+        notionUrl: pageData.url 
+      };
+      // -----------------------
     });
 
         // Tangkap semua respon dari Notion (yang di dalamnya ada URL halaman)
