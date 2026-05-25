@@ -79,7 +79,7 @@ interface AddPerawatanDialogProps {
   onSuccess?: () => void;
 }
 
-PerawatanFormValues = {
+const EMPTY_VALUES: PerawatanFormValues = {
   kegiatan: "",
   waktuMulai: format(new Date(), "yyyy-MM-dd'T'HH:mm"), // <--- Default gabungan
   waktuSelesai: "",                                     // <--- Kosongin default-nya
