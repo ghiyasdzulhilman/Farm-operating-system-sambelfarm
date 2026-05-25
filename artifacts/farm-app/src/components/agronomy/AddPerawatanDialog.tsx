@@ -174,11 +174,12 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
     },
   });
 
-  const handleNextStep = async () => {
+    const handleNextStep = async () => {
     let fieldsToValidate: Array<keyof PerawatanFormValues> = [];
     if (step === 1) fieldsToValidate = ["kegiatan", "tanggal"];
     if (step === 2) fieldsToValidate = ["labaRugiIds"];
     if (step === 3) fieldsToValidate = ["logProduk"];
+    if (step === 4) fieldsToValidate = ["tags", "status", "petugasId"]; // Tambahan baru
 
     const isStepValid = await form.trigger(fieldsToValidate);
     if (isStepValid) setStep((prev) => prev + 1);
@@ -231,14 +232,16 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
               <SheetTitle className="text-base font-black tracking-tight">
                 Input Perawatan
               </SheetTitle>
-              <p className="text-[10px] font-bold text-green-600 tracking-wider uppercase">
-                Step {step} dari 4
-              </p>
-            </div>
-          </div>
+              
+  <p className="text-[10px] font-bold text-green-600 tracking-wider uppercase">
+    Step {step} dari 5
+  </p>
+</div>
+</div>
 
-          <div className="flex gap-1.5">
-            {[1, 2, 3, 4].map((i) => (
+<div className="flex gap-1.5">
+  {[1, 2, 3, 4, 5].map((i) => (
+
               <div
                 key={i}
                 className={`h-1.5 rounded-full transition-all duration-300 ${
@@ -453,6 +456,7 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                     </motion.div>
                   )}
 
+                                    {/* STEP 4: DETAIL PEKERJAAN */}
                   {step === 4 && (
                     <motion.div
                       key="step4"
@@ -461,8 +465,8 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                       exit={{ opacity: 0, y: 10 }}
                       className="space-y-4"
                     >
-                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-                        4. Finalisasi
+                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80 mb-2">
+                        4. Detail Pekerjaan
                       </p>
 
                       <FormField
@@ -473,28 +477,17 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                             <FormLabel className="text-[11px] font-bold text-muted-foreground">
                               Jenis Kegiatan / Tags
                             </FormLabel>
-                            <Select
-                              onValueChange={field.onChange}
-                              value={field.value || ""}
-                            >
+                            <Select onValueChange={field.onChange} value={field.value || ""}>
                               <FormControl>
                                 <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-green-600/20">
                                   <SelectValue placeholder="Pilih tag..." />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent className="rounded-xl">
-                                <SelectItem value="Pengocoran">
-                                  Pengocoran
-                                </SelectItem>
-                                <SelectItem value="Penyemprotan">
-                                  Penyemprotan
-                                </SelectItem>
-                                <SelectItem value="Pemupukan">
-                                  Pemupukan Dasar
-                                </SelectItem>
-                                <SelectItem value="Sanitasi">
-                                  Sanitasi / Pembersihan
-                                </SelectItem>
+                                <SelectItem value="Pengocoran">Pengocoran</SelectItem>
+                                <SelectItem value="Penyemprotan">Penyemprotan</SelectItem>
+                                <SelectItem value="Pemupukan">Pemupukan Dasar</SelectItem>
+                                <SelectItem value="Sanitasi">Sanitasi / Pembersihan</SelectItem>
                                 <SelectItem value="Lainnya">Lainnya</SelectItem>
                               </SelectContent>
                             </Select>
@@ -502,7 +495,6 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                         )}
                       />
 
-                      {/* 👇 TAMBAHIN BLOK STATUS INI 👇 */}
                       <FormField
                         control={form.control}
                         name="status"
@@ -511,10 +503,7 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                             <FormLabel className="text-[11px] font-bold text-muted-foreground">
                               Status Pekerjaan
                             </FormLabel>
-                            <Select
-                              onValueChange={field.onChange}
-                              value={field.value || ""}
-                            >
+                            <Select onValueChange={field.onChange} value={field.value || ""}>
                               <FormControl>
                                 <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-green-600/20">
                                   <SelectValue placeholder="Pilih status..." />
@@ -529,49 +518,54 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                           </FormItem>
                         )}
                       />
-                      {/* 👆 BATAS BLOK STATUS 👆 */}
 
-<FormField
-  control={form.control}
-  name="petugasId"
-  render={({ field }) => (
-    <FormItem className="space-y-1.5">
-      <FormLabel className="text-[11px] font-bold text-muted-foreground">
-        Petugas Lapangan
-      </FormLabel>
+                      <FormField
+                        control={form.control}
+                        name="petugasId"
+                        render={({ field }) => (
+                          <FormItem className="space-y-1.5">
+                            <FormLabel className="text-[11px] font-bold text-muted-foreground">
+                              Petugas Lapangan
+                            </FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value || ""}>
+                              <FormControl>
+                                <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-green-600/20">
+                                  <SelectValue placeholder="Pilih petugas..." />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent className="rounded-xl">
+                                {dropdownOptions?.petugas?.map((item) => (
+                                  <SelectItem key={item.id} value={item.id}>
+                                    {item.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </FormItem>
+                        )}
+                      />
+                    </motion.div>
+                  )}
 
-      <Select
-        onValueChange={field.onChange}
-        value={field.value || ""}
-      >
-        <FormControl>
-          <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-green-600/20">
-            <SelectValue placeholder="Pilih petugas..." />
-          </SelectTrigger>
-        </FormControl>
+                  {/* STEP 5: CATATAN & FINALISASI */}
+                  {step === 5 && (
+                    <motion.div
+                      key="step5"
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      className="space-y-4 max-h-[60vh] overflow-y-auto pr-1 pb-4"
+                    >
+                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80 mb-2">
+                        5. Finalisasi & Catatan
+                      </p>
 
-        <SelectContent className="rounded-xl">
-          {dropdownOptions?.petugas?.map((item) => (
-            <SelectItem
-              key={item.id}
-              value={item.id}
-            >
-              {item.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </FormItem>
-  )}
-/>
-
-                      
-                       {/* SAKELAR MODE CATATAN DETAIL */}
-                      <div className="space-y-3 pt-4 border-t border-border mt-4">
+                      {/* SAKELAR MODE CATATAN DETAIL */}
+                      <div className="space-y-3">
                         <div className="flex items-center justify-between mb-1">
-                        <p className="text-[11px] font-bold text-muted-foreground">
-                        Mode Catatan Lapangan
-                        </p>
+                          <p className="text-[11px] font-bold text-muted-foreground">
+                            Mode Catatan Lapangan
+                          </p>
                         </div>
                         
                         <div className="grid grid-cols-2 gap-2 bg-muted/50 p-1.5 rounded-xl border border-border">
@@ -603,7 +597,7 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                           <div className="space-y-2 animate-in fade-in zoom-in-95 duration-200 pt-1">
                             <Textarea
                               placeholder="Ketik catatan detail untuk diterapkan ke semua area..."
-                              className="min-h-[100px] rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm"
+                              className="min-h-[140px] rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm"
                               {...form.register("catatanBroadcast")}
                             />
                           </div>
@@ -654,7 +648,7 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                     </Button>
                   )}
 
-                  {step < 4 ? (
+                  {step < 5 ? (
                     <Button
                       type="button"
                       className="h-11 rounded-xl px-5 font-bold bg-green-600 text-white hover:bg-green-700"
