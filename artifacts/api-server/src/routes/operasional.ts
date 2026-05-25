@@ -229,7 +229,6 @@ function buildOperasionalProperties(data: AddOperasionalBody, mappings: FieldMap
     if (field.key === "prioritas") value = data.prioritas;
     if (field.key === "waktuPengerjaan") value = normalizeDateRange(data.waktuPengerjaan, data.waktuMulai, data.waktuSelesai);
     if (field.key === "durasiKerja") value = data.durasiKerja;
-    if (field.key === "catatan") value = data.catatan;
     if (field.key === "lampiran") value = data.lampiran;
 
     if (value === undefined || value === null || value === "" || (Array.isArray(value) && value.length === 0)) return;
