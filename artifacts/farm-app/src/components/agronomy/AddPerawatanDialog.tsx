@@ -54,7 +54,7 @@ import { Badge } from "@/components/ui/badge";
 
 const perawatanSchema = z.object({
   kegiatan: z.string().min(1, "Nama kegiatan wajib diisi"),
-  tanggal: z.string().min(1, "Tanggal wajib diisi"),
+  tanggal: z.string().min(1, "Tanggal kegiatan"),
   labaRugiIds: z.array(z.string()).min(1, "Minimal pilih 1 area"),
   petugasId: z.string().optional(),
   tags: z.string().optional(),
@@ -80,7 +80,7 @@ interface AddPerawatanDialogProps {
 
 const EMPTY_VALUES: PerawatanFormValues = {
   kegiatan: "",
-  tanggal: format(new Date(), "yyyy-MM-dd"),
+  tanggal: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
   labaRugiIds: [],
   petugasId: "",
   tags: "",
@@ -357,10 +357,11 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                               <div className="relative">
                                 <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                                 <Input
-                                  type="date"
-                                  className="h-12 rounded-xl bg-muted border-transparent pl-11 pr-4 focus-visible:ring-2 focus-visible:ring-green-600/20 font-bold text-sm w-full"
-                                  {...field}
-                                />
+                                type="datetime-local"
+                                className="h-12 rounded-xl bg-muted border-transparent pl-11 pr-4 focus-visible:ring-2 focus-visible:ring-green-600/20 font-bold text-sm w-full"
+                                {...field}
+                               />
+
                               </div>
                             </FormControl>
                             <FormMessage className="text-xs text-red-500" />
