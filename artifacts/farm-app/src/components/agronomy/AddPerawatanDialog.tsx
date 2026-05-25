@@ -149,11 +149,7 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
     },
     
         onSuccess: async (data, variables) => {
-      // 1. Munculin notif toast hijau di pojok
-      toast({
-        title: "Perawatan tersimpan",
-        description: `Sukses disimpan untuk ${variables.labaRugiIds.length} blok.`,
-      });
+      // 1. Munculin notif toast hijau
 
       await queryClient.invalidateQueries({
         queryKey: getGetDashboardSummaryQueryKey(),
