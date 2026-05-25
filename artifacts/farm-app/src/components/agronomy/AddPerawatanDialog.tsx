@@ -542,7 +542,7 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                                 <SelectItem value="Pengocoran">Pengocoran</SelectItem>
                                 <SelectItem value="Penyemprotan">Penyemprotan</SelectItem>
                                 <SelectItem value="Pemupukan">Pemupukan Dasar</SelectItem>
-                                <SelectItem value="Selingan">Selingan / Selingan</SelectItem>
+                                <SelectItem value="Selingan">Selingan</SelectItem>
                                 <SelectItem value="Lainnya">Lainnya</SelectItem>
                               </SelectContent>
                             </Select>
