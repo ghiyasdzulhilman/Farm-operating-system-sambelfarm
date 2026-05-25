@@ -401,13 +401,18 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
         mappings,
       );
 
-      // 👇 TIMPA TANGGAL DENGAN FORMATTER SAKTI 👇
-      const namaKolomTanggal = mappings.tanggal || "Date"; 
-      const formattedStart = formatNotionDate(body.waktuMulai);
+       // 👇 TIMPA TANGGAL DENGAN FORMATTER SAKTI (VERSI OPERASIONAL) 👇
+      // Kita ekstrak ID kolom yang BENER biar gak jadi [object Object]
+      const mappingTanggal = mappings?.tanggal as any;
+      const propertyIdTanggal = mappingTanggal?.propertyId 
+        ? decodePropertyId(mappingTanggal.propertyId) 
+        : "Date"; 
+
+      const formattedStart = formatNotionDate(waktuMulai);
       const formattedEnd = body.waktuSelesai ? formatNotionDate(body.waktuSelesai) : undefined;
 
       if (formattedStart) {
-        properties[namaKolomTanggal] = {
+        properties[propertyIdTanggal] = {
           date: {
             start: formattedStart,
             ...(formattedEnd ? { end: formattedEnd } : {})
