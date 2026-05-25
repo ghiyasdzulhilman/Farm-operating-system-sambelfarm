@@ -156,15 +156,32 @@ async function getMappingRow(
   return row ?? null;
 }
 
-function formatNotionDateTime(dateStr: string): string {
-  if (!dateStr) return "";
-  // Jika input dari HP ada jamnya (mengandung huruf 'T', contoh: 2026-05-25T08:30)
-  if (dateStr.includes("T")) {
-    // Kita kunci paksa jadi zona waktu Indonesia / WIB (+07:00)
-    return `${dateStr}:00+07:00`;
+// FORMATTER TANGGAL MANUAL WIB - DIJAMIN TEMBUS & GA LARI 7 JAM
+function formatNotionDate(dateString: string): string | undefined {
+  if (!dateString) return undefined;
+  const str = dateString.trim();
+  
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(str)) return `${str}:00+07:00`;
+  
+  const d = new Date(str);
+  if (isNaN(d.getTime())) return undefined;
+  
+  try {
+    const pad = (num: number) => String(num).padStart(2, '0');
+    const wibTimestamp = d.getTime() + (7 * 60 * 60 * 1000);
+    const wibDate = new Date(wibTimestamp);
+    
+    const year = wibDate.getUTCFullYear();
+    const month = pad(wibDate.getUTCMonth() + 1);
+    const day = pad(wibDate.getUTCDate());
+    const hours = pad(wibDate.getUTCHours());
+    const minutes = pad(wibDate.getUTCMinutes());
+    
+    return `${year}-${month}-${day}T${hours}:${minutes}:00+07:00`;
+  } catch {
+    return str;
   }
-  // Fallback kalau cuma tanggal doang
-  return dateStr;
 }
 
 function buildRichText(content: string) {
@@ -373,7 +390,7 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
         const properties = buildPerawatanProperties(
         {
           kegiatan,
-          tanggal, 
+          // (gak usah pusingin variabel tanggal di sini, kita timpa di bawah)
           labaRugiId: currentAreaId,
           petugasId: body.petugasId,
           tags: body.tags,
@@ -384,20 +401,19 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
         mappings,
       );
 
-            // 👇 JURUS HACK WAKTU ALA OPERASIONAL 👇
-      const namaKolomTanggal = mappings.tanggal || "Date"; // Ambil nama kolom yang bener dari mapping
+      // 👇 TIMPA TANGGAL DENGAN FORMATTER SAKTI 👇
+      const namaKolomTanggal = mappings.tanggal || "Date"; 
+      const formattedStart = formatNotionDate(body.waktuMulai);
+      const formattedEnd = body.waktuSelesai ? formatNotionDate(body.waktuSelesai) : undefined;
 
-      // Rakit format WIB anti-geser seperti di Operasional (YYYY-MM-DDTHH:mm:00+07:00)
-      const waktuStart = body.waktuMulai ? `${tanggal}T${body.waktuMulai}:00+07:00` : tanggal;
-      const waktuEnd = body.waktuSelesai ? `${tanggal}T${body.waktuSelesai}:00+07:00` : undefined;
-
-      // Timpa properties dengan rentang waktu yang presisi
-      properties[namaKolomTanggal] = {
-        date: {
-          start: waktuStart,
-          ...(waktuEnd ? { end: waktuEnd } : {})
-        }
-      };
+      if (formattedStart) {
+        properties[namaKolomTanggal] = {
+          date: {
+            start: formattedStart,
+            ...(formattedEnd ? { end: formattedEnd } : {})
+          }
+        };
+      }
 
       // 2. Rakit block Notion menggunakan catatan spesifik tersebut
       const childrenBlocks = buildNotionBlocks(body.logProduk, catatanAreaIni);
