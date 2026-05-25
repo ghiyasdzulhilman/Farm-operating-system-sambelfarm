@@ -67,11 +67,5 @@ export const OPERASIONAL_SCHEMA = {
       aliases: ["durasi", "lama kerja", "jam"],
     },
 
-    {
-      key: "lampiran",
-      label: "Lampiran",
-      expectedType: "files",
-      aliases: ["lampiran", "media", "attachment", "foto"],
-    },
   ],
 } as const;
