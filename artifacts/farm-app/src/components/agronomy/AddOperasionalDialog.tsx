@@ -179,6 +179,23 @@ export function AddOperasionalDialog({ onSuccess }: AddOperasionalDialogProps) {
     },
   });
 
+  const toggleArea = (areaId: string) => {
+    const currentAreas = form.getValues("areaIds");
+
+    if (currentAreas.includes(areaId)) {
+      form.setValue(
+        "areaIds",
+        currentAreas.filter((id) => id !== areaId),
+        { shouldValidate: true },
+      );
+    } else {
+      form.setValue("areaIds", [...currentAreas, areaId], {
+        shouldValidate: true,
+      });
+    }
+  };
+
+
   const toggleWorker = (workerId: string) => {
   const currentWorkers = form.getValues("ditugaskanKeId");
 
@@ -201,7 +218,7 @@ export function AddOperasionalDialog({ onSuccess }: AddOperasionalDialogProps) {
     let fieldsToValidate: Array<keyof OperasionalFormValues> = [];
 
     if (step === 1) fieldsToValidate = ["namaPekerjaan", "kategori"];
-    if (step === 2) fieldsToValidate = ["areaId", "ditugaskanKeId", "prioritas"];
+    if (step === 2) fieldsToValidate = ["areaIds", "ditugaskanKeId", "prioritas"];
     if (step === 3) fieldsToValidate = ["waktuMulai"];
 
     const isStepValid = await form.trigger(fieldsToValidate);
@@ -366,33 +383,56 @@ export function AddOperasionalDialog({ onSuccess }: AddOperasionalDialogProps) {
                       exit={{ opacity: 0, y: 10 }}
                       className="space-y-4"
                     >
-                      <FormField
-                        control={form.control}
-                        name="areaId"
-                        render={({ field }) => (
-                          <FormItem className="space-y-1.5">
-                            <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-                              <MapPinned className="inline-block h-3.5 w-3.5 mr-1" />
-                              Area
-                            </FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value || ""}>
-                              <FormControl>
-                                <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-green-600/20">
-                                  <SelectValue placeholder="Pilih area..." />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent className="rounded-xl">
-                                {dropdownOptions?.areas?.map((item) => (
-                                  <SelectItem key={item.id} value={item.id}>
-                                    {item.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage className="text-xs text-red-500" />
-                          </FormItem>
-                        )}
-                      />
+
+
+        <div className="space-y-1.5">
+  <div className="flex items-center justify-between">
+    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
+      <MapPinned className="inline-block h-3.5 w-3.5 mr-1" />
+      Area Laba Rugi
+    </p>
+
+    <span className="text-[10px] font-semibold text-muted-foreground">
+      {form.watch("areaIds").length} area terpilih
+    </span>
+  </div>
+
+  <div className="rounded-2xl border border-border/60 bg-muted/20 p-2.5">
+    <div className="flex flex-wrap gap-2">
+      {dropdownOptions?.areas?.length === 0 ? (
+        <p className="text-sm text-muted-foreground px-1 py-2">
+          Tidak ada data area ditemukan.
+        </p>
+      ) : (
+        dropdownOptions?.areas?.map((item) => {
+          const isSelected = form.watch("areaIds").includes(item.id);
+
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => toggleArea(item.id)}
+              className={`px-3.5 py-2 rounded-xl text-sm font-semibold transition-all border ${
+                isSelected
+                  ? "bg-green-600 text-white border-green-600 shadow-sm scale-[1.02]"
+                  : "bg-background text-muted-foreground border-border/50 hover:bg-muted"
+              }`}
+            >
+              {item.name}
+            </button>
+          );
+        })
+      )}
+    </div>
+  </div>
+
+  {form.formState.errors.areaIds && (
+    <p className="text-xs text-red-500 mt-2 font-medium">
+      {form.formState.errors.areaIds.message}
+    </p>
+  )}
+</div>
+
 
 <div className="space-y-1.5">
   <div className="flex items-center justify-between">
