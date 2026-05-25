@@ -322,82 +322,73 @@ function buildOperasionalProperties(
     }
 
     switch (field.expectedType) {
-      case "title":
-        props[propertyId] = {
-          title: [{ text: { content: String(value) } }],
-        };
-        break;
-
-      case "select":
-        props[propertyId] = {
-          select: { name: String(value) },
-        };
-        break;
-
-      case "status":
-        props[propertyId] = {
-          status: { name: String(value) },
-        };
-        break;
-
-      case "relation": {
-  const relationIds = Array.isArray(value)
-    ? value
-        .filter((id) => id && String(id).trim() !== "")
-        .map((id) => ({ id: String(id).trim() }))
-    : value && String(value).trim() !== ""
-      ? [{ id: String(value).trim() }]
-      : [];
-
-  props[propertyId] = {
-    relation: relationIds,
-  };
-
-  break;
-}
-
-  // 2. Kalau ada isinya, baru rakit datanya dengan aman
-  props[propertyId] = {
-    relation: Array.isArray(value)
-      ? value.filter((id) => id && String(id).trim() !== "").map((id) => ({ id: String(id) }))
-      : [{ id: String(value).trim() }],
-  };
-  break;
-
-      case "date":
-        if (typeof value === "object" && value && "start" in value) {
-          props[propertyId] = {
-            date: value,
-          };
-        }
-        break;
-
-      case "number": {
-  const parsed = Number(value);
-
-  if (!Number.isNaN(parsed)) {
+  case "title":
     props[propertyId] = {
-      number: parsed,
+      title: [{ text: { content: String(value) } }],
     };
+    break;
+
+  case "select":
+    props[propertyId] = {
+      select: { name: String(value) },
+    };
+    break;
+
+  case "status":
+    props[propertyId] = {
+      status: { name: String(value) },
+    };
+    break;
+
+  case "relation": {
+    const relationIds = Array.isArray(value)
+      ? value
+          .filter((id) => id && String(id).trim() !== "")
+          .map((id) => ({ id: String(id).trim() }))
+      : value && String(value).trim() !== ""
+        ? [{ id: String(value).trim() }]
+        : [];
+
+    if (relationIds.length > 0) {
+      props[propertyId] = {
+        relation: relationIds,
+      };
+    }
+
+    break;
   }
 
-  break;
-}
-
-      case "rich_text":
-        props[propertyId] = buildRichText(String(value));
-        break;
-
-      case "files":
-        const files = normalizeFiles(value as AddOperasionalBody["lampiran"]);
-        if (files) {
-          props[propertyId] = { files };
-        }
-        break;
+  case "date":
+    if (typeof value === "object" && value && "start" in value) {
+      props[propertyId] = {
+        date: value,
+      };
     }
-  });
+    break;
 
-  return props;
+  case "number": {
+    const parsed = Number(value);
+
+    if (!Number.isNaN(parsed)) {
+      props[propertyId] = {
+        number: parsed,
+      };
+    }
+
+    break;
+  }
+
+  case "rich_text":
+    props[propertyId] = buildRichText(String(value));
+    break;
+
+  case "files": {
+    const files = normalizeFiles(value as AddOperasionalBody["lampiran"]);
+    if (files) {
+      props[propertyId] = { files };
+    }
+    break;
+  }
 }
 
 router.get("/notion/operasional-dropdown-options", async (req, res): Promise<void> => {
