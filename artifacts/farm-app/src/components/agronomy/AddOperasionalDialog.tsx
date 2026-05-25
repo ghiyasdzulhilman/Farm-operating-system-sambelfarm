@@ -186,7 +186,7 @@ export function AddOperasionalDialog({ onSuccess }: AddOperasionalDialogProps) {
       return response.json();
     },
     
-    onSuccess: async (responseData) => {
+        onSuccess: async (responseData) => {
       // Refresh data di background
       await queryClient.invalidateQueries({
         queryKey: getGetDashboardSummaryQueryKey(),
