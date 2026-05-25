@@ -39,7 +39,7 @@ interface AddPerawatanBody {
   petugasId?: string;
   tags?: string[] | string;
   status: string;
-  detailNotes?: string;
+  detailNotes?: Record<string, string>;
   logProduk?: Array<{
     produk: string;
     dosis: string;
@@ -354,21 +354,25 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
 
     // --- DI SINI MAGIC-NYA: KITA LOOPING SESUAI JUMLAH AREA ---
     const requests = areaIds.map(async (currentAreaId) => {
+            // 1. Ambil catatan spesifik untuk area yang sedang di-looping
+      const catatanAreaIni = body.detailNotes?.[currentAreaId] || "";
+
       const properties = buildPerawatanProperties(
         {
           kegiatan,
           tanggal,
-          labaRugiId: currentAreaId, // Tembak ID perulangan ke Notion
+          labaRugiId: currentAreaId,
           petugasId: body.petugasId,
           tags: body.tags,
           status: body.status || "Rencana",
-          detailNotes: body.detailNotes,
+          detailNotes: catatanAreaIni, // Masukkan catatan spesifik
           logProduk: body.logProduk,
         },
         mappings,
       );
 
-      const childrenBlocks = buildNotionBlocks(body.logProduk, body.detailNotes);
+      // 2. Rakit block Notion menggunakan catatan spesifik tersebut
+      const childrenBlocks = buildNotionBlocks(body.logProduk, catatanAreaIni);
 
       const payload: any = {
         parent: { database_id: databaseId },
