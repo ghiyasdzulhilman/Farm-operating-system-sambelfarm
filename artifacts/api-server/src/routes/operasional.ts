@@ -93,16 +93,26 @@ function buildRichText(content: string) {
   return { rich_text: [{ type: "text", text: { content } }] };
 }
 
-// FORMATTER TANGGAL ANTI-GAGAL NOTION
+// FORMATTER TANGGAL LOKAL (ANTI-PERGESERAN TIMEZONE NOTION)
 function formatNotionDate(dateString: string): string | undefined {
   if (!dateString) return undefined;
   const str = dateString.trim();
-  // Jika format YYYY-MM-DD, biarkan saja (event seharian)
+  
+  // Jika formatnya YYYY-MM-DD (tanpa jam), biarkan saja
   if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
-  // Konversi ke format ISO 8601 ketat agar Notion API tidak melempar 400 Bad Request
+  
+  // Jika format datetime-local bawaan HP (YYYY-MM-DDTHH:mm)
+  // Kita bersihkan dan kembalikan string mentahnya tanpa dikonversi ke UTC.
+  // Ini memaksa Notion mendeteksi waktu tersebut sebagai waktu lokal statis.
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(str)) {
+    return str;
+  }
+  
   const d = new Date(str);
   if (isNaN(d.getTime())) return undefined;
-  return d.toISOString(); 
+  
+  // Fallback aman jika format lain masuk
+  return str;
 }
 
 function normalizeDateRange(
