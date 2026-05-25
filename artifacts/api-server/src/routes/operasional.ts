@@ -93,16 +93,44 @@ function buildRichText(content: string) {
   return { rich_text: [{ type: "text", text: { content } }] };
 }
 
-// FORMATTER TANGGAL ANTI-GAGAL NOTION
+// FORMATTER TANGGAL MANUAL WIB - DIJAMIN TEMBUS & GA LARI 7 JAM
 function formatNotionDate(dateString: string): string | undefined {
   if (!dateString) return undefined;
   const str = dateString.trim();
-  // Jika format YYYY-MM-DD, biarkan saja (event seharian)
+  
+  // 1. Jika formatnya cuma tanggal YYYY-MM-DD (seharian), biarkan saja
   if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
-  // Konversi ke format ISO 8601 ketat agar Notion API tidak melempar 400 Bad Request
+  
+  // 2. Jika input dari form HP (YYYY-MM-DDTHH:mm)
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(str)) {
+    // Kita rakit manual format ISO lokal yang wajib ada detiknya (:00)
+    // dan ditutup dengan offset WIB (+07:00)
+    return `${str}:00+07:00`;
+  }
+  
+  // 3. Fallback jika formatnya sudah ISO lengkap, paksa konversi ke WIB (+07:00)
   const d = new Date(str);
   if (isNaN(d.getTime())) return undefined;
-  return d.toISOString(); 
+  
+  try {
+    // Ambil waktu lokal dari objek date
+    const pad = (num: number) => String(num).padStart(2, '0');
+    
+    // Gunakan trik manual getUTC karena Date di Replit memakai waktu UTC server, 
+    // jadi kita tambahkan 7 jam secara manual untuk mendapatkan angka WIB asli
+    const wibTimestamp = d.getTime() + (7 * 60 * 60 * 1000);
+    const wibDate = new Date(wibTimestamp);
+    
+    const year = wibDate.getUTCFullYear();
+    const month = pad(wibDate.getUTCMonth() + 1);
+    const day = pad(wibDate.getUTCDate());
+    const hours = pad(wibDate.getUTCHours());
+    const minutes = pad(wibDate.getUTCMinutes());
+    
+    return `${year}-${month}-${day}T${hours}:${minutes}:00+07:00`;
+  } catch {
+    return str;
+  }
 }
 
 function normalizeDateRange(
