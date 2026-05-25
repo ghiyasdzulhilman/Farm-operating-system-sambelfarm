@@ -34,6 +34,8 @@ interface NotionDatabase {
 interface AddPerawatanBody {
   kegiatan: string;
   tanggal: string;
+  waktuMulai?: string;
+  waktuSelesai?: string;
   labaRugiId?: string; // Bikin opsional
   labaRugiIds?: string[]; // <--- TAMBAHIN INI BUAT MULTI-AREA
   petugasId?: string;
@@ -371,16 +373,27 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
         const properties = buildPerawatanProperties(
         {
           kegiatan,
-          tanggal: formatNotionDateTime(tanggal), // <--- INI PERUBAHANNYA DIBUNGKUS
-          labaRugiId: currentAreaId, // Tembak ID perulangan ke Notion
+          tanggal, 
+          labaRugiId: currentAreaId,
           petugasId: body.petugasId,
           tags: body.tags,
           status: body.status || "Rencana",
-          detailNotes: catatanAreaIni, // Masukkan catatan spesifik
+          detailNotes: catatanAreaIni,
           logProduk: body.logProduk,
         },
         mappings,
       );
+
+      // 👇 TAMBAHKAN JURUS HACK NOTION INI DI SINI 👇
+      // Ini bakal nimpain settingan tanggal biasa menjadi rentang waktu WIB (+07:00)
+      if (body.waktuMulai) {
+        properties["Date"] = { // Pastikan nama kolom di Notion beneran "Date"
+          date: {
+            start: `${tanggal}T${body.waktuMulai}:00+07:00`,
+            ...(body.waktuSelesai ? { end: `${tanggal}T${body.waktuSelesai}:00+07:00` } : {})
+          }
+        };
+      }
 
       // 2. Rakit block Notion menggunakan catatan spesifik tersebut
       const childrenBlocks = buildNotionBlocks(body.logProduk, catatanAreaIni);
