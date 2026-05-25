@@ -115,8 +115,51 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
       name: "logProduk",
     });
 
+  
   const savePerawatan = useMutation({
     mutationFn: async (payload: PerawatanFormValues) => {
+      // Kita kirim seluruh data borongan (termasuk array labaRugiIds) ke backend SEKALI TEMBAK
+      const response = await fetch("/api/notion/add-perawatan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload), // Backend lu sekarang udah pinter nerima payload ini
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(errText || "Gagal menyimpan perawatan");
+      }
+
+      return response.json();
+    },
+    onSuccess: async (data, variables) => {
+      toast({
+        title: "Perawatan tersimpan",
+        description: `Sukses disimpan untuk ${variables.labaRugiIds.length} blok.`,
+      });
+
+      await queryClient.invalidateQueries({
+        queryKey: getGetDashboardSummaryQueryKey(),
+        refetchType: "all",
+      });
+
+      form.reset(EMPTY_VALUES);
+      setStep(1);
+      setOpen(false);
+      onSuccess?.();
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Gagal menyimpan",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Cek kembali koneksi internet.",
+      });
+    },
+  });
+
       const selectedAreas = payload.labaRugiIds || [];
 
       const requests = selectedAreas.map(async (areaId) => {
