@@ -44,7 +44,6 @@ interface AddOperasionalBody {
   waktuSelesai?: string;
   durasiKerja?: number;
   catatan?: string;
-  lampiran?: Array<string | { url: string; name?: string; }>;
 }
 
 function decodePropertyId(id: string): string {
@@ -98,26 +97,14 @@ function formatNotionDate(dateString: string): string | undefined {
   if (!dateString) return undefined;
   const str = dateString.trim();
   
-  // 1. Jika formatnya cuma tanggal YYYY-MM-DD (seharian), biarkan saja
   if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(str)) return `${str}:00+07:00`;
   
-  // 2. Jika input dari form HP (YYYY-MM-DDTHH:mm)
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(str)) {
-    // Kita rakit manual format ISO lokal yang wajib ada detiknya (:00)
-    // dan ditutup dengan offset WIB (+07:00)
-    return `${str}:00+07:00`;
-  }
-  
-  // 3. Fallback jika formatnya sudah ISO lengkap, paksa konversi ke WIB (+07:00)
   const d = new Date(str);
   if (isNaN(d.getTime())) return undefined;
   
   try {
-    // Ambil waktu lokal dari objek date
     const pad = (num: number) => String(num).padStart(2, '0');
-    
-    // Gunakan trik manual getUTC karena Date di Replit memakai waktu UTC server, 
-    // jadi kita tambahkan 7 jam secara manual untuk mendapatkan angka WIB asli
     const wibTimestamp = d.getTime() + (7 * 60 * 60 * 1000);
     const wibDate = new Date(wibTimestamp);
     
@@ -159,24 +146,6 @@ function normalizeDateRange(
   return normalized;
 }
 
-function isValidUrl(str: string) {
-  try { new URL(str); return true; } catch { return false; }
-}
-
-function normalizeFiles(lampiran: AddOperasionalBody["lampiran"]) {
-  if (!Array.isArray(lampiran) || lampiran.length === 0) return null;
-  const files = lampiran.map((item, index) => {
-    if (typeof item === "string" && isValidUrl(item.trim())) {
-      return { name: `Lampiran ${index + 1}`, type: "external" as const, external: { url: item.trim() } };
-    }
-    if (item && typeof item === "object" && typeof item.url === "string" && isValidUrl(item.url.trim())) {
-      return { name: item.name?.trim() || `Lampiran ${index + 1}`, type: "external" as const, external: { url: item.url.trim() } };
-    }
-    return null;
-  }).filter(Boolean);
-  return files.length > 0 ? files : null;
-}
-
 // FUNGSI PERAKIT BLOCKS UNTUK BODY PAGE NOTION
 function buildOperasionalBlocks(catatan: string | undefined): any[] {
   if (!catatan || catatan.trim() === "") return [];
@@ -208,7 +177,6 @@ const OPERASIONAL_FIELDS = [
   { key: "prioritas", expectedType: "select" },
   { key: "waktuPengerjaan", expectedType: "date" },
   { key: "durasiKerja", expectedType: "number" },
-  { key: "lampiran", expectedType: "files" },
 ] as const;
 
 function buildOperasionalProperties(data: AddOperasionalBody, mappings: FieldMappingData | undefined): Record<string, unknown> {
@@ -229,7 +197,6 @@ function buildOperasionalProperties(data: AddOperasionalBody, mappings: FieldMap
     if (field.key === "prioritas") value = data.prioritas;
     if (field.key === "waktuPengerjaan") value = normalizeDateRange(data.waktuPengerjaan, data.waktuMulai, data.waktuSelesai);
     if (field.key === "durasiKerja") value = data.durasiKerja;
-    if (field.key === "lampiran") value = data.lampiran;
 
     if (value === undefined || value === null || value === "" || (Array.isArray(value) && value.length === 0)) return;
 
@@ -251,11 +218,6 @@ function buildOperasionalProperties(data: AddOperasionalBody, mappings: FieldMap
         break;
       }
       case "rich_text": props[propertyId] = buildRichText(String(value)); break;
-      case "files": {
-        const files = normalizeFiles(value as AddOperasionalBody["lampiran"]);
-        if (files) props[propertyId] = { files };
-        break;
-      }
     }
   });
 
@@ -331,7 +293,7 @@ router.post("/notion/add-operasional", async (req, res): Promise<void> => {
           areaId: currentAreaId, // Tembak ID perulangan ke Notion
           prioritas: body.prioritas, waktuPengerjaan: body.waktuPengerjaan,
           waktuMulai, waktuSelesai: body.waktuSelesai,
-          durasiKerja: body.durasiKerja, catatan: body.catatan, lampiran: body.lampiran,
+          durasiKerja: body.durasiKerja, catatan: body.catatan,
         },
         mappings
       );
@@ -365,24 +327,20 @@ router.post("/notion/add-operasional", async (req, res): Promise<void> => {
         throw new Error(errText || `Gagal menyimpan untuk area ${currentAreaId}`);
       }
 
-      // --- DISINI KUNCINYA ---
       const pageData = await response.json();
       
-      // Kita kembalikan ID dan URL-nya sekalian!
       return { 
         pageId: pageData.id, 
         notionUrl: pageData.url 
       };
-      // -----------------------
     });
 
-        // Tangkap semua respon dari Notion (yang di dalamnya ada URL halaman)
     const results = await Promise.all(requests);
     
     res.status(201).json({ 
       success: true, 
       message: `Berhasil mencatat kegiatan untuk ${areaIds.length} area.`,
-      data: results // Lempar data URL halamannya ke Frontend!
+      data: results
     });
 
   } catch (err) {
