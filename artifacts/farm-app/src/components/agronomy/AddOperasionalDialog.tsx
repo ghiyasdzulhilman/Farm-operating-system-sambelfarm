@@ -11,6 +11,7 @@ import {
   CalendarClock,
   CheckCircle2,
   ClipboardList,
+  ExternalLink,
   FileText,
   Gauge,
   Loader2,
@@ -100,6 +101,7 @@ function parseLampiranList(raw?: string) {
 export function AddOperasionalDialog({ onSuccess }: AddOperasionalDialogProps) {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(1);
+  const [successUrls, setSuccessUrls] = useState<string[]>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -117,10 +119,19 @@ export function AddOperasionalDialog({ onSuccess }: AddOperasionalDialogProps) {
     enabled: open,
   });
 
-  const form = useForm<OperasionalFormValues>({
+    const form = useForm<OperasionalFormValues>({
     resolver: zodResolver(operasionalSchema),
     defaultValues: EMPTY_VALUES,
   });
+
+  // Fungsi khusus untuk me-reset form dan menutup dialog layarnya
+  const closeAndReset = () => {
+    form.reset(EMPTY_VALUES);
+    setStep(1);
+    setSuccessUrls([]);
+    setOpen(false);
+    onSuccess?.();
+  };
 
   // --- AUTO CALCULATE DURATION ---
   const watchWaktuMulai = form.watch("waktuMulai");
@@ -174,22 +185,27 @@ export function AddOperasionalDialog({ onSuccess }: AddOperasionalDialogProps) {
 
       return response.json();
     },
-    onSuccess: async () => {
-      toast({
-        title: "Operasional tersimpan",
-        description: "Data berhasil dikirim ke Notion.",
-      });
-
+    
+    onSuccess: async (responseData) => {
+      // Refresh data di background
       await queryClient.invalidateQueries({
         queryKey: getGetDashboardSummaryQueryKey(),
         refetchType: "all",
       });
 
-      form.reset(EMPTY_VALUES);
-      setStep(1);
-      setOpen(false);
-      onSuccess?.();
+      // Tangkap URL Notion dari backend (jika ada)
+      const urls = responseData?.data?.map((d: any) => d.notionUrl).filter(Boolean) || [];
+
+      if (urls.length > 0) {
+        // Tampilkan layar sukses (tombol Buka Notion)
+        setSuccessUrls(urls);
+      } else {
+        // Fallback aman kalau backend gak ngirim URL
+        toast({ title: "Operasional tersimpan", description: "Data berhasil dikirim." });
+        closeAndReset();
+      }
     },
+
     onError: (error) => {
       toast({
         variant: "destructive",
@@ -273,454 +289,464 @@ export function AddOperasionalDialog({ onSuccess }: AddOperasionalDialogProps) {
         side="top"
         className="mx-auto max-w-md rounded-b-[2rem] border-x-0 border-t-0 p-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl pb-4 shadow-[0_16px_40px_rgba(0,0,0,0.12)]"
       >
-        <SheetHeader className="px-6 py-4 flex flex-row items-center justify-between border-b border-border">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-green-500/10 p-2 text-green-600">
-              <ClipboardList className="h-5 w-5" />
+
+        {successUrls.length > 0 ? (
+          // UI LAYAR SUKSES (TOMBOL NOTION)
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }} 
+            animate={{ opacity: 1, scale: 1 }} 
+            className="flex flex-col items-center justify-center px-6 py-12 text-center space-y-6"
+          >
+            <div className="h-20 w-20 bg-green-500/10 text-green-600 rounded-full flex items-center justify-center">
+              <CheckCircle2 className="h-10 w-10" />
             </div>
-            <div className="text-left">
-              <SheetTitle className="text-base font-black tracking-tight">
-                Input Operasional
-              </SheetTitle>
-              <p className="text-[10px] font-bold text-green-600 tracking-wider uppercase">
-                Step {step} dari 4
+            <div>
+              <h3 className="text-xl font-black text-foreground">Sukses Terkirim!</h3>
+              <p className="text-sm text-muted-foreground mt-2 font-medium">
+                Data operasional sudah mendarat di Notion. Mau langsung lampirkan foto/file bukti lapangan sekarang?
               </p>
             </div>
-          </div>
-
-          <div className="flex gap-1.5">
-            {[1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  step === i ? "w-4 bg-green-600" : "w-1.5 bg-border"
-                }`}
-              />
-            ))}
-          </div>
-        </SheetHeader>
-
-        <div className="px-6 py-4">
-          {isLoadingOptions && step >= 2 ? (
-            <Skeleton className="h-12 w-full rounded-xl" />
-          ) : (
-            <Form {...form}>
-              <form
-                onSubmit={(e) => e.preventDefault()}
-                className="space-y-5 text-left"
+            <div className="w-full space-y-3 pt-4">
+              {successUrls.map((url, i) => (
+                <Button 
+                  key={i} 
+                  onClick={() => {
+                    window.open(url, "_blank");
+                    if (i === successUrls.length - 1) closeAndReset();
+                  }} 
+                  className="w-full h-12 rounded-xl bg-[#2b2b2b] hover:bg-black text-white font-bold text-sm shadow-md"
+                >
+                  <ExternalLink className="mr-2 h-4 w-4" /> 
+                  Buka Aplikasi Notion {successUrls.length > 1 ? `(Area ${i + 1})` : ''}
+                </Button>
+              ))}
+              <Button 
+                variant="ghost" 
+                onClick={closeAndReset} 
+                className="w-full h-12 rounded-xl font-bold text-muted-foreground hover:bg-muted mt-2"
               >
-                <AnimatePresence mode="wait">
-                  {step === 1 && (
-                    <motion.div
-                      key="step1"
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      className="space-y-4"
-                    >
-                      <FormField
-                        control={form.control}
-                        name="namaPekerjaan"
-                        render={({ field }) => (
-                          <FormItem className="space-y-1.5">
-                            <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-                              1. Nama Pekerjaan
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm font-medium"
-                                placeholder="Cth: Sanitasi blok A, Perbaikan pompa, Pengangkutan pupuk..."
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage className="text-xs text-red-500" />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="kategori"
-                        render={({ field }) => (
-                          <FormItem className="space-y-1.5">
-                            <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-                              Kategori
-                            </FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value || ""}>
-                              <FormControl>
-                                <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-green-600/20">
-                                  <SelectValue placeholder="Pilih kategori..." />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent className="rounded-xl">
-                                <SelectItem value="Penyemprotan">Penyemprotan</SelectItem>
-                                <SelectItem value="Panen">Panen</SelectItem>
-                                <SelectItem value="Sanitasi">Sanitasi</SelectItem>
-                                <SelectItem value="Maintenance">Maintenance</SelectItem>
-                                <SelectItem value="Pengairan">Pengairan</SelectItem>
-                                <SelectItem value="Pengangkutan">Pengangkutan</SelectItem>
-                                <SelectItem value="Monitoring">Monitoring</SelectItem>
-                                <SelectItem value="Lainnya">Lainnya</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage className="text-xs text-red-500" />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="status"
-                        render={({ field }) => (
-                          <FormItem className="space-y-1.5">
-                            <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-                              Status Dokumentasi
-                            </FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value || ""}>
-                              <FormControl>
-                                <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-green-600/20">
-                                  <SelectValue placeholder="Pilih status..." />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent className="rounded-xl">
-                                <SelectItem value="Belum dikerjakan">Belum dikerjakan</SelectItem>
-                                <SelectItem value="Dalam proses">Dalam proses</SelectItem>
-                                <SelectItem value="Selesai">Selesai</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <p className="text-[10px] text-muted-foreground">
-                              Opsional, tidak mempengaruhi validasi tanggal.
-                            </p>
-                            <FormMessage className="text-xs text-red-500" />
-                          </FormItem>
-                        )}
-                      />
-                    </motion.div>
-                  )}
-
-                  {step === 2 && (
-                    <motion.div
-                      key="step2"
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      className="space-y-4"
-                    >
-
-
-        <div className="space-y-1.5">
-  <div className="flex items-center justify-between">
-    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-      <MapPinned className="inline-block h-3.5 w-3.5 mr-1" />
-      Area Laba Rugi
-    </p>
-
-    <span className="text-[10px] font-semibold text-muted-foreground">
-      {form.watch("areaIds").length} area terpilih
-    </span>
-  </div>
-
-  <div className="rounded-2xl border border-border/60 bg-muted/20 p-2.5">
-    <div className="flex flex-wrap gap-2">
-      {dropdownOptions?.areas?.length === 0 ? (
-        <p className="text-sm text-muted-foreground px-1 py-2">
-          Tidak ada data area ditemukan.
-        </p>
-      ) : (
-        dropdownOptions?.areas?.map((item) => {
-          const isSelected = form.watch("areaIds").includes(item.id);
-
-          return (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => toggleArea(item.id)}
-              className={`px-3.5 py-2 rounded-xl text-sm font-semibold transition-all border ${
-                isSelected
-                  ? "bg-green-600 text-white border-green-600 shadow-sm scale-[1.02]"
-                  : "bg-background text-muted-foreground border-border/50 hover:bg-muted"
-              }`}
-            >
-              {item.name}
-            </button>
-          );
-        })
-      )}
-    </div>
-  </div>
-
-  {form.formState.errors.areaIds && (
-    <p className="text-xs text-red-500 mt-2 font-medium">
-      {form.formState.errors.areaIds.message}
-    </p>
-  )}
-</div>
-
-
-<div className="space-y-1.5">
-  <div className="flex items-center justify-between">
-    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-      <Users className="inline-block h-3.5 w-3.5 mr-1" />
-      Ditugaskan ke
-    </p>
-
-    <span className="text-[10px] font-semibold text-muted-foreground">
-      {selectedWorkers.length} terpilih
-    </span>
-  </div>
-
-  <div className="rounded-2xl border border-border/60 bg-muted/20 p-2.5">
-    <div className="flex flex-wrap gap-2">
-      {dropdownOptions?.petugas?.length === 0 ? (
-        <p className="text-sm text-muted-foreground px-1 py-2">
-          Tidak ada data pekerja ditemukan.
-        </p>
-      ) : (
-        dropdownOptions?.petugas?.map((item) => {
-          const isSelected = selectedWorkers.includes(item.id);
-
-          return (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => toggleWorker(item.id)}
-              className={`px-3.5 py-2 rounded-xl text-sm font-semibold transition-all border ${
-                isSelected
-                  ? "bg-green-600 text-white border-green-600 shadow-sm scale-[1.02]"
-                  : "bg-background text-muted-foreground border-border/50 hover:bg-muted"
-              }`}
-            >
-              {item.name}
-            </button>
-          );
-        })
-      )}
-    </div>
-  </div>
-
-  {form.formState.errors.ditugaskanKeId && (
-    <p className="text-xs text-red-500 mt-2 font-medium">
-      {form.formState.errors.ditugaskanKeId.message}
-    </p>
-  )}
-</div>
-
-                      <FormField
-                        control={form.control}
-                        name="prioritas"
-                        render={({ field }) => (
-                          <FormItem className="space-y-1.5">
-                            <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-                              <Gauge className="inline-block h-3.5 w-3.5 mr-1" />
-                              Prioritas
-                            </FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value || ""}>
-                              <FormControl>
-                                <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-green-600/20">
-                                  <SelectValue placeholder="Pilih prioritas..." />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent className="rounded-xl">
-                                <SelectItem value="Low">Low</SelectItem>
-                                <SelectItem value="Medium">Medium</SelectItem>
-                                <SelectItem value="High">High</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage className="text-xs text-red-500" />
-                          </FormItem>
-                        )}
-                      />
-                    </motion.div>
-                  )}
-
-                  {step === 3 && (
-                    <motion.div
-                      key="step3"
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      className="space-y-4"
-                    >
-                      <FormField
-                        control={form.control}
-                        name="waktuMulai"
-                        render={({ field }) => (
-                          <FormItem className="space-y-1.5">
-                            <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-                              <CalendarClock className="inline-block h-3.5 w-3.5 mr-1" />
-                              Waktu Mulai
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                type="datetime-local"
-                                className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm font-medium"
-                                {...field}
-                              />
-                            </FormControl>
-                            <p className="text-[10px] text-muted-foreground">
-                              Bisa diisi untuk aktivitas yang terjadi kemarin atau sebelumnya.
-                            </p>
-                            <FormMessage className="text-xs text-red-500" />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="waktuSelesai"
-                        render={({ field }) => (
-                          <FormItem className="space-y-1.5">
-                            <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-                              Waktu Selesai (opsional)
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                type="datetime-local"
-                                className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm font-medium"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage className="text-xs text-red-500" />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="durasiKerja"
-                        render={({ field }) => (
-                          <FormItem className="space-y-1.5">
-                            <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-                              Durasi Kerja (jam)
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                min="0"
-                                step="0.1"
-                                className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm font-medium"
-                                placeholder="Cth: 2.5"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage className="text-xs text-red-500" />
-                          </FormItem>
-                        )}
-                      />
-                    </motion.div>
-                  )}
-
-                  {step === 4 && (
-                    <motion.div
-                      key="step4"
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      className="space-y-4"
-                    >
-                      <FormField
-                        control={form.control}
-                        name="catatan"
-                        render={({ field }) => (
-                          <FormItem className="space-y-1.5">
-                            <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-                              <FileText className="inline-block h-3.5 w-3.5 mr-1" />
-                              Catatan
-                            </FormLabel>
-                            <FormControl>
-                              <Textarea
-                                placeholder="Tulis catatan lapangan, kendala, hasil, atau detail tambahan..."
-                                className="min-h-[120px] rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage className="text-xs text-red-500" />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="lampiran"
-                        render={({ field }) => (
-                          <FormItem className="space-y-1.5">
-                            <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-                              <Paperclip className="inline-block h-3.5 w-3.5 mr-1" />
-                              Lampiran URL (opsional)
-                            </FormLabel>
-                            <FormControl>
-                              <Textarea
-                                placeholder="Tempel 1 atau beberapa URL file/foto, pisahkan per baris atau koma"
-                                className="min-h-[110px] rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm"
-                                {...field}
-                              />
-                            </FormControl>
-                            <p className="text-[10px] text-muted-foreground">
-                              Kalau mau, boleh isi dengan URL foto/file yang bisa dibuka publik.
-                            </p>
-                            <FormMessage className="text-xs text-red-500" />
-                          </FormItem>
-                        )}
-                      />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                <div className="flex justify-between items-center pt-4 border-t border-border">
-                  {step > 1 ? (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="h-11 rounded-xl px-4 font-bold text-muted-foreground"
-                      onClick={() => setStep((p) => p - 1)}
-                      disabled={saveOperasional.isPending}
-                    >
-                      <ArrowLeft className="mr-2 h-4 w-4" /> Kembali
-                    </Button>
-                  ) : (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="h-11 rounded-xl px-4 font-bold text-muted-foreground"
-                      onClick={() => setOpen(false)}
-                    >
-                      Batal
-                    </Button>
-                  )}
-
-                  {step < 4 ? (
-                    <Button
-                      type="button"
-                      className="h-11 rounded-xl px-5 font-bold bg-green-600 text-white hover:bg-green-700"
-                      onClick={handleNextStep}
-                    >
-                      Lanjut <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  ) : (
-                    <Button
-                      type="button"
-                      className="h-11 rounded-xl px-6 font-bold bg-green-600 text-white hover:bg-green-700 active:scale-[0.98]"
-                      disabled={saveOperasional.isPending}
-                      onClick={form.handleSubmit(onSubmit)}
-                    >
-                      {saveOperasional.isPending ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Menyimpan...
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle2 className="mr-2 h-4 w-4" /> Kirim ke Notion
-                        </>
-                      )}
-                    </Button>
-                  )}
+                Nanti Saja (Lewati)
+              </Button>
+            </div>
+          </motion.div>
+        ) : (
+          // UI FORM ASLI
+          <>
+            <SheetHeader className="px-6 py-4 flex flex-row items-center justify-between border-b border-border">
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl bg-green-500/10 p-2 text-green-600">
+                  <ClipboardList className="h-5 w-5" />
                 </div>
-              </form>
-            </Form>
-          )}
-        </div>
+                <div className="text-left">
+                  <SheetTitle className="text-base font-black tracking-tight">
+                    Input Operasional
+                  </SheetTitle>
+                  <p className="text-[10px] font-bold text-green-600 tracking-wider uppercase">
+                    Step {step} dari 4
+                  </p>
+                </div>
+              </div>
 
-        <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-border" />
+              <div className="flex gap-1.5">
+                {[1, 2, 3, 4].map((i) => (
+                  <div
+                    key={i}
+                    className={`h-1.5 rounded-full transition-all duration-300 ${
+                      step === i ? "w-4 bg-green-600" : "w-1.5 bg-border"
+                    }`}
+                  />
+                ))}
+              </div>
+            </SheetHeader>
+
+            <div className="px-6 py-4">
+              {isLoadingOptions && step >= 2 ? (
+                <Skeleton className="h-12 w-full rounded-xl" />
+              ) : (
+                <Form {...form}>
+                  <form
+                    onSubmit={(e) => e.preventDefault()}
+                    className="space-y-5 text-left"
+                  >
+                    <AnimatePresence mode="wait">
+                      {step === 1 && (
+                        <motion.div
+                          key="step1"
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 10 }}
+                          className="space-y-4"
+                        >
+                          <FormField
+                            control={form.control}
+                            name="namaPekerjaan"
+                            render={({ field }) => (
+                              <FormItem className="space-y-1.5">
+                                <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
+                                  1. Nama Pekerjaan
+                                </FormLabel>
+                                <FormControl>
+                                  <Input
+                                    className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm font-medium"
+                                    placeholder="Cth: Sanitasi blok A, Perbaikan pompa..."
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage className="text-xs text-red-500" />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="kategori"
+                            render={({ field }) => (
+                              <FormItem className="space-y-1.5">
+                                <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
+                                  Kategori
+                                </FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value || ""}>
+                                  <FormControl>
+                                    <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-green-600/20">
+                                      <SelectValue placeholder="Pilih kategori..." />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent className="rounded-xl">
+                                    <SelectItem value="Penyemprotan">Penyemprotan</SelectItem>
+                                    <SelectItem value="Panen">Panen</SelectItem>
+                                    <SelectItem value="Sanitasi">Sanitasi</SelectItem>
+                                    <SelectItem value="Maintenance">Maintenance</SelectItem>
+                                    <SelectItem value="Pengairan">Pengairan</SelectItem>
+                                    <SelectItem value="Pengangkutan">Pengangkutan</SelectItem>
+                                    <SelectItem value="Monitoring">Monitoring</SelectItem>
+                                    <SelectItem value="Lainnya">Lainnya</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage className="text-xs text-red-500" />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="status"
+                            render={({ field }) => (
+                              <FormItem className="space-y-1.5">
+                                <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
+                                  Status Dokumentasi
+                                </FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value || ""}>
+                                  <FormControl>
+                                    <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-green-600/20">
+                                      <SelectValue placeholder="Pilih status..." />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent className="rounded-xl">
+                                    <SelectItem value="Belum dikerjakan">Belum dikerjakan</SelectItem>
+                                    <SelectItem value="Dalam proses">Dalam proses</SelectItem>
+                                    <SelectItem value="Selesai">Selesai</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <p className="text-[10px] text-muted-foreground">
+                                  Opsional, tidak mempengaruhi validasi tanggal.
+                                </p>
+                                <FormMessage className="text-xs text-red-500" />
+                              </FormItem>
+                            )}
+                          />
+                        </motion.div>
+                      )}
+
+                      {step === 2 && (
+                        <motion.div
+                          key="step2"
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 10 }}
+                          className="space-y-4"
+                        >
+                          <div className="space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
+                                <MapPinned className="inline-block h-3.5 w-3.5 mr-1" />
+                                Area Laba Rugi
+                              </p>
+                              <span className="text-[10px] font-semibold text-muted-foreground">
+                                {form.watch("areaIds").length} area terpilih
+                              </span>
+                            </div>
+                            <div className="rounded-2xl border border-border/60 bg-muted/20 p-2.5">
+                              <div className="flex flex-wrap gap-2">
+                                {dropdownOptions?.areas?.length === 0 ? (
+                                  <p className="text-sm text-muted-foreground px-1 py-2">
+                                    Tidak ada data area ditemukan.
+                                  </p>
+                                ) : (
+                                  dropdownOptions?.areas?.map((item) => {
+                                    const isSelected = form.watch("areaIds").includes(item.id);
+                                    return (
+                                      <button
+                                        key={item.id}
+                                        type="button"
+                                        onClick={() => toggleArea(item.id)}
+                                        className={`px-3.5 py-2 rounded-xl text-sm font-semibold transition-all border ${
+                                          isSelected
+                                            ? "bg-green-600 text-white border-green-600 shadow-sm scale-[1.02]"
+                                            : "bg-background text-muted-foreground border-border/50 hover:bg-muted"
+                                        }`}
+                                      >
+                                        {item.name}
+                                      </button>
+                                    );
+                                  })
+                                )}
+                              </div>
+                            </div>
+                            {form.formState.errors.areaIds && (
+                              <p className="text-xs text-red-500 mt-2 font-medium">
+                                {form.formState.errors.areaIds.message}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
+                                <Users className="inline-block h-3.5 w-3.5 mr-1" />
+                                Ditugaskan ke
+                              </p>
+                              <span className="text-[10px] font-semibold text-muted-foreground">
+                                {selectedWorkers.length} terpilih
+                              </span>
+                            </div>
+                            <div className="rounded-2xl border border-border/60 bg-muted/20 p-2.5">
+                              <div className="flex flex-wrap gap-2">
+                                {dropdownOptions?.petugas?.length === 0 ? (
+                                  <p className="text-sm text-muted-foreground px-1 py-2">
+                                    Tidak ada data pekerja ditemukan.
+                                  </p>
+                                ) : (
+                                  dropdownOptions?.petugas?.map((item) => {
+                                    const isSelected = selectedWorkers.includes(item.id);
+                                    return (
+                                      <button
+                                        key={item.id}
+                                        type="button"
+                                        onClick={() => toggleWorker(item.id)}
+                                        className={`px-3.5 py-2 rounded-xl text-sm font-semibold transition-all border ${
+                                          isSelected
+                                            ? "bg-green-600 text-white border-green-600 shadow-sm scale-[1.02]"
+                                            : "bg-background text-muted-foreground border-border/50 hover:bg-muted"
+                                        }`}
+                                      >
+                                        {item.name}
+                                      </button>
+                                    );
+                                  })
+                                )}
+                              </div>
+                            </div>
+                            {form.formState.errors.ditugaskanKeId && (
+                              <p className="text-xs text-red-500 mt-2 font-medium">
+                                {form.formState.errors.ditugaskanKeId.message}
+                              </p>
+                            )}
+                          </div>
+
+                          <FormField
+                            control={form.control}
+                            name="prioritas"
+                            render={({ field }) => (
+                              <FormItem className="space-y-1.5">
+                                <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
+                                  <Gauge className="inline-block h-3.5 w-3.5 mr-1" />
+                                  Prioritas
+                                </FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value || ""}>
+                                  <FormControl>
+                                    <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-green-600/20">
+                                      <SelectValue placeholder="Pilih prioritas..." />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent className="rounded-xl">
+                                    <SelectItem value="Low">Low</SelectItem>
+                                    <SelectItem value="Medium">Medium</SelectItem>
+                                    <SelectItem value="High">High</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage className="text-xs text-red-500" />
+                              </FormItem>
+                            )}
+                          />
+                        </motion.div>
+                      )}
+
+                      {step === 3 && (
+                        <motion.div
+                          key="step3"
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 10 }}
+                          className="space-y-4"
+                        >
+                          <FormField
+                            control={form.control}
+                            name="waktuMulai"
+                            render={({ field }) => (
+                              <FormItem className="space-y-1.5">
+                                <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
+                                  <CalendarClock className="inline-block h-3.5 w-3.5 mr-1" />
+                                  Waktu Mulai
+                                </FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="datetime-local"
+                                    className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm font-medium"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <p className="text-[10px] text-muted-foreground">
+                                  Bisa diisi untuk aktivitas yang terjadi kemarin atau sebelumnya.
+                                </p>
+                                <FormMessage className="text-xs text-red-500" />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="waktuSelesai"
+                            render={({ field }) => (
+                              <FormItem className="space-y-1.5">
+                                <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
+                                  Waktu Selesai (opsional)
+                                </FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="datetime-local"
+                                    className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm font-medium"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage className="text-xs text-red-500" />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="durasiKerja"
+                            render={({ field }) => (
+                              <FormItem className="space-y-1.5">
+                                <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
+                                  Durasi Kerja (jam)
+                                </FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    step="0.1"
+                                    className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm font-medium"
+                                    placeholder="Cth: 2.5"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage className="text-xs text-red-500" />
+                              </FormItem>
+                            )}
+                          />
+                        </motion.div>
+                      )}
+
+                      {step === 4 && (
+                        <motion.div
+                          key="step4"
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 10 }}
+                          className="space-y-4"
+                        >
+                          <FormField
+                            control={form.control}
+                            name="catatan"
+                            render={({ field }) => (
+                              <FormItem className="space-y-1.5">
+                                <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
+                                  <FileText className="inline-block h-3.5 w-3.5 mr-1" />
+                                  Catatan
+                                </FormLabel>
+                                <FormControl>
+                                  <Textarea
+                                    placeholder="Tulis catatan lapangan, kendala, hasil, atau detail tambahan..."
+                                    className="min-h-[180px] rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage className="text-xs text-red-500" />
+                              </FormItem>
+                            )}
+                          />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    <div className="flex justify-between items-center pt-4 border-t border-border">
+                      {step > 1 ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className="h-11 rounded-xl px-4 font-bold text-muted-foreground"
+                          onClick={() => setStep((p) => p - 1)}
+                          disabled={saveOperasional.isPending}
+                        >
+                          <ArrowLeft className="mr-2 h-4 w-4" /> Kembali
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className="h-11 rounded-xl px-4 font-bold text-muted-foreground"
+                          onClick={() => setOpen(false)}
+                        >
+                          Batal
+                        </Button>
+                      )}
+
+                      {step < 4 ? (
+                        <Button
+                          type="button"
+                          className="h-11 rounded-xl px-5 font-bold bg-green-600 text-white hover:bg-green-700"
+                          onClick={handleNextStep}
+                        >
+                          Lanjut <ArrowRight className="ml-2 h-4 w-4" />
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          className="h-11 rounded-xl px-6 font-bold bg-green-600 text-white hover:bg-green-700 active:scale-[0.98]"
+                          disabled={saveOperasional.isPending}
+                          onClick={form.handleSubmit(onSubmit)}
+                        >
+                          {saveOperasional.isPending ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Menyimpan...
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle2 className="mr-2 h-4 w-4" /> Kirim Data
+                            </>
+                          )}
+                        </Button>
+                      )}
+                    </div>
+                  </form>
+                </Form>
+              )}
+            </div>
+            <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-border" />
+          </>
+        )}
+
       </SheetContent>
     </Sheet>
   );
