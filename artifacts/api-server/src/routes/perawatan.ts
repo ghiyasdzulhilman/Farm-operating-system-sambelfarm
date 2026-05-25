@@ -154,6 +154,17 @@ async function getMappingRow(
   return row ?? null;
 }
 
+function formatNotionDateTime(dateStr: string): string {
+  if (!dateStr) return "";
+  // Jika input dari HP ada jamnya (mengandung huruf 'T', contoh: 2026-05-25T08:30)
+  if (dateStr.includes("T")) {
+    // Kita kunci paksa jadi zona waktu Indonesia / WIB (+07:00)
+    return `${dateStr}:00+07:00`;
+  }
+  // Fallback kalau cuma tanggal doang
+  return dateStr;
+}
+
 function buildRichText(content: string) {
   return {
     rich_text: [
@@ -357,11 +368,11 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
             // 1. Ambil catatan spesifik untuk area yang sedang di-looping
       const catatanAreaIni = body.detailNotes?.[currentAreaId] || "";
 
-      const properties = buildPerawatanProperties(
+        const properties = buildPerawatanProperties(
         {
           kegiatan,
-          tanggal,
-          labaRugiId: currentAreaId,
+          tanggal: formatNotionDateTime(tanggal), // <--- INI PERUBAHANNYA DIBUNGKUS
+          labaRugiId: currentAreaId, // Tembak ID perulangan ke Notion
           petugasId: body.petugasId,
           tags: body.tags,
           status: body.status || "Rencana",
