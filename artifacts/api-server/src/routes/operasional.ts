@@ -44,6 +44,7 @@ interface AddOperasionalBody {
   waktuSelesai?: string;
   durasiKerja?: number;
   catatan?: string;
+  lampiran?: Array<string | { url: string; name?: string; }>;
 }
 
 function decodePropertyId(id: string): string {
@@ -158,6 +159,23 @@ function normalizeDateRange(
   return normalized;
 }
 
+function isValidUrl(str: string) {
+  try { new URL(str); return true; } catch { return false; }
+}
+
+function normalizeFiles(lampiran: AddOperasionalBody["lampiran"]) {
+  if (!Array.isArray(lampiran) || lampiran.length === 0) return null;
+  const files = lampiran.map((item, index) => {
+    if (typeof item === "string" && isValidUrl(item.trim())) {
+      return { name: `Lampiran ${index + 1}`, type: "external" as const, external: { url: item.trim() } };
+    }
+    if (item && typeof item === "object" && typeof item.url === "string" && isValidUrl(item.url.trim())) {
+      return { name: item.name?.trim() || `Lampiran ${index + 1}`, type: "external" as const, external: { url: item.url.trim() } };
+    }
+    return null;
+  }).filter(Boolean);
+  return files.length > 0 ? files : null;
+}
 
 // FUNGSI PERAKIT BLOCKS UNTUK BODY PAGE NOTION
 function buildOperasionalBlocks(catatan: string | undefined): any[] {
@@ -190,6 +208,7 @@ const OPERASIONAL_FIELDS = [
   { key: "prioritas", expectedType: "select" },
   { key: "waktuPengerjaan", expectedType: "date" },
   { key: "durasiKerja", expectedType: "number" },
+  { key: "lampiran", expectedType: "files" },
 ] as const;
 
 function buildOperasionalProperties(data: AddOperasionalBody, mappings: FieldMappingData | undefined): Record<string, unknown> {
@@ -210,6 +229,7 @@ function buildOperasionalProperties(data: AddOperasionalBody, mappings: FieldMap
     if (field.key === "prioritas") value = data.prioritas;
     if (field.key === "waktuPengerjaan") value = normalizeDateRange(data.waktuPengerjaan, data.waktuMulai, data.waktuSelesai);
     if (field.key === "durasiKerja") value = data.durasiKerja;
+    if (field.key === "lampiran") value = data.lampiran;
 
     if (value === undefined || value === null || value === "" || (Array.isArray(value) && value.length === 0)) return;
 
@@ -231,7 +251,10 @@ function buildOperasionalProperties(data: AddOperasionalBody, mappings: FieldMap
         break;
       }
       case "rich_text": props[propertyId] = buildRichText(String(value)); break;
-      
+      case "files": {
+        const files = normalizeFiles(value as AddOperasionalBody["lampiran"]);
+        if (files) props[propertyId] = { files };
+        break;
       }
     }
   });
