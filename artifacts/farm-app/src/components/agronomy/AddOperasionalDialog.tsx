@@ -726,7 +726,6 @@ export function AddOperasionalDialog({ onSuccess }: AddOperasionalDialogProps) {
         );
       })}
     </div>
-  )}
 </div>
 </motion.div>
 )}
