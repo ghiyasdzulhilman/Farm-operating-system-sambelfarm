@@ -186,16 +186,18 @@ export function AddOperasionalDialog({ onSuccess }: AddOperasionalDialogProps) {
       return response.json();
     },
     
-        onSuccess: async (responseData) => {
-      // Refresh data di background
+            onSuccess: async (responseData) => {
+      // 1. TAMBAHIN INI BIAR KITA BISA LIHAT DI CONSOLE
+      console.log("Respon dari Backend:", responseData);
+
       await queryClient.invalidateQueries({
         queryKey: getGetDashboardSummaryQueryKey(),
         refetchType: "all",
       });
 
-      // Tangkap URL Notion dari backend (jika ada)
+      // Coba kita lihat apakah 'data' itu ada atau jangan-jangan langsung di root?
       const urls = responseData?.data?.map((d: any) => d.notionUrl).filter(Boolean) || [];
-
+    
       if (urls.length > 0) {
         // Tampilkan layar sukses (tombol Buka Notion)
         setSuccessUrls(urls);
