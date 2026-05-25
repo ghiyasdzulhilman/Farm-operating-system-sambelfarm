@@ -569,9 +569,9 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                        {/* SAKELAR MODE CATATAN DETAIL */}
                       <div className="space-y-3 pt-4 border-t border-border mt-4">
                         <div className="flex items-center justify-between mb-1">
-                          <FormLabel className="text-[11px] font-bold text-muted-foreground">
-                            Mode Catatan Lapangan
-                          </FormLabel>
+                        <p className="text-[11px] font-bold text-muted-foreground">
+                        Mode Catatan Lapangan
+                        </p>
                         </div>
                         
                         <div className="grid grid-cols-2 gap-2 bg-muted/50 p-1.5 rounded-xl border border-border">
