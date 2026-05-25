@@ -454,12 +454,13 @@ router.post("/notion/add-operasional", async (req, res): Promise<void> => {
 
   const body = req.body as Partial<AddOperasionalBody>;
 
-  const namaPekerjaan = (body.namaPekerjaan ?? "").trim();
+    const namaPekerjaan = (body.namaPekerjaan ?? "").trim();
   const kategori = (body.kategori ?? "").trim();
   const status = (body.status ?? "").trim();
   const waktuMulai = (body.waktuMulai ?? "").trim();
 
-  // 1. TANGKAP BANYAK AREA: Ubah ke array (dukung backward compatibility untuk areaId tunggal)
+  // 1. TANGKAP BANYAK AREA: Jika dikirim array areaIds dari frontend baru, kita ambil.
+  // Kalau dikirim dari sistem lama (areaId tunggal), kita otomatis bungkus jadi array biar aman.
   const areaIds: string[] = Array.isArray(body.areaIds)
     ? body.areaIds.filter(Boolean)
     : body.areaId
@@ -473,11 +474,11 @@ router.post("/notion/add-operasional", async (req, res): Promise<void> => {
   const hasWorker =
     Array.isArray(ditugaskanKeId) ? ditugaskanKeId.length > 0 : !!ditugaskanKeId;
 
-  // 2. VALIDASI BARU: Pastikan array areaIds nggak kosong
+    // 2. VALIDASI BARU: Memastikan areaIds minimal terisi 1 area
   if (!namaPekerjaan || !kategori || areaIds.length === 0 || !waktuMulai || !hasWorker) {
     res.status(400).json({
       error:
-        "Field 'namaPekerjaan', 'kategori', 'areaIds' (minimal 1 area), 'waktuMulai', dan 'ditugaskanKeId' wajib diisi.",
+        "Field 'namaPekerjaan', 'kategori', 'areaIds' (minimal pilih 1), 'waktuMulai', dan 'ditugaskanKeId' wajib diisi.",
     });
     return;
   }
