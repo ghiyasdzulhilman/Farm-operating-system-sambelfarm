@@ -367,8 +367,15 @@ router.post("/notion/add-operasional", async (req, res): Promise<void> => {
       return response.json();
     });
 
-    await Promise.all(requests);
-    res.status(201).json({ success: true, message: `Berhasil mencatat kegiatan untuk ${areaIds.length} area.` });
+        // Tangkap semua respon dari Notion (yang di dalamnya ada URL halaman)
+    const results = await Promise.all(requests);
+    
+    res.status(201).json({ 
+      success: true, 
+      message: `Berhasil mencatat kegiatan untuk ${areaIds.length} area.`,
+      data: results // Lempar data URL halamannya ke Frontend!
+    });
+
   } catch (err) {
     if (handleNotionErrors(res, err)) return;
     res.status(500).json({ error: err instanceof Error ? err.message : "Internal Server Error" });
