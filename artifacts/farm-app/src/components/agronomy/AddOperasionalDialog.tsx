@@ -722,14 +722,19 @@ export function AddOperasionalDialog({ onSuccess }: AddOperasionalDialogProps) {
               value={form.watch(`catatanPerArea.${areaId}`) || ""}
               onChange={(e) => form.setValue(`catatanPerArea.${areaId}`, e.target.value)}
             />
+                    {/* DI SINI BATAS AKHIR DARI MAP LU */}
           </div>
         );
       })}
-    </div>
-</div>
-</motion.div>
-)}
+    </div> {/* <-- Ini penutup KONDISI B (MODE SPESIFIK) */}
+  )} {/* <-- Ini penutup dari if-else {form.watch("modeCatatan") === "broadcast" ? ... : ...} */}
+
+</div> {/* <-- Ini penutup div scroll max-h-[60vh] */}
+</motion.div> {/* <-- Ini penutup animasi step 4 */}
+)} {/* <-- Ini penutup utama untuk logika {step === 4 && ( */}
+
 </AnimatePresence>
+
 
                     <div className="flex justify-between items-center pt-4 border-t border-border">
                       {step > 1 ? (
