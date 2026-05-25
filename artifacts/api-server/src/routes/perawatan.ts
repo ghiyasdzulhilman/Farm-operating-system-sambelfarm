@@ -34,7 +34,8 @@ interface NotionDatabase {
 interface AddPerawatanBody {
   kegiatan: string;
   tanggal: string;
-  labaRugiId: string;
+  labaRugiId?: string; // Bikin opsional
+  labaRugiIds?: string[]; // <--- TAMBAHIN INI BUAT MULTI-AREA
   petugasId?: string;
   tags?: string[] | string;
   status: string;
@@ -321,21 +322,20 @@ console.log("PETUGAS DATA", petugas);
 
 router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
-
-  if (!userId) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   const body = req.body as Partial<AddPerawatanBody>;
-
   const kegiatan = (body.kegiatan ?? "").trim();
   const tanggal = (body.tanggal ?? "").trim();
-  const labaRugiId = (body.labaRugiId ?? "").trim();
 
-  if (!kegiatan || !tanggal || !labaRugiId) {
+  // Pengaman payload area dari Front-End (Bisa nerima 1 atau banyak area)
+  const areaIds: string[] = Array.isArray(body.labaRugiIds) 
+    ? body.labaRugiIds.filter(Boolean) 
+    : body.labaRugiId ? [body.labaRugiId] : [];
+
+  if (!kegiatan || !tanggal || areaIds.length === 0) {
     res.status(400).json({
-      error: "Field 'kegiatan', 'tanggal', dan 'labaRugiId' wajib diisi.",
+      error: "Field 'kegiatan', 'tanggal', dan area wajib diisi (minimal 1).",
     });
     return;
   }
@@ -343,78 +343,75 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
   try {
     const connection = await getNotionConnection(userId);
     const { accessToken } = connection;
-
     const mappingRow = await getMappingRow(userId, "perawatan");
     const mappings = mappingRow?.mappings as FieldMappingData | undefined;
 
-    const databaseId =
-      mappingRow?.notionDatabaseId ||
-      (await findDatabaseByName(userId, accessToken, "Perawatan"));
-
+    const databaseId = mappingRow?.notionDatabaseId || (await findDatabaseByName(userId, accessToken, "Perawatan"));
     if (!databaseId) {
-      res.status(404).json({
-        error: "Database 'Perawatan' tidak ditemukan di Notion.",
-      });
+      res.status(404).json({ error: "Database 'Perawatan' tidak ditemukan di Notion." });
       return;
     }
 
-    const properties = buildPerawatanProperties(
-      {
-        kegiatan,
-        tanggal,
-        labaRugiId,
-        petugasId: body.petugasId,
-        tags: body.tags,
-        status: body.status || "Rencana", // Fallback ke Rencana jika kosong
-        detailNotes: body.detailNotes,
-        logProduk: body.logProduk,
-      },
-      mappings,
-    );
+    // --- DI SINI MAGIC-NYA: KITA LOOPING SESUAI JUMLAH AREA ---
+    const requests = areaIds.map(async (currentAreaId) => {
+      const properties = buildPerawatanProperties(
+        {
+          kegiatan,
+          tanggal,
+          labaRugiId: currentAreaId, // Tembak ID perulangan ke Notion
+          petugasId: body.petugasId,
+          tags: body.tags,
+          status: body.status || "Rencana",
+          detailNotes: body.detailNotes,
+          logProduk: body.logProduk,
+        },
+        mappings,
+      );
 
-    // 1. Panggil penyihir untuk merakit isi halaman
-    const childrenBlocks = buildNotionBlocks(body.logProduk, body.detailNotes);
+      const childrenBlocks = buildNotionBlocks(body.logProduk, body.detailNotes);
 
-    // 2. Siapkan payload
-    const payload: any = {
-      parent: { database_id: databaseId },
-      properties,
-    };
+      const payload: any = {
+        parent: { database_id: databaseId },
+        properties,
+      };
 
-    // 3. Suntikkan children jika ada isinya
-    if (childrenBlocks.length > 0) {
-      payload.children = childrenBlocks;
-    }
+      if (childrenBlocks.length > 0) {
+        payload.children = childrenBlocks;
+      }
 
-    // 4. Tembak ke Notion
-    const response = await notionFetch(userId, accessToken, "https://api.notion.com/v1/pages", {
-      method: "POST",
-      body: JSON.stringify(payload),
+      const response = await notionFetch(userId, accessToken, "https://api.notion.com/v1/pages", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(errText || `Gagal menyimpan untuk area ${currentAreaId}`);
+      }
+
+      const created = await response.json();
+      
+      // Kita kembalikan ID dan URL sekalian buat persiapan Target No 3 nanti
+      return { 
+        pageId: created.id,
+        notionUrl: created.url 
+      };
     });
 
-    if (!response.ok) {
-      const errText = await response.text();
-      res.status(502).json({
-        error: "Notion error",
-        detail: errText.slice(0, 500),
-      });
-      return;
-    }
-
-    const created = (await response.json()) as { id: string };
+    // Tangkap semua respon dari Notion
+    const results = await Promise.all(requests);
 
     res.status(201).json({
       success: true,
-      notionPageId: created.id,
+      message: `Berhasil mencatat perawatan untuk ${areaIds.length} area.`,
+      data: results // Array data halaman yang berhasil dibuat
     });
   } catch (err) {
     if (handleNotionErrors(res, err)) return;
-
     res.status(500).json({
       error: err instanceof Error ? err.message : "Internal Server Error",
     });
   }
 });
-
 
 export default router;
