@@ -43,7 +43,7 @@ interface AddOperasionalBody {
   waktuMulai?: string;
   waktuSelesai?: string;
   durasiKerja?: number;
-  catatan?: string;
+  catatan?: Record<string, string>;
 }
 
 function decodePropertyId(id: string): string {
@@ -298,8 +298,11 @@ router.post("/notion/add-operasional", async (req, res): Promise<void> => {
         mappings
       );
 
-      // 1. Rakit catatan lapangan menjadi struktur block Notion
-      const childrenBlocks = buildOperasionalBlocks(body.catatan);
+      // 1. Ambil catatan KHUSUS untuk area yang sedang di-looping
+      const catatanAreaIni = body.catatan?.[currentAreaId] || "";
+      
+      // Rakit catatan lapangan menjadi struktur block Notion
+      const childrenBlocks = buildOperasionalBlocks(catatanAreaIni);
 
       // 2. Siapkan payload dasar untuk Notion
       const payload: any = {
