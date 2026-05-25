@@ -54,9 +54,8 @@ import { Badge } from "@/components/ui/badge";
 
 const perawatanSchema = z.object({
   kegiatan: z.string().min(1, "Nama kegiatan wajib diisi"),
-  tanggal: z.string().min(1, "Tanggal wajib diisi"),
-  waktuMulai: z.string().optional(),     // <--- TAMBAHAN
-  waktuSelesai: z.string().optional(),   // <--- TAMBAHAN
+  waktuMulai: z.string().min(1, "Waktu mulai wajib diisi"), // <--- Ganti 'tanggal' jadi ini
+  waktuSelesai: z.string().optional(),                      // <--- Tambahin ini
   labaRugiIds: z.array(z.string()).min(1, "Minimal pilih 1 area"),
   petugasId: z.string().optional(),
   tags: z.string().optional(),
@@ -80,11 +79,10 @@ interface AddPerawatanDialogProps {
   onSuccess?: () => void;
 }
 
-const EMPTY_VALUES: PerawatanFormValues = {
+PerawatanFormValues = {
   kegiatan: "",
-  tanggal: format(new Date(), "yyyy-MM-dd"), // <--- Balikin jadi tanggal aja
-  waktuMulai: "07:00",                       // <--- Jam default mulai
-  waktuSelesai: "11:00",                     // <--- Jam default selesai
+  waktuMulai: format(new Date(), "yyyy-MM-dd'T'HH:mm"), // <--- Default gabungan
+  waktuSelesai: "",                                     // <--- Kosongin default-nya
   labaRugiIds: [],
   petugasId: "",
   tags: "",
@@ -184,7 +182,7 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
 
     const handleNextStep = async () => {
     let fieldsToValidate: Array<keyof PerawatanFormValues> = [];
-    if (step === 1) fieldsToValidate = ["kegiatan", "tanggal"];
+    if (step === 1) fieldsToValidate = ["kegiatan", "waktuMulai"]; // <--- 'tanggal' ganti 'waktuMulai'
     if (step === 2) fieldsToValidate = ["labaRugiIds"];
     if (step === 3) fieldsToValidate = ["logProduk"];
     if (step === 4) fieldsToValidate = ["tags", "status", "petugasId"]; // Tambahan baru
@@ -349,69 +347,45 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                         )}
                       />
 
-                      <FormField
+                        <FormField
                         control={form.control}
-                        name="tanggal"
+                        name="waktuMulai"
                         render={({ field }) => (
                           <FormItem className="space-y-1.5">
                             <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-                              Tanggal
+                              Waktu Mulai
                             </FormLabel>
                             <FormControl>
-                              <div className="relative">
-                                <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                                <Input
-                                type="date"
-                                className="h-12 rounded-xl bg-muted border-transparent pl-11 pr-4 focus-visible:ring-2 focus-visible:ring-green-600/20 font-bold text-sm w-full"
+                              <Input
+                                type="datetime-local"
+                                className="h-12 rounded-xl bg-muted border-transparent pl-4 pr-4 focus-visible:ring-2 focus-visible:ring-green-600/20 font-bold text-sm w-full"
                                 {...field}
-                               />
-
-                              </div>
+                              />
                             </FormControl>
                             <FormMessage className="text-xs text-red-500" />
                           </FormItem>
                         )}
                       />
 
-                      {/* RENTANG WAKTU MULAI & SELESAI */}
-                      <div className="grid grid-cols-2 gap-3 pt-1">
-                        <FormField
-                          control={form.control}
-                          name="waktuMulai"
-                          render={({ field }) => (
-                            <FormItem className="space-y-1.5">
-                              <FormLabel className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80">
-                                Jam Mulai
-                              </FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="time"
-                                  className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-green-600/20 font-bold text-sm w-full"
-                                  {...field}
-                                />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="waktuSelesai"
-                          render={({ field }) => (
-                            <FormItem className="space-y-1.5">
-                              <FormLabel className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80">
-                                Jam Selesai
-                              </FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="time"
-                                  className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-green-600/20 font-bold text-sm w-full"
-                                  {...field}
-                                />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                      </div>
+                      <FormField
+                        control={form.control}
+                        name="waktuSelesai"
+                        render={({ field }) => (
+                          <FormItem className="space-y-1.5">
+                            <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
+                              Waktu Selesai (Opsional)
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                type="datetime-local"
+                                className="h-12 rounded-xl bg-muted border-transparent pl-4 pr-4 focus-visible:ring-2 focus-visible:ring-green-600/20 font-bold text-sm w-full"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage className="text-xs text-red-500" />
+                          </FormItem>
+                        )}
+                      />
 
                     </motion.div>
                   )}
