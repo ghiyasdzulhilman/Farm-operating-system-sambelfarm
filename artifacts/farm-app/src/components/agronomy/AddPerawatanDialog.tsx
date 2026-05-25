@@ -148,19 +148,26 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
       return response.json();
     },
     
-    onSuccess: async (data, variables) => {
+        onSuccess: async (data, variables) => {
+      // 1. Munculin notif toast hijau di pojok
+      toast({
+        title: "Perawatan tersimpan",
+        description: `Sukses disimpan untuk ${variables.labaRugiIds.length} blok.`,
+      });
+
       await queryClient.invalidateQueries({
         queryKey: getGetDashboardSummaryQueryKey(),
         refetchType: "all",
       });
       
-      // Simpan URL dari backend (Data ada di dalam data.data karena format JSON kita)
+      // 2. Simpan URL buat nampilin Layar Sukses
       if (data && data.data) {
         setSubmittedUrls(data.data);
       }
       
       form.reset(EMPTY_VALUES);
-      onSuccess?.();
+      
+      // CATATAN: onSuccess?.() KITA HAPUS DARI SINI BIAR GAK LANGSUNG NUTUP
     },
 
     onError: (error) => {
@@ -288,17 +295,19 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                   </Button>
                 ))}
                 
-                <Button
+                  <Button
                   type="button"
                   className="w-full h-12 rounded-xl font-bold bg-slate-900 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 mt-2"
                   onClick={() => {
                     setOpen(false);
                     setStep(1);
                     setSubmittedUrls(null);
+                    onSuccess?.(); // <--- KITA PINDAHIN KE SINI
                   }}
                 >
                   Tutup Form
                 </Button>
+
               </div>
             </motion.div>
           ) : isLoadingOptions ? (
