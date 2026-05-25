@@ -390,6 +390,12 @@ function buildOperasionalProperties(
     break;
   }
 }
+}
+  });
+
+  return props;
+}
+
 
 router.get("/notion/operasional-dropdown-options", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
