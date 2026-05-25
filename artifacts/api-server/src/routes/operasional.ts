@@ -36,7 +36,8 @@ interface AddOperasionalBody {
   kategori: string;
   status?: string;
   ditugaskanKeId: string | string[];
-  areaId: string;
+  areaId?: string; // areaId tunggal kita jadikan opsional
+  areaIds?: string[]; // KITA TAMBAHIN INI buat nangkep banyak area
   prioritas?: string;
   waktuPengerjaan?:
     | string
@@ -56,6 +57,7 @@ interface AddOperasionalBody {
       }
   >;
 }
+
 
 function decodePropertyId(id: string): string {
   try {
@@ -455,8 +457,14 @@ router.post("/notion/add-operasional", async (req, res): Promise<void> => {
   const namaPekerjaan = (body.namaPekerjaan ?? "").trim();
   const kategori = (body.kategori ?? "").trim();
   const status = (body.status ?? "").trim();
-  const areaId = (body.areaId ?? "").trim();
   const waktuMulai = (body.waktuMulai ?? "").trim();
+
+  // 1. TANGKAP BANYAK AREA: Ubah ke array (dukung backward compatibility untuk areaId tunggal)
+  const areaIds: string[] = Array.isArray(body.areaIds)
+    ? body.areaIds.filter(Boolean)
+    : body.areaId
+    ? [body.areaId]
+    : [];
 
   const ditugaskanKeId = Array.isArray(body.ditugaskanKeId)
     ? body.ditugaskanKeId.filter(Boolean)
@@ -465,11 +473,11 @@ router.post("/notion/add-operasional", async (req, res): Promise<void> => {
   const hasWorker =
     Array.isArray(ditugaskanKeId) ? ditugaskanKeId.length > 0 : !!ditugaskanKeId;
 
-  // Hapus validasi ganda yang ngambang, cukup pakai yang ini
-  if (!namaPekerjaan || !kategori || !areaId || !waktuMulai || !hasWorker) {
+  // 2. VALIDASI BARU: Pastikan array areaIds nggak kosong
+  if (!namaPekerjaan || !kategori || areaIds.length === 0 || !waktuMulai || !hasWorker) {
     res.status(400).json({
       error:
-        "Field 'namaPekerjaan', 'kategori', 'areaId', 'waktuMulai', dan 'ditugaskanKeId' wajib diisi.",
+        "Field 'namaPekerjaan', 'kategori', 'areaIds' (minimal 1 area), 'waktuMulai', dan 'ditugaskanKeId' wajib diisi.",
     });
     return;
   }
@@ -492,52 +500,53 @@ router.post("/notion/add-operasional", async (req, res): Promise<void> => {
       return;
     }
 
-    // 👇 INI YANG GUA PERBAIKI, DITUTUP DENGAN MAPPINGS 👇
-    const properties = buildOperasionalProperties(
-      {
-        namaPekerjaan,
-        kategori,
-        status,
-        ditugaskanKeId,
-        areaId,
-        prioritas: body.prioritas,
-        waktuPengerjaan: body.waktuPengerjaan,
-        waktuMulai,
-        waktuSelesai: body.waktuSelesai,
-        durasiKerja: body.durasiKerja,
-        catatan: body.catatan,
-        lampiran: body.lampiran,
-      },
-      mappings // <-- Argumen kedua diselipkan di sini
-    ); // <-- Kurung tutup fungsi ditambah di sini
+    // 3. PROSES MULTI-AREA: Looping request ke Notion sebanyak area yang dipilih
+    const requests = areaIds.map(async (currentAreaId) => {
+      const properties = buildOperasionalProperties(
+        {
+          namaPekerjaan,
+          kategori,
+          status,
+          ditugaskanKeId,
+          areaId: currentAreaId, // <- Suntikkan 1 ID area ke builder dari hasil looping
+          prioritas: body.prioritas,
+          waktuPengerjaan: body.waktuPengerjaan,
+          waktuMulai,
+          waktuSelesai: body.waktuSelesai,
+          durasiKerja: body.durasiKerja,
+          catatan: body.catatan,
+          lampiran: body.lampiran,
+        },
+        mappings
+      );
 
-    const response = await notionFetch(
-      userId,
-      accessToken,
-      "https://api.notion.com/v1/pages",
-      {
-        method: "POST",
-        body: JSON.stringify({
-          parent: { database_id: databaseId },
-          properties,
-        }),
-      },
-    );
+      const response = await notionFetch(
+        userId,
+        accessToken,
+        "https://api.notion.com/v1/pages",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            parent: { database_id: databaseId },
+            properties,
+          }),
+        },
+      );
 
-    if (!response.ok) {
-      const errText = await response.text();
-      res.status(502).json({
-        error: "Notion error",
-        detail: errText.slice(0, 500),
-      });
-      return;
-    }
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(errText || `Gagal menyimpan untuk area ${currentAreaId}`);
+      }
 
-    const created = (await response.json()) as { id: string };
+      return response.json();
+    });
+
+    // 4. JALANKAN SEMUA REQUEST BARENGAN
+    await Promise.all(requests);
 
     res.status(201).json({
       success: true,
-      notionPageId: created.id,
+      message: `Berhasil mencatat kegiatan untuk ${areaIds.length} area.`,
     });
   } catch (err) {
     if (handleNotionErrors(res, err)) return;
@@ -547,6 +556,5 @@ router.post("/notion/add-operasional", async (req, res): Promise<void> => {
     });
   }
 });
-
 
 export default router;
