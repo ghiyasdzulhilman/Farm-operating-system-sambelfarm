@@ -59,7 +59,9 @@ const perawatanSchema = z.object({
   petugasId: z.string().optional(),
   tags: z.string().optional(),
   status: z.string().optional(),
-  detailNotes: z.string().optional(),
+  modeCatatan: z.enum(["broadcast", "spesifik"]).default("broadcast"),
+  catatanBroadcast: z.string().optional(),
+  catatanPerArea: z.record(z.string()).optional(),
   logProduk: z
     .array(
       z.object({
@@ -83,7 +85,9 @@ const EMPTY_VALUES: PerawatanFormValues = {
   petugasId: "",
   tags: "",
   status: "Rencana",
-  detailNotes: "",
+  modeCatatan: "broadcast",
+  catatanBroadcast: "",
+  catatanPerArea: {},
   logProduk: [],
 };
 
@@ -117,11 +121,22 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
 
   
     const savePerawatan = useMutation({
-    mutationFn: async (payload: PerawatanFormValues) => {
+        mutationFn: async (payload: PerawatanFormValues) => {
+      // 1. Rakit catatan sesuai mode sakelar
+      const dirakitDetailNotes = payload.modeCatatan === "broadcast"
+        ? payload.labaRugiIds.reduce((acc, id) => ({ ...acc, [id]: payload.catatanBroadcast || "" }), {})
+        : payload.catatanPerArea || {};
+
+      // 2. Siapkan payload final
+      const finalPayload = {
+        ...payload,
+        detailNotes: dirakitDetailNotes,
+      };
+
       const response = await fetch("/api/notion/add-perawatan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(finalPayload),
       });
 
       if (!response.ok) {
@@ -550,25 +565,69 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
   )}
 />
 
-                      <FormField
-                        control={form.control}
-                        name="detailNotes"
-                        render={({ field }) => (
-                          <FormItem className="space-y-1.5 pt-2">
-                            <FormLabel className="text-[11px] font-bold text-muted-foreground">
-                              Catatan Detail Perawatan
-                            </FormLabel>
-                            <FormControl>
-                              <Textarea
-                                placeholder="Tulis observasi, kondisi tanaman, kendala, atau catatan lapangan..."
-                                className="min-h-[120px] rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
+                      
+                       {/* SAKELAR MODE CATATAN DETAIL */}
+                      <div className="space-y-3 pt-4 border-t border-border mt-4">
+                        <div className="flex items-center justify-between mb-1">
+                          <FormLabel className="text-[11px] font-bold text-muted-foreground">
+                            Mode Catatan Lapangan
+                          </FormLabel>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-2 bg-muted/50 p-1.5 rounded-xl border border-border">
+                          <button
+                            type="button"
+                            onClick={() => form.setValue("modeCatatan", "broadcast")}
+                            className={`py-2 text-xs font-bold rounded-lg transition-all ${
+                              form.watch("modeCatatan") === "broadcast"
+                                ? "bg-white dark:bg-slate-900 shadow-sm text-foreground"
+                                : "text-muted-foreground hover:text-foreground"
+                            }`}
+                          >
+                            Sama Semua
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => form.setValue("modeCatatan", "spesifik")}
+                            className={`py-2 text-xs font-bold rounded-lg transition-all ${
+                              form.watch("modeCatatan") === "spesifik"
+                                ? "bg-white dark:bg-slate-900 shadow-sm text-foreground"
+                                : "text-muted-foreground hover:text-foreground"
+                            }`}
+                          >
+                            Isi Per Area
+                          </button>
+                        </div>
+
+                        {form.watch("modeCatatan") === "broadcast" ? (
+                          <div className="space-y-2 animate-in fade-in zoom-in-95 duration-200 pt-1">
+                            <Textarea
+                              placeholder="Ketik catatan detail untuk diterapkan ke semua area..."
+                              className="min-h-[100px] rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm"
+                              {...form.register("catatanBroadcast")}
+                            />
+                          </div>
+                        ) : (
+                          <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-200 pt-1">
+                            {form.watch("labaRugiIds").map((areaId) => {
+                              const areaName = dropdownOptions?.areas?.find((a) => a.id === areaId)?.name || `Area`;
+                              return (
+                                <div key={areaId} className="space-y-1.5 p-3 rounded-xl border border-border bg-muted/20">
+                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 font-bold mb-1">
+                                    {areaName}
+                                  </Badge>
+                                  <Textarea
+                                    placeholder={`Catatan untuk ${areaName}...`}
+                                    className="min-h-[80px] rounded-xl bg-background border-border/80 focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm"
+                                    value={form.watch(`catatanPerArea.${areaId}`) || ""}
+                                    onChange={(e) => form.setValue(`catatanPerArea.${areaId}`, e.target.value)}
+                                  />
+                                </div>
+                              );
+                            })}
+                          </div>
                         )}
-                      />
+                      </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
