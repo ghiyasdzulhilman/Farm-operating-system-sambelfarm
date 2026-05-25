@@ -98,21 +98,26 @@ function formatNotionDate(dateString: string): string | undefined {
   if (!dateString) return undefined;
   const str = dateString.trim();
   
-  // Jika formatnya YYYY-MM-DD (tanpa jam), biarkan saja
+  // 1. Jika event seharian (tanpa jam), biarkan saja
   if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
   
-  // Tangkap format datetime-local dari HP (YYYY-MM-DDTHH:mm)
-  // Paksa jadikan format UTC absolut dengan menambahkan :00.000Z
-  // Ini bikin Notion pasrah dan nyatet jam persis seperti yang kita ketik
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(str)) {
-    return `${str}:00.000Z`;
+  try {
+    // 2. Jika input dari form HP (ada jam tapi tanpa zona waktu)
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(str)) {
+      // Kita bisikin Replit: "Ini jam Indonesia Barat (+07:00) ya!"
+      const d = new Date(`${str}:00+07:00`);
+      // Kembalikan ke format standar internasional yang 100% diterima Notion
+      return d.toISOString(); 
+    }
+    
+    // 3. Fallback keamanan
+    const d = new Date(str);
+    if (!isNaN(d.getTime())) return d.toISOString();
+  } catch (e) {
+    return undefined;
   }
   
-  // Fallback standar kalau formatnya aneh
-  const d = new Date(str);
-  if (isNaN(d.getTime())) return undefined;
-  
-  return d.toISOString();
+  return undefined;
 }
 
   const d = new Date(str);
