@@ -63,7 +63,6 @@ const operasionalSchema = z.object({
   waktuSelesai: z.string().optional(),
   durasiKerja: z.coerce.number().min(0).default(0),
   catatan: z.string().optional(),
-  lampiran: z.string().optional(),
 });
 
 type OperasionalFormValues = z.infer<typeof operasionalSchema>;
@@ -88,15 +87,8 @@ const EMPTY_VALUES: OperasionalFormValues = {
   waktuSelesai: "",
   durasiKerja: 0,
   catatan: "",
-  lampiran: "",
 };
 
-function parseLampiranList(raw?: string) {
-  return (raw ?? "")
-    .split(/[\n,]+/)
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
 
 export function AddOperasionalDialog({ onSuccess }: AddOperasionalDialogProps) {
   const [open, setOpen] = useState(false);
@@ -169,7 +161,6 @@ export function AddOperasionalDialog({ onSuccess }: AddOperasionalDialogProps) {
         waktuSelesai: payload.waktuSelesai || undefined,
         durasiKerja: payload.durasiKerja,
         catatan: payload.catatan || "",
-        lampiran: parseLampiranList(payload.lampiran),
       };
 
       const response = await fetch("/api/notion/add-operasional", {
