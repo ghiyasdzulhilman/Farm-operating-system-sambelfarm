@@ -68,13 +68,6 @@ export const OPERASIONAL_SCHEMA = {
     },
 
     {
-      key: "catatan",
-      label: "Catatan",
-      expectedType: "rich_text",
-      aliases: ["catatan", "notes", "keterangan"],
-    },
-
-    {
       key: "lampiran",
       label: "Lampiran",
       expectedType: "files",
