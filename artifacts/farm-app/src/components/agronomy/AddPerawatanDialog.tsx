@@ -94,6 +94,7 @@ const EMPTY_VALUES: PerawatanFormValues = {
 export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(1);
+  const [submittedUrls, setSubmittedUrls] = useState<{pageId: string, notionUrl: string}[] | null>(null); // <--- TAMBAHAN BARU
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -146,22 +147,22 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
 
       return response.json();
     },
+    
     onSuccess: async (data, variables) => {
-      toast({
-        title: "Perawatan tersimpan",
-        description: `Sukses disimpan untuk ${variables.labaRugiIds.length} blok.`,
-      });
-
       await queryClient.invalidateQueries({
         queryKey: getGetDashboardSummaryQueryKey(),
         refetchType: "all",
       });
-
+      
+      // Simpan URL dari backend (Data ada di dalam data.data karena format JSON kita)
+      if (data && data.data) {
+        setSubmittedUrls(data.data);
+      }
+      
       form.reset(EMPTY_VALUES);
-      setStep(1);
-      setOpen(false);
       onSuccess?.();
     },
+
     onError: (error) => {
       toast({
         variant: "destructive",
@@ -207,10 +208,14 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
   return (
     <Sheet
       open={open}
-      onOpenChange={(val) => {
+        onOpenChange={(val) => {
         setOpen(val);
-        if (!val) setStep(1);
+        if (!val) {
+          setStep(1);
+          setSubmittedUrls(null); // <-- Tambahin ini
+        }
       }}
+
     >
       <SheetTrigger asChild>
         <Button className="h-11 rounded-xl px-5 font-bold bg-green-600 text-white hover:bg-green-700 transition-all active:scale-[0.98] gap-2">
@@ -251,12 +256,57 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
             ))}
           </div>
         </SheetHeader>
-
+ 
         <div className="px-6 py-4">
-          {isLoadingOptions ? (
+          {/* JIKA BERHASIL SUBMIT, TAMPILKAN LAYAR SUKSES */}
+          {submittedUrls ? (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex flex-col items-center justify-center py-10 text-center space-y-5"
+            >
+              <div className="h-20 w-20 bg-green-100 rounded-full flex items-center justify-center mb-2">
+                <CheckCircle2 className="h-10 w-10 text-green-600" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-black text-foreground tracking-tight">Sukses Tersimpan!</h3>
+                <p className="text-sm text-muted-foreground font-medium px-4">
+                  Data perawatan berhasil dicatat ke database Notion.
+                </p>
+              </div>
+              
+              <div className="w-full space-y-2.5 pt-4">
+                {submittedUrls.map((item, idx) => (
+                  <Button
+                    key={item.pageId}
+                    type="button"
+                    variant="outline"
+                    className="w-full h-12 rounded-xl font-bold border-green-200 text-green-700 bg-green-50/50 hover:bg-green-100"
+                    onClick={() => window.open(item.notionUrl, "_blank")}
+                  >
+                    Buka Notion Area {idx + 1}
+                  </Button>
+                ))}
+                
+                <Button
+                  type="button"
+                  className="w-full h-12 rounded-xl font-bold bg-slate-900 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 mt-2"
+                  onClick={() => {
+                    setOpen(false);
+                    setStep(1);
+                    setSubmittedUrls(null);
+                  }}
+                >
+                  Tutup Form
+                </Button>
+              </div>
+            </motion.div>
+          ) : isLoadingOptions ? (
             <Skeleton className="h-12 w-full rounded-xl" />
           ) : (
             <Form {...form}>
+            {/* ... (SISA KODE FORM LU DI BAWAHNYA DIBIARIN AJA) ... */}
+
               <form
                 onSubmit={(e) => e.preventDefault()}
                 className="space-y-5 text-left"
