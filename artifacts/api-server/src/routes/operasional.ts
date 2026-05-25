@@ -93,40 +93,28 @@ function buildRichText(content: string) {
   return { rich_text: [{ type: "text", text: { content } }] };
 }
 
-// FORMATTER TANGGAL DENGAN LOCK TIMEZONE WIB (+07:00)
+// FORMATTER TANGGAL (BYPASS TIMEZONE NOTION DENGAN FAKE UTC)
 function formatNotionDate(dateString: string): string | undefined {
   if (!dateString) return undefined;
   const str = dateString.trim();
   
-  // Jika formatnya YYYY-MM-DD (tanpa jam / event seharian), biarkan saja
+  // Jika formatnya YYYY-MM-DD (tanpa jam), biarkan saja
   if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
   
-  // Jika format datetime-local bawaan HP (YYYY-MM-DDTHH:mm)
-  // Kita paksa tambahkan offset +07:00 (WIB) di buntutnya.
-  // Ini memberi tahu Notion secara mutlak: "Ini jam Indonesia Barat!"
+  // Tangkap format datetime-local dari HP (YYYY-MM-DDTHH:mm)
+  // Paksa jadikan format UTC absolut dengan menambahkan :00.000Z
+  // Ini bikin Notion pasrah dan nyatet jam persis seperti yang kita ketik
   if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(str)) {
-    return `${str}:00+07:00`;
+    return `${str}:00.000Z`;
   }
   
-  // Jika string sudah memiliki format ISO lengkap atau format lain
+  // Fallback standar kalau formatnya aneh
   const d = new Date(str);
   if (isNaN(d.getTime())) return undefined;
   
-  // Fallback aman: ambil komponen lokalnya lalu rakit dengan +07:00
-  try {
-    const pad = (num: number) => String(num).padStart(2, '0');
-    const year = d.getFullYear();
-    const month = pad(d.getMonth() + 1);
-    const day = pad(d.getDate());
-    const hours = pad(d.getHours());
-    const minutes = pad(d.getMinutes());
-    return `${year}-${month}-${day}T${hours}:${minutes}:00+07:00`;
-  } catch {
-    return str;
-  }
+  return d.toISOString();
 }
 
-  
   const d = new Date(str);
   if (isNaN(d.getTime())) return undefined;
   
