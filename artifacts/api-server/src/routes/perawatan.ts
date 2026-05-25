@@ -384,16 +384,20 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
         mappings,
       );
 
-      // 👇 TAMBAHKAN JURUS HACK NOTION INI DI SINI 👇
-      // Ini bakal nimpain settingan tanggal biasa menjadi rentang waktu WIB (+07:00)
-      if (body.waktuMulai) {
-        properties["Date"] = { // Pastikan nama kolom di Notion beneran "Date"
-          date: {
-            start: `${tanggal}T${body.waktuMulai}:00+07:00`,
-            ...(body.waktuSelesai ? { end: `${tanggal}T${body.waktuSelesai}:00+07:00` } : {})
-          }
-        };
-      }
+            // 👇 JURUS HACK WAKTU ALA OPERASIONAL 👇
+      const namaKolomTanggal = mappings.tanggal || "Date"; // Ambil nama kolom yang bener dari mapping
+
+      // Rakit format WIB anti-geser seperti di Operasional (YYYY-MM-DDTHH:mm:00+07:00)
+      const waktuStart = body.waktuMulai ? `${tanggal}T${body.waktuMulai}:00+07:00` : tanggal;
+      const waktuEnd = body.waktuSelesai ? `${tanggal}T${body.waktuSelesai}:00+07:00` : undefined;
+
+      // Timpa properties dengan rentang waktu yang presisi
+      properties[namaKolomTanggal] = {
+        date: {
+          start: waktuStart,
+          ...(waktuEnd ? { end: waktuEnd } : {})
+        }
+      };
 
       // 2. Rakit block Notion menggunakan catatan spesifik tersebut
       const childrenBlocks = buildNotionBlocks(body.logProduk, catatanAreaIni);
