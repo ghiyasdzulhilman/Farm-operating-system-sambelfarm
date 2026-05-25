@@ -356,16 +356,16 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
 
   const body = req.body as Partial<AddPerawatanBody>;
   const kegiatan = (body.kegiatan ?? "").trim();
-  const tanggal = (body.tanggal ?? "").trim();
+  const waktuMulai = (body.waktuMulai ?? "").trim(); // <--- Ganti tanggal jadi waktuMulai
 
   // Pengaman payload area dari Front-End (Bisa nerima 1 atau banyak area)
   const areaIds: string[] = Array.isArray(body.labaRugiIds) 
     ? body.labaRugiIds.filter(Boolean) 
     : body.labaRugiId ? [body.labaRugiId] : [];
 
-  if (!kegiatan || !tanggal || areaIds.length === 0) {
+  if (!kegiatan || !waktuMulai || areaIds.length === 0) { // <--- Satpam ngecek waktuMulai
     res.status(400).json({
-      error: "Field 'kegiatan', 'tanggal', dan area wajib diisi (minimal 1).",
+      error: "Field 'kegiatan', 'waktu mulai', dan area wajib diisi (minimal 1).",
     });
     return;
   }
