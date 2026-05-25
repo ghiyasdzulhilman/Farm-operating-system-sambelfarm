@@ -62,7 +62,9 @@ const operasionalSchema = z.object({
   waktuMulai: z.string().min(1, "Waktu mulai wajib diisi"),
   waktuSelesai: z.string().optional(),
   durasiKerja: z.coerce.number().min(0).default(0),
-  catatan: z.string().optional(),
+  modeCatatan: z.enum(["broadcast", "spesifik"]).default("broadcast"),
+  catatanBroadcast: z.string().optional(),
+  catatanPerArea: z.record(z.string()).optional(),
 });
 
 type OperasionalFormValues = z.infer<typeof operasionalSchema>;
@@ -86,7 +88,9 @@ const EMPTY_VALUES: OperasionalFormValues = {
   waktuMulai: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
   waktuSelesai: "",
   durasiKerja: 0,
-  catatan: "",
+  modeCatatan: "broadcast",
+  catatanBroadcast: "",
+  catatanPerArea: {},
 };
 
 
@@ -160,7 +164,10 @@ export function AddOperasionalDialog({ onSuccess }: AddOperasionalDialogProps) {
         waktuMulai: payload.waktuMulai,
         waktuSelesai: payload.waktuSelesai || undefined,
         durasiKerja: payload.durasiKerja,
-        catatan: payload.catatan || "",
+  // Logika pintar: ubah format sesuai mode sakelar
+    catatan: payload.modeCatatan === "broadcast"
+    ? payload.areaIds.reduce((acc, id) => ({ ...acc, [id]: payload.catatanBroadcast || "" }), {})
+    : payload.catatanPerArea || {},
       };
 
       const response = await fetch("/api/notion/add-operasional", {
@@ -652,37 +659,78 @@ export function AddOperasionalDialog({ onSuccess }: AddOperasionalDialogProps) {
                         </motion.div>
                       )}
 
-                      {step === 4 && (
-                        <motion.div
-                          key="step4"
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: 10 }}
-                          className="space-y-4"
-                        >
-                          <FormField
-                            control={form.control}
-                            name="catatan"
-                            render={({ field }) => (
-                              <FormItem className="space-y-1.5">
-                                <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-                                  <FileText className="inline-block h-3.5 w-3.5 mr-1" />
-                                  Catatan
-                                </FormLabel>
-                                <FormControl>
-                                  <Textarea
-                                    placeholder="Tulis catatan lapangan, kendala, hasil, atau detail tambahan..."
-                                    className="min-h-[180px] rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm"
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <FormMessage className="text-xs text-red-500" />
-                              </FormItem>
-                            )}
-                          />
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+  {step === 4 && (
+  <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1 pb-4">
+  <div className="flex items-center justify-between mb-2">
+    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
+      <FileText className="inline-block h-3.5 w-3.5 mr-1" />
+      Mode Catatan Lapangan
+    </p>
+  </div>
+
+  {/* SAKELAR MODE */}
+  <div className="grid grid-cols-2 gap-2 bg-muted/50 p-1.5 rounded-xl border border-border">
+    <button
+      type="button"
+      onClick={() => form.setValue("modeCatatan", "broadcast")}
+      className={`py-2 text-xs font-bold rounded-lg transition-all ${
+        form.watch("modeCatatan") === "broadcast"
+          ? "bg-white dark:bg-slate-900 shadow-sm text-foreground"
+          : "text-muted-foreground hover:text-foreground"
+      }`}
+    >
+      Sama Semua
+    </button>
+    <button
+      type="button"
+      onClick={() => form.setValue("modeCatatan", "spesifik")}
+      className={`py-2 text-xs font-bold rounded-lg transition-all ${
+        form.watch("modeCatatan") === "spesifik"
+          ? "bg-white dark:bg-slate-900 shadow-sm text-foreground"
+          : "text-muted-foreground hover:text-foreground"
+      }`}
+    >
+      Isi Per Area
+    </button>
+  </div>
+
+  {/* KONDISI A: MODE BROADCAST */}
+  {form.watch("modeCatatan") === "broadcast" ? (
+    <div className="space-y-2 animate-in fade-in zoom-in-95 duration-200">
+      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 font-bold">
+        Broadcast ke {form.watch("areaIds").length} Area
+      </Badge>
+      <Textarea
+        placeholder="Ketik satu catatan untuk diterapkan ke semua area yang dipilih..."
+        className="min-h-[140px] rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm"
+        {...form.register("catatanBroadcast")}
+      />
+    </div>
+  ) : (
+    /* KONDISI B: MODE SPESIFIK (PER AREA) */
+    <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-200">
+      {form.watch("areaIds").map((areaId) => {
+        const areaName = dropdownOptions?.areas?.find((a) => a.id === areaId)?.name || `Area`;
+        return (
+          <div key={areaId} className="space-y-1.5 p-3 rounded-xl border border-border bg-muted/20">
+            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 font-bold mb-1">
+              {areaName}
+            </Badge>
+            <Textarea
+              placeholder={`Catatan khusus untuk ${areaName}...`}
+              className="min-h-[80px] rounded-xl bg-background border-border/80 focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm"
+              value={form.watch(`catatanPerArea.${areaId}`) || ""}
+              onChange={(e) => form.setValue(`catatanPerArea.${areaId}`, e.target.value)}
+            />
+          </div>
+        );
+      })}
+    </div>
+  )}
+</div>
+</motion.div>
+)}
+</AnimatePresence>
 
                     <div className="flex justify-between items-center pt-4 border-t border-border">
                       {step > 1 ? (
