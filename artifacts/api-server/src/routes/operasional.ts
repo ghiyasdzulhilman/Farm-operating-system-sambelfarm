@@ -177,6 +177,28 @@ function normalizeFiles(lampiran: AddOperasionalBody["lampiran"]) {
   return files.length > 0 ? files : null;
 }
 
+// FUNGSI PERAKIT BLOCKS UNTUK BODY PAGE NOTION
+function buildOperasionalBlocks(catatan: string | undefined): any[] {
+  if (!catatan || catatan.trim() === "") return [];
+
+  return [
+    {
+      object: "block",
+      type: "heading_3",
+      heading_3: {
+        rich_text: [{ type: "text", text: { content: "📝 Catatan Lapangan" } }],
+      },
+    },
+    {
+      object: "block",
+      type: "paragraph",
+      paragraph: {
+        rich_text: [{ type: "text", text: { content: catatan.trim() } }],
+      },
+    },
+  ];
+}
+
 const OPERASIONAL_FIELDS = [
   { key: "namaPekerjaan", expectedType: "title" },
   { key: "kategori", expectedType: "select" },
@@ -186,7 +208,6 @@ const OPERASIONAL_FIELDS = [
   { key: "prioritas", expectedType: "select" },
   { key: "waktuPengerjaan", expectedType: "date" },
   { key: "durasiKerja", expectedType: "number" },
-  { key: "catatan", expectedType: "rich_text" },
   { key: "lampiran", expectedType: "files" },
 ] as const;
 
@@ -316,9 +337,29 @@ router.post("/notion/add-operasional", async (req, res): Promise<void> => {
         mappings
       );
 
-      const response = await notionFetch(userId, accessToken, "https://api.notion.com/v1/pages", {
-        method: "POST", body: JSON.stringify({ parent: { database_id: databaseId }, properties }),
-      });
+      // 1. Rakit catatan lapangan menjadi struktur block Notion
+      const childrenBlocks = buildOperasionalBlocks(body.catatan);
+
+      // 2. Siapkan payload dasar untuk Notion
+      const payload: any = {
+        parent: { database_id: databaseId },
+        properties,
+      };
+
+      // 3. Jika ada catatan, suntikkan sebagai isi halaman (children)
+      if (childrenBlocks.length > 0) {
+        payload.children = childrenBlocks;
+      }
+
+      const response = await notionFetch(
+        userId,
+        accessToken,
+        "https://api.notion.com/v1/pages",
+        {
+          method: "POST",
+          body: JSON.stringify(payload),
+        },
+      );
 
       if (!response.ok) {
         const errText = await response.text();
