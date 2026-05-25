@@ -54,7 +54,9 @@ import { Badge } from "@/components/ui/badge";
 
 const perawatanSchema = z.object({
   kegiatan: z.string().min(1, "Nama kegiatan wajib diisi"),
-  tanggal: z.string().min(1, "Tanggal kegiatan"),
+  tanggal: z.string().min(1, "Tanggal wajib diisi"),
+  waktuMulai: z.string().optional(),     // <--- TAMBAHAN
+  waktuSelesai: z.string().optional(),   // <--- TAMBAHAN
   labaRugiIds: z.array(z.string()).min(1, "Minimal pilih 1 area"),
   petugasId: z.string().optional(),
   tags: z.string().optional(),
@@ -80,7 +82,9 @@ interface AddPerawatanDialogProps {
 
 const EMPTY_VALUES: PerawatanFormValues = {
   kegiatan: "",
-  tanggal: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+  tanggal: format(new Date(), "yyyy-MM-dd"), // <--- Balikin jadi tanggal aja
+  waktuMulai: "07:00",                       // <--- Jam default mulai
+  waktuSelesai: "11:00",                     // <--- Jam default selesai
   labaRugiIds: [],
   petugasId: "",
   tags: "",
@@ -357,7 +361,7 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                               <div className="relative">
                                 <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                                 <Input
-                                type="datetime-local"
+                                type="date"
                                 className="h-12 rounded-xl bg-muted border-transparent pl-11 pr-4 focus-visible:ring-2 focus-visible:ring-green-600/20 font-bold text-sm w-full"
                                 {...field}
                                />
@@ -368,6 +372,47 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                           </FormItem>
                         )}
                       />
+
+                      {/* RENTANG WAKTU MULAI & SELESAI */}
+                      <div className="grid grid-cols-2 gap-3 pt-1">
+                        <FormField
+                          control={form.control}
+                          name="waktuMulai"
+                          render={({ field }) => (
+                            <FormItem className="space-y-1.5">
+                              <FormLabel className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80">
+                                Jam Mulai
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="time"
+                                  className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-green-600/20 font-bold text-sm w-full"
+                                  {...field}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="waktuSelesai"
+                          render={({ field }) => (
+                            <FormItem className="space-y-1.5">
+                              <FormLabel className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80">
+                                Jam Selesai
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="time"
+                                  className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-green-600/20 font-bold text-sm w-full"
+                                  {...field}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
                     </motion.div>
                   )}
 
