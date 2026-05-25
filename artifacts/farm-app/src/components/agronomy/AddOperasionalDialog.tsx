@@ -124,12 +124,13 @@ export function AddOperasionalDialog({ onSuccess }: AddOperasionalDialogProps) {
 
   const saveOperasional = useMutation({
     mutationFn: async (payload: OperasionalFormValues) => {
+      
       const cleanData = {
         namaPekerjaan: payload.namaPekerjaan,
         kategori: payload.kategori,
         status: payload.status || "Selesai",
         ditugaskanKeId: payload.ditugaskanKeId,
-        areaId: payload.areaId,
+        areaIds: payload.areaIds, // <--- INI OBATNYA! Kita kirim array utuh
         prioritas: payload.prioritas,
         waktuMulai: payload.waktuMulai,
         waktuSelesai: payload.waktuSelesai || undefined,
