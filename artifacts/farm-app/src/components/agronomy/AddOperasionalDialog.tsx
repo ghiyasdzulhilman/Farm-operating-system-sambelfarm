@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -121,6 +121,28 @@ export function AddOperasionalDialog({ onSuccess }: AddOperasionalDialogProps) {
     resolver: zodResolver(operasionalSchema),
     defaultValues: EMPTY_VALUES,
   });
+
+  // --- AUTO CALCULATE DURATION ---
+  const watchWaktuMulai = form.watch("waktuMulai");
+  const watchWaktuSelesai = form.watch("waktuSelesai");
+
+  useEffect(() => {
+    if (watchWaktuMulai && watchWaktuSelesai) {
+      const start = new Date(watchWaktuMulai).getTime();
+      const end = new Date(watchWaktuSelesai).getTime();
+      
+      if (end > start) {
+        // Hitung selisih dalam milidetik, ubah ke jam
+        const diffInHours = (end - start) / (1000 * 60 * 60);
+        // Bulatkan ke 1 angka di belakang koma (contoh: 2.5 jam)
+        const roundedHours = Math.round(diffInHours * 10) / 10;
+        
+        // Update kolom durasi otomatis
+        form.setValue("durasiKerja", roundedHours, { shouldValidate: true });
+      }
+    }
+  }, [watchWaktuMulai, watchWaktuSelesai, form]);
+  // -------------------------------
 
   const saveOperasional = useMutation({
     mutationFn: async (payload: OperasionalFormValues) => {
