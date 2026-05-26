@@ -29,7 +29,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 
-// 1. UPDATE SCHEMA: Tanggal cabut dari root, pindah ke mode spesifik
+// SCHEMA
 const perawatanSchema = z.object({
   kegiatan: z.string().min(1, "Nama kegiatan wajib diisi"),
   labaRugiIds: z.array(z.string()).min(1, "Minimal pilih 1 area"),
@@ -76,7 +76,7 @@ const EMPTY_VALUES: PerawatanFormValues = {
 
 export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
   const [open, setOpen] = useState(false);
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(1); // SEKARANG TOTAL ADA 6 STEP
   const [submittedUrls, setSubmittedUrls] = useState<{pageId: string, notionUrl: string}[] | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -91,10 +91,10 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
     enabled: open,
   });
 
-    const form = useForm<PerawatanFormValues>({
+  const form = useForm<PerawatanFormValues>({
     resolver: zodResolver(perawatanSchema),
     defaultValues: EMPTY_VALUES,
-    shouldUnregister: false, 
+    shouldUnregister: false, // Gembok data biar ga hilang pas ganti step
   });
 
   const { fields: produkFields, append: appendProduk, remove: removeProduk } = useFieldArray({
@@ -125,7 +125,7 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
 
   const handleNextStep = async () => {
     let fieldsToValidate: Array<keyof PerawatanFormValues> = [];
-    if (step === 1) fieldsToValidate = ["kegiatan"]; // Tanggal dihapus dari sini
+    if (step === 1) fieldsToValidate = ["kegiatan"];
     if (step === 2) fieldsToValidate = ["labaRugiIds"];
     
     const isStepValid = await form.trigger(fieldsToValidate);
@@ -181,11 +181,11 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
             <div className="rounded-xl bg-green-500/10 p-2 text-green-600"><Sprout className="h-5 w-5" /></div>
             <div className="text-left">
               <SheetTitle className="text-base font-black tracking-tight">Input Perawatan</SheetTitle>
-              <p className="text-[10px] font-bold text-green-600 tracking-wider uppercase">Step {step} dari 5</p>
+              <p className="text-[10px] font-bold text-green-600 tracking-wider uppercase">Step {step} dari 6</p>
             </div>
           </div>
           <div className="flex gap-1.5">
-            {[1, 2, 3, 4, 5].map((i) => (<div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${step === i ? "w-4 bg-green-600" : "w-1.5 bg-border"}`} />))}
+            {[1, 2, 3, 4, 5, 6].map((i) => (<div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${step === i ? "w-4 bg-green-600" : "w-1.5 bg-border"}`} />))}
           </div>
         </SheetHeader>
  
@@ -210,6 +210,7 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
             <Form {...form}>
               <form onSubmit={(e) => e.preventDefault()} className="space-y-5 text-left h-full flex flex-col">
                 <AnimatePresence mode="wait">
+                  
                   {/* STEP 1: KEGIATAN */}
                   {step === 1 && (
                     <motion.div key="step1" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="space-y-4">
@@ -292,12 +293,83 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                     </motion.div>
                   )}
 
-                  {/* STEP 4: TANGGAL, PEKERJA, TAGS & STATUS */}
+                  {/* STEP 4: PEKERJA (KHUSUS) */}
                   {step === 4 && (
-                    <motion.div key="step4" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="space-y-6">
-                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">4. Detail Pekerjaan & Jadwal</p>
+                    <motion.div key="step4" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="space-y-4">
+                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80 mb-2">4. Petugas Lapangan</p>
+                      <div className="grid grid-cols-2 gap-2 bg-muted/50 p-1.5 rounded-xl border border-border">
+                        <button type="button" onClick={() => form.setValue("modePekerja", "broadcast")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modePekerja") === "broadcast" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Sama Semua</button>
+                        <button type="button" onClick={() => form.setValue("modePekerja", "spesifik")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modePekerja") === "spesifik" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Isi Per Area</button>
+                      </div>
                       
-                      {/* MULTI TANGGAL MODE */}
+                      {form.watch("modePekerja") === "broadcast" ? (
+                        <div className="rounded-2xl border border-border/60 bg-muted/5 p-2 animate-in fade-in">
+                          <div className="max-h-[250px] overflow-y-auto flex flex-wrap gap-1.5 pr-1">
+                            {dropdownOptions?.petugas?.map((item) => (
+                              <button key={item.id} type="button" onClick={() => toggleWorker(item.id)} className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all border ${form.watch("petugasBroadcast").includes(item.id) ? "bg-green-600 text-white border-green-600 shadow-sm" : "bg-background text-muted-foreground border-border/50 hover:bg-muted"}`}>{item.name}</button>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-3 animate-in fade-in">
+                          {form.watch("labaRugiIds").map((areaId) => {
+                            const areaName = dropdownOptions?.areas?.find((a) => a.id === areaId)?.name || `Area`;
+                            const currentWorkers = form.watch(`petugasPerArea.${areaId}`) || [];
+                            return (
+                              <div key={areaId} className="space-y-2 p-2.5 rounded-xl border border-border bg-muted/5">
+                                <div className="flex justify-between items-center">
+                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 font-bold">{areaName}</Badge>
+                                  <span className="text-[10px] text-muted-foreground font-medium">{currentWorkers.length} dipilih</span>
+                                </div>
+                                <div className="max-h-[150px] overflow-y-auto flex flex-wrap gap-1.5 mt-1 pr-1">
+                                  {dropdownOptions?.petugas?.map((item) => (
+                                    <button key={item.id} type="button" onClick={() => toggleWorker(item.id, areaId)} className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all border ${currentWorkers.includes(item.id) ? "bg-green-600 text-white border-green-600 shadow-sm" : "bg-background text-muted-foreground border-border/50 hover:bg-muted"}`}>{item.name}</button>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+
+                  {/* STEP 5: CATATAN LAPANGAN */}
+                  {step === 5 && (
+                    <motion.div key="step5" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="space-y-4">
+                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80 mb-2">5. Catatan Detail (Opsional)</p>
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-2 bg-muted/50 p-1.5 rounded-xl border border-border">
+                          <button type="button" onClick={() => form.setValue("modeCatatan", "broadcast")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modeCatatan") === "broadcast" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Sama Semua</button>
+                          <button type="button" onClick={() => form.setValue("modeCatatan", "spesifik")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modeCatatan") === "spesifik" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Isi Per Area</button>
+                        </div>
+                        {form.watch("modeCatatan") === "broadcast" ? (
+                          <div className="space-y-2 animate-in fade-in pt-1">
+                            <Textarea placeholder="Ketik catatan detail untuk diterapkan ke semua area..." className="min-h-[140px] rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm" {...form.register("catatanBroadcast")} />
+                          </div>
+                        ) : (
+                          <div className="space-y-3 animate-in fade-in pt-1">
+                            {form.watch("labaRugiIds").map((areaId) => {
+                              const areaName = dropdownOptions?.areas?.find((a) => a.id === areaId)?.name || `Area`;
+                              return (
+                                <div key={areaId} className="space-y-1.5 p-3 rounded-xl border border-border bg-muted/20">
+                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 font-bold mb-1">{areaName}</Badge>
+                                  <Textarea placeholder={`Catatan untuk ${areaName}...`} className="min-h-[80px] rounded-xl bg-background border-border/80 focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm" {...form.register(`catatanPerArea.${areaId}`)} />
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* STEP 6: JADWAL & STATUS (FINALISASI) */}
+                  {step === 6 && (
+                    <motion.div key="step6" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="space-y-6 pb-2">
+                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">6. Finalisasi Jadwal & Status</p>
+                      
+                      {/* MULTI TANGGAL */}
                       <div className="space-y-2.5">
                         <p className="text-[11px] font-bold text-muted-foreground">Tanggal Pelaksanaan</p>
                         <div className="grid grid-cols-2 gap-2 bg-muted/50 p-1.5 rounded-xl border border-border">
@@ -343,45 +415,7 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                         )}
                       </div>
 
-                      {/* MULTI PEKERJA MODE */}
-                      <div className="space-y-2.5 pt-2 border-t border-border">
-                        <p className="text-[11px] font-bold text-muted-foreground">Petugas Lapangan</p>
-                        <div className="grid grid-cols-2 gap-2 bg-muted/50 p-1.5 rounded-xl border border-border">
-                          <button type="button" onClick={() => form.setValue("modePekerja", "broadcast")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modePekerja") === "broadcast" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Sama Semua</button>
-                          <button type="button" onClick={() => form.setValue("modePekerja", "spesifik")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modePekerja") === "spesifik" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Isi Per Area</button>
-                        </div>
-                        {form.watch("modePekerja") === "broadcast" ? (
-                          <div className="rounded-2xl border border-border/60 bg-muted/5 p-2 animate-in fade-in">
-                            <div className="max-h-[130px] overflow-y-auto flex flex-wrap gap-1.5 pr-1">
-                              {dropdownOptions?.petugas?.map((item) => (
-                                <button key={item.id} type="button" onClick={() => toggleWorker(item.id)} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${form.watch("petugasBroadcast").includes(item.id) ? "bg-green-600 text-white border-green-600 shadow-sm" : "bg-background text-muted-foreground border-border/50 hover:bg-muted"}`}>{item.name}</button>
-                              ))}
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="space-y-3 animate-in fade-in">
-                            {form.watch("labaRugiIds").map((areaId) => {
-                              const areaName = dropdownOptions?.areas?.find((a) => a.id === areaId)?.name || `Area`;
-                              const currentWorkers = form.watch(`petugasPerArea.${areaId}`) || [];
-                              return (
-                                <div key={areaId} className="space-y-2 p-2.5 rounded-xl border border-border bg-muted/5">
-                                  <div className="flex justify-between items-center">
-                                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 font-bold">{areaName}</Badge>
-                                    <span className="text-[10px] text-muted-foreground font-medium">{currentWorkers.length} dipilih</span>
-                                  </div>
-                                  <div className="max-h-[110px] overflow-y-auto flex flex-wrap gap-1.5 mt-1 pr-1">
-                                    {dropdownOptions?.petugas?.map((item) => (
-                                      <button key={item.id} type="button" onClick={() => toggleWorker(item.id, areaId)} className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all border ${currentWorkers.includes(item.id) ? "bg-green-600 text-white border-green-600 shadow-sm" : "bg-background text-muted-foreground border-border/50 hover:bg-muted"}`}>{item.name}</button>
-                                    ))}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* MULTI TAGS MODE */}
+                      {/* MULTI TAGS */}
                       <div className="space-y-2.5 pt-2 border-t border-border">
                         <p className="text-[11px] font-bold text-muted-foreground">Jenis Kegiatan / Tags</p>
                         <div className="grid grid-cols-2 gap-2 bg-muted/50 p-1.5 rounded-xl border border-border">
@@ -417,7 +451,7 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                         )}
                       </div>
 
-                      {/* MULTI STATUS MODE */}
+                      {/* MULTI STATUS */}
                       <div className="space-y-2.5 pt-2 border-t border-border">
                         <p className="text-[11px] font-bold text-muted-foreground">Status Pekerjaan</p>
                         <div className="grid grid-cols-2 gap-2 bg-muted/50 p-1.5 rounded-xl border border-border">
@@ -452,50 +486,19 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                           </div>
                         )}
                       </div>
-                      
-                    </motion.div>
-                  )}
-
-                  {/* STEP 5: CATATAN & FINALISASI */}
-                  {step === 5 && (
-                    <motion.div key="step5" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="space-y-4">
-                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80 mb-2">5. Finalisasi & Catatan</p>
-                      <div className="space-y-3">
-                        <div className="grid grid-cols-2 gap-2 bg-muted/50 p-1.5 rounded-xl border border-border">
-                          <button type="button" onClick={() => form.setValue("modeCatatan", "broadcast")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modeCatatan") === "broadcast" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Sama Semua</button>
-                          <button type="button" onClick={() => form.setValue("modeCatatan", "spesifik")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modeCatatan") === "spesifik" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Isi Per Area</button>
-                        </div>
-                        {form.watch("modeCatatan") === "broadcast" ? (
-                          <div className="space-y-2 animate-in fade-in pt-1">
-                            <Textarea placeholder="Ketik catatan detail untuk diterapkan ke semua area..." className="min-h-[140px] rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm" {...form.register("catatanBroadcast")} />
-                          </div>
-                        ) : (
-                          <div className="space-y-3 animate-in fade-in pt-1">
-                            {form.watch("labaRugiIds").map((areaId) => {
-                              const areaName = dropdownOptions?.areas?.find((a) => a.id === areaId)?.name || `Area`;
-                              return (
-                                <div key={areaId} className="space-y-1.5 p-3 rounded-xl border border-border bg-muted/20">
-                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 font-bold mb-1">{areaName}</Badge>
-                                  {/* 👇 DIGEMBOK PERMANEN PAKAI REGISTER 👇 */}
-                                  <Textarea placeholder={`Catatan untuk ${areaName}...`} className="min-h-[80px] rounded-xl bg-background border-border/80 focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm" {...form.register(`catatanPerArea.${areaId}`)} />
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
 
-                {/* BOTTOM NAVIGATION */}
+                {/* BOTTOM NAVIGATION (SAMPAI STEP 6) */}
                 <div className="flex justify-between items-center pt-4 border-t border-border mt-auto shrink-0 pb-8 md:pb-2">
                   {step > 1 ? (
                     <Button type="button" variant="ghost" className="h-11 rounded-xl px-4 font-bold text-muted-foreground" onClick={() => setStep((p) => p - 1)} disabled={savePerawatan.isPending}><ArrowLeft className="mr-2 h-4 w-4" /> Kembali</Button>
                   ) : (
                     <Button type="button" variant="ghost" className="h-11 rounded-xl px-4 font-bold text-muted-foreground" onClick={() => setOpen(false)}>Batal</Button>
                   )}
-                  {step < 5 ? (
+                  
+                  {step < 6 ? (
                     <Button type="button" className="h-11 rounded-xl px-5 font-bold bg-green-600 text-white hover:bg-green-700" onClick={handleNextStep}>Lanjut <ArrowRight className="ml-2 h-4 w-4" /></Button>
                   ) : (
                     <Button type="button" className="h-11 rounded-xl px-6 font-bold bg-green-600 text-white hover:bg-green-700 active:scale-[0.98]" disabled={savePerawatan.isPending} onClick={form.handleSubmit(onSubmit)}>
