@@ -81,8 +81,8 @@ interface AddPerawatanDialogProps {
 
 const EMPTY_VALUES: PerawatanFormValues = {
   kegiatan: "",
-  waktuMulai: format(new Date(), "yyyy-MM-dd'T'HH:mm"), // <--- Default gabungan
-  waktuSelesai: "",                                     // <--- Kosongin default-nya
+  waktuMulai: format(new Date(), "yyyy-MM-dd'T'HH:mm"), // <--- WAJIB ADA 'T'HH:mm
+  waktuSelesai: "",
   labaRugiIds: [],
   petugasId: "",
   tags: "",
@@ -123,24 +123,26 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
     });
 
   
-    const savePerawatan = useMutation({
-        mutationFn: async (payload: PerawatanFormValues) => {
-      // 1. Rakit catatan sesuai mode sakelar
-      const dirakitDetailNotes = payload.modeCatatan === "broadcast"
-        ? payload.labaRugiIds.reduce((acc, id) => ({ ...acc, [id]: payload.catatanBroadcast || "" }), {})
-        : payload.catatanPerArea || {};
+  const savePerawatan = useMutation({
+  mutationFn: async (payload: PerawatanFormValues) => {
+    // 1. Rakit catatan sesuai mode sakelar
+    const dirakitDetailNotes = payload.modeCatatan === "broadcast"
+      ? payload.labaRugiIds.reduce((acc, id) => ({ ...acc, [id]: payload.catatanBroadcast || "" }), {})
+      : payload.catatanPerArea || {};
 
-      // 2. Siapkan payload final
-      const finalPayload = {
-        ...payload,
-        detailNotes: dirakitDetailNotes,
-      };
+    // 2. Siapkan payload final
+    const finalPayload = {
+      ...payload,
+      waktuMulai: payload.waktuMulai, // <--- Pastikan kebawa
+      waktuSelesai: payload.waktuSelesai || undefined, // <--- Pastikan kebawa
+      detailNotes: dirakitDetailNotes,
+    };
 
-      const response = await fetch("/api/notion/add-perawatan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(finalPayload),
-      });
+    const response = await fetch("/api/notion/add-perawatan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(finalPayload),
+    });
 
       if (!response.ok) {
         const errText = await response.text();
