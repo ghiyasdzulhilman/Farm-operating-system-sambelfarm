@@ -184,6 +184,32 @@ function formatNotionDate(dateString: string): string | undefined {
   }
 }
 
+function normalizeDateRange(
+  value: string | { start: string; end?: string; } | undefined,
+  waktuMulai?: string,
+  waktuSelesai?: string,
+) {
+  let startStr: string | undefined;
+  let endStr: string | undefined;
+
+  if (typeof value === "string") startStr = value;
+  else if (value && typeof value === "object") { startStr = value.start; endStr = value.end; }
+  else { startStr = waktuMulai; endStr = waktuSelesai; }
+
+  const formattedStart = startStr ? formatNotionDate(startStr) : undefined;
+  const formattedEnd = endStr ? formatNotionDate(endStr) : undefined;
+
+  if (!formattedStart) return null;
+  const normalized: { start: string; end?: string } = { start: formattedStart };
+
+  if (formattedEnd) {
+    const startTime = new Date(formattedStart).getTime();
+    const endTime = new Date(formattedEnd).getTime();
+    if (endTime >= startTime) normalized.end = formattedEnd;
+  }
+  return normalized;
+}
+
 function buildRichText(content: string) {
   return {
     rich_text: [
@@ -258,27 +284,35 @@ function buildPerawatanProperties(
 ): Record<string, unknown> {
   const props: Record<string, unknown> = {};
 
-  // Sekarang dia baca dari variabel PERAWATAN_FIELDS di atas
   PERAWATAN_FIELDS.forEach((field) => {
     const mapping = mappings?.[field.key as keyof FieldMappingData];
     if (!mapping?.propertyId) return;
 
     const propertyId = decodePropertyId(mapping.propertyId);
-    
-    let value = data[field.key as keyof AddPerawatanBody];
+    let value: unknown = data[field.key as keyof AddPerawatanBody];
     
     // Trik toleransi ID relasi
     if (!value && field.key === "labaRugi") value = (data as any).labaRugiId;
     if (!value && field.key === "petugas") value = (data as any).petugasId;
     
-    if (!value) return;
+    // 👇 INI YANG BIKIN RENTANG WAKTU JALAN 👇
+    if (field.key === "tanggal") {
+      value = normalizeDateRange(data.tanggal, data.waktuMulai, data.waktuSelesai);
+    }
+
+    if (value === undefined || value === null || value === "") return;
 
     switch (field.expectedType) {
       case "title":
         props[propertyId] = { title: [{ text: { content: String(value) } }] };
         break;
       case "date":
-        props[propertyId] = { date: { start: String(value) } };
+        // 👇 SUPPORT OBJEK RENTANG WAKTU (START & END) 👇
+        if (typeof value === "object" && value && "start" in value) {
+          props[propertyId] = { date: value };
+        } else {
+          props[propertyId] = { date: { start: String(value) } };
+        }
         break;
       case "select":
         props[propertyId] = { select: { name: String(value) } };
@@ -382,15 +416,18 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
       return;
     }
 
-    // --- DI SINI MAGIC-NYA: KITA LOOPING SESUAI JUMLAH AREA ---
+        // --- DI SINI MAGIC-NYA: KITA LOOPING SESUAI JUMLAH AREA ---
     const requests = areaIds.map(async (currentAreaId) => {
-            // 1. Ambil catatan spesifik untuk area yang sedang di-looping
+      // 1. Ambil catatan spesifik untuk area yang sedang di-looping
       const catatanAreaIni = body.detailNotes?.[currentAreaId] || "";
 
-        const properties = buildPerawatanProperties(
+      // 👇 HARUS KIRIM tanggal, waktuMulai, & waktuSelesai KE SINI 👇
+      const properties = buildPerawatanProperties(
         {
           kegiatan,
-          // (gak usah pusingin variabel tanggal di sini, kita timpa di bawah)
+          tanggal: waktuMulai, // <--- 
+          waktuMulai: waktuMulai,
+          waktuSelesai: body.waktuSelesai,
           labaRugiId: currentAreaId,
           petugasId: body.petugasId,
           tags: body.tags,
@@ -401,24 +438,6 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
         mappings,
       );
 
-       // 👇 TIMPA TANGGAL DENGAN FORMATTER SAKTI (VERSI OPERASIONAL) 👇
-      // Kita ekstrak ID kolom yang BENER biar gak jadi [object Object]
-      const mappingTanggal = mappings?.tanggal as any;
-      const propertyIdTanggal = mappingTanggal?.propertyId 
-        ? decodePropertyId(mappingTanggal.propertyId) 
-        : "Date"; 
-
-      const formattedStart = formatNotionDate(waktuMulai);
-      const formattedEnd = body.waktuSelesai ? formatNotionDate(body.waktuSelesai) : undefined;
-
-      if (formattedStart) {
-        properties[propertyIdTanggal] = {
-          date: {
-            start: formattedStart,
-            ...(formattedEnd ? { end: formattedEnd } : {})
-          }
-        };
-      }
 
       // 2. Rakit block Notion menggunakan catatan spesifik tersebut
       const childrenBlocks = buildNotionBlocks(body.logProduk, catatanAreaIni);
