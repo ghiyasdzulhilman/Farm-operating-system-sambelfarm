@@ -285,34 +285,23 @@ function buildPerawatanProperties(
   const props: Record<string, unknown> = {};
 
   PERAWATAN_FIELDS.forEach((field) => {
+    // KITA BYPASS/SKIP BIAR TANGGAL GAK DIPROSES OLEH LOOPING INI
+    if (field.key === "tanggal") return;
+
     const mapping = mappings?.[field.key as keyof FieldMappingData];
     if (!mapping?.propertyId) return;
 
     const propertyId = decodePropertyId(mapping.propertyId);
-    let value: unknown = data[field.key as keyof AddPerawatanBody];
+    let value = data[field.key as keyof AddPerawatanBody];
     
-    // Trik toleransi ID relasi
     if (!value && field.key === "labaRugi") value = (data as any).labaRugiId;
     if (!value && field.key === "petugas") value = (data as any).petugasId;
     
-    // 👇 INI YANG BIKIN RENTANG WAKTU JALAN 👇
-    if (field.key === "tanggal") {
-      value = normalizeDateRange(data.tanggal, data.waktuMulai, data.waktuSelesai);
-    }
-
-    if (value === undefined || value === null || value === "") return;
+    if (!value) return;
 
     switch (field.expectedType) {
       case "title":
         props[propertyId] = { title: [{ text: { content: String(value) } }] };
-        break;
-      case "date":
-        // 👇 SUPPORT OBJEK RENTANG WAKTU (START & END) 👇
-        if (typeof value === "object" && value && "start" in value) {
-          props[propertyId] = { date: value };
-        } else {
-          props[propertyId] = { date: { start: String(value) } };
-        }
         break;
       case "select":
         props[propertyId] = { select: { name: String(value) } };
@@ -332,6 +321,20 @@ function buildPerawatanProperties(
         break;
     }
   });
+
+  // 👇 DI SINI JURUS POTONG KOMPASNYA 👇
+  // Kita ruji manual persis ke ID kolomnya tanpa lewat perulangan
+  const mappingTanggal = mappings?.tanggal as any;
+  if (mappingTanggal?.propertyId) {
+    const propertyIdTanggal = decodePropertyId(mappingTanggal.propertyId);
+    const dateRange = normalizeDateRange(undefined, data.waktuMulai, data.waktuSelesai);
+    
+    if (dateRange) {
+      props[propertyIdTanggal] = {
+        date: dateRange
+      };
+    }
+  }
 
   return props;
 }
