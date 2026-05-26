@@ -415,15 +415,9 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                     </motion.div>
                   )}
 
-                                    {/* STEP 4: PEKERJA & DETAIL */}
+                  {/* STEP 4: PEKERJA & DETAIL */}
                   {step === 4 && (
-                    <motion.div 
-                      key="step4" 
-                      initial={{ opacity: 0, y: -10 }} 
-                      animate={{ opacity: 1, y: 0 }} 
-                      exit={{ opacity: 0, y: 10 }} 
-                      className="space-y-5"
-                    >
+                    <motion.div key="step4" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="space-y-5">
                       <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80 mb-2">4. Detail Pekerjaan</p>
                       
                       {/* MULTI PEKERJA MODE */}
@@ -437,12 +431,13 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                         </div>
 
                         {form.watch("modePekerja") === "broadcast" ? (
-                          <div className="rounded-2xl border border-border/60 bg-muted/20 p-2.5 animate-in fade-in">
-                            <div className="flex flex-wrap gap-2">
+                          <div className="rounded-2xl border border-border/60 bg-muted/5 p-2 animate-in fade-in">
+                            {/* 👇 KOTAK SCROLL MULTI-SELECT (BROADCAST) 👇 */}
+                            <div className="max-h-[130px] overflow-y-auto flex flex-wrap gap-1.5 pr-1">
                               {dropdownOptions?.petugas?.map((item) => {
                                 const isSelected = form.watch("petugasBroadcast").includes(item.id);
                                 return (
-                                  <button key={item.id} type="button" onClick={() => toggleWorker(item.id)} className={`px-3.5 py-2 rounded-xl text-sm font-semibold transition-all border ${isSelected ? "bg-green-600 text-white border-green-600 shadow-sm scale-[1.02]" : "bg-background text-muted-foreground border-border/50 hover:bg-muted"}`}>
+                                  <button key={item.id} type="button" onClick={() => toggleWorker(item.id)} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${isSelected ? "bg-green-600 text-white border-green-600 shadow-sm" : "bg-background text-muted-foreground border-border/50 hover:bg-muted"}`}>
                                     {item.name}
                                   </button>
                                 );
@@ -455,13 +450,17 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                               const areaName = dropdownOptions?.areas?.find((a) => a.id === areaId)?.name || `Area`;
                               const currentWorkers = form.watch(`petugasPerArea.${areaId}`) || [];
                               return (
-                                <div key={areaId} className="space-y-2 p-3 rounded-xl border border-border bg-muted/20">
-                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 font-bold">{areaName}</Badge>
-                                  <div className="flex flex-wrap gap-2 mt-1">
+                                <div key={areaId} className="space-y-2 p-2.5 rounded-xl border border-border bg-muted/5">
+                                  <div className="flex justify-between items-center">
+                                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 font-bold">{areaName}</Badge>
+                                    <span className="text-[10px] text-muted-foreground font-medium">{currentWorkers.length} dipilih</span>
+                                  </div>
+                                  {/* 👇 KOTAK SCROLL MULTI-SELECT (PER AREA) 👇 */}
+                                  <div className="max-h-[110px] overflow-y-auto flex flex-wrap gap-1.5 mt-1 pr-1">
                                     {dropdownOptions?.petugas?.map((item) => {
                                       const isSelected = currentWorkers.includes(item.id);
                                       return (
-                                        <button key={item.id} type="button" onClick={() => toggleWorker(item.id, areaId)} className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all border ${isSelected ? "bg-green-600 text-white border-green-600 shadow-sm" : "bg-background text-muted-foreground border-border/50 hover:bg-muted"}`}>
+                                        <button key={item.id} type="button" onClick={() => toggleWorker(item.id, areaId)} className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all border ${isSelected ? "bg-green-600 text-white border-green-600 shadow-sm" : "bg-background text-muted-foreground border-border/50 hover:bg-muted"}`}>
                                           {item.name}
                                         </button>
                                       );
@@ -546,8 +545,8 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                   )}
                 </AnimatePresence>
 
-                {/* BOTTOM NAVIGATION */}
-                <div className="flex justify-between items-center pt-4 border-t border-border mt-auto shrink-0 pb-2">
+                {/* BOTTOM NAVIGATION (DENGAN PADDING SAFARI FIX) */}
+                <div className="flex justify-between items-center pt-4 border-t border-border mt-auto shrink-0 pb-8 md:pb-2">
                   {step > 1 ? (
                     <Button type="button" variant="ghost" className="h-11 rounded-xl px-4 font-bold text-muted-foreground" onClick={() => setStep((p) => p - 1)} disabled={savePerawatan.isPending}>
                       <ArrowLeft className="mr-2 h-4 w-4" /> Kembali
@@ -566,6 +565,7 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                     </Button>
                   )}
                 </div>
+
               </form>
             </Form>
           )}
