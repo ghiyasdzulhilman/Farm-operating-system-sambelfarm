@@ -292,6 +292,11 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                     </motion.div>
                   )}
 
+                  {/* STEP 4: TANGGAL, PEKERJA, TAGS & STATUS */}
+                  {step === 4 && (
+                    <motion.div key="step4" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="space-y-6">
+                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">4. Detail Pekerjaan & Jadwal</p>
+                      
                       {/* MULTI TANGGAL MODE */}
                       <div className="space-y-2.5">
                         <p className="text-[11px] font-bold text-muted-foreground">Tanggal Pelaksanaan</p>
