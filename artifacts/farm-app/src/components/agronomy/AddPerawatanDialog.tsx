@@ -17,9 +17,7 @@ import {
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 
-import {
-  getGetDashboardSummaryQueryKey,
-} from "@workspace/api-client-react";
+import { getGetDashboardSummaryQueryKey } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 
 import { Button } from "@/components/ui/button";
@@ -31,12 +29,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 
-// 1. UPDATE SCHEMA: Tambah mode spesifik untuk Tags & Status
+// 1. UPDATE SCHEMA: Tanggal cabut dari root, pindah ke mode spesifik
 const perawatanSchema = z.object({
   kegiatan: z.string().min(1, "Nama kegiatan wajib diisi"),
-  tanggal: z.string().min(1, "Tanggal wajib diisi"),
   labaRugiIds: z.array(z.string()).min(1, "Minimal pilih 1 area"),
   
+  modeTanggal: z.enum(["broadcast", "spesifik"]).default("broadcast"),
+  tanggalBroadcast: z.string().optional(),
+  tanggalPerArea: z.record(z.string()).default({}),
+
   modePekerja: z.enum(["broadcast", "spesifik"]).default("broadcast"),
   petugasBroadcast: z.array(z.string()).default([]),
   petugasPerArea: z.record(z.array(z.string())).default({}),
@@ -64,8 +65,8 @@ interface AddPerawatanDialogProps { onSuccess?: () => void; }
 
 const EMPTY_VALUES: PerawatanFormValues = {
   kegiatan: "",
-  tanggal: format(new Date(), "yyyy-MM-dd"),
   labaRugiIds: [],
+  modeTanggal: "broadcast", tanggalBroadcast: format(new Date(), "yyyy-MM-dd"), tanggalPerArea: {},
   modePekerja: "broadcast", petugasBroadcast: [], petugasPerArea: {},
   modeTags: "broadcast", tagsBroadcast: "", tagsPerArea: {},
   modeStatus: "broadcast", statusBroadcast: "Rencana", statusPerArea: {},
@@ -123,7 +124,7 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
 
   const handleNextStep = async () => {
     let fieldsToValidate: Array<keyof PerawatanFormValues> = [];
-    if (step === 1) fieldsToValidate = ["kegiatan", "tanggal"];
+    if (step === 1) fieldsToValidate = ["kegiatan"]; // Tanggal dihapus dari sini
     if (step === 2) fieldsToValidate = ["labaRugiIds"];
     
     const isStepValid = await form.trigger(fieldsToValidate);
@@ -208,25 +209,13 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
             <Form {...form}>
               <form onSubmit={(e) => e.preventDefault()} className="space-y-5 text-left h-full flex flex-col">
                 <AnimatePresence mode="wait">
-                  {/* STEP 1: KEGIATAN & TANGGAL */}
+                  {/* STEP 1: KEGIATAN */}
                   {step === 1 && (
                     <motion.div key="step1" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="space-y-4">
                       <FormField control={form.control} name="kegiatan" render={({ field }) => (
                         <FormItem className="space-y-1.5">
                           <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">1. Nama Kegiatan</FormLabel>
                           <FormControl><Input className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm font-medium" placeholder="Cth: Kocor Kalinet..." {...field} /></FormControl>
-                          <FormMessage className="text-xs text-red-500" />
-                        </FormItem>
-                      )} />
-                      <FormField control={form.control} name="tanggal" render={({ field }) => (
-                        <FormItem className="space-y-1.5">
-                          <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Tanggal</FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                              <Input type="date" className="h-12 rounded-xl bg-muted border-transparent pl-11 pr-4 focus-visible:ring-2 focus-visible:ring-green-600/20 font-bold text-sm w-full" {...field} />
-                            </div>
-                          </FormControl>
                           <FormMessage className="text-xs text-red-500" />
                         </FormItem>
                       )} />
@@ -302,13 +291,42 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                     </motion.div>
                   )}
 
-                  {/* STEP 4: PEKERJA, TAGS & STATUS */}
+                  {/* STEP 4: TANGGAL, PEKERJA, TAGS & STATUS */}
                   {step === 4 && (
                     <motion.div key="step4" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="space-y-6">
-                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">4. Detail Pekerjaan</p>
+                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">4. Detail Pekerjaan & Jadwal</p>
                       
-                      {/* MULTI PEKERJA MODE */}
+                      {/* MULTI TANGGAL MODE */}
                       <div className="space-y-2.5">
+                        <p className="text-[11px] font-bold text-muted-foreground">Tanggal Pelaksanaan</p>
+                        <div className="grid grid-cols-2 gap-2 bg-muted/50 p-1.5 rounded-xl border border-border">
+                          <button type="button" onClick={() => form.setValue("modeTanggal", "broadcast")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modeTanggal") === "broadcast" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Sama Semua</button>
+                          <button type="button" onClick={() => form.setValue("modeTanggal", "spesifik")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modeTanggal") === "spesifik" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Isi Per Area</button>
+                        </div>
+                        {form.watch("modeTanggal") === "broadcast" ? (
+                           <div className="animate-in fade-in relative">
+                             <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                             <Input type="date" className="h-12 rounded-xl bg-muted border-transparent pl-11 pr-4 focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm font-bold w-full" {...form.register("tanggalBroadcast")} />
+                           </div>
+                        ) : (
+                          <div className="space-y-3 animate-in fade-in">
+                            {form.watch("labaRugiIds").map((areaId) => {
+                              const areaName = dropdownOptions?.areas?.find((a) => a.id === areaId)?.name || `Area`;
+                              // Fallback ke hari ini kalau belum diisi
+                              const defaultDate = format(new Date(), "yyyy-MM-dd");
+                              return (
+                                <div key={areaId} className="space-y-1.5 p-2.5 rounded-xl border border-border bg-muted/5">
+                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 font-bold mb-1">{areaName}</Badge>
+                                  <Input type="date" className="h-10 rounded-lg bg-background border-border/80 text-xs font-bold w-full px-3" value={form.watch(`tanggalPerArea.${areaId}`) || defaultDate} onChange={(e) => form.setValue(`tanggalPerArea.${areaId}`, e.target.value)} />
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* MULTI PEKERJA MODE */}
+                      <div className="space-y-2.5 pt-2 border-t border-border">
                         <p className="text-[11px] font-bold text-muted-foreground">Petugas Lapangan</p>
                         <div className="grid grid-cols-2 gap-2 bg-muted/50 p-1.5 rounded-xl border border-border">
                           <button type="button" onClick={() => form.setValue("modePekerja", "broadcast")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modePekerja") === "broadcast" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Sama Semua</button>
