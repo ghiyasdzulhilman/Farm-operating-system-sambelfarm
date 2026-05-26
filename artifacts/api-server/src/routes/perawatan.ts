@@ -33,7 +33,6 @@ interface NotionDatabase {
 
 interface AddPerawatanBody {
   kegiatan: string;
-  tanggal: string;
   waktuMulai?: string;
   waktuSelesai?: string;
   labaRugiId?: string; // Bikin opsional
@@ -291,16 +290,17 @@ function buildPerawatanProperties(
     const propertyId = decodePropertyId(mapping.propertyId);
     let value: unknown;
 
-    // KITA JABARKAN MANUAL PERSIS KAYAK OPERASIONAL!
+        // Di dalam forEach:
     if (field.key === "kegiatan") value = data.kegiatan;
     if (field.key === "tags") value = data.tags;
     if (field.key === "status") value = data.status;
     if (field.key === "petugas") value = data.petugasId;
     if (field.key === "labaRugi") value = data.labaRugiId;
     
-    // 👇 RAHASIANYA DI SINI: argumen pertama harus data.tanggal (yang isinya kosong) biar waktuSelesai dibaca! 👇
-    if (field.key === "tanggal") value = normalizeDateRange(data.tanggal, data.waktuMulai, data.waktuSelesai);
-
+    if (field.key === "tanggal") {
+      // Kita pancing dengan undefined biar normalizeDateRange ngambil waktuMulai & waktuSelesai
+      value = normalizeDateRange(undefined, data.waktuMulai, data.waktuSelesai);
+    }
     if (value === undefined || value === null || value === "" || (Array.isArray(value) && value.length === 0)) return;
 
     switch (field.expectedType) {
@@ -417,11 +417,10 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
       const catatanAreaIni = body.detailNotes?.[currentAreaId] || "";
 
       // 2. Kirim data persis kayak operasional
-      const properties = buildPerawatanProperties(
+            const properties = buildPerawatanProperties(
         {
           kegiatan,
-          tanggal: undefined as any, // 🚨 KITA PAKSA KOSONG BIAR WAKTU SELESAI TERBACA!
-          waktuMulai,
+          waktuMulai, // <--- Kirim langsung tanpa embel-embel
           waktuSelesai: body.waktuSelesai,
           labaRugiId: currentAreaId,
           petugasId: body.petugasId,
@@ -432,7 +431,6 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
         },
         mappings,
       );
-
 
       // 2. Rakit block Notion menggunakan catatan spesifik tersebut
       const childrenBlocks = buildNotionBlocks(body.logProduk, catatanAreaIni);
