@@ -9,9 +9,10 @@ const router: IRouter = Router();
 interface NotionPage { id: string; properties: Record<string, { type: string; title?: Array<{ plain_text: string }> }>; }
 interface NotionDatabase { id: string; title?: Array<{ plain_text: string }>; }
 
-// 1. UPDATE INTERFACE: Tambahin sakelar modeTanggal
+// Bikin schema fleksibel
 interface AddPerawatanBody {
   kegiatan: string;
+  tanggal?: string; // Jaga-jaga kalo masih ada sisa bawaan
   labaRugiId?: string; 
   labaRugiIds?: string[]; 
   
@@ -75,7 +76,7 @@ const PERAWATAN_FIELDS = [
   { key: "labaRugi", expectedType: "relation" },
 ];
 
-function buildPerawatanProperties(data: Partial<AddPerawatanBody> & { petugasIds?: string[], tagsValue?: string, statusValue?: string, tanggalValue?: string }, mappings: FieldMappingData | undefined): Record<string, unknown> {
+function buildPerawatanProperties(data: any, mappings: FieldMappingData | undefined): Record<string, unknown> {
   const props: Record<string, unknown> = {};
 
   PERAWATAN_FIELDS.forEach((field) => {
@@ -83,13 +84,15 @@ function buildPerawatanProperties(data: Partial<AddPerawatanBody> & { petugasIds
     if (!mapping?.propertyId) return;
 
     const propertyId = decodePropertyId(mapping.propertyId);
-    let value = data[field.key as keyof typeof data];
+    let value = data[field.key];
     
-    if (!value && field.key === "labaRugi") value = (data as any).labaRugiId;
-    if (!value && field.key === "petugas") value = data.petugasIds;
-    if (!value && field.key === "tags") value = data.tagsValue; 
-    if (!value && field.key === "status") value = data.statusValue;
-    if (!value && field.key === "tanggal") value = data.tanggalValue; // <--- Tangkap data tanggal filter
+    // 👇👇👇 KUNCI ANTI-BEBAL: PAKSA OVERRIDE! 👇👇👇
+    // Kalau ada value custom dari looping (tanggalValue), HANCURKAN tanggal bawaan!
+    if (field.key === "labaRugi" && data.labaRugiId) value = data.labaRugiId;
+    if (field.key === "petugas" && data.petugasIds) value = data.petugasIds;
+    if (field.key === "tags" && data.tagsValue) value = data.tagsValue; 
+    if (field.key === "status" && data.statusValue) value = data.statusValue;
+    if (field.key === "tanggal" && data.tanggalValue) value = data.tanggalValue; 
     
     if (!value || (Array.isArray(value) && value.length === 0)) return;
 
@@ -135,7 +138,6 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
   
   const areaIds: string[] = Array.isArray(body.labaRugiIds) ? body.labaRugiIds.filter(Boolean) : body.labaRugiId ? [body.labaRugiId] : [];
 
-  // Validasi root dibikin lebih luwes, cek kegiatan dan area aja.
   if (!kegiatan || areaIds.length === 0) { res.status(400).json({ error: "Field 'kegiatan' dan area wajib diisi (minimal 1)." }); return; }
 
   try {
@@ -147,8 +149,8 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
     if (!databaseId) { res.status(404).json({ error: "Database 'Perawatan' tidak ditemukan di Notion." }); return; }
 
     const requests = areaIds.map(async (currentAreaId) => {
-      // MASTER FILTER PER AREA (Sekarang tambah filter Tanggal)
-      const fallbackDate = new Date().toISOString().split("T")[0]; // Fallback ke hari ini kalau kosong
+      // MASTER FILTER PER AREA
+      const fallbackDate = body.tanggal || new Date().toISOString().split("T")[0]; // Prioritaskan tanggal bawaan kalo ada
       const tanggalAreaIni = body.modeTanggal === "broadcast" ? (body.tanggalBroadcast || fallbackDate) : (body.tanggalPerArea?.[currentAreaId] || body.tanggalBroadcast || fallbackDate);
       
       const catatanAreaIni = body.modeCatatan === "broadcast" ? (body.catatanBroadcast || "") : (body.catatanPerArea?.[currentAreaId] || "");
@@ -160,7 +162,7 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
       const properties = buildPerawatanProperties({
           kegiatan,
           labaRugiId: currentAreaId,
-          tanggalValue: tanggalAreaIni, // <--- Lempar tanggal hasil filter
+          tanggalValue: tanggalAreaIni, // <--- Lempar tanggal sakti ke atas
           petugasIds: pekerjaAreaIni,
           tagsValue: tagsAreaIni, 
           statusValue: statusAreaIni, 
