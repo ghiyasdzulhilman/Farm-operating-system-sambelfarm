@@ -285,56 +285,52 @@ function buildPerawatanProperties(
   const props: Record<string, unknown> = {};
 
   PERAWATAN_FIELDS.forEach((field) => {
-    // KITA BYPASS/SKIP BIAR TANGGAL GAK DIPROSES OLEH LOOPING INI
-    if (field.key === "tanggal") return;
-
     const mapping = mappings?.[field.key as keyof FieldMappingData];
     if (!mapping?.propertyId) return;
 
     const propertyId = decodePropertyId(mapping.propertyId);
-    let value = data[field.key as keyof AddPerawatanBody];
-    
-    if (!value && field.key === "labaRugi") value = (data as any).labaRugiId;
-    if (!value && field.key === "petugas") value = (data as any).petugasId;
-    
-    if (!value) return;
+    let value: unknown;
+
+    // KITA TIRU OPERASIONAL: JABARKAN MANUAL SATU PER SATU!
+    if (field.key === "kegiatan") value = data.kegiatan;
+    if (field.key === "tags") value = data.tags;
+    if (field.key === "status") value = data.status;
+    if (field.key === "petugas") value = data.petugasId;
+    if (field.key === "labaRugi") value = data.labaRugiId;
+    if (field.key === "tanggal") {
+      // Kita pancing pakai undefined biar waktuMulai & waktuSelesai diproses!
+      value = normalizeDateRange(undefined, data.waktuMulai, data.waktuSelesai);
+    }
+
+    if (value === undefined || value === null || value === "" || (Array.isArray(value) && value.length === 0)) return;
 
     switch (field.expectedType) {
-      case "title":
-        props[propertyId] = { title: [{ text: { content: String(value) } }] };
-        break;
-      case "select":
-        props[propertyId] = { select: { name: String(value) } };
-        break;
-      case "multi_select":
+      case "title": props[propertyId] = { title: [{ text: { content: String(value) } }] }; break;
+      case "select": props[propertyId] = { select: { name: String(value) } }; break;
+      case "status": props[propertyId] = { status: { name: String(value) } }; break;
+      case "multi_select": {
         if (Array.isArray(value)) {
           props[propertyId] = { multi_select: value.map((t) => ({ name: String(t) })) };
         } else {
           props[propertyId] = { multi_select: [{ name: String(value) }] };
         }
         break;
-      case "status":
-        props[propertyId] = { status: { name: String(value) } };
+      }
+      case "relation": {
+        const relationIds = Array.isArray(value)
+          ? value.filter((id) => id && String(id).trim() !== "").map((id) => ({ id: String(id).trim() }))
+          : value && String(value).trim() !== "" ? [{ id: String(value).trim() }] : [];
+        if (relationIds.length > 0) props[propertyId] = { relation: relationIds };
         break;
-      case "relation":
-        props[propertyId] = { relation: [{ id: String(value) }] };
+      }
+      case "date": 
+        // Sama persis kayak operasional
+        if (typeof value === "object" && value && "start" in value) {
+          props[propertyId] = { date: value }; 
+        }
         break;
     }
   });
-
-  // 👇 DI SINI JURUS POTONG KOMPASNYA 👇
-  // Kita ruji manual persis ke ID kolomnya tanpa lewat perulangan
-  const mappingTanggal = mappings?.tanggal as any;
-  if (mappingTanggal?.propertyId) {
-    const propertyIdTanggal = decodePropertyId(mappingTanggal.propertyId);
-    const dateRange = normalizeDateRange(undefined, data.waktuMulai, data.waktuSelesai);
-    
-    if (dateRange) {
-      props[propertyIdTanggal] = {
-        date: dateRange
-      };
-    }
-  }
 
   return props;
 }
@@ -419,17 +415,15 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
       return;
     }
 
-        // --- DI SINI MAGIC-NYA: KITA LOOPING SESUAI JUMLAH AREA ---
-    const requests = areaIds.map(async (currentAreaId) => {
-      // 1. Ambil catatan spesifik untuk area yang sedang di-looping
+      const requests = areaIds.map(async (currentAreaId) => {
       const catatanAreaIni = body.detailNotes?.[currentAreaId] || "";
 
-      // 👇 HARUS KIRIM tanggal, waktuMulai, & waktuSelesai KE SINI 👇
+      // Lempar datanya polos aja, biar fungsi di atas yang mikir
       const properties = buildPerawatanProperties(
         {
           kegiatan,
-          tanggal: waktuMulai, // <--- 
-          waktuMulai: waktuMulai,
+          tanggal: "", // Kosongin aja buat formalitas TypeScript
+          waktuMulai, 
           waktuSelesai: body.waktuSelesai,
           labaRugiId: currentAreaId,
           petugasId: body.petugasId,
@@ -440,7 +434,6 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
         },
         mappings,
       );
-
 
       // 2. Rakit block Notion menggunakan catatan spesifik tersebut
       const childrenBlocks = buildNotionBlocks(body.logProduk, catatanAreaIni);
