@@ -415,16 +415,22 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                     </motion.div>
                   )}
 
-                  {/* STEP 4: PEKERJA & DETAIL */}
+                                    {/* STEP 4: PEKERJA & DETAIL */}
                   {step === 4 && (
-                    <motion.div key="step4" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="space-y-5">
+                    <motion.div 
+                      key="step4" 
+                      initial={{ opacity: 0, y: -10 }} 
+                      animate={{ opacity: 1, y: 0 }} 
+                      exit={{ opacity: 0, y: 10 }} 
+                      className="space-y-5"
+                    >
                       <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80 mb-2">4. Detail Pekerjaan</p>
                       
                       {/* MULTI PEKERJA MODE */}
-                      <div className="flex items-center justify-between">
-                      <p className="text-[11px] font-bold text-muted-foreground">Petugas Lapangan</p>
-                      </div>
-
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                           <p className="text-[11px] font-bold text-muted-foreground">Petugas Lapangan</p>
+                        </div>
                         <div className="grid grid-cols-2 gap-2 bg-muted/50 p-1.5 rounded-xl border border-border">
                           <button type="button" onClick={() => form.setValue("modePekerja", "broadcast")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modePekerja") === "broadcast" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Sama Semua</button>
                           <button type="button" onClick={() => form.setValue("modePekerja", "spesifik")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modePekerja") === "spesifik" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Isi Per Area</button>
