@@ -54,8 +54,7 @@ import { Badge } from "@/components/ui/badge";
 
 const perawatanSchema = z.object({
   kegiatan: z.string().min(1, "Nama kegiatan wajib diisi"),
-  waktuMulai: z.string().min(1, "Waktu mulai wajib diisi"), // <--- Ganti 'tanggal' jadi ini
-  waktuSelesai: z.string().optional(),                      // <--- Tambahin ini
+  tanggal: z.string().min(1, "Tanggal wajib diisi"),
   labaRugiIds: z.array(z.string()).min(1, "Minimal pilih 1 area"),
   petugasId: z.string().optional(),
   tags: z.string().optional(),
@@ -81,8 +80,7 @@ interface AddPerawatanDialogProps {
 
 const EMPTY_VALUES: PerawatanFormValues = {
   kegiatan: "",
-  waktuMulai: format(new Date(), "yyyy-MM-dd'T'HH:mm"), // <--- WAJIB ADA 'T'HH:mm
-  waktuSelesai: "",
+  tanggal: format(new Date(), "yyyy-MM-dd"),
   labaRugiIds: [],
   petugasId: "",
   tags: "",
@@ -123,26 +121,24 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
     });
 
   
-  const savePerawatan = useMutation({
-  mutationFn: async (payload: PerawatanFormValues) => {
-    // 1. Rakit catatan sesuai mode sakelar
-    const dirakitDetailNotes = payload.modeCatatan === "broadcast"
-      ? payload.labaRugiIds.reduce((acc, id) => ({ ...acc, [id]: payload.catatanBroadcast || "" }), {})
-      : payload.catatanPerArea || {};
+    const savePerawatan = useMutation({
+        mutationFn: async (payload: PerawatanFormValues) => {
+      // 1. Rakit catatan sesuai mode sakelar
+      const dirakitDetailNotes = payload.modeCatatan === "broadcast"
+        ? payload.labaRugiIds.reduce((acc, id) => ({ ...acc, [id]: payload.catatanBroadcast || "" }), {})
+        : payload.catatanPerArea || {};
 
-    // 2. Siapkan payload final
-    const finalPayload = {
-      ...payload,
-      waktuMulai: payload.waktuMulai, // <--- Pastikan kebawa
-      waktuSelesai: payload.waktuSelesai || undefined, // <--- Pastikan kebawa
-      detailNotes: dirakitDetailNotes,
-    };
+      // 2. Siapkan payload final
+      const finalPayload = {
+        ...payload,
+        detailNotes: dirakitDetailNotes,
+      };
 
-    const response = await fetch("/api/notion/add-perawatan", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(finalPayload),
-    });
+      const response = await fetch("/api/notion/add-perawatan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(finalPayload),
+      });
 
       if (!response.ok) {
         const errText = await response.text();
@@ -184,7 +180,7 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
 
     const handleNextStep = async () => {
     let fieldsToValidate: Array<keyof PerawatanFormValues> = [];
-    if (step === 1) fieldsToValidate = ["kegiatan", "waktuMulai"]; // <--- 'tanggal' ganti 'waktuMulai'
+    if (step === 1) fieldsToValidate = ["kegiatan", "tanggal"];
     if (step === 2) fieldsToValidate = ["labaRugiIds"];
     if (step === 3) fieldsToValidate = ["logProduk"];
     if (step === 4) fieldsToValidate = ["tags", "status", "petugasId"]; // Tambahan baru
@@ -349,46 +345,28 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                         )}
                       />
 
-                        <FormField
-                        control={form.control}
-                        name="waktuMulai"
-                        render={({ field }) => (
-                          <FormItem className="space-y-1.5">
-                            <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-                              Waktu Mulai
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                type="datetime-local"
-                                className="h-12 rounded-xl bg-muted border-transparent pl-4 pr-4 focus-visible:ring-2 focus-visible:ring-green-600/20 font-bold text-sm w-full"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage className="text-xs text-red-500" />
-                          </FormItem>
-                        )}
-                      />
-
                       <FormField
                         control={form.control}
-                        name="waktuSelesai"
+                        name="tanggal"
                         render={({ field }) => (
                           <FormItem className="space-y-1.5">
                             <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-                              Waktu Selesai (Opsional)
+                              Tanggal
                             </FormLabel>
                             <FormControl>
-                              <Input
-                                type="datetime-local"
-                                className="h-12 rounded-xl bg-muted border-transparent pl-4 pr-4 focus-visible:ring-2 focus-visible:ring-green-600/20 font-bold text-sm w-full"
-                                {...field}
-                              />
+                              <div className="relative">
+                                <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                                <Input
+                                  type="date"
+                                  className="h-12 rounded-xl bg-muted border-transparent pl-11 pr-4 focus-visible:ring-2 focus-visible:ring-green-600/20 font-bold text-sm w-full"
+                                  {...field}
+                                />
+                              </div>
                             </FormControl>
                             <FormMessage className="text-xs text-red-500" />
                           </FormItem>
                         )}
                       />
-
                     </motion.div>
                   )}
 

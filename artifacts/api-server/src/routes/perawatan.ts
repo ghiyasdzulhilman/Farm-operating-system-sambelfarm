@@ -33,8 +33,7 @@ interface NotionDatabase {
 
 interface AddPerawatanBody {
   kegiatan: string;
-  waktuMulai?: string;
-  waktuSelesai?: string;
+  tanggal: string;
   labaRugiId?: string; // Bikin opsional
   labaRugiIds?: string[]; // <--- TAMBAHIN INI BUAT MULTI-AREA
   petugasId?: string;
@@ -155,60 +154,6 @@ async function getMappingRow(
   return row ?? null;
 }
 
-// FORMATTER TANGGAL MANUAL WIB - DIJAMIN TEMBUS & GA LARI 7 JAM
-function formatNotionDate(dateString: string): string | undefined {
-  if (!dateString) return undefined;
-  const str = dateString.trim();
-  
-  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(str)) return `${str}:00+07:00`;
-  
-  const d = new Date(str);
-  if (isNaN(d.getTime())) return undefined;
-  
-  try {
-    const pad = (num: number) => String(num).padStart(2, '0');
-    const wibTimestamp = d.getTime() + (7 * 60 * 60 * 1000);
-    const wibDate = new Date(wibTimestamp);
-    
-    const year = wibDate.getUTCFullYear();
-    const month = pad(wibDate.getUTCMonth() + 1);
-    const day = pad(wibDate.getUTCDate());
-    const hours = pad(wibDate.getUTCHours());
-    const minutes = pad(wibDate.getUTCMinutes());
-    
-    return `${year}-${month}-${day}T${hours}:${minutes}:00+07:00`;
-  } catch {
-    return str;
-  }
-}
-
-function normalizeDateRange(
-  value: string | { start: string; end?: string; } | undefined,
-  waktuMulai?: string,
-  waktuSelesai?: string,
-) {
-  let startStr: string | undefined;
-  let endStr: string | undefined;
-
-  if (typeof value === "string") startStr = value;
-  else if (value && typeof value === "object") { startStr = value.start; endStr = value.end; }
-  else { startStr = waktuMulai; endStr = waktuSelesai; }
-
-  const formattedStart = startStr ? formatNotionDate(startStr) : undefined;
-  const formattedEnd = endStr ? formatNotionDate(endStr) : undefined;
-
-  if (!formattedStart) return null;
-  const normalized: { start: string; end?: string } = { start: formattedStart };
-
-  if (formattedEnd) {
-    const startTime = new Date(formattedStart).getTime();
-    const endTime = new Date(formattedEnd).getTime();
-    if (endTime >= startTime) normalized.end = formattedEnd;
-  }
-  return normalized;
-}
-
 function buildRichText(content: string) {
   return {
     rich_text: [
@@ -283,56 +228,50 @@ function buildPerawatanProperties(
 ): Record<string, unknown> {
   const props: Record<string, unknown> = {};
 
+  // Sekarang dia baca dari variabel PERAWATAN_FIELDS di atas
   PERAWATAN_FIELDS.forEach((field) => {
     const mapping = mappings?.[field.key as keyof FieldMappingData];
     if (!mapping?.propertyId) return;
 
     const propertyId = decodePropertyId(mapping.propertyId);
-    let value: unknown;
-
-        // Di dalam forEach:
-    if (field.key === "kegiatan") value = data.kegiatan;
-    if (field.key === "tags") value = data.tags;
-    if (field.key === "status") value = data.status;
-    if (field.key === "petugas") value = data.petugasId;
-    if (field.key === "labaRugi") value = data.labaRugiId;
     
-    if (field.key === "tanggal") {
-      // Kita pancing dengan undefined biar normalizeDateRange ngambil waktuMulai & waktuSelesai
-      value = normalizeDateRange(undefined, data.waktuMulai, data.waktuSelesai);
-    }
-    if (value === undefined || value === null || value === "" || (Array.isArray(value) && value.length === 0)) return;
+    let value = data[field.key as keyof AddPerawatanBody];
+    
+    // Trik toleransi ID relasi
+    if (!value && field.key === "labaRugi") value = (data as any).labaRugiId;
+    if (!value && field.key === "petugas") value = (data as any).petugasId;
+    
+    if (!value) return;
 
     switch (field.expectedType) {
-      case "title": props[propertyId] = { title: [{ text: { content: String(value) } }] }; break;
-      case "date": 
-        // 👇 SAMA PERSIS DENGAN OPERASIONAL 👇
-        if (typeof value === "object" && value && "start" in value) {
-          props[propertyId] = { date: value }; 
-        }
+      case "title":
+        props[propertyId] = { title: [{ text: { content: String(value) } }] };
         break;
-      case "select": props[propertyId] = { select: { name: String(value) } }; break;
-      case "status": props[propertyId] = { status: { name: String(value) } }; break;
-      case "multi_select": {
+      case "date":
+        props[propertyId] = { date: { start: String(value) } };
+        break;
+      case "select":
+        props[propertyId] = { select: { name: String(value) } };
+        break;
+      case "multi_select":
         if (Array.isArray(value)) {
           props[propertyId] = { multi_select: value.map((t) => ({ name: String(t) })) };
         } else {
           props[propertyId] = { multi_select: [{ name: String(value) }] };
         }
         break;
-      }
-      case "relation": {
-        const relationIds = Array.isArray(value)
-          ? value.filter((id) => id && String(id).trim() !== "").map((id) => ({ id: String(id).trim() }))
-          : value && String(value).trim() !== "" ? [{ id: String(value).trim() }] : [];
-        if (relationIds.length > 0) props[propertyId] = { relation: relationIds };
+      case "status":
+        props[propertyId] = { status: { name: String(value) } };
         break;
-      }
+      case "relation":
+        props[propertyId] = { relation: [{ id: String(value) }] };
+        break;
     }
   });
 
   return props;
 }
+
 
 router.get("/notion/perawatan-dropdown-options", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
@@ -387,16 +326,16 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
 
   const body = req.body as Partial<AddPerawatanBody>;
   const kegiatan = (body.kegiatan ?? "").trim();
-  const waktuMulai = (body.waktuMulai ?? "").trim(); // <--- Ganti tanggal jadi waktuMulai
+  const tanggal = (body.tanggal ?? "").trim();
 
   // Pengaman payload area dari Front-End (Bisa nerima 1 atau banyak area)
   const areaIds: string[] = Array.isArray(body.labaRugiIds) 
     ? body.labaRugiIds.filter(Boolean) 
     : body.labaRugiId ? [body.labaRugiId] : [];
 
-  if (!kegiatan || !waktuMulai || areaIds.length === 0) { // <--- Satpam ngecek waktuMulai
+  if (!kegiatan || !tanggal || areaIds.length === 0) {
     res.status(400).json({
-      error: "Field 'kegiatan', 'waktu mulai', dan area wajib diisi (minimal 1).",
+      error: "Field 'kegiatan', 'tanggal', dan area wajib diisi (minimal 1).",
     });
     return;
   }
@@ -413,20 +352,20 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
       return;
     }
 
-      const requests = areaIds.map(async (currentAreaId) => {
+    // --- DI SINI MAGIC-NYA: KITA LOOPING SESUAI JUMLAH AREA ---
+    const requests = areaIds.map(async (currentAreaId) => {
+            // 1. Ambil catatan spesifik untuk area yang sedang di-looping
       const catatanAreaIni = body.detailNotes?.[currentAreaId] || "";
 
-      // 2. Kirim data persis kayak operasional
-            const properties = buildPerawatanProperties(
+      const properties = buildPerawatanProperties(
         {
           kegiatan,
-          waktuMulai, // <--- Kirim langsung tanpa embel-embel
-          waktuSelesai: body.waktuSelesai,
+          tanggal,
           labaRugiId: currentAreaId,
           petugasId: body.petugasId,
           tags: body.tags,
           status: body.status || "Rencana",
-          detailNotes: catatanAreaIni,
+          detailNotes: catatanAreaIni, // Masukkan catatan spesifik
           logProduk: body.logProduk,
         },
         mappings,
