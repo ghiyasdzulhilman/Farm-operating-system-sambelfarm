@@ -9,12 +9,13 @@ const router: IRouter = Router();
 interface NotionPage { id: string; properties: Record<string, { type: string; title?: Array<{ plain_text: string }> }>; }
 interface NotionDatabase { id: string; title?: Array<{ plain_text: string }>; }
 
+// 1. UPDATE INTERFACE: Tambahin sakelar modeTanggal
 interface AddPerawatanBody {
   kegiatan: string;
-  tanggal: string;
   labaRugiId?: string; 
   labaRugiIds?: string[]; 
   
+  modeTanggal: "broadcast" | "spesifik"; tanggalBroadcast?: string; tanggalPerArea?: Record<string, string>;
   modePekerja: "broadcast" | "spesifik"; petugasBroadcast: string[]; petugasPerArea: Record<string, string[]>;
   modeTags: "broadcast" | "spesifik"; tagsBroadcast?: string; tagsPerArea?: Record<string, string>;
   modeStatus: "broadcast" | "spesifik"; statusBroadcast?: string; statusPerArea?: Record<string, string>;
@@ -74,7 +75,7 @@ const PERAWATAN_FIELDS = [
   { key: "labaRugi", expectedType: "relation" },
 ];
 
-function buildPerawatanProperties(data: Partial<AddPerawatanBody> & { petugasIds?: string[], tagsValue?: string, statusValue?: string }, mappings: FieldMappingData | undefined): Record<string, unknown> {
+function buildPerawatanProperties(data: Partial<AddPerawatanBody> & { petugasIds?: string[], tagsValue?: string, statusValue?: string, tanggalValue?: string }, mappings: FieldMappingData | undefined): Record<string, unknown> {
   const props: Record<string, unknown> = {};
 
   PERAWATAN_FIELDS.forEach((field) => {
@@ -86,8 +87,9 @@ function buildPerawatanProperties(data: Partial<AddPerawatanBody> & { petugasIds
     
     if (!value && field.key === "labaRugi") value = (data as any).labaRugiId;
     if (!value && field.key === "petugas") value = data.petugasIds;
-    if (!value && field.key === "tags") value = data.tagsValue; // Tangkap override tags
-    if (!value && field.key === "status") value = data.statusValue; // Tangkap override status
+    if (!value && field.key === "tags") value = data.tagsValue; 
+    if (!value && field.key === "status") value = data.statusValue;
+    if (!value && field.key === "tanggal") value = data.tanggalValue; // <--- Tangkap data tanggal filter
     
     if (!value || (Array.isArray(value) && value.length === 0)) return;
 
@@ -130,10 +132,11 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
 
   const body = req.body as Partial<AddPerawatanBody>;
   const kegiatan = (body.kegiatan ?? "").trim();
-  const tanggal = (body.tanggal ?? "").trim();
+  
   const areaIds: string[] = Array.isArray(body.labaRugiIds) ? body.labaRugiIds.filter(Boolean) : body.labaRugiId ? [body.labaRugiId] : [];
 
-  if (!kegiatan || !tanggal || areaIds.length === 0) { res.status(400).json({ error: "Field 'kegiatan', 'tanggal', dan area wajib diisi." }); return; }
+  // Validasi root dibikin lebih luwes, cek kegiatan dan area aja.
+  if (!kegiatan || areaIds.length === 0) { res.status(400).json({ error: "Field 'kegiatan' dan area wajib diisi (minimal 1)." }); return; }
 
   try {
     const connection = await getNotionConnection(userId);
@@ -144,22 +147,23 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
     if (!databaseId) { res.status(404).json({ error: "Database 'Perawatan' tidak ditemukan di Notion." }); return; }
 
     const requests = areaIds.map(async (currentAreaId) => {
-      // MASTER FILTER PER AREA
+      // MASTER FILTER PER AREA (Sekarang tambah filter Tanggal)
+      const fallbackDate = new Date().toISOString().split("T")[0]; // Fallback ke hari ini kalau kosong
+      const tanggalAreaIni = body.modeTanggal === "broadcast" ? (body.tanggalBroadcast || fallbackDate) : (body.tanggalPerArea?.[currentAreaId] || body.tanggalBroadcast || fallbackDate);
+      
       const catatanAreaIni = body.modeCatatan === "broadcast" ? (body.catatanBroadcast || "") : (body.catatanPerArea?.[currentAreaId] || "");
       const pekerjaAreaIni = body.modePekerja === "broadcast" ? (body.petugasBroadcast || []) : (body.petugasPerArea?.[currentAreaId] || []);
       const produkAreaIni = body.modeProduk === "broadcast" ? (body.logProduk || []) : (body.produkPerArea?.[currentAreaId] || []);
-      
-      // Filter baru untuk Tags dan Status
       const tagsAreaIni = body.modeTags === "broadcast" ? body.tagsBroadcast : body.tagsPerArea?.[currentAreaId];
       const statusAreaIni = body.modeStatus === "broadcast" ? (body.statusBroadcast || "Rencana") : (body.statusPerArea?.[currentAreaId] || "Rencana");
 
       const properties = buildPerawatanProperties({
           kegiatan,
-          tanggal,
           labaRugiId: currentAreaId,
+          tanggalValue: tanggalAreaIni, // <--- Lempar tanggal hasil filter
           petugasIds: pekerjaAreaIni,
-          tagsValue: tagsAreaIni, // <--- Lempar tag hasil filter
-          statusValue: statusAreaIni, // <--- Lempar status hasil filter
+          tagsValue: tagsAreaIni, 
+          statusValue: statusAreaIni, 
         }, mappings);
 
       const childrenBlocks = buildNotionBlocks(produkAreaIni, catatanAreaIni);
