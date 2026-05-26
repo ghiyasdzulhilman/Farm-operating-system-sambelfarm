@@ -91,9 +91,10 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
     enabled: open,
   });
 
-  const form = useForm<PerawatanFormValues>({
+    const form = useForm<PerawatanFormValues>({
     resolver: zodResolver(perawatanSchema),
     defaultValues: EMPTY_VALUES,
+    shouldUnregister: false, 
   });
 
   const { fields: produkFields, append: appendProduk, remove: removeProduk } = useFieldArray({
@@ -296,7 +297,7 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                     <motion.div key="step4" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="space-y-6">
                       <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">4. Detail Pekerjaan & Jadwal</p>
                       
-                                              {/* MULTI TANGGAL MODE */}
+                      {/* MULTI TANGGAL MODE */}
                       <div className="space-y-2.5">
                         <p className="text-[11px] font-bold text-muted-foreground">Tanggal Pelaksanaan</p>
                         <div className="grid grid-cols-2 gap-2 bg-muted/50 p-1.5 rounded-xl border border-border">
@@ -311,11 +312,17 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                           }} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modeTanggal") === "spesifik" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Isi Per Area</button>
                         </div>
                         
-                        {form.watch("modeTanggal") === "broadcast" ? (
+                          {form.watch("modeTanggal") === "broadcast" ? (
                            <div className="animate-in fade-in relative">
-                             <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                             {/* 👇 DIGEMBOK PERMANEN PAKAI REGISTER 👇 */}
-                             <Input type="date" className="h-12 rounded-xl bg-muted border-transparent pl-11 pr-4 focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm font-bold w-full" {...form.register("tanggalBroadcast")} />
+                             <CalendarIcon className="absolute left-4 top-[22px] -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
+                             {/* 👇 DIGEMBOK PAKAI KOMPONEN KONTROLER RESMI 👇 */}
+                             <FormField control={form.control} name="tanggalBroadcast" render={({ field }) => (
+                               <FormItem>
+                                 <FormControl>
+                                   <Input type="date" className="h-12 rounded-xl bg-muted border-transparent pl-11 pr-4 focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm font-bold w-full" {...field} value={field.value || ""} />
+                                 </FormControl>
+                               </FormItem>
+                             )} />
                            </div>
                         ) : (
                           <div className="space-y-3 animate-in fade-in">
@@ -324,14 +331,19 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                               return (
                                 <div key={areaId} className="space-y-1.5 p-2.5 rounded-xl border border-border bg-muted/5">
                                   <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 font-bold mb-1">{areaName}</Badge>
-                                  {/* 👇 DIGEMBOK PERMANEN PAKAI REGISTER 👇 */}
-                                  <Input type="date" className="h-10 rounded-lg bg-background border-border/80 text-xs font-bold w-full px-3" {...form.register(`tanggalPerArea.${areaId}`)} />
+                                  {/* 👇 DIGEMBOK PAKAI KOMPONEN KONTROLER RESMI 👇 */}
+                                  <FormField control={form.control} name={`tanggalPerArea.${areaId}`} render={({ field }) => (
+                                    <FormItem>
+                                      <FormControl>
+                                        <Input type="date" className="h-10 rounded-lg bg-background border-border/80 text-xs font-bold w-full px-3" {...field} value={field.value || form.watch("tanggalBroadcast") || ""} />
+                                      </FormControl>
+                                    </FormItem>
+                                  )} />
                                 </div>
                               );
                             })}
                           </div>
                         )}
-                      </div>
 
                       {/* MULTI PEKERJA MODE */}
                       <div className="space-y-2.5 pt-2 border-t border-border">
