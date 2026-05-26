@@ -296,7 +296,7 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                     <motion.div key="step4" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="space-y-6">
                       <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">4. Detail Pekerjaan & Jadwal</p>
                       
-                      {/* MULTI TANGGAL MODE */}
+                                            {/* MULTI TANGGAL MODE */}
                       <div className="space-y-2.5">
                         <p className="text-[11px] font-bold text-muted-foreground">Tanggal Pelaksanaan</p>
                         <div className="grid grid-cols-2 gap-2 bg-muted/50 p-1.5 rounded-xl border border-border">
@@ -306,18 +306,28 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                         {form.watch("modeTanggal") === "broadcast" ? (
                            <div className="animate-in fade-in relative">
                              <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                             <Input type="date" className="h-12 rounded-xl bg-muted border-transparent pl-11 pr-4 focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm font-bold w-full" {...form.register("tanggalBroadcast")} />
+                             {/* 👇 INI YANG DIGANTI: Dikunci pakai watch & setValue 👇 */}
+                             <Input 
+                               type="date" 
+                               className="h-12 rounded-xl bg-muted border-transparent pl-11 pr-4 focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm font-bold w-full" 
+                               value={form.watch("tanggalBroadcast") || ""}
+                               onChange={(e) => form.setValue("tanggalBroadcast", e.target.value, { shouldValidate: true })} 
+                             />
                            </div>
                         ) : (
                           <div className="space-y-3 animate-in fade-in">
                             {form.watch("labaRugiIds").map((areaId) => {
                               const areaName = dropdownOptions?.areas?.find((a) => a.id === areaId)?.name || `Area`;
-                              // Fallback ke hari ini kalau belum diisi
-                              const defaultDate = format(new Date(), "yyyy-MM-dd");
                               return (
                                 <div key={areaId} className="space-y-1.5 p-2.5 rounded-xl border border-border bg-muted/5">
                                   <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 font-bold mb-1">{areaName}</Badge>
-                                  <Input type="date" className="h-10 rounded-lg bg-background border-border/80 text-xs font-bold w-full px-3" value={form.watch(`tanggalPerArea.${areaId}`) || defaultDate} onChange={(e) => form.setValue(`tanggalPerArea.${areaId}`, e.target.value)} />
+                                  {/* 👇 INI JUGA DIGANTI: Dikunci pakai watch & setValue 👇 */}
+                                  <Input 
+                                    type="date" 
+                                    className="h-10 rounded-lg bg-background border-border/80 text-xs font-bold w-full px-3" 
+                                    value={form.watch(`tanggalPerArea.${areaId}`) || form.watch("tanggalBroadcast")} 
+                                    onChange={(e) => form.setValue(`tanggalPerArea.${areaId}`, e.target.value, { shouldValidate: true })} 
+                                  />
                                 </div>
                               );
                             })}
