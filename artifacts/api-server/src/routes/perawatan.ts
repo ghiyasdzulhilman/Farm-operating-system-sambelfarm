@@ -158,10 +158,11 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
       const tagsAreaIni = body.modeTags === "broadcast" ? body.tagsBroadcast : body.tagsPerArea?.[currentAreaId];
       const statusAreaIni = body.modeStatus === "broadcast" ? (body.statusBroadcast || "Rencana") : (body.statusPerArea?.[currentAreaId] || "Rencana");
 
-      const properties = buildPerawatanProperties({
+          const properties = buildPerawatanProperties({
           kegiatan,
           labaRugiId: currentAreaId,
-          tanggalValue: tanggalAreaIni, // <--- Lempar tanggal sakti ke atas
+          // 👇 UBAH BARIS INI JADI HARDCODE TANGGAL PALSU 👇
+          tanggalValue: "2026-12-31", 
           petugasIds: pekerjaAreaIni,
           tagsValue: tagsAreaIni, 
           statusValue: statusAreaIni, 
