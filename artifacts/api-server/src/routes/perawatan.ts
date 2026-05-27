@@ -161,8 +161,7 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
           const properties = buildPerawatanProperties({
           kegiatan,
           labaRugiId: currentAreaId,
-          // 👇 UBAH BARIS INI JADI HARDCODE TANGGAL PALSU 👇
-          tanggalValue: "2026-12-31", 
+          tanggalValue: tanggalAreaIni, 
           petugasIds: pekerjaAreaIni,
           tagsValue: tagsAreaIni, 
           statusValue: statusAreaIni, 
