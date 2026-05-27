@@ -29,683 +29,262 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 
-// ============================================================
-// 📋 SCHEMA VALIDASI - Aturan untuk setiap field form
-// ============================================================
+// SCHEMA
 const perawatanSchema = z.object({
-  // Step 1: Nama kegiatan (wajib diisi)
   kegiatan: z.string().min(1, "Nama kegiatan wajib diisi"),
-  
-  // Step 2: Area yang dipilih (minimal 1 area)
   labaRugiIds: z.array(z.string()).min(1, "Minimal pilih 1 area"),
-
-  // Step 6: Mode dan nilai tanggal
+  
   modeTanggal: z.enum(["broadcast", "spesifik"]).default("broadcast"),
   tanggalBroadcast: z.string().optional(),
   tanggalPerArea: z.record(z.string()).default({}),
 
-  // Step 4: Mode dan nilai pekerja/petugas
   modePekerja: z.enum(["broadcast", "spesifik"]).default("broadcast"),
   petugasBroadcast: z.array(z.string()).default([]),
   petugasPerArea: z.record(z.array(z.string())).default({}),
   
-  // Step 6: Mode dan nilai tags
   modeTags: z.enum(["broadcast", "spesifik"]).default("broadcast"),
   tagsBroadcast: z.string().optional(),
   tagsPerArea: z.record(z.string()).default({}),
 
-  // Step 6: Mode dan nilai status
   modeStatus: z.enum(["broadcast", "spesifik"]).default("broadcast"),
   statusBroadcast: z.string().default("Rencana"),
   statusPerArea: z.record(z.string()).default({}),
   
-  // Step 5: Mode dan nilai catatan
   modeCatatan: z.enum(["broadcast", "spesifik"]).default("broadcast"),
   catatanBroadcast: z.string().optional(),
   catatanPerArea: z.record(z.string()).optional(),
   
-  // Step 3: Mode dan nilai produk/dosis
   modeProduk: z.enum(["broadcast", "spesifik"]).default("broadcast"),
-  logProduk: z.array(
-    z.object({
-      produk: z.string().min(1, "Nama produk wajib diisi"),
-      dosis: z.string().min(1, "Dosis wajib diisi"),
-    })
-  ).default([]),
-  produkPerArea: z.record(
-    z.array(
-      z.object({
-        produk: z.string(),
-        dosis: z.string(),
-      })
-    )
-  ).default({}),
+  logProduk: z.array(z.object({ produk: z.string().min(1, "Wajib"), dosis: z.string().min(1, "Wajib") })).default([]),
+  produkPerArea: z.record(z.array(z.object({ produk: z.string(), dosis: z.string() }))).default({}),
 });
 
-// Type dari schema untuk digunakan di form
 type PerawatanFormValues = z.infer<typeof perawatanSchema>;
 
-// Interface props (jika ada callback setelah sukses)
-interface AddPerawatanDialogProps {
-  onSuccess?: () => void;
-}
+interface AddPerawatanDialogProps { onSuccess?: () => void; }
 
-// ============================================================
-// 🏗️ NILAI DEFAULT FORM (semua kosong, user yang isi)
-// ============================================================
 const EMPTY_VALUES: PerawatanFormValues = {
   kegiatan: "",
   labaRugiIds: [],
-  
-  // ✅ PERBAIKAN: tanggalBroadcast tidak lagi di-set hari ini
-  modeTanggal: "broadcast",
-  tanggalBroadcast: "", // Biarkan kosong, user yang pilih
-  tanggalPerArea: {},
-  
-  modePekerja: "broadcast",
-  petugasBroadcast: [],
-  petugasPerArea: {},
-  
-  modeTags: "broadcast",
-  tagsBroadcast: "",
-  tagsPerArea: {},
-  
-  modeStatus: "broadcast",
-  statusBroadcast: "Rencana",
-  statusPerArea: {},
-  
-  modeCatatan: "broadcast",
-  catatanBroadcast: "",
-  catatanPerArea: {},
-  
-  modeProduk: "broadcast",
-  logProduk: [],
-  produkPerArea: {},
+  modeTanggal: "broadcast", tanggalBroadcast: format(new Date(), "yyyy-MM-dd"), tanggalPerArea: {},
+  modePekerja: "broadcast", petugasBroadcast: [], petugasPerArea: {},
+  modeTags: "broadcast", tagsBroadcast: "", tagsPerArea: {},
+  modeStatus: "broadcast", statusBroadcast: "Rencana", statusPerArea: {},
+  modeCatatan: "broadcast", catatanBroadcast: "", catatanPerArea: {},
+  modeProduk: "broadcast", logProduk: [], produkPerArea: {},
 };
 
-// ============================================================
-// 🚀 KOMPONEN UTAMA: AddPerawatanDialog
-// ============================================================
 export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
-  // State untuk buka/tutup sheet (popup form)
   const [open, setOpen] = useState(false);
-  
-  // State untuk step aktif (total 6 step)
-  const [step, setStep] = useState(1);
-  
-  // State untuk menyimpan URL Notion setelah sukses submit
-  const [submittedUrls, setSubmittedUrls] = useState<
-    { pageId: string; notionUrl: string }[] | null
-  >(null);
-  
+  const [step, setStep] = useState(1); // SEKARANG TOTAL ADA 6 STEP
+  const [submittedUrls, setSubmittedUrls] = useState<{pageId: string, notionUrl: string}[] | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // ============================================================
-  // 📥 FETCHING DATA DROPDOWN (Area & Petugas dari Notion)
-  // ============================================================
   const { data: dropdownOptions, isLoading: isLoadingOptions } = useQuery({
     queryKey: ["perawatan-dropdown-options"],
     queryFn: async () => {
       const res = await fetch("/api/notion/perawatan-dropdown-options");
       if (!res.ok) throw new Error("Gagal mengambil data dropdown");
-      return res.json() as Promise<{
-        areas: Array<{ id: string; name: string }>;
-        petugas: Array<{ id: string; name: string }>;
-      }>;
+      return res.json();
     },
-    enabled: open, // Hanya fetch saat popup terbuka
+    enabled: open,
   });
 
-  // ============================================================
-  // 📝 INISIALISASI FORM DENGAN REACT-HOOK-FORM + ZOD
-  // ============================================================
   const form = useForm<PerawatanFormValues>({
     resolver: zodResolver(perawatanSchema),
     defaultValues: EMPTY_VALUES,
-    shouldUnregister: false, // Jangan hapus data saat ganti step
+    shouldUnregister: false, // Gembok data biar ga hilang pas ganti step
   });
 
-  // FieldArray untuk produk (bisa tambah/hapus dinamis)
-  const {
-    fields: produkFields,
-    append: appendProduk,
-    remove: removeProduk,
-  } = useFieldArray({
-    control: form.control,
-    name: "logProduk",
+  const { fields: produkFields, append: appendProduk, remove: removeProduk } = useFieldArray({
+    control: form.control, name: "logProduk",
   });
 
-  // ============================================================
-  // 💾 MUTASI UNTUK MENYIMPAN DATA KE BACKEND
-  // ============================================================
   const savePerawatan = useMutation({
     mutationFn: async (payload: PerawatanFormValues) => {
       const response = await fetch("/api/notion/add-perawatan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      
       if (!response.ok) {
         const errText = await response.text();
         throw new Error(errText || "Gagal menyimpan perawatan");
       }
-      
-      return response.json() as Promise<{
-        success: boolean;
-        message: string;
-        data: Array<{ pageId: string; notionUrl: string }>;
-      }>;
+      return response.json();
     },
     onSuccess: async (data) => {
-      // Refresh dashboard setelah simpan
-      await queryClient.invalidateQueries({
-        queryKey: getGetDashboardSummaryQueryKey(),
-        refetchType: "all",
-      });
-      
-      // Simpan URL Notion yang berhasil dibuat
-      if (data && data.data) {
-        setSubmittedUrls(data.data);
-      }
-      
-      // Reset form ke nilai default
+      await queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey(), refetchType: "all" });
+      if (data && data.data) setSubmittedUrls(data.data);
       form.reset(EMPTY_VALUES);
     },
     onError: (error) => {
-      toast({
-        variant: "destructive",
-        title: "Gagal menyimpan",
-        description:
-          error instanceof Error
-            ? error.message
-            : "Cek kembali koneksi internet.",
-      });
+      toast({ variant: "destructive", title: "Gagal menyimpan", description: error instanceof Error ? error.message : "Cek kembali koneksi internet.", });
     },
   });
 
-  // ============================================================
-  // ⏭️ FUNGSI NAVIGASI STEP (dengan validasi per step)
-  // ============================================================
   const handleNextStep = async () => {
     let fieldsToValidate: Array<keyof PerawatanFormValues> = [];
+    if (step === 1) fieldsToValidate = ["kegiatan"];
+    if (step === 2) fieldsToValidate = ["labaRugiIds"];
     
-    // Validasi step 1: Nama kegiatan wajib diisi
-    if (step === 1) {
-      fieldsToValidate = ["kegiatan"];
-    }
-    
-    // Validasi step 2: Minimal 1 area dipilih
-    if (step === 2) {
-      fieldsToValidate = ["labaRugiIds"];
-    }
-    
-    // ✅ PERBAIKAN: Validasi step 6 (tanggal wajib diisi)
-    if (step === 6) {
-      if (form.getValues("modeTanggal") === "broadcast") {
-        // Mode broadcast: tanggalBroadcast wajib diisi
-        fieldsToValidate = ["tanggalBroadcast"];
-      } else {
-        // Mode spesifik: tanggalPerArea wajib diisi
-        fieldsToValidate = ["tanggalPerArea"];
-      }
-    }
-    
-    // Jalankan validasi, lanjut ke step berikutnya jika lolos
     const isStepValid = await form.trigger(fieldsToValidate);
-    if (isStepValid) {
-      setStep((prev) => prev + 1);
-    }
+    if (isStepValid) setStep((prev) => prev + 1);
   };
 
-  // ============================================================
-  // 📤 FUNGSI SUBMIT (dipanggil di step 6)
-  // ============================================================
-  function onSubmit(values: PerawatanFormValues) {
-    savePerawatan.mutate(values);
-  }
+  function onSubmit(values: PerawatanFormValues) { savePerawatan.mutate(values); }
 
-  // ============================================================
-  // 🔧 HELPER FUNCTIONS
-  // ============================================================
-
-  // Toggle pilih/tidak area di step 2
   const toggleArea = (areaId: string) => {
     const currentAreas = form.getValues("labaRugiIds");
     if (currentAreas.includes(areaId)) {
-      form.setValue(
-        "labaRugiIds",
-        currentAreas.filter((id) => id !== areaId),
-        { shouldValidate: true }
-      );
+      form.setValue("labaRugiIds", currentAreas.filter((id) => id !== areaId), { shouldValidate: true });
     } else {
-      form.setValue("labaRugiIds", [...currentAreas, areaId], {
-        shouldValidate: true,
-      });
+      form.setValue("labaRugiIds", [...currentAreas, areaId], { shouldValidate: true });
     }
   };
 
-  // Toggle pilih/tidak pekerja (bisa broadcast atau spesifik area)
   const toggleWorker = (workerId: string, areaId?: string) => {
     if (areaId) {
-      // Mode spesifik: toggle untuk area tertentu
       const current = form.getValues(`petugasPerArea.${areaId}`) || [];
-      form.setValue(
-        `petugasPerArea.${areaId}`,
-        current.includes(workerId)
-          ? current.filter((id) => id !== workerId)
-          : [...current, workerId],
-        { shouldValidate: true }
-      );
+      form.setValue(`petugasPerArea.${areaId}`, current.includes(workerId) ? current.filter(id => id !== workerId) : [...current, workerId], { shouldValidate: true });
     } else {
-      // Mode broadcast: toggle untuk semua area
       const current = form.getValues("petugasBroadcast") || [];
-      form.setValue(
-        "petugasBroadcast",
-        current.includes(workerId)
-          ? current.filter((id) => id !== workerId)
-          : [...current, workerId],
-        { shouldValidate: true }
-      );
+      form.setValue("petugasBroadcast", current.includes(workerId) ? current.filter(id => id !== workerId) : [...current, workerId], { shouldValidate: true });
     }
   };
 
-  // Tambah produk per area (mode spesifik)
   const appendProdukArea = (areaId: string) => {
     const current = form.getValues(`produkPerArea.${areaId}`) || [];
-    form.setValue(`produkPerArea.${areaId}`, [
-      ...current,
-      { produk: "", dosis: "" },
-    ]);
+    form.setValue(`produkPerArea.${areaId}`, [...current, { produk: "", dosis: "" }]);
   };
-
-  // Hapus produk per area (mode spesifik)
   const removeProdukArea = (areaId: string, index: number) => {
     const current = form.getValues(`produkPerArea.${areaId}`) || [];
-    form.setValue(
-      `produkPerArea.${areaId}`,
-      current.filter((_, i) => i !== index)
-    );
+    form.setValue(`produkPerArea.${areaId}`, current.filter((_, i) => i !== index));
   };
-
-  // Update nilai produk per area (mode spesifik)
-  const updateProdukArea = (
-    areaId: string,
-    index: number,
-    field: "produk" | "dosis",
-    value: string
-  ) => {
+  const updateProdukArea = (areaId: string, index: number, field: "produk"|"dosis", value: string) => {
     const current = form.getValues(`produkPerArea.${areaId}`) || [];
     const newArr = [...current];
     newArr[index] = { ...newArr[index], [field]: value };
     form.setValue(`produkPerArea.${areaId}`, newArr);
   };
 
-  // ============================================================
-  // 🎨 RENDER UI
-  // ============================================================
   return (
-    <Sheet
-      open={open}
-      onOpenChange={(val) => {
-        setOpen(val);
-        if (!val) {
-          // Reset saat sheet ditutup
-          setStep(1);
-          setSubmittedUrls(null);
-        }
-      }}
-    >
-      {/* ============================================================
-          🔘 TOMBOL TRIGGER UNTUK MEMBUKA FORM
-          ============================================================ */}
+    <Sheet open={open} onOpenChange={(val) => { setOpen(val); if (!val) { setStep(1); setSubmittedUrls(null); } }}>
       <SheetTrigger asChild>
         <Button className="h-11 rounded-xl px-5 font-bold bg-green-600 text-white hover:bg-green-700 transition-all active:scale-[0.98] gap-2">
           <PlusCircle className="h-4 w-4" /> Perawatan
         </Button>
       </SheetTrigger>
-
-      {/* ============================================================
-          📋 KONTEN SHEET (POPUP FORM)
-          ============================================================ */}
-      <SheetContent
-        side="top"
-        className="mx-auto max-w-md rounded-b-[2rem] border-x-0 border-t-0 p-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl pb-4 shadow-[0_16px_40px_rgba(0,0,0,0.12)] flex flex-col max-h-[95vh]"
-      >
-        {/* ============================================================
-            HEADER SHEET (Judul + Indikator Step)
-            ============================================================ */}
+      <SheetContent side="top" className="mx-auto max-w-md rounded-b-[2rem] border-x-0 border-t-0 p-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl pb-4 shadow-[0_16px_40px_rgba(0,0,0,0.12)] flex flex-col max-h-[95vh]">
         <SheetHeader className="px-6 py-4 flex flex-row items-center justify-between border-b border-border shrink-0">
           <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-green-500/10 p-2 text-green-600">
-              <Sprout className="h-5 w-5" />
-            </div>
+            <div className="rounded-xl bg-green-500/10 p-2 text-green-600"><Sprout className="h-5 w-5" /></div>
             <div className="text-left">
-              <SheetTitle className="text-base font-black tracking-tight">
-                Input Perawatan
-              </SheetTitle>
-              <p className="text-[10px] font-bold text-green-600 tracking-wider uppercase">
-                Step {step} dari 6
-              </p>
+              <SheetTitle className="text-base font-black tracking-tight">Input Perawatan</SheetTitle>
+              <p className="text-[10px] font-bold text-green-600 tracking-wider uppercase">Step {step} dari 6</p>
             </div>
           </div>
-          {/* Indikator step (titik-titik) */}
           <div className="flex gap-1.5">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div
-                key={i}
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  step === i
-                    ? "w-4 bg-green-600"
-                    : "w-1.5 bg-border"
-                }`}
-              />
-            ))}
+            {[1, 2, 3, 4, 5, 6].map((i) => (<div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${step === i ? "w-4 bg-green-600" : "w-1.5 bg-border"}`} />))}
           </div>
         </SheetHeader>
-
-        {/* ============================================================
-            BODY SHEET (Form berjalan sesuai step)
-            ============================================================ */}
+ 
         <div className="px-6 py-4 overflow-y-auto flex-1">
-          {/* ============================================================
-              TAMPILAN SUKSES (Setelah berhasil submit)
-              ============================================================ */}
           {submittedUrls ? (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="flex flex-col items-center justify-center py-10 text-center space-y-5"
-            >
-              <div className="h-20 w-20 bg-green-100 rounded-full flex items-center justify-center mb-2">
-                <CheckCircle2 className="h-10 w-10 text-green-600" />
-              </div>
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center justify-center py-10 text-center space-y-5">
+              <div className="h-20 w-20 bg-green-100 rounded-full flex items-center justify-center mb-2"><CheckCircle2 className="h-10 w-10 text-green-600" /></div>
               <div className="space-y-2">
-                <h3 className="text-xl font-black text-foreground tracking-tight">
-                  Sukses Tersimpan!
-                </h3>
-                <p className="text-sm text-muted-foreground font-medium px-4">
-                  Data berhasil dicatat ke Notion.
-                </p>
+                <h3 className="text-xl font-black text-foreground tracking-tight">Sukses Tersimpan!</h3>
+                <p className="text-sm text-muted-foreground font-medium px-4">Data berhasil dicatat ke Notion.</p>
               </div>
               <div className="w-full space-y-2.5 pt-4">
                 {submittedUrls.map((item, idx) => (
-                  <Button
-                    key={item.pageId}
-                    type="button"
-                    variant="outline"
-                    className="w-full h-12 rounded-xl font-bold border-green-200 text-green-700 bg-green-50/50 hover:bg-green-100"
-                    onClick={() => window.open(item.notionUrl, "_blank")}
-                  >
-                    Buka Notion Area {idx + 1}
-                  </Button>
+                  <Button key={item.pageId} type="button" variant="outline" className="w-full h-12 rounded-xl font-bold border-green-200 text-green-700 bg-green-50/50 hover:bg-green-100" onClick={() => window.open(item.notionUrl, "_blank")}>Buka Notion Area {idx + 1}</Button>
                 ))}
-                <Button
-                  type="button"
-                  className="w-full h-12 rounded-xl font-bold bg-slate-900 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 mt-2"
-                  onClick={() => {
-                    setOpen(false);
-                    setStep(1);
-                    setSubmittedUrls(null);
-                    onSuccess?.();
-                  }}
-                >
-                  Tutup Form
-                </Button>
+                <Button type="button" className="w-full h-12 rounded-xl font-bold bg-slate-900 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 mt-2" onClick={() => { setOpen(false); setStep(1); setSubmittedUrls(null); onSuccess?.(); }}>Tutup Form</Button>
               </div>
             </motion.div>
           ) : isLoadingOptions ? (
-            /* ============================================================
-                TAMPILAN LOADING (Saat fetch data dropdown)
-                ============================================================ */
             <Skeleton className="h-12 w-full rounded-xl" />
           ) : (
-            /* ============================================================
-                FORM UTAMA
-                ============================================================ */
             <Form {...form}>
-              <form
-                onSubmit={(e) => e.preventDefault()}
-                className="space-y-5 text-left h-full flex flex-col"
-              >
+              <form onSubmit={(e) => e.preventDefault()} className="space-y-5 text-left h-full flex flex-col">
                 <AnimatePresence mode="wait">
-                  {/* ============================================================
-                      STEP 1: INPUT NAMA KEGIATAN
-                      ============================================================ */}
+                  
+                  {/* STEP 1: KEGIATAN */}
                   {step === 1 && (
-                    <motion.div
-                      key="step1"
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      className="space-y-4"
-                    >
-                      <FormField
-                        control={form.control}
-                        name="kegiatan"
-                        render={({ field }) => (
-                          <FormItem className="space-y-1.5">
-                            <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-                              1. Nama Kegiatan
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm font-medium"
-                                placeholder="Cth: Kocor Kalinet..."
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage className="text-xs text-red-500" />
-                          </FormItem>
-                        )}
-                      />
+                    <motion.div key="step1" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="space-y-4">
+                      <FormField control={form.control} name="kegiatan" render={({ field }) => (
+                        <FormItem className="space-y-1.5">
+                          <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">1. Nama Kegiatan</FormLabel>
+                          <FormControl><Input className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm font-medium" placeholder="Cth: Kocor Kalinet..." {...field} /></FormControl>
+                          <FormMessage className="text-xs text-red-500" />
+                        </FormItem>
+                      )} />
                     </motion.div>
                   )}
 
-                  {/* ============================================================
-                      STEP 2: PILIH AREA LABA RUGI
-                      ============================================================ */}
+                  {/* STEP 2: AREA */}
                   {step === 2 && (
-                    <motion.div
-                      key="step2"
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      className="space-y-4"
-                    >
+                    <motion.div key="step2" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="space-y-4">
                       <div className="space-y-1.5">
-                        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-                          2. Pilih Area Laba Rugi
-                        </p>
+                        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">2. Pilih Area Laba Rugi</p>
                         <div className="flex flex-wrap gap-2 pt-2">
                           {dropdownOptions?.areas?.map((item) => (
-                            <Badge
-                              key={item.id}
-                              variant="outline"
-                              className={`px-4 py-2.5 text-sm cursor-pointer rounded-xl transition-all ${
-                                form.watch("labaRugiIds").includes(item.id)
-                                  ? "bg-green-600 text-white border-green-600 font-bold shadow-md scale-[1.02]"
-                                  : "bg-muted/50 text-muted-foreground hover:bg-muted"
-                              }`}
-                              onClick={() => toggleArea(item.id)}
-                            >
+                            <Badge key={item.id} variant="outline" className={`px-4 py-2.5 text-sm cursor-pointer rounded-xl transition-all ${form.watch("labaRugiIds").includes(item.id) ? "bg-green-600 text-white border-green-600 font-bold shadow-md scale-[1.02]" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`} onClick={() => toggleArea(item.id)}>
                               {item.name}
                             </Badge>
                           ))}
                         </div>
-                        {form.formState.errors.labaRugiIds && (
-                          <p className="text-xs text-red-500 mt-2 font-medium">
-                            {form.formState.errors.labaRugiIds.message}
-                          </p>
-                        )}
+                        {form.formState.errors.labaRugiIds && <p className="text-xs text-red-500 mt-2 font-medium">{form.formState.errors.labaRugiIds.message}</p>}
                       </div>
                     </motion.div>
                   )}
 
-                  {/* ============================================================
-                      STEP 3: INPUT PRODUK / DOSIS
-                      ============================================================ */}
+                  {/* STEP 3: PRODUK / DOSIS */}
                   {step === 3 && (
-                    <motion.div
-                      key="step3"
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      className="space-y-4"
-                    >
-                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80 mb-2">
-                        3. Racikan Bahan / Produk
-                      </p>
-                      {/* Toggle mode broadcast vs spesifik */}
+                    <motion.div key="step3" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="space-y-4">
+                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80 mb-2">3. Racikan Bahan / Produk</p>
                       <div className="grid grid-cols-2 gap-2 bg-muted/50 p-1.5 rounded-xl border border-border">
-                        <button
-                          type="button"
-                          onClick={() => form.setValue("modeProduk", "broadcast")}
-                          className={`py-2 text-xs font-bold rounded-lg transition-all ${
-                            form.watch("modeProduk") === "broadcast"
-                              ? "bg-white dark:bg-slate-900 shadow-sm text-foreground"
-                              : "text-muted-foreground hover:text-foreground"
-                          }`}
-                        >
-                          Sama Semua
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => form.setValue("modeProduk", "spesifik")}
-                          className={`py-2 text-xs font-bold rounded-lg transition-all ${
-                            form.watch("modeProduk") === "spesifik"
-                              ? "bg-white dark:bg-slate-900 shadow-sm text-foreground"
-                              : "text-muted-foreground hover:text-foreground"
-                          }`}
-                        >
-                          Isi Per Area
-                        </button>
+                        <button type="button" onClick={() => form.setValue("modeProduk", "broadcast")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modeProduk") === "broadcast" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Sama Semua</button>
+                        <button type="button" onClick={() => form.setValue("modeProduk", "spesifik")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modeProduk") === "spesifik" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Isi Per Area</button>
                       </div>
 
-                      {/* Mode broadcast: semua area sama */}
                       {form.watch("modeProduk") === "broadcast" ? (
                         <div className="space-y-3 animate-in fade-in pt-2">
-                          <div className="flex justify-between items-center">
-                            <Badge
-                              variant="outline"
-                              className="bg-blue-50 text-blue-700 border-blue-200 font-bold"
-                            >
-                              Semua Area
-                            </Badge>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="h-8 rounded-lg text-xs font-bold border-green-200 text-green-700 bg-green-50"
-                              onClick={() => appendProduk({ produk: "", dosis: "" })}
-                            >
-                              <Plus className="h-3 w-3 mr-1" /> Tambah
-                            </Button>
-                          </div>
-                          {produkFields.map((field, index) => (
-                            <div
-                              key={field.id}
-                              className="flex gap-2 items-start bg-muted/40 p-3 rounded-xl border border-border/40"
-                            >
-                              <div className="grid grid-cols-2 gap-2 flex-1">
-                                <Input
-                                  className="h-10 text-sm bg-white dark:bg-slate-900 rounded-lg"
-                                  placeholder="Nama Produk"
-                                  {...form.register(`logProduk.${index}.produk`)}
-                                />
-                                <Input
-                                  className="h-10 text-sm bg-white dark:bg-slate-900 rounded-lg"
-                                  placeholder="Dosis"
-                                  {...form.register(`logProduk.${index}.dosis`)}
-                                />
-                              </div>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-10 w-10 text-red-500 hover:bg-red-50 shrink-0"
-                                onClick={() => removeProduk(index)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          ))}
+                           <div className="flex justify-between items-center">
+                              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 font-bold">Semua Area</Badge>
+                              <Button type="button" variant="outline" size="sm" className="h-8 rounded-lg text-xs font-bold border-green-200 text-green-700 bg-green-50" onClick={() => appendProduk({ produk: "", dosis: "" })}><Plus className="h-3 w-3 mr-1" /> Tambah</Button>
+                           </div>
+                           {produkFields.map((field, index) => (
+                             <div key={field.id} className="flex gap-2 items-start bg-muted/40 p-3 rounded-xl border border-border/40">
+                               <div className="grid grid-cols-2 gap-2 flex-1">
+                                 <Input className="h-10 text-sm bg-white dark:bg-slate-900 rounded-lg" placeholder="Nama Produk" {...form.register(`logProduk.${index}.produk`)} />
+                                 <Input className="h-10 text-sm bg-white dark:bg-slate-900 rounded-lg" placeholder="Dosis" {...form.register(`logProduk.${index}.dosis`)} />
+                               </div>
+                               <Button type="button" variant="ghost" size="icon" className="h-10 w-10 text-red-500 hover:bg-red-50 shrink-0" onClick={() => removeProduk(index)}><Trash2 className="h-4 w-4" /></Button>
+                             </div>
+                           ))}
                         </div>
                       ) : (
-                        /* Mode spesifik: isi per area */
                         <div className="space-y-4 animate-in fade-in pt-2">
                           {form.watch("labaRugiIds").map((areaId) => {
-                            const areaName =
-                              dropdownOptions?.areas?.find((a) => a.id === areaId)?.name || `Area`;
+                            const areaName = dropdownOptions?.areas?.find((a) => a.id === areaId)?.name || `Area`;
                             return (
-                              <div
-                                key={areaId}
-                                className="space-y-2 p-3 rounded-xl border border-border bg-muted/20"
-                              >
+                              <div key={areaId} className="space-y-2 p-3 rounded-xl border border-border bg-muted/20">
                                 <div className="flex justify-between items-center">
-                                  <Badge
-                                    variant="outline"
-                                    className="bg-green-50 text-green-700 border-green-200 font-bold"
-                                  >
-                                    {areaName}
-                                  </Badge>
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-8 rounded-lg text-xs font-bold border-green-200 text-green-700 bg-green-50"
-                                    onClick={() => appendProdukArea(areaId)}
-                                  >
-                                    <Plus className="h-3 w-3 mr-1" /> Tambah
-                                  </Button>
+                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 font-bold">{areaName}</Badge>
+                                  <Button type="button" variant="outline" size="sm" className="h-8 rounded-lg text-xs font-bold border-green-200 text-green-700 bg-green-50" onClick={() => appendProdukArea(areaId)}><Plus className="h-3 w-3 mr-1" /> Tambah</Button>
                                 </div>
-                                {(form.watch(`produkPerArea.${areaId}`) || []).map(
-                                  (prod, idx) => (
-                                    <div
-                                      key={idx}
-                                      className="flex gap-2 items-start bg-white dark:bg-slate-900 p-2 rounded-lg border border-border/40"
-                                    >
-                                      <div className="grid grid-cols-2 gap-2 flex-1">
-                                        <Input
-                                          className="h-9 text-sm"
-                                          placeholder="Nama Produk"
-                                          value={prod.produk}
-                                          onChange={(e) =>
-                                            updateProdukArea(
-                                              areaId,
-                                              idx,
-                                              "produk",
-                                              e.target.value
-                                            )
-                                          }
-                                        />
-                                        <Input
-                                          className="h-9 text-sm"
-                                          placeholder="Dosis"
-                                          value={prod.dosis}
-                                          onChange={(e) =>
-                                            updateProdukArea(
-                                              areaId,
-                                              idx,
-                                              "dosis",
-                                              e.target.value
-                                            )
-                                          }
-                                        />
-                                      </div>
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-9 w-9 text-red-500 hover:bg-red-50 shrink-0"
-                                        onClick={() => removeProdukArea(areaId, idx)}
-                                      >
-                                        <Trash2 className="h-3 w-3" />
-                                      </Button>
+                                {(form.watch(`produkPerArea.${areaId}`) || []).map((prod, idx) => (
+                                  <div key={idx} className="flex gap-2 items-start bg-white dark:bg-slate-900 p-2 rounded-lg border border-border/40">
+                                    <div className="grid grid-cols-2 gap-2 flex-1">
+                                      <Input className="h-9 text-sm" placeholder="Nama Produk" value={prod.produk} onChange={(e) => updateProdukArea(areaId, idx, "produk", e.target.value)} />
+                                      <Input className="h-9 text-sm" placeholder="Dosis" value={prod.dosis} onChange={(e) => updateProdukArea(areaId, idx, "dosis", e.target.value)} />
                                     </div>
-                                  )
-                                )}
+                                    <Button type="button" variant="ghost" size="icon" className="h-9 w-9 text-red-500 hover:bg-red-50 shrink-0" onClick={() => removeProdukArea(areaId, idx)}><Trash2 className="h-3 w-3" /></Button>
+                                  </div>
+                                ))}
                               </div>
                             );
                           })}
@@ -714,104 +293,37 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                     </motion.div>
                   )}
 
-                  {/* ============================================================
-                      STEP 4: PILIH PETUGAS LAPANGAN
-                      ============================================================ */}
+                  {/* STEP 4: PEKERJA (KHUSUS) */}
                   {step === 4 && (
-                    <motion.div
-                      key="step4"
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      className="space-y-4"
-                    >
-                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80 mb-2">
-                        4. Petugas Lapangan
-                      </p>
-                      {/* Toggle mode */}
+                    <motion.div key="step4" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="space-y-4">
+                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80 mb-2">4. Petugas Lapangan</p>
                       <div className="grid grid-cols-2 gap-2 bg-muted/50 p-1.5 rounded-xl border border-border">
-                        <button
-                          type="button"
-                          onClick={() => form.setValue("modePekerja", "broadcast")}
-                          className={`py-2 text-xs font-bold rounded-lg transition-all ${
-                            form.watch("modePekerja") === "broadcast"
-                              ? "bg-white dark:bg-slate-900 shadow-sm text-foreground"
-                              : "text-muted-foreground hover:text-foreground"
-                          }`}
-                        >
-                          Sama Semua
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => form.setValue("modePekerja", "spesifik")}
-                          className={`py-2 text-xs font-bold rounded-lg transition-all ${
-                            form.watch("modePekerja") === "spesifik"
-                              ? "bg-white dark:bg-slate-900 shadow-sm text-foreground"
-                              : "text-muted-foreground hover:text-foreground"
-                          }`}
-                        >
-                          Isi Per Area
-                        </button>
+                        <button type="button" onClick={() => form.setValue("modePekerja", "broadcast")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modePekerja") === "broadcast" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Sama Semua</button>
+                        <button type="button" onClick={() => form.setValue("modePekerja", "spesifik")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modePekerja") === "spesifik" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Isi Per Area</button>
                       </div>
-
-                      {/* Mode broadcast */}
+                      
                       {form.watch("modePekerja") === "broadcast" ? (
                         <div className="rounded-2xl border border-border/60 bg-muted/5 p-2 animate-in fade-in">
                           <div className="max-h-[250px] overflow-y-auto flex flex-wrap gap-1.5 pr-1">
                             {dropdownOptions?.petugas?.map((item) => (
-                              <button
-                                key={item.id}
-                                type="button"
-                                onClick={() => toggleWorker(item.id)}
-                                className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all border ${
-                                  form.watch("petugasBroadcast").includes(item.id)
-                                    ? "bg-green-600 text-white border-green-600 shadow-sm"
-                                    : "bg-background text-muted-foreground border-border/50 hover:bg-muted"
-                                }`}
-                              >
-                                {item.name}
-                              </button>
+                              <button key={item.id} type="button" onClick={() => toggleWorker(item.id)} className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all border ${form.watch("petugasBroadcast").includes(item.id) ? "bg-green-600 text-white border-green-600 shadow-sm" : "bg-background text-muted-foreground border-border/50 hover:bg-muted"}`}>{item.name}</button>
                             ))}
                           </div>
                         </div>
                       ) : (
-                        /* Mode spesifik per area */
                         <div className="space-y-3 animate-in fade-in">
                           {form.watch("labaRugiIds").map((areaId) => {
-                            const areaName =
-                              dropdownOptions?.areas?.find((a) => a.id === areaId)?.name || `Area`;
-                            const currentWorkers =
-                              form.watch(`petugasPerArea.${areaId}`) || [];
+                            const areaName = dropdownOptions?.areas?.find((a) => a.id === areaId)?.name || `Area`;
+                            const currentWorkers = form.watch(`petugasPerArea.${areaId}`) || [];
                             return (
-                              <div
-                                key={areaId}
-                                className="space-y-2 p-2.5 rounded-xl border border-border bg-muted/5"
-                              >
+                              <div key={areaId} className="space-y-2 p-2.5 rounded-xl border border-border bg-muted/5">
                                 <div className="flex justify-between items-center">
-                                  <Badge
-                                    variant="outline"
-                                    className="bg-green-50 text-green-700 border-green-200 font-bold"
-                                  >
-                                    {areaName}
-                                  </Badge>
-                                  <span className="text-[10px] text-muted-foreground font-medium">
-                                    {currentWorkers.length} dipilih
-                                  </span>
+                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 font-bold">{areaName}</Badge>
+                                  <span className="text-[10px] text-muted-foreground font-medium">{currentWorkers.length} dipilih</span>
                                 </div>
                                 <div className="max-h-[150px] overflow-y-auto flex flex-wrap gap-1.5 mt-1 pr-1">
                                   {dropdownOptions?.petugas?.map((item) => (
-                                    <button
-                                      key={item.id}
-                                      type="button"
-                                      onClick={() => toggleWorker(item.id, areaId)}
-                                      className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all border ${
-                                        currentWorkers.includes(item.id)
-                                          ? "bg-green-600 text-white border-green-600 shadow-sm"
-                                          : "bg-background text-muted-foreground border-border/50 hover:bg-muted"
-                                      }`}
-                                    >
-                                      {item.name}
-                                    </button>
+                                    <button key={item.id} type="button" onClick={() => toggleWorker(item.id, areaId)} className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all border ${currentWorkers.includes(item.id) ? "bg-green-600 text-white border-green-600 shadow-sm" : "bg-background text-muted-foreground border-border/50 hover:bg-muted"}`}>{item.name}</button>
                                   ))}
                                 </div>
                               </div>
@@ -822,77 +334,27 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                     </motion.div>
                   )}
 
-                  {/* ============================================================
-                      STEP 5: CATATAN LAPANGAN (OPSIONAL)
-                      ============================================================ */}
+                  {/* STEP 5: CATATAN LAPANGAN */}
                   {step === 5 && (
-                    <motion.div
-                      key="step5"
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      className="space-y-4"
-                    >
-                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80 mb-2">
-                        5. Catatan Detail (Opsional)
-                      </p>
+                    <motion.div key="step5" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="space-y-4">
+                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80 mb-2">5. Catatan Detail (Opsional)</p>
                       <div className="space-y-3">
-                        {/* Toggle mode */}
                         <div className="grid grid-cols-2 gap-2 bg-muted/50 p-1.5 rounded-xl border border-border">
-                          <button
-                            type="button"
-                            onClick={() => form.setValue("modeCatatan", "broadcast")}
-                            className={`py-2 text-xs font-bold rounded-lg transition-all ${
-                              form.watch("modeCatatan") === "broadcast"
-                                ? "bg-white dark:bg-slate-900 shadow-sm text-foreground"
-                                : "text-muted-foreground hover:text-foreground"
-                            }`}
-                          >
-                            Sama Semua
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => form.setValue("modeCatatan", "spesifik")}
-                            className={`py-2 text-xs font-bold rounded-lg transition-all ${
-                              form.watch("modeCatatan") === "spesifik"
-                                ? "bg-white dark:bg-slate-900 shadow-sm text-foreground"
-                                : "text-muted-foreground hover:text-foreground"
-                            }`}
-                          >
-                            Isi Per Area
-                          </button>
+                          <button type="button" onClick={() => form.setValue("modeCatatan", "broadcast")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modeCatatan") === "broadcast" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Sama Semua</button>
+                          <button type="button" onClick={() => form.setValue("modeCatatan", "spesifik")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modeCatatan") === "spesifik" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Isi Per Area</button>
                         </div>
-                        {/* Mode broadcast */}
                         {form.watch("modeCatatan") === "broadcast" ? (
                           <div className="space-y-2 animate-in fade-in pt-1">
-                            <Textarea
-                              placeholder="Ketik catatan detail untuk diterapkan ke semua area..."
-                              className="min-h-[140px] rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm"
-                              {...form.register("catatanBroadcast")}
-                            />
+                            <Textarea placeholder="Ketik catatan detail untuk diterapkan ke semua area..." className="min-h-[140px] rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm" {...form.register("catatanBroadcast")} />
                           </div>
                         ) : (
-                          /* Mode spesifik */
                           <div className="space-y-3 animate-in fade-in pt-1">
                             {form.watch("labaRugiIds").map((areaId) => {
-                              const areaName =
-                                dropdownOptions?.areas?.find((a) => a.id === areaId)?.name || `Area`;
+                              const areaName = dropdownOptions?.areas?.find((a) => a.id === areaId)?.name || `Area`;
                               return (
-                                <div
-                                  key={areaId}
-                                  className="space-y-1.5 p-3 rounded-xl border border-border bg-muted/20"
-                                >
-                                  <Badge
-                                    variant="outline"
-                                    className="bg-green-50 text-green-700 border-green-200 font-bold mb-1"
-                                  >
-                                    {areaName}
-                                  </Badge>
-                                  <Textarea
-                                    placeholder={`Catatan untuk ${areaName}...`}
-                                    className="min-h-[80px] rounded-xl bg-background border-border/80 focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm"
-                                    {...form.register(`catatanPerArea.${areaId}`)}
-                                  />
+                                <div key={areaId} className="space-y-1.5 p-3 rounded-xl border border-border bg-muted/20">
+                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 font-bold mb-1">{areaName}</Badge>
+                                  <Textarea placeholder={`Catatan untuk ${areaName}...`} className="min-h-[80px] rounded-xl bg-background border-border/80 focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm" {...form.register(`catatanPerArea.${areaId}`)} />
                                 </div>
                               );
                             })}
@@ -902,126 +364,50 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                     </motion.div>
                   )}
 
-                  {/* ============================================================
-                      STEP 6: FINALISASI JADWAL & STATUS
-                      ============================================================ */}
+                  {/* STEP 6: JADWAL & STATUS (FINALISASI) */}
                   {step === 6 && (
-                    <motion.div
-                      key="step6"
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      className="space-y-6 pb-2"
-                    >
-                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-                        6. Finalisasi Jadwal & Status
-                      </p>
-
-                      {/* ============================================================
-                          BAGIAN: TANGGAL PELAKSANAAN
-                          ============================================================ */}
+                    <motion.div key="step6" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="space-y-6 pb-2">
+                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">6. Finalisasi Jadwal & Status</p>
+                      
+                      {/* MULTI TANGGAL */}
                       <div className="space-y-2.5">
-                        <p className="text-[11px] font-bold text-muted-foreground">
-                          Tanggal Pelaksanaan
-                        </p>
+                        <p className="text-[11px] font-bold text-muted-foreground">Tanggal Pelaksanaan</p>
                         <div className="grid grid-cols-2 gap-2 bg-muted/50 p-1.5 rounded-xl border border-border">
-                          <button
-                            type="button"
-                            onClick={() => form.setValue("modeTanggal", "broadcast")}
-                            className={`py-2 text-xs font-bold rounded-lg transition-all ${
-                              form.watch("modeTanggal") === "broadcast"
-                                ? "bg-white dark:bg-slate-900 shadow-sm text-foreground"
-                                : "text-muted-foreground hover:text-foreground"
-                            }`}
-                          >
-                            Sama Semua
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              form.setValue("modeTanggal", "spesifik");
-                              const currentTanggal = form.getValues("tanggalBroadcast");
-                              form.getValues("labaRugiIds").forEach((id) => {
-                                if (!form.getValues(`tanggalPerArea.${id}`)) {
-                                  form.setValue(
-                                    `tanggalPerArea.${id}`,
-                                    currentTanggal || ""
-                                  );
-                                }
-                              });
-                            }}
-                            className={`py-2 text-xs font-bold rounded-lg transition-all ${
-                              form.watch("modeTanggal") === "spesifik"
-                                ? "bg-white dark:bg-slate-900 shadow-sm text-foreground"
-                                : "text-muted-foreground hover:text-foreground"
-                            }`}
-                          >
-                            Isi Per Area
-                          </button>
+                          <button type="button" onClick={() => form.setValue("modeTanggal", "broadcast")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modeTanggal") === "broadcast" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Sama Semua</button>
+                          <button type="button" onClick={() => {
+                            form.setValue("modeTanggal", "spesifik");
+                            const currentTanggal = form.getValues("tanggalBroadcast");
+                            form.getValues("labaRugiIds").forEach(id => {
+                              if (!form.getValues(`tanggalPerArea.${id}`)) form.setValue(`tanggalPerArea.${id}`, currentTanggal || "");
+                            });
+                          }} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modeTanggal") === "spesifik" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Isi Per Area</button>
                         </div>
-
-                        {/* Mode broadcast: satu tanggal untuk semua */}
+                        
                         {form.watch("modeTanggal") === "broadcast" ? (
-                          <div className="animate-in fade-in relative">
-                            <CalendarIcon className="absolute left-4 top-[24px] -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
-                            <FormField
-                              control={form.control}
-                              name="tanggalBroadcast"
-                              render={({ field }) => (
-                                <FormItem className="w-full">
-                                  <FormControl>
-                                    <Input
-                                      type="date"
-                                      className="h-12 rounded-xl bg-muted border-transparent pl-11 pr-4 focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm font-bold w-full"
-                                      {...field}
-                                      value={field.value || ""}
-                                    />
-                                  </FormControl>
-                                  {/* ✅ PERBAIKAN: Tambah pesan error */}
-                                  <FormMessage className="text-xs text-red-500 mt-1" />
-                                </FormItem>
-                              )}
-                            />
-                          </div>
+                           <div className="animate-in fade-in relative">
+                             <CalendarIcon className="absolute left-4 top-[24px] -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
+                             <FormField control={form.control} name="tanggalBroadcast" render={({ field }) => (
+                               <FormItem className="w-full">
+                                 <FormControl>
+                                   <Input type="date" className="h-12 rounded-xl bg-muted border-transparent pl-11 pr-4 focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm font-bold w-full" {...field} value={field.value || ""} />
+                                 </FormControl>
+                               </FormItem>
+                             )} />
+                           </div>
                         ) : (
-                          /* Mode spesifik: tanggal berbeda per area */
                           <div className="space-y-3 animate-in fade-in">
                             {form.watch("labaRugiIds").map((areaId) => {
-                              const areaName =
-                                dropdownOptions?.areas?.find((a) => a.id === areaId)?.name || `Area`;
+                              const areaName = dropdownOptions?.areas?.find((a) => a.id === areaId)?.name || `Area`;
                               return (
-                                <div
-                                  key={areaId}
-                                  className="space-y-1.5 p-2.5 rounded-xl border border-border bg-muted/5"
-                                >
-                                  <Badge
-                                    variant="outline"
-                                    className="bg-green-50 text-green-700 border-green-200 font-bold mb-1"
-                                  >
-                                    {areaName}
-                                  </Badge>
-                                  <FormField
-                                    control={form.control}
-                                    name={`tanggalPerArea.${areaId}`}
-                                    render={({ field }) => (
-                                      <FormItem className="w-full">
-                                        <FormControl>
-                                          <Input
-                                            type="date"
-                                            className="h-10 rounded-lg bg-background border-border/80 text-xs font-bold w-full px-3"
-                                            {...field}
-                                            value={
-                                              field.value ||
-                                              form.watch("tanggalBroadcast") ||
-                                              ""
-                                            }
-                                          />
-                                        </FormControl>
-                                        {/* ✅ PERBAIKAN: Tambah pesan error */}
-                                        <FormMessage className="text-xs text-red-500 mt-1" />
-                                      </FormItem>
-                                    )}
-                                  />
+                                <div key={areaId} className="space-y-1.5 p-2.5 rounded-xl border border-border bg-muted/5">
+                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 font-bold mb-1">{areaName}</Badge>
+                                  <FormField control={form.control} name={`tanggalPerArea.${areaId}`} render={({ field }) => (
+                                    <FormItem className="w-full">
+                                      <FormControl>
+                                        <Input type="date" className="h-10 rounded-lg bg-background border-border/80 text-xs font-bold w-full px-3" {...field} value={field.value || form.watch("tanggalBroadcast") || ""} />
+                                      </FormControl>
+                                    </FormItem>
+                                  )} />
                                 </div>
                               );
                             })}
@@ -1029,86 +415,33 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                         )}
                       </div>
 
-                      {/* ============================================================
-                          BAGIAN: JENIS KEGIATAN / TAGS
-                          ============================================================ */}
+                      {/* MULTI TAGS */}
                       <div className="space-y-2.5 pt-2 border-t border-border">
-                        <p className="text-[11px] font-bold text-muted-foreground">
-                          Jenis Kegiatan / Tags
-                        </p>
+                        <p className="text-[11px] font-bold text-muted-foreground">Jenis Kegiatan / Tags</p>
                         <div className="grid grid-cols-2 gap-2 bg-muted/50 p-1.5 rounded-xl border border-border">
-                          <button
-                            type="button"
-                            onClick={() => form.setValue("modeTags", "broadcast")}
-                            className={`py-2 text-xs font-bold rounded-lg transition-all ${
-                              form.watch("modeTags") === "broadcast"
-                                ? "bg-white dark:bg-slate-900 shadow-sm text-foreground"
-                                : "text-muted-foreground hover:text-foreground"
-                            }`}
-                          >
-                            Sama Semua
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => form.setValue("modeTags", "spesifik")}
-                            className={`py-2 text-xs font-bold rounded-lg transition-all ${
-                              form.watch("modeTags") === "spesifik"
-                                ? "bg-white dark:bg-slate-900 shadow-sm text-foreground"
-                                : "text-muted-foreground hover:text-foreground"
-                            }`}
-                          >
-                            Isi Per Area
-                          </button>
+                          <button type="button" onClick={() => form.setValue("modeTags", "broadcast")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modeTags") === "broadcast" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Sama Semua</button>
+                          <button type="button" onClick={() => form.setValue("modeTags", "spesifik")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modeTags") === "spesifik" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Isi Per Area</button>
                         </div>
                         {form.watch("modeTags") === "broadcast" ? (
-                          <div className="animate-in fade-in">
-                            <Select
-                              onValueChange={(val) => form.setValue("tagsBroadcast", val)}
-                              value={form.watch("tagsBroadcast") || ""}
-                            >
-                              <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-green-600/20">
-                                <SelectValue placeholder="Pilih tag..." />
-                              </SelectTrigger>
-                              <SelectContent className="rounded-xl">
-                                <SelectItem value="Pengocoran">Pengocoran</SelectItem>
-                                <SelectItem value="Penyemprotan">Penyemprotan</SelectItem>
-                                <SelectItem value="Pemupukan Dasar">Pemupukan Dasar</SelectItem>
-                                <SelectItem value="Selingan">Selingan</SelectItem>
-                                <SelectItem value="Lainnya">Lainnya</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
+                           <div className="animate-in fade-in">
+                             <Select onValueChange={(val) => form.setValue("tagsBroadcast", val)} value={form.watch("tagsBroadcast") || ""}>
+                               <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-green-600/20"><SelectValue placeholder="Pilih tag..." /></SelectTrigger>
+                               <SelectContent className="rounded-xl">
+                                 <SelectItem value="Pengocoran">Pengocoran</SelectItem><SelectItem value="Penyemprotan">Penyemprotan</SelectItem><SelectItem value="Pemupukan Dasar">Pemupukan Dasar</SelectItem><SelectItem value="Selingan">Selingan</SelectItem><SelectItem value="Lainnya">Lainnya</SelectItem>
+                               </SelectContent>
+                             </Select>
+                           </div>
                         ) : (
                           <div className="space-y-3 animate-in fade-in">
                             {form.watch("labaRugiIds").map((areaId) => {
-                              const areaName =
-                                dropdownOptions?.areas?.find((a) => a.id === areaId)?.name || `Area`;
+                              const areaName = dropdownOptions?.areas?.find((a) => a.id === areaId)?.name || `Area`;
                               return (
-                                <div
-                                  key={areaId}
-                                  className="space-y-1.5 p-2.5 rounded-xl border border-border bg-muted/5"
-                                >
-                                  <Badge
-                                    variant="outline"
-                                    className="bg-green-50 text-green-700 border-green-200 font-bold mb-1"
-                                  >
-                                    {areaName}
-                                  </Badge>
-                                  <Select
-                                    onValueChange={(val) =>
-                                      form.setValue(`tagsPerArea.${areaId}`, val)
-                                    }
-                                    value={form.watch(`tagsPerArea.${areaId}`) || ""}
-                                  >
-                                    <SelectTrigger className="h-10 rounded-lg bg-background border-border/80 text-xs">
-                                      <SelectValue placeholder="Pilih tag area ini..." />
-                                    </SelectTrigger>
+                                <div key={areaId} className="space-y-1.5 p-2.5 rounded-xl border border-border bg-muted/5">
+                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 font-bold mb-1">{areaName}</Badge>
+                                  <Select onValueChange={(val) => form.setValue(`tagsPerArea.${areaId}`, val)} value={form.watch(`tagsPerArea.${areaId}`) || ""}>
+                                    <SelectTrigger className="h-10 rounded-lg bg-background border-border/80 text-xs"><SelectValue placeholder="Pilih tag area ini..." /></SelectTrigger>
                                     <SelectContent className="rounded-xl">
-                                      <SelectItem value="Pengocoran">Pengocoran</SelectItem>
-                                      <SelectItem value="Penyemprotan">Penyemprotan</SelectItem>
-                                      <SelectItem value="Pemupukan Dasar">Pemupukan Dasar</SelectItem>
-                                      <SelectItem value="Selingan">Selingan</SelectItem>
-                                      <SelectItem value="Lainnya">Lainnya</SelectItem>
+                                      <SelectItem value="Pengocoran">Pengocoran</SelectItem><SelectItem value="Penyemprotan">Penyemprotan</SelectItem><SelectItem value="Pemupukan Dasar">Pemupukan Dasar</SelectItem><SelectItem value="Selingan">Selingan</SelectItem><SelectItem value="Lainnya">Lainnya</SelectItem>
                                     </SelectContent>
                                   </Select>
                                 </div>
@@ -1118,88 +451,33 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                         )}
                       </div>
 
-                      {/* ============================================================
-                          BAGIAN: STATUS PEKERJAAN
-                          ============================================================ */}
+                      {/* MULTI STATUS */}
                       <div className="space-y-2.5 pt-2 border-t border-border">
-                        <p className="text-[11px] font-bold text-muted-foreground">
-                          Status Pekerjaan
-                        </p>
+                        <p className="text-[11px] font-bold text-muted-foreground">Status Pekerjaan</p>
                         <div className="grid grid-cols-2 gap-2 bg-muted/50 p-1.5 rounded-xl border border-border">
-                          <button
-                            type="button"
-                            onClick={() => form.setValue("modeStatus", "broadcast")}
-                            className={`py-2 text-xs font-bold rounded-lg transition-all ${
-                              form.watch("modeStatus") === "broadcast"
-                                ? "bg-white dark:bg-slate-900 shadow-sm text-foreground"
-                                : "text-muted-foreground hover:text-foreground"
-                            }`}
-                          >
-                            Sama Semua
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => form.setValue("modeStatus", "spesifik")}
-                            className={`py-2 text-xs font-bold rounded-lg transition-all ${
-                              form.watch("modeStatus") === "spesifik"
-                                ? "bg-white dark:bg-slate-900 shadow-sm text-foreground"
-                                : "text-muted-foreground hover:text-foreground"
-                            }`}
-                          >
-                            Isi Per Area
-                          </button>
+                          <button type="button" onClick={() => form.setValue("modeStatus", "broadcast")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modeStatus") === "broadcast" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Sama Semua</button>
+                          <button type="button" onClick={() => form.setValue("modeStatus", "spesifik")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modeStatus") === "spesifik" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Isi Per Area</button>
                         </div>
                         {form.watch("modeStatus") === "broadcast" ? (
-                          <div className="animate-in fade-in">
-                            <Select
-                              onValueChange={(val) => form.setValue("statusBroadcast", val)}
-                              value={form.watch("statusBroadcast") || ""}
-                            >
-                              <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-green-600/20">
-                                <SelectValue placeholder="Pilih status..." />
-                              </SelectTrigger>
-                              <SelectContent className="rounded-xl">
-                                <SelectItem value="Rencana">Rencana</SelectItem>
-                                <SelectItem value="Proses">
-                                  Sedang Berlangsung (Proses)
-                                </SelectItem>
-                                <SelectItem value="Selesai">Selesai</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
+                           <div className="animate-in fade-in">
+                             <Select onValueChange={(val) => form.setValue("statusBroadcast", val)} value={form.watch("statusBroadcast") || ""}>
+                               <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-green-600/20"><SelectValue placeholder="Pilih status..." /></SelectTrigger>
+                               <SelectContent className="rounded-xl">
+                                 <SelectItem value="Rencana">Rencana</SelectItem><SelectItem value="Proses">Sedang Berlangsung (Proses)</SelectItem><SelectItem value="Selesai">Selesai</SelectItem>
+                               </SelectContent>
+                             </Select>
+                           </div>
                         ) : (
                           <div className="space-y-3 animate-in fade-in">
                             {form.watch("labaRugiIds").map((areaId) => {
-                              const areaName =
-                                dropdownOptions?.areas?.find((a) => a.id === areaId)?.name || `Area`;
+                              const areaName = dropdownOptions?.areas?.find((a) => a.id === areaId)?.name || `Area`;
                               return (
-                                <div
-                                  key={areaId}
-                                  className="space-y-1.5 p-2.5 rounded-xl border border-border bg-muted/5"
-                                >
-                                  <Badge
-                                    variant="outline"
-                                    className="bg-green-50 text-green-700 border-green-200 font-bold mb-1"
-                                  >
-                                    {areaName}
-                                  </Badge>
-                                  <Select
-                                    onValueChange={(val) =>
-                                      form.setValue(`statusPerArea.${areaId}`, val)
-                                    }
-                                    value={
-                                      form.watch(`statusPerArea.${areaId}`) || "Rencana"
-                                    }
-                                  >
-                                    <SelectTrigger className="h-10 rounded-lg bg-background border-border/80 text-xs">
-                                      <SelectValue placeholder="Pilih status area ini..." />
-                                    </SelectTrigger>
+                                <div key={areaId} className="space-y-1.5 p-2.5 rounded-xl border border-border bg-muted/5">
+                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 font-bold mb-1">{areaName}</Badge>
+                                  <Select onValueChange={(val) => form.setValue(`statusPerArea.${areaId}`, val)} value={form.watch(`statusPerArea.${areaId}`) || "Rencana"}>
+                                    <SelectTrigger className="h-10 rounded-lg bg-background border-border/80 text-xs"><SelectValue placeholder="Pilih status area ini..." /></SelectTrigger>
                                     <SelectContent className="rounded-xl">
-                                      <SelectItem value="Rencana">Rencana</SelectItem>
-                                      <SelectItem value="Proses">
-                                        Sedang Berlangsung
-                                      </SelectItem>
-                                      <SelectItem value="Selesai">Selesai</SelectItem>
+                                      <SelectItem value="Rencana">Rencana</SelectItem><SelectItem value="Proses">Sedang Berlangsung</SelectItem><SelectItem value="Selesai">Selesai</SelectItem>
                                     </SelectContent>
                                   </Select>
                                 </div>
@@ -1212,57 +490,19 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                   )}
                 </AnimatePresence>
 
-                {/* ============================================================
-                    NAVIGASI BAWAH: TOMBOL KEMBALI / LANJUT / KIRIM
-                    ============================================================ */}
+                {/* BOTTOM NAVIGATION (SAMPAI STEP 6) */}
                 <div className="flex justify-between items-center pt-4 border-t border-border mt-auto shrink-0 pb-8 md:pb-2">
-                  {/* Tombol kiri: Kembali atau Batal */}
                   {step > 1 ? (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="h-11 rounded-xl px-4 font-bold text-muted-foreground"
-                      onClick={() => setStep((p) => p - 1)}
-                      disabled={savePerawatan.isPending}
-                    >
-                      <ArrowLeft className="mr-2 h-4 w-4" /> Kembali
-                    </Button>
+                    <Button type="button" variant="ghost" className="h-11 rounded-xl px-4 font-bold text-muted-foreground" onClick={() => setStep((p) => p - 1)} disabled={savePerawatan.isPending}><ArrowLeft className="mr-2 h-4 w-4" /> Kembali</Button>
                   ) : (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="h-11 rounded-xl px-4 font-bold text-muted-foreground"
-                      onClick={() => setOpen(false)}
-                    >
-                      Batal
-                    </Button>
+                    <Button type="button" variant="ghost" className="h-11 rounded-xl px-4 font-bold text-muted-foreground" onClick={() => setOpen(false)}>Batal</Button>
                   )}
-
-                  {/* Tombol kanan: Lanjut atau Kirim */}
+                  
                   {step < 6 ? (
-                    <Button
-                      type="button"
-                      className="h-11 rounded-xl px-5 font-bold bg-green-600 text-white hover:bg-green-700"
-                      onClick={handleNextStep}
-                    >
-                      Lanjut <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
+                    <Button type="button" className="h-11 rounded-xl px-5 font-bold bg-green-600 text-white hover:bg-green-700" onClick={handleNextStep}>Lanjut <ArrowRight className="ml-2 h-4 w-4" /></Button>
                   ) : (
-                    <Button
-                      type="button"
-                      className="h-11 rounded-xl px-6 font-bold bg-green-600 text-white hover:bg-green-700 active:scale-[0.98]"
-                      disabled={savePerawatan.isPending}
-                      onClick={form.handleSubmit(onSubmit)}
-                    >
-                      {savePerawatan.isPending ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Menyimpan...
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle2 className="mr-2 h-4 w-4" /> Kirim ke Notion
-                        </>
-                      )}
+                    <Button type="button" className="h-11 rounded-xl px-6 font-bold bg-green-600 text-white hover:bg-green-700 active:scale-[0.98]" disabled={savePerawatan.isPending} onClick={form.handleSubmit(onSubmit)}>
+                      {savePerawatan.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Menyimpan...</> : <><CheckCircle2 className="mr-2 h-4 w-4" /> Kirim ke Notion</>}
                     </Button>
                   )}
                 </div>
