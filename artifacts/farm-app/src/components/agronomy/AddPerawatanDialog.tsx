@@ -383,16 +383,16 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                           }} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modeTanggal") === "spesifik" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Isi Per Area</button>
                         </div>
                         
-                        {form.watch("modeTanggal") === "broadcast" ? (
+                                                {form.watch("modeTanggal") === "broadcast" ? (
                            <div className="animate-in fade-in relative">
                              <CalendarIcon className="absolute left-4 top-[24px] -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
-                             <FormField control={form.control} name="tanggalBroadcast" render={({ field }) => (
-                               <FormItem className="w-full">
-                                 <FormControl>
-                                   <Input type="date" className="h-12 rounded-xl bg-muted border-transparent pl-11 pr-4 focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm font-bold w-full" {...field} value={field.value || ""} />
-                                 </FormControl>
-                               </FormItem>
-                             )} />
+                             {/* 👇 BYPASS SHADCN: TEMBAK LANGSUNG PAKE SET-VALUE 👇 */}
+                             <Input 
+                               type="date" 
+                               className="h-12 rounded-xl bg-muted border-transparent pl-11 pr-4 focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm font-bold w-full" 
+                               value={form.watch("tanggalBroadcast") || ""}
+                               onChange={(e) => form.setValue("tanggalBroadcast", e.target.value, { shouldValidate: true, shouldDirty: true })} 
+                             />
                            </div>
                         ) : (
                           <div className="space-y-3 animate-in fade-in">
@@ -401,19 +401,18 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                               return (
                                 <div key={areaId} className="space-y-1.5 p-2.5 rounded-xl border border-border bg-muted/5">
                                   <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 font-bold mb-1">{areaName}</Badge>
-                                  <FormField control={form.control} name={`tanggalPerArea.${areaId}`} render={({ field }) => (
-                                    <FormItem className="w-full">
-                                      <FormControl>
-                                        <Input type="date" className="h-10 rounded-lg bg-background border-border/80 text-xs font-bold w-full px-3" {...field} value={field.value || form.watch("tanggalBroadcast") || ""} />
-                                      </FormControl>
-                                    </FormItem>
-                                  )} />
+                                  {/* 👇 BYPASS SHADCN: TEMBAK LANGSUNG PAKE SET-VALUE 👇 */}
+                                  <Input 
+                                    type="date" 
+                                    className="h-10 rounded-lg bg-background border-border/80 text-xs font-bold w-full px-3" 
+                                    value={form.watch(`tanggalPerArea.${areaId}`) || form.watch("tanggalBroadcast") || ""}
+                                    onChange={(e) => form.setValue(`tanggalPerArea.${areaId}`, e.target.value, { shouldValidate: true, shouldDirty: true })} 
+                                  />
                                 </div>
                               );
                             })}
                           </div>
                         )}
-                      </div>
 
                       {/* MULTI TAGS */}
                       <div className="space-y-2.5 pt-2 border-t border-border">
