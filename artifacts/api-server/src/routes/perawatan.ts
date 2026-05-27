@@ -192,7 +192,10 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
     const dbProperties = await getDatabasePropertyMeta(userId, accessToken, databaseId);
 
     const requests = areaIds.map(async (currentAreaId) => {
-      const fallbackDate = new Date().toISOString().split("T")[0];
+      
+      // 👇 PERUBAHAN UTAMA: .split("T")[0] dihapus agar jam dan zona waktu (ISO) tetap utuh
+      const fallbackDate = new Date().toISOString(); 
+      
       const tanggalAreaIni = body.modeTanggal === "broadcast" ? (body.tanggalBroadcast || fallbackDate) : (body.tanggalPerArea?.[currentAreaId] || body.tanggalBroadcast || fallbackDate);
       const catatanAreaIni = body.modeCatatan === "broadcast" ? (body.catatanBroadcast || "") : (body.catatanPerArea?.[currentAreaId] || "");
       const pekerjaAreaIni = body.modePekerja === "broadcast" ? (body.petugasBroadcast || []) : (body.petugasPerArea?.[currentAreaId] || []);
