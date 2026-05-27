@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -6,9 +6,9 @@ import { format } from "date-fns";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft, ArrowRight, CalendarClock, CheckCircle2, ClipboardList, 
-  ExternalLink, FileText, Gauge, Loader2, MapPinned, PlusCircle, Users, 
-  Briefcase, Wrench, SlidersHorizontal
+  ArrowLeft, ArrowRight, CalendarClock, CheckCircle2, ClipboardList,
+  ExternalLink, FileText, Gauge, Loader2, MapPinned, PlusCircle,
+  Briefcase, Wrench
 } from "lucide-react";
 
 import { getGetDashboardSummaryQueryKey } from "@workspace/api-client-react";
@@ -23,13 +23,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 
 // ==========================================
-// ZOD SCHEMA
+// 1. ZOD SCHEMA (ULTIMATE CUSTOM ENGINE)
 // ==========================================
 const operasionalSchema = z.object({
   namaPekerjaan: z.string().min(1, "Nama pekerjaan wajib diisi"),
-  kategori: z.string().min(1, "Kategori wajib dipilih"),
   areaIds: z.array(z.string()).min(1, "Minimal pilih 1 area"),
   
+  modeKategori: z.enum(["broadcast", "spesifik"]).default("broadcast"),
+  kategoriBroadcast: z.string().optional(),
+  kategoriPerArea: z.record(z.string()).default({}),
+
   modeWaktu: z.enum(["broadcast", "spesifik"]).default("broadcast"),
   waktuMulaiBroadcast: z.string().optional(),
   waktuSelesaiBroadcast: z.string().optional(),
@@ -60,7 +63,8 @@ type OperasionalFormValues = z.infer<typeof operasionalSchema>;
 interface DropdownOptions { areas: Array<{ id: string; name: string }>; petugas: Array<{ id: string; name: string }>; }
 
 const EMPTY_VALUES: OperasionalFormValues = {
-  namaPekerjaan: "", kategori: "", areaIds: [],
+  namaPekerjaan: "", areaIds: [],
+  modeKategori: "broadcast", kategoriBroadcast: "", kategoriPerArea: {},
   modeWaktu: "broadcast", waktuMulaiBroadcast: format(new Date(), "yyyy-MM-dd'T'HH:mm"), waktuSelesaiBroadcast: "", durasiKerjaBroadcast: 0, waktuMulaiPerArea: {}, waktuSelesaiPerArea: {}, durasiKerjaPerArea: {},
   modePekerja: "broadcast", pekerjaBroadcast: [], pekerjaPerArea: {},
   modeAtribut: "broadcast", statusBroadcast: "Belum dikerjakan", prioritasBroadcast: "Medium", jenisTenagaKerjaBroadcast: "", statusPerArea: {}, prioritasPerArea: {}, jenisTenagaKerjaPerArea: {},
@@ -104,7 +108,9 @@ export function AddOperasionalDialog({ onSuccess }: { onSuccess?: () => void }) 
 
   const saveOperasional = useMutation({
     mutationFn: async (payload: OperasionalFormValues) => {
+      // Siapkan durasi agar rapi dikirim ke backend
       const finalDurasiPerArea = payload.modeWaktu === "broadcast" ? payload.areaIds.reduce((acc, id) => ({ ...acc, [id]: payload.durasiKerjaBroadcast }), {}) : payload.durasiKerjaPerArea;
+      
       const response = await fetch("/api/notion/add-operasional", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...payload, durasiKerjaPerArea: finalDurasiPerArea }),
@@ -147,13 +153,19 @@ export function AddOperasionalDialog({ onSuccess }: { onSuccess?: () => void }) 
 
   const handleNextStep = async () => {
     let fieldsToValidate: Array<keyof OperasionalFormValues> = [];
-    if (step === 1) fieldsToValidate = ["namaPekerjaan", "kategori"];
-    if (step === 2) fieldsToValidate = ["areaIds"];
-    if (step === 4) {
-      if (form.getValues("modePekerja") === "broadcast" && form.getValues("pekerjaBroadcast").length === 0) {
-        toast({ variant: "destructive", title: "Oops!", description: "Minimal pilih 1 pekerja." }); return;
-      }
+    if (step === 1) fieldsToValidate = ["namaPekerjaan", "areaIds"];
+    
+    // Validasi Manual Ringan
+    if (step === 1 && form.getValues("areaIds").length === 0) {
+      toast({ variant: "destructive", title: "Oops!", description: "Pilih minimal 1 Area / Laba Rugi." }); return;
     }
+    if (step === 2 && form.getValues("modeKategori") === "broadcast" && !form.getValues("kategoriBroadcast")) {
+      toast({ variant: "destructive", title: "Oops!", description: "Kategori wajib dipilih." }); return;
+    }
+    if (step === 4 && form.getValues("modePekerja") === "broadcast" && form.getValues("pekerjaBroadcast").length === 0) {
+      toast({ variant: "destructive", title: "Oops!", description: "Minimal pilih 1 pekerja." }); return;
+    }
+
     const isStepValid = await form.trigger(fieldsToValidate);
     if (isStepValid) setStep((prev) => prev + 1);
   };
@@ -199,48 +211,27 @@ export function AddOperasionalDialog({ onSuccess }: { onSuccess?: () => void }) 
             </SheetHeader>
 
             <div className="px-6 py-4">
-              {isLoadingOptions && step >= 2 ? (
+              {isLoadingOptions && step >= 1 ? (
                 <Skeleton className="h-12 w-full rounded-xl" />
               ) : (
                 <Form {...form}>
                   <form onSubmit={(e) => e.preventDefault()} className="space-y-5 text-left">
                     <AnimatePresence mode="wait">
                       
-                      {/* STEP 1: Info Dasar */}
+                      {/* STEP 1: INFO DASAR (ANCHOR) */}
                       {step === 1 && (
-                        <motion.div key="step1" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-4">
+                        <motion.div key="step1" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-5">
                           <FormField control={form.control} name="namaPekerjaan" render={({ field }) => (
                             <FormItem className="space-y-1.5">
                               <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80"><Briefcase className="inline-block h-3.5 w-3.5 mr-1" /> Nama Pekerjaan</FormLabel>
-                              <FormControl><Input className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm font-medium" placeholder="Cth: Pemanenan Blok C..." {...field} /></FormControl>
+                              <FormControl><Input className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm font-medium" placeholder="Cth: Pemanenan, Perbaikan Pompa..." {...field} /></FormControl>
                               <FormMessage className="text-xs text-red-500" />
                             </FormItem>
                           )} />
-                          <FormField control={form.control} name="kategori" render={({ field }) => (
-                            <FormItem className="space-y-1.5">
-                              <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80"><Wrench className="inline-block h-3.5 w-3.5 mr-1" /> Kategori</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value || ""}>
-                                <FormControl><SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-green-600/20"><SelectValue placeholder="Pilih kategori..." /></SelectTrigger></FormControl>
-                                <SelectContent className="rounded-xl">
-                                  <SelectItem value="Penyemprotan">Penyemprotan</SelectItem>
-                                  <SelectItem value="Panen">Panen</SelectItem>
-                                  <SelectItem value="Sanitasi">Sanitasi</SelectItem>
-                                  <SelectItem value="Maintenance">Maintenance</SelectItem>
-                                  <SelectItem value="Lainnya">Lainnya</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <FormMessage className="text-xs text-red-500" />
-                            </FormItem>
-                          )} />
-                        </motion.div>
-                      )}
-
-                      {/* STEP 2: Pilih Area */}
-                      {step === 2 && (
-                        <motion.div key="step2" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-4">
-                          <div className="space-y-1.5 max-h-[50vh] overflow-y-auto">
+                          
+                          <div className="space-y-1.5 max-h-[45vh] overflow-y-auto">
                             <div className="flex items-center justify-between sticky top-0 bg-white/90 dark:bg-slate-950/90 py-1 z-10">
-                              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80"><MapPinned className="inline-block h-3.5 w-3.5 mr-1" /> Area / Blok Lahan</p>
+                              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80"><MapPinned className="inline-block h-3.5 w-3.5 mr-1" /> Pilih Area Lokasi</p>
                               <span className="text-[10px] font-semibold text-muted-foreground">{form.watch("areaIds").length} terpilih</span>
                             </div>
                             <div className="flex flex-wrap gap-2 pt-2">
@@ -253,12 +244,58 @@ export function AddOperasionalDialog({ onSuccess }: { onSuccess?: () => void }) 
                                 );
                               })}
                             </div>
-                            {form.formState.errors.areaIds && <p className="text-xs text-red-500 mt-2 font-medium">{form.formState.errors.areaIds.message}</p>}
                           </div>
                         </motion.div>
                       )}
 
-                      {/* STEP 3: Waktu Pengerjaan */}
+                      {/* STEP 2: KATEGORI */}
+                      {step === 2 && (
+                        <motion.div key="step2" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-4">
+                          <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1 pb-4">
+                            <div className="grid grid-cols-2 gap-2 bg-muted/50 p-1.5 rounded-xl border border-border">
+                              <button type="button" onClick={() => form.setValue("modeKategori", "broadcast")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modeKategori") === "broadcast" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Sama Semua</button>
+                              <button type="button" onClick={() => {
+                                form.setValue("modeKategori", "spesifik");
+                                const cur = form.getValues("kategoriBroadcast");
+                                form.getValues("areaIds").forEach(id => {
+                                  if (!form.getValues(`kategoriPerArea.${id}`)) form.setValue(`kategoriPerArea.${id}`, cur || "");
+                                });
+                              }} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modeKategori") === "spesifik" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Beda Per Area</button>
+                            </div>
+
+                            {form.watch("modeKategori") === "broadcast" ? (
+                              <div className="space-y-1.5 animate-in fade-in">
+                                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80"><Wrench className="inline-block h-3.5 w-3.5 mr-1" /> Kategori</label>
+                                {/* PENTING: Select di bawah ini AMAN karena gak dibungkus FormControl */}
+                                <Select onValueChange={(val) => form.setValue("kategoriBroadcast", val)} value={form.watch("kategoriBroadcast") || ""}>
+                                  <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent"><SelectValue placeholder="Pilih kategori..." /></SelectTrigger>
+                                  <SelectContent className="rounded-xl">
+                                    <SelectItem value="Penyemprotan">Penyemprotan</SelectItem><SelectItem value="Panen">Panen</SelectItem><SelectItem value="Sanitasi">Sanitasi</SelectItem><SelectItem value="Maintenance">Maintenance</SelectItem><SelectItem value="Lainnya">Lainnya</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            ) : (
+                              <div className="space-y-4 animate-in fade-in">
+                                {form.watch("areaIds").map((areaId) => {
+                                  const areaName = dropdownOptions?.areas?.find((a) => a.id === areaId)?.name || `Area`;
+                                  return (
+                                    <div key={areaId} className="space-y-2 p-3 rounded-xl border border-border bg-muted/10">
+                                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 font-bold mb-1">{areaName}</Badge>
+                                      {/* AMAN DARI useFormField ERROR */}
+                                      <Select onValueChange={(val) => form.setValue(`kategoriPerArea.${areaId}`, val)} value={form.watch(`kategoriPerArea.${areaId}`) || ""}>
+                                        <SelectTrigger className="h-10 text-[11px] font-bold bg-background"><SelectValue placeholder="Pilih Kategori" /></SelectTrigger>
+                                        <SelectContent><SelectItem value="Penyemprotan">Penyemprotan</SelectItem><SelectItem value="Panen">Panen</SelectItem><SelectItem value="Sanitasi">Sanitasi</SelectItem><SelectItem value="Maintenance">Maintenance</SelectItem><SelectItem value="Lainnya">Lainnya</SelectItem></SelectContent>
+                                      </Select>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+
+                      {/* STEP 3: WAKTU */}
                       {step === 3 && (
                         <motion.div key="step3" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-4">
                           <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1 pb-4">
@@ -280,10 +317,10 @@ export function AddOperasionalDialog({ onSuccess }: { onSuccess?: () => void }) 
                             {form.watch("modeWaktu") === "broadcast" ? (
                               <div className="space-y-3 animate-in fade-in">
                                 <div className="grid grid-cols-2 gap-2">
-                                  <div className="space-y-1"><p className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Mulai</p><Input type="datetime-local" className="h-11 rounded-xl bg-muted border-transparent text-xs font-bold" value={form.watch("waktuMulaiBroadcast") || ""} onChange={(e) => { form.setValue("waktuMulaiBroadcast", e.target.value); form.setValue("durasiKerjaBroadcast", calculateDuration(e.target.value, form.getValues("waktuSelesaiBroadcast"))); }} /></div>
-                                  <div className="space-y-1"><p className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Selesai</p><Input type="datetime-local" className="h-11 rounded-xl bg-muted border-transparent text-xs font-bold" value={form.watch("waktuSelesaiBroadcast") || ""} onChange={(e) => { form.setValue("waktuSelesaiBroadcast", e.target.value); form.setValue("durasiKerjaBroadcast", calculateDuration(form.getValues("waktuMulaiBroadcast"), e.target.value)); }} /></div>
+                                  <div className="space-y-1"><label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Mulai</label><Input type="datetime-local" className="h-11 rounded-xl bg-muted border-transparent text-xs font-bold" value={form.watch("waktuMulaiBroadcast") || ""} onChange={(e) => { form.setValue("waktuMulaiBroadcast", e.target.value); form.setValue("durasiKerjaBroadcast", calculateDuration(e.target.value, form.getValues("waktuSelesaiBroadcast"))); }} /></div>
+                                  <div className="space-y-1"><label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Selesai</label><Input type="datetime-local" className="h-11 rounded-xl bg-muted border-transparent text-xs font-bold" value={form.watch("waktuSelesaiBroadcast") || ""} onChange={(e) => { form.setValue("waktuSelesaiBroadcast", e.target.value); form.setValue("durasiKerjaBroadcast", calculateDuration(form.getValues("waktuMulaiBroadcast"), e.target.value)); }} /></div>
                                 </div>
-                                <div className="space-y-1"><p className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Total Durasi (Jam)</p><Input type="number" step="0.1" className="h-11 rounded-xl bg-muted border-transparent text-sm font-bold w-1/2" value={form.watch("durasiKerjaBroadcast") || 0} onChange={(e) => form.setValue("durasiKerjaBroadcast", Number(e.target.value))} /></div>
+                                <div className="space-y-1"><label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Total Durasi (Jam)</label><Input type="number" step="0.1" className="h-11 rounded-xl bg-muted border-transparent text-sm font-bold w-1/2" value={form.watch("durasiKerjaBroadcast") || 0} onChange={(e) => form.setValue("durasiKerjaBroadcast", Number(e.target.value))} /></div>
                               </div>
                             ) : (
                               <div className="space-y-4 animate-in fade-in">
@@ -293,10 +330,10 @@ export function AddOperasionalDialog({ onSuccess }: { onSuccess?: () => void }) 
                                     <div key={areaId} className="space-y-2 p-3 rounded-xl border border-border bg-muted/10">
                                       <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 font-bold mb-1">{areaName}</Badge>
                                       <div className="grid grid-cols-2 gap-2">
-                                        <div className="space-y-1"><p className="text-[9px] font-bold text-muted-foreground uppercase ml-1">Mulai</p><Input type="datetime-local" className="h-9 text-[11px] font-bold" value={form.watch(`waktuMulaiPerArea.${areaId}`) || ""} onChange={(e) => { form.setValue(`waktuMulaiPerArea.${areaId}`, e.target.value); form.setValue(`durasiKerjaPerArea.${areaId}`, calculateDuration(e.target.value, form.getValues(`waktuSelesaiPerArea.${areaId}`))); }} /></div>
-                                        <div className="space-y-1"><p className="text-[9px] font-bold text-muted-foreground uppercase ml-1">Selesai</p><Input type="datetime-local" className="h-9 text-[11px] font-bold" value={form.watch(`waktuSelesaiPerArea.${areaId}`) || ""} onChange={(e) => { form.setValue(`waktuSelesaiPerArea.${areaId}`, e.target.value); form.setValue(`durasiKerjaPerArea.${areaId}`, calculateDuration(form.getValues(`waktuMulaiPerArea.${areaId}`), e.target.value)); }} /></div>
+                                        <div className="space-y-1"><label className="text-[9px] font-bold text-muted-foreground uppercase ml-1">Mulai</label><Input type="datetime-local" className="h-9 text-[11px] font-bold bg-background" value={form.watch(`waktuMulaiPerArea.${areaId}`) || ""} onChange={(e) => { form.setValue(`waktuMulaiPerArea.${areaId}`, e.target.value); form.setValue(`durasiKerjaPerArea.${areaId}`, calculateDuration(e.target.value, form.getValues(`waktuSelesaiPerArea.${areaId}`))); }} /></div>
+                                        <div className="space-y-1"><label className="text-[9px] font-bold text-muted-foreground uppercase ml-1">Selesai</label><Input type="datetime-local" className="h-9 text-[11px] font-bold bg-background" value={form.watch(`waktuSelesaiPerArea.${areaId}`) || ""} onChange={(e) => { form.setValue(`waktuSelesaiPerArea.${areaId}`, e.target.value); form.setValue(`durasiKerjaPerArea.${areaId}`, calculateDuration(form.getValues(`waktuMulaiPerArea.${areaId}`), e.target.value)); }} /></div>
                                       </div>
-                                      <div className="flex items-center gap-2 mt-1"><p className="text-[9px] font-bold text-muted-foreground uppercase ml-1">Durasi:</p><Input type="number" step="0.1" className="h-7 w-16 text-[10px] font-bold px-1" value={form.watch(`durasiKerjaPerArea.${areaId}`) || 0} onChange={(e) => form.setValue(`durasiKerjaPerArea.${areaId}`, Number(e.target.value))} /><span className="text-[9px] text-muted-foreground font-bold">Jam</span></div>
+                                      <div className="flex items-center gap-2 mt-1"><label className="text-[9px] font-bold text-muted-foreground uppercase ml-1">Durasi:</label><Input type="number" step="0.1" className="h-7 w-16 text-[10px] font-bold px-1 bg-background" value={form.watch(`durasiKerjaPerArea.${areaId}`) || 0} onChange={(e) => form.setValue(`durasiKerjaPerArea.${areaId}`, Number(e.target.value))} /><span className="text-[9px] text-muted-foreground font-bold">Jam</span></div>
                                     </div>
                                   );
                                 })}
@@ -306,17 +343,17 @@ export function AddOperasionalDialog({ onSuccess }: { onSuccess?: () => void }) 
                         </motion.div>
                       )}
 
-                      {/* STEP 4: Pekerja */}
+                      {/* STEP 4: PEKERJA */}
                       {step === 4 && (
                         <motion.div key="step4" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-4">
                           <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1 pb-4">
                             <div className="grid grid-cols-2 gap-2 bg-muted/50 p-1.5 rounded-xl border border-border">
-                              <button type="button" onClick={() => form.setValue("modePekerja", "broadcast")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modePekerja") === "broadcast" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Tim Sama (Broadcast)</button>
-                              <button type="button" onClick={() => form.setValue("modePekerja", "spesifik")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modePekerja") === "spesifik" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Beda Tim Per Area</button>
+                              <button type="button" onClick={() => form.setValue("modePekerja", "broadcast")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modePekerja") === "broadcast" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Tim Sama</button>
+                              <button type="button" onClick={() => form.setValue("modePekerja", "spesifik")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modePekerja") === "spesifik" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Beda Per Area</button>
                             </div>
                             {form.watch("modePekerja") === "broadcast" ? (
                               <div className="space-y-2 animate-in fade-in">
-                                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80 mb-2">Pilih Anggota Tim</p>
+                                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80 mb-2">Pilih Pekerja</p>
                                 <div className="flex flex-wrap gap-2">
                                   {dropdownOptions?.petugas?.map((item) => (
                                     <button key={item.id} type="button" onClick={() => toggleWorkerBroadcast(item.id)} className={`px-3.5 py-2 rounded-xl text-sm font-semibold transition-all border ${form.watch("pekerjaBroadcast").includes(item.id) ? "bg-green-600 text-white border-green-600 shadow-sm scale-[1.02]" : "bg-muted/50 text-muted-foreground border-transparent hover:bg-muted"}`}>{item.name}</button>
@@ -344,12 +381,12 @@ export function AddOperasionalDialog({ onSuccess }: { onSuccess?: () => void }) 
                         </motion.div>
                       )}
 
-                      {/* STEP 5: Atribut Tambahan (Mode Sakelar) */}
+                      {/* STEP 5: ATRIBUT (STATUS, PRIORITAS, JENIS) */}
                       {step === 5 && (
                         <motion.div key="step5" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-4">
                           <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1 pb-4">
                             <div className="grid grid-cols-2 gap-2 bg-muted/50 p-1.5 rounded-xl border border-border">
-                              <button type="button" onClick={() => form.setValue("modeAtribut", "broadcast")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modeAtribut") === "broadcast" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Atribut Sama Semua</button>
+                              <button type="button" onClick={() => form.setValue("modeAtribut", "broadcast")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modeAtribut") === "broadcast" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Sama Semua</button>
                               <button type="button" onClick={() => {
                                 form.setValue("modeAtribut", "spesifik");
                                 const curStatus = form.getValues("statusBroadcast");
@@ -360,32 +397,14 @@ export function AddOperasionalDialog({ onSuccess }: { onSuccess?: () => void }) 
                                   if (!form.getValues(`prioritasPerArea.${id}`)) form.setValue(`prioritasPerArea.${id}`, curPrio || "Medium");
                                   if (!form.getValues(`jenisTenagaKerjaPerArea.${id}`)) form.setValue(`jenisTenagaKerjaPerArea.${id}`, curJenis || "");
                                 });
-                              }} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modeAtribut") === "spesifik" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Atur Beda Per Area</button>
+                              }} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modeAtribut") === "spesifik" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Beda Per Area</button>
                             </div>
 
                             {form.watch("modeAtribut") === "broadcast" ? (
                               <div className="space-y-4 animate-in fade-in">
-                                <div className="space-y-1.5">
-                                  <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Status</FormLabel>
-                                  <Select onValueChange={(val) => form.setValue("statusBroadcast", val)} value={form.watch("statusBroadcast")}>
-                                    <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent"><SelectValue placeholder="Pilih status..." /></SelectTrigger>
-                                    <SelectContent><SelectItem value="Belum dikerjakan">Belum dikerjakan</SelectItem><SelectItem value="Dalam proses">Dalam proses</SelectItem><SelectItem value="Selesai">Selesai</SelectItem></SelectContent>
-                                  </Select>
-                                </div>
-                                <div className="space-y-1.5">
-                                  <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Prioritas</FormLabel>
-                                  <Select onValueChange={(val) => form.setValue("prioritasBroadcast", val)} value={form.watch("prioritasBroadcast")}>
-                                    <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent"><SelectValue placeholder="Pilih prioritas..." /></SelectTrigger>
-                                    <SelectContent><SelectItem value="Low">Low</SelectItem><SelectItem value="Medium">Medium</SelectItem><SelectItem value="High">High</SelectItem></SelectContent>
-                                  </Select>
-                                </div>
-                                <div className="space-y-1.5">
-                                  <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Jenis Tenaga Kerja (Opsional)</FormLabel>
-                                  <Select onValueChange={(val) => form.setValue("jenisTenagaKerjaBroadcast", val)} value={form.watch("jenisTenagaKerjaBroadcast") || ""}>
-                                    <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent"><SelectValue placeholder="Pilih jenis..." /></SelectTrigger>
-                                    <SelectContent><SelectItem value="Internal">Internal (Karyawan)</SelectItem><SelectItem value="Eksternal">Eksternal (Borongan)</SelectItem></SelectContent>
-                                  </Select>
-                                </div>
+                                <div className="space-y-1.5"><label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Status</label><Select onValueChange={(val) => form.setValue("statusBroadcast", val)} value={form.watch("statusBroadcast")}><SelectTrigger className="h-12 rounded-xl bg-muted border-transparent"><SelectValue placeholder="Pilih status..." /></SelectTrigger><SelectContent><SelectItem value="Belum dikerjakan">Belum dikerjakan</SelectItem><SelectItem value="Dalam proses">Dalam proses</SelectItem><SelectItem value="Selesai">Selesai</SelectItem></SelectContent></Select></div>
+                                <div className="space-y-1.5"><label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Prioritas</label><Select onValueChange={(val) => form.setValue("prioritasBroadcast", val)} value={form.watch("prioritasBroadcast")}><SelectTrigger className="h-12 rounded-xl bg-muted border-transparent"><SelectValue placeholder="Pilih prioritas..." /></SelectTrigger><SelectContent><SelectItem value="Low">Low</SelectItem><SelectItem value="Medium">Medium</SelectItem><SelectItem value="High">High</SelectItem></SelectContent></Select></div>
+                                <div className="space-y-1.5"><label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Jenis Tenaga Kerja</label><Select onValueChange={(val) => form.setValue("jenisTenagaKerjaBroadcast", val)} value={form.watch("jenisTenagaKerjaBroadcast") || ""}><SelectTrigger className="h-12 rounded-xl bg-muted border-transparent"><SelectValue placeholder="Pilih jenis..." /></SelectTrigger><SelectContent><SelectItem value="Internal">Internal (Karyawan)</SelectItem><SelectItem value="Eksternal">Eksternal (Borongan)</SelectItem></SelectContent></Select></div>
                               </div>
                             ) : (
                               <div className="space-y-4 animate-in fade-in">
@@ -396,25 +415,10 @@ export function AddOperasionalDialog({ onSuccess }: { onSuccess?: () => void }) 
                                       <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 font-bold">{areaName}</Badge>
                                       <div className="space-y-2">
                                         <div className="grid grid-cols-2 gap-2">
-                                          <div className="space-y-1"><p className="text-[9px] font-bold text-muted-foreground uppercase ml-1">Status</p>
-                                            <Select onValueChange={(val) => form.setValue(`statusPerArea.${areaId}`, val)} value={form.watch(`statusPerArea.${areaId}`)}>
-                                              <SelectTrigger className="h-9 text-[11px] font-bold"><SelectValue placeholder="Status" /></SelectTrigger>
-                                              <SelectContent><SelectItem value="Belum dikerjakan">Belum dikerjakan</SelectItem><SelectItem value="Dalam proses">Dalam proses</SelectItem><SelectItem value="Selesai">Selesai</SelectItem></SelectContent>
-                                            </Select>
-                                          </div>
-                                          <div className="space-y-1"><p className="text-[9px] font-bold text-muted-foreground uppercase ml-1">Prioritas</p>
-                                            <Select onValueChange={(val) => form.setValue(`prioritasPerArea.${areaId}`, val)} value={form.watch(`prioritasPerArea.${areaId}`)}>
-                                              <SelectTrigger className="h-9 text-[11px] font-bold"><SelectValue placeholder="Prioritas" /></SelectTrigger>
-                                              <SelectContent><SelectItem value="Low">Low</SelectItem><SelectItem value="Medium">Medium</SelectItem><SelectItem value="High">High</SelectItem></SelectContent>
-                                            </Select>
-                                          </div>
+                                          <div className="space-y-1"><label className="text-[9px] font-bold text-muted-foreground uppercase ml-1">Status</label><Select onValueChange={(val) => form.setValue(`statusPerArea.${areaId}`, val)} value={form.watch(`statusPerArea.${areaId}`)}><SelectTrigger className="h-9 text-[11px] font-bold bg-background"><SelectValue placeholder="Status" /></SelectTrigger><SelectContent><SelectItem value="Belum dikerjakan">Belum dikerjakan</SelectItem><SelectItem value="Dalam proses">Dalam proses</SelectItem><SelectItem value="Selesai">Selesai</SelectItem></SelectContent></Select></div>
+                                          <div className="space-y-1"><label className="text-[9px] font-bold text-muted-foreground uppercase ml-1">Prioritas</label><Select onValueChange={(val) => form.setValue(`prioritasPerArea.${areaId}`, val)} value={form.watch(`prioritasPerArea.${areaId}`)}><SelectTrigger className="h-9 text-[11px] font-bold bg-background"><SelectValue placeholder="Prioritas" /></SelectTrigger><SelectContent><SelectItem value="Low">Low</SelectItem><SelectItem value="Medium">Medium</SelectItem><SelectItem value="High">High</SelectItem></SelectContent></Select></div>
                                         </div>
-                                        <div className="space-y-1"><p className="text-[9px] font-bold text-muted-foreground uppercase ml-1">Jenis Pekerja</p>
-                                            <Select onValueChange={(val) => form.setValue(`jenisTenagaKerjaPerArea.${areaId}`, val)} value={form.watch(`jenisTenagaKerjaPerArea.${areaId}`) || ""}>
-                                              <SelectTrigger className="h-9 text-[11px] font-bold w-full"><SelectValue placeholder="Pilih Jenis..." /></SelectTrigger>
-                                              <SelectContent><SelectItem value="Internal">Internal (Karyawan)</SelectItem><SelectItem value="Eksternal">Eksternal (Borongan)</SelectItem></SelectContent>
-                                            </Select>
-                                        </div>
+                                        <div className="space-y-1"><label className="text-[9px] font-bold text-muted-foreground uppercase ml-1">Jenis Pekerja</label><Select onValueChange={(val) => form.setValue(`jenisTenagaKerjaPerArea.${areaId}`, val)} value={form.watch(`jenisTenagaKerjaPerArea.${areaId}`) || ""}><SelectTrigger className="h-9 text-[11px] font-bold w-full bg-background"><SelectValue placeholder="Pilih Jenis..." /></SelectTrigger><SelectContent><SelectItem value="Internal">Internal (Karyawan)</SelectItem><SelectItem value="Eksternal">Eksternal (Borongan)</SelectItem></SelectContent></Select></div>
                                       </div>
                                     </div>
                                   );
@@ -425,7 +429,7 @@ export function AddOperasionalDialog({ onSuccess }: { onSuccess?: () => void }) 
                         </motion.div>
                       )}
 
-                      {/* STEP 6: Catatan Lapangan */}
+                      {/* STEP 6: CATATAN */}
                       {step === 6 && (
                         <motion.div key="step6" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-4">
                           <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1 pb-4">
