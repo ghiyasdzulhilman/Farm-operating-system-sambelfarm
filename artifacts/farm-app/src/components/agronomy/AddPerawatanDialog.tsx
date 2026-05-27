@@ -36,7 +36,10 @@ const perawatanSchema = z.object({
   
   modeTanggal: z.enum(["broadcast", "spesifik"]).default("broadcast"),
   tanggalBroadcast: z.string().optional(),
+  tanggalSelesaiBroadcast: z.string().optional(),
+
   tanggalPerArea: z.record(z.string()).default({}),
+  tanggalSelesaiPerArea: z.record(z.string()).default({}),
 
   modePekerja: z.enum(["broadcast", "spesifik"]).default("broadcast"),
   petugasBroadcast: z.array(z.string()).default([]),
@@ -66,7 +69,7 @@ interface AddPerawatanDialogProps { onSuccess?: () => void; }
 const EMPTY_VALUES: PerawatanFormValues = {
   kegiatan: "",
   labaRugiIds: [],
-  modeTanggal: "broadcast", tanggalBroadcast: format(new Date(), "yyyy-MM-dd'T'HH:mm"), tanggalPerArea: {},
+  modeTanggal: "broadcast", tanggalBroadcast: format(new Date(), "yyyy-MM-dd'T'HH:mm"), tanggalSelesaiBroadcast: "", tanggalPerArea: {}, tanggalSelesaiPerArea: {},
   modePekerja: "broadcast", petugasBroadcast: [], petugasPerArea: {},
   modeTags: "broadcast", tagsBroadcast: "", tagsPerArea: {},
   modeStatus: "broadcast", statusBroadcast: "Rencana", statusPerArea: {},
@@ -371,41 +374,54 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                       
                       {/* MULTI TANGGAL */}
                       <div className="space-y-2.5">
-                        <p className="text-[11px] font-bold text-muted-foreground">Tanggal Pelaksanaan</p>
+                        <p className="text-[11px] font-bold text-muted-foreground">Waktu Pelaksanaan (Mulai & Selesai)</p>
                         <div className="grid grid-cols-2 gap-2 bg-muted/50 p-1.5 rounded-xl border border-border">
                           <button type="button" onClick={() => form.setValue("modeTanggal", "broadcast")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modeTanggal") === "broadcast" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Sama Semua</button>
                           <button type="button" onClick={() => {
                             form.setValue("modeTanggal", "spesifik");
                             const currentTanggal = form.getValues("tanggalBroadcast");
+                            const currentSelesai = form.getValues("tanggalSelesaiBroadcast");
                             form.getValues("labaRugiIds").forEach(id => {
                               if (!form.getValues(`tanggalPerArea.${id}`)) form.setValue(`tanggalPerArea.${id}`, currentTanggal || "");
+                              if (!form.getValues(`tanggalSelesaiPerArea.${id}`)) form.setValue(`tanggalSelesaiPerArea.${id}`, currentSelesai || "");
                             });
                           }} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modeTanggal") === "spesifik" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Isi Per Area</button>
                         </div>
                         
-                          {form.watch("modeTanggal") === "broadcast" ? (
-                           <div className="animate-in fade-in relative">
-                             <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
-                             <Input 
-                               type="datetime-local" // 👈 BERUBAH JADI DATETIME-LOCAL
-                               className="h-12 rounded-xl bg-muted border-transparent pl-11 pr-4 focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm font-bold w-full" 
-                               value={form.watch("tanggalBroadcast") || ""}
-                               onChange={(e) => form.setValue("tanggalBroadcast", e.target.value, { shouldValidate: true, shouldDirty: true })} 
-                             />
+                        {form.watch("modeTanggal") === "broadcast" ? (
+                           <div className="grid grid-cols-2 gap-2 animate-in fade-in">
+                             <div className="space-y-1">
+                               <p className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Mulai</p>
+                               <div className="relative">
+                                 <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
+                                 <Input type="datetime-local" className="h-11 rounded-xl bg-muted border-transparent pl-9 pr-2 focus-visible:ring-2 focus-visible:ring-green-600/20 text-xs font-bold w-full" value={form.watch("tanggalBroadcast") || ""} onChange={(e) => form.setValue("tanggalBroadcast", e.target.value, { shouldValidate: true, shouldDirty: true })} />
+                               </div>
+                             </div>
+                             <div className="space-y-1">
+                               <p className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Selesai (Opsional)</p>
+                               <div className="relative">
+                                 <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
+                                 <Input type="datetime-local" className="h-11 rounded-xl bg-muted border-transparent pl-9 pr-2 focus-visible:ring-2 focus-visible:ring-green-600/20 text-xs font-bold w-full" value={form.watch("tanggalSelesaiBroadcast") || ""} onChange={(e) => form.setValue("tanggalSelesaiBroadcast", e.target.value, { shouldValidate: true, shouldDirty: true })} />
+                               </div>
+                             </div>
                            </div>
                         ) : (
                           <div className="space-y-3 animate-in fade-in">
                             {form.watch("labaRugiIds").map((areaId) => {
                               const areaName = dropdownOptions?.areas?.find((a) => a.id === areaId)?.name || `Area`;
                               return (
-                                <div key={areaId} className="space-y-1.5 p-2.5 rounded-xl border border-border bg-muted/5">
+                                <div key={areaId} className="space-y-2 p-2.5 rounded-xl border border-border bg-muted/5">
                                   <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 font-bold mb-1">{areaName}</Badge>
-                                  <Input 
-                                    type="datetime-local" // 👈 BERUBAH JADI DATETIME-LOCAL
-                                    className="h-10 rounded-lg bg-background border-border/80 text-xs font-bold w-full px-3" 
-                                    value={form.watch(`tanggalPerArea.${areaId}`) || form.watch("tanggalBroadcast") || ""}
-                                    onChange={(e) => form.setValue(`tanggalPerArea.${areaId}`, e.target.value, { shouldValidate: true, shouldDirty: true })} 
-                                  />
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <div className="space-y-1">
+                                      <p className="text-[9px] font-bold text-muted-foreground uppercase ml-1">Mulai</p>
+                                      <Input type="datetime-local" className="h-9 rounded-lg bg-background border-border/80 text-[11px] font-bold w-full px-2" value={form.watch(`tanggalPerArea.${areaId}`) || form.watch("tanggalBroadcast") || ""} onChange={(e) => form.setValue(`tanggalPerArea.${areaId}`, e.target.value, { shouldValidate: true, shouldDirty: true })} />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <p className="text-[9px] font-bold text-muted-foreground uppercase ml-1">Selesai</p>
+                                      <Input type="datetime-local" className="h-9 rounded-lg bg-background border-border/80 text-[11px] font-bold w-full px-2" value={form.watch(`tanggalSelesaiPerArea.${areaId}`) || form.watch("tanggalSelesaiBroadcast") || ""} onChange={(e) => form.setValue(`tanggalSelesaiPerArea.${areaId}`, e.target.value, { shouldValidate: true, shouldDirty: true })} />
+                                    </div>
+                                  </div>
                                 </div>
                               );
                             })}
