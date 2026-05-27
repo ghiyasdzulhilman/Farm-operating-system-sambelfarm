@@ -23,7 +23,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 
 // ==========================================
-// 1. ZOD SCHEMA (ULTIMATE CUSTOM ENGINE)
+// ZOD SCHEMA
 // ==========================================
 const operasionalSchema = z.object({
   namaPekerjaan: z.string().min(1, "Nama pekerjaan wajib diisi"),
@@ -108,9 +108,7 @@ export function AddOperasionalDialog({ onSuccess }: { onSuccess?: () => void }) 
 
   const saveOperasional = useMutation({
     mutationFn: async (payload: OperasionalFormValues) => {
-      // Siapkan durasi agar rapi dikirim ke backend
       const finalDurasiPerArea = payload.modeWaktu === "broadcast" ? payload.areaIds.reduce((acc, id) => ({ ...acc, [id]: payload.durasiKerjaBroadcast }), {}) : payload.durasiKerjaPerArea;
-      
       const response = await fetch("/api/notion/add-operasional", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...payload, durasiKerjaPerArea: finalDurasiPerArea }),
@@ -155,7 +153,6 @@ export function AddOperasionalDialog({ onSuccess }: { onSuccess?: () => void }) 
     let fieldsToValidate: Array<keyof OperasionalFormValues> = [];
     if (step === 1) fieldsToValidate = ["namaPekerjaan", "areaIds"];
     
-    // Validasi Manual Ringan
     if (step === 1 && form.getValues("areaIds").length === 0) {
       toast({ variant: "destructive", title: "Oops!", description: "Pilih minimal 1 Area / Laba Rugi." }); return;
     }
@@ -169,6 +166,11 @@ export function AddOperasionalDialog({ onSuccess }: { onSuccess?: () => void }) 
     const isStepValid = await form.trigger(fieldsToValidate);
     if (isStepValid) setStep((prev) => prev + 1);
   };
+
+  // 👇 INI DIA FUNGSI YANG HILANG KEMAREN BORR! UDAH GUA BALIKIN! 👇
+  function onSubmit(values: OperasionalFormValues) {
+    saveOperasional.mutate(values);
+  }
 
   return (
     <Sheet open={open} onOpenChange={(val) => { setOpen(val); if (!val) setStep(1); }}>
@@ -266,7 +268,6 @@ export function AddOperasionalDialog({ onSuccess }: { onSuccess?: () => void }) 
                             {form.watch("modeKategori") === "broadcast" ? (
                               <div className="space-y-1.5 animate-in fade-in">
                                 <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80"><Wrench className="inline-block h-3.5 w-3.5 mr-1" /> Kategori</label>
-                                {/* PENTING: Select di bawah ini AMAN karena gak dibungkus FormControl */}
                                 <Select onValueChange={(val) => form.setValue("kategoriBroadcast", val)} value={form.watch("kategoriBroadcast") || ""}>
                                   <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent"><SelectValue placeholder="Pilih kategori..." /></SelectTrigger>
                                   <SelectContent className="rounded-xl">
@@ -281,7 +282,6 @@ export function AddOperasionalDialog({ onSuccess }: { onSuccess?: () => void }) 
                                   return (
                                     <div key={areaId} className="space-y-2 p-3 rounded-xl border border-border bg-muted/10">
                                       <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 font-bold mb-1">{areaName}</Badge>
-                                      {/* AMAN DARI useFormField ERROR */}
                                       <Select onValueChange={(val) => form.setValue(`kategoriPerArea.${areaId}`, val)} value={form.watch(`kategoriPerArea.${areaId}`) || ""}>
                                         <SelectTrigger className="h-10 text-[11px] font-bold bg-background"><SelectValue placeholder="Pilih Kategori" /></SelectTrigger>
                                         <SelectContent><SelectItem value="Penyemprotan">Penyemprotan</SelectItem><SelectItem value="Panen">Panen</SelectItem><SelectItem value="Sanitasi">Sanitasi</SelectItem><SelectItem value="Maintenance">Maintenance</SelectItem><SelectItem value="Lainnya">Lainnya</SelectItem></SelectContent>
