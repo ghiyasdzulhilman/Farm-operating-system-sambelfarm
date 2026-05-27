@@ -364,7 +364,7 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                     </motion.div>
                   )}
 
-                                    {/* STEP 6: JADWAL & STATUS (FINALISASI) */}
+                  {/* STEP 6: JADWAL & STATUS (FINALISASI) */}
                   {step === 6 && (
                     <motion.div key="step6" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="space-y-6 pb-2">
                       <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">6. Finalisasi Jadwal & Status</p>
@@ -383,10 +383,10 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                           }} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modeTanggal") === "spesifik" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Isi Per Area</button>
                         </div>
                         
-                        {form.watch("modeTanggal") === "broadcast" ? (
+                                                {form.watch("modeTanggal") === "broadcast" ? (
                            <div className="animate-in fade-in relative">
-                             <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
-                             {/* 👇 BYPASS SHADCN: TEMBAK LANGSUNG 👇 */}
+                             <CalendarIcon className="absolute left-4 top-[24px] -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
+                             {/* 👇 BYPASS SHADCN: TEMBAK LANGSUNG PAKE SET-VALUE 👇 */}
                              <Input 
                                type="date" 
                                className="h-12 rounded-xl bg-muted border-transparent pl-11 pr-4 focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm font-bold w-full" 
@@ -401,7 +401,7 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                               return (
                                 <div key={areaId} className="space-y-1.5 p-2.5 rounded-xl border border-border bg-muted/5">
                                   <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 font-bold mb-1">{areaName}</Badge>
-                                  {/* 👇 BYPASS SHADCN: TEMBAK LANGSUNG 👇 */}
+                                  {/* 👇 BYPASS SHADCN: TEMBAK LANGSUNG PAKE SET-VALUE 👇 */}
                                   <Input 
                                     type="date" 
                                     className="h-10 rounded-lg bg-background border-border/80 text-xs font-bold w-full px-3" 
@@ -413,7 +413,6 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                             })}
                           </div>
                         )}
-                      </div>
 
                       {/* MULTI TAGS */}
                       <div className="space-y-2.5 pt-2 border-t border-border">
@@ -488,6 +487,7 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                       </div>
                     </motion.div>
                   )}
+                </AnimatePresence>
 
                 {/* BOTTOM NAVIGATION (SAMPAI STEP 6) */}
                 <div className="flex justify-between items-center pt-4 border-t border-border mt-auto shrink-0 pb-8 md:pb-2">
