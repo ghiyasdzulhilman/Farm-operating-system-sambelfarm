@@ -25,7 +25,11 @@ interface AddPerawatanBody {
   tanggal?: string; 
   labaRugiId?: string; 
   labaRugiIds?: string[]; 
-  modeTanggal: "broadcast" | "spesifik"; tanggalBroadcast?: string; tanggalPerArea?: Record<string, string>;
+  modeTanggal: "broadcast" | "spesifik"; 
+  tanggalBroadcast?: string; 
+  tanggalSelesaiBroadcast?: string; 
+  tanggalPerArea?: Record<string, string>;
+  tanggalSelesaiPerArea?: Record<string, string>; 
   modePekerja: "broadcast" | "spesifik"; petugasBroadcast: string[]; petugasPerArea: Record<string, string[]>;
   modeTags: "broadcast" | "spesifik"; tagsBroadcast?: string; tagsPerArea?: Record<string, string>;
   modeStatus: "broadcast" | "spesifik"; statusBroadcast?: string; statusPerArea?: Record<string, string>;
@@ -124,23 +128,35 @@ const PERAWATAN_FIELDS = [
 function buildPerawatanProperties(data: any, mappings: FieldMappingData | undefined, dbProperties: NotionDatabasePropertyMeta[]): Record<string, unknown> {
   const props: Record<string, unknown> = {};
 
-  PERAWATAN_FIELDS.forEach((field) => {
+    PERAWATAN_FIELDS.forEach((field) => {
     const propertyId = resolvePropertyId(field.key, field.expectedType, mappings, dbProperties);
     if (!propertyId) return;
     
     let value = data[field.key];
+    let valueEnd: any = undefined; 
     
     if (field.key === "labaRugi" && data.labaRugiId) value = data.labaRugiId;
     if (field.key === "petugas" && data.petugasIds) value = data.petugasIds;
     if (field.key === "tags" && data.tagsValue) value = data.tagsValue; 
     if (field.key === "status" && data.statusValue) value = data.statusValue;
-    if (field.key === "tanggal" && data.tanggalValue) value = data.tanggalValue; 
+    if (field.key === "tanggal" && data.tanggalValue) {
+        value = data.tanggalValue;
+        valueEnd = data.tanggalEndValue; 
+    }
     
     if (value === undefined || value === null || value === "" || (Array.isArray(value) && value.length === 0)) return;
 
     switch (field.expectedType) {
       case "title": props[propertyId] = { title: [{ text: { content: String(value) } }] }; break;
-      case "date": props[propertyId] = { date: { start: String(value) } }; break;
+      case "date": 
+        props[propertyId] = { 
+          date: { 
+            start: String(value), 
+            ...(valueEnd ? { end: String(valueEnd) } : {}) 
+          } 
+        }; 
+        break;
+
       case "select": props[propertyId] = { select: { name: String(value) } }; break;
       case "multi_select": 
         if (Array.isArray(value)) props[propertyId] = { multi_select: value.map((t) => ({ name: String(t) })) };
@@ -197,6 +213,7 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
       const fallbackDate = new Date().toISOString(); 
       
       const tanggalAreaIni = body.modeTanggal === "broadcast" ? (body.tanggalBroadcast || fallbackDate) : (body.tanggalPerArea?.[currentAreaId] || body.tanggalBroadcast || fallbackDate);
+      const tanggalSelesaiAreaIni = body.modeTanggal === "broadcast" ? body.tanggalSelesaiBroadcast : (body.tanggalSelesaiPerArea?.[currentAreaId] || body.tanggalSelesaiBroadcast);
       const catatanAreaIni = body.modeCatatan === "broadcast" ? (body.catatanBroadcast || "") : (body.catatanPerArea?.[currentAreaId] || "");
       const pekerjaAreaIni = body.modePekerja === "broadcast" ? (body.petugasBroadcast || []) : (body.petugasPerArea?.[currentAreaId] || []);
       const produkAreaIni = body.modeProduk === "broadcast" ? (body.logProduk || []) : (body.produkPerArea?.[currentAreaId] || []);
