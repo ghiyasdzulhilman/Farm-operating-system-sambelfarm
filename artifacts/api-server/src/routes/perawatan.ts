@@ -150,9 +150,8 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
 
     const requests = areaIds.map(async (currentAreaId) => {
       // MASTER FILTER PER AREA
-      const fallbackDate = body.tanggal || new Date().toISOString().split("T")[0]; // Prioritaskan tanggal bawaan kalo ada
+      const fallbackDate = new Date().toISOString().split("T")[0];
       const tanggalAreaIni = body.modeTanggal === "broadcast" ? (body.tanggalBroadcast || fallbackDate) : (body.tanggalPerArea?.[currentAreaId] || body.tanggalBroadcast || fallbackDate);
-      
       const catatanAreaIni = body.modeCatatan === "broadcast" ? (body.catatanBroadcast || "") : (body.catatanPerArea?.[currentAreaId] || "");
       const pekerjaAreaIni = body.modePekerja === "broadcast" ? (body.petugasBroadcast || []) : (body.petugasPerArea?.[currentAreaId] || []);
       const produkAreaIni = body.modeProduk === "broadcast" ? (body.logProduk || []) : (body.produkPerArea?.[currentAreaId] || []);
