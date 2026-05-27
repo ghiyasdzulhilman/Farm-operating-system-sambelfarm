@@ -6,16 +6,25 @@ import { getNotionConnection, notionFetch, handleNotionErrors, NotionTokenInvali
 
 const router: IRouter = Router();
 
-interface NotionPage { id: string; properties: Record<string, { type: string; title?: Array<{ plain_text: string }> }>; }
-interface NotionDatabase { id: string; title?: Array<{ plain_text: string }>; }
+interface NotionDatabasePropertyMeta { id: string; type: string; name: string; }
 
-// Bikin schema fleksibel
+const PERAWATAN_PROPERTY_ALIASES: Record<string, string[]> = {
+  kegiatan: ["kegiatan", "aktivitas", "nama kegiatan"],
+  tanggal: ["tanggal", "jadwal", "tanggal pelaksanaan", "date"],
+  tags: ["tags", "tag", "jenis kegiatan"],
+  status: ["status"],
+  petugas: ["petugas", "pekerja", "operator"],
+  labaRugi: ["laba rugi", "area", "laba-rugi"],
+};
+
+interface NotionPage { id: string; properties: Record<string, { type: string; title?: Array<{ plain_text: string }> }>; }
+interface NotionDatabase { id: string; title?: Array<{ plain_text: string }>; properties?: Record<string, { id: string; type: string }>; }
+
 interface AddPerawatanBody {
   kegiatan: string;
-  tanggal?: string; // Jaga-jaga kalo masih ada sisa bawaan
+  tanggal?: string; 
   labaRugiId?: string; 
   labaRugiIds?: string[]; 
-  
   modeTanggal: "broadcast" | "spesifik"; tanggalBroadcast?: string; tanggalPerArea?: Record<string, string>;
   modePekerja: "broadcast" | "spesifik"; petugasBroadcast: string[]; petugasPerArea: Record<string, string[]>;
   modeTags: "broadcast" | "spesifik"; tagsBroadcast?: string; tagsPerArea?: Record<string, string>;
@@ -49,6 +58,42 @@ async function queryAllPages(userId: string, accessToken: string, databaseId: st
   } catch (err) { if (err instanceof NotionTokenInvalidError) throw err; return []; }
 }
 
+async function getDatabasePropertyMeta(userId: string, accessToken: string, databaseId: string): Promise<NotionDatabasePropertyMeta[]> {
+  const response = await notionFetch(userId, accessToken, `https://api.notion.com/v1/databases/${databaseId}`);
+  if (!response.ok) return [];
+  const data = (await response.json()) as NotionDatabase;
+  const entries = Object.entries(data.properties ?? {});
+  return entries.map(([name, value]) => ({ name, id: value.id, type: value.type }));
+}
+
+function normalizeKey(input: string): string {
+  return input.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function resolvePropertyId(
+  fieldKey: string,
+  expectedType: string,
+  mappings: FieldMappingData | undefined,
+  dbProperties: NotionDatabasePropertyMeta[],
+): string | null {
+  const mapping = mappings?.[fieldKey as keyof FieldMappingData];
+  const mappedId = mapping?.propertyId ? decodePropertyId(mapping.propertyId) : null;
+
+  if (mappedId) {
+    const matchById = dbProperties.find((p) => decodePropertyId(p.id) === mappedId || p.name === mappedId);
+    if (!matchById) return mappedId;
+    if (matchById.type === expectedType) return decodePropertyId(matchById.id);
+  }
+
+  const aliases = PERAWATAN_PROPERTY_ALIASES[fieldKey] ?? [fieldKey];
+  const normalizedAliases = new Set(aliases.map(normalizeKey));
+  const byAlias = dbProperties.find((p) => p.type === expectedType && normalizedAliases.has(normalizeKey(p.name)));
+  if (byAlias) return decodePropertyId(byAlias.id);
+
+  const firstTypeMatch = dbProperties.find((p) => p.type === expectedType);
+  return firstTypeMatch ? decodePropertyId(firstTypeMatch.id) : null;
+}
+
 async function getMappingRow(userId: string, databaseType: string) {
   const [row] = await db.select().from(fieldMappingsTable).where(and(eq(fieldMappingsTable.userId, userId), eq(fieldMappingsTable.databaseType, databaseType)));
   return row ?? null;
@@ -76,26 +121,21 @@ const PERAWATAN_FIELDS = [
   { key: "labaRugi", expectedType: "relation" },
 ];
 
-function buildPerawatanProperties(data: any, mappings: FieldMappingData | undefined): Record<string, unknown> {
+function buildPerawatanProperties(data: any, mappings: FieldMappingData | undefined, dbProperties: NotionDatabasePropertyMeta[]): Record<string, unknown> {
   const props: Record<string, unknown> = {};
 
   PERAWATAN_FIELDS.forEach((field) => {
-    const mapping = mappings?.[field.key as keyof FieldMappingData];
-    if (!mapping?.propertyId) return;
-
-    const propertyId = decodePropertyId(mapping.propertyId);
+    const propertyId = resolvePropertyId(field.key, field.expectedType, mappings, dbProperties);
+    if (!propertyId) return;
     
-    // 1. Ambil nilai dasar
     let value = data[field.key];
     
-    // 2. AMANKAN OVERRIDE SEBELUM DI-FILTER VALIDASI!
     if (field.key === "labaRugi" && data.labaRugiId) value = data.labaRugiId;
     if (field.key === "petugas" && data.petugasIds) value = data.petugasIds;
     if (field.key === "tags" && data.tagsValue) value = data.tagsValue; 
     if (field.key === "status" && data.statusValue) value = data.statusValue;
     if (field.key === "tanggal" && data.tanggalValue) value = data.tanggalValue; 
     
-    // 3. Filter validasi ditaruh DI BAWAH setelah nilai override dipastikan masuk
     if (value === undefined || value === null || value === "" || (Array.isArray(value) && value.length === 0)) return;
 
     switch (field.expectedType) {
@@ -137,7 +177,6 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
 
   const body = req.body as Partial<AddPerawatanBody>;
   const kegiatan = (body.kegiatan ?? "").trim();
-  
   const areaIds: string[] = Array.isArray(body.labaRugiIds) ? body.labaRugiIds.filter(Boolean) : body.labaRugiId ? [body.labaRugiId] : [];
 
   if (!kegiatan || areaIds.length === 0) { res.status(400).json({ error: "Field 'kegiatan' dan area wajib diisi (minimal 1)." }); return; }
@@ -150,8 +189,9 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
     const databaseId = mappingRow?.notionDatabaseId || (await findDatabaseByName(userId, accessToken, "Perawatan"));
     if (!databaseId) { res.status(404).json({ error: "Database 'Perawatan' tidak ditemukan di Notion." }); return; }
 
+    const dbProperties = await getDatabasePropertyMeta(userId, accessToken, databaseId);
+
     const requests = areaIds.map(async (currentAreaId) => {
-      // MASTER FILTER PER AREA
       const fallbackDate = new Date().toISOString().split("T")[0];
       const tanggalAreaIni = body.modeTanggal === "broadcast" ? (body.tanggalBroadcast || fallbackDate) : (body.tanggalPerArea?.[currentAreaId] || body.tanggalBroadcast || fallbackDate);
       const catatanAreaIni = body.modeCatatan === "broadcast" ? (body.catatanBroadcast || "") : (body.catatanPerArea?.[currentAreaId] || "");
@@ -160,14 +200,14 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
       const tagsAreaIni = body.modeTags === "broadcast" ? body.tagsBroadcast : body.tagsPerArea?.[currentAreaId];
       const statusAreaIni = body.modeStatus === "broadcast" ? (body.statusBroadcast || "Rencana") : (body.statusPerArea?.[currentAreaId] || "Rencana");
 
-          const properties = buildPerawatanProperties({
+      const properties = buildPerawatanProperties({
           kegiatan,
           labaRugiId: currentAreaId,
           tanggalValue: tanggalAreaIni, 
           petugasIds: pekerjaAreaIni,
           tagsValue: tagsAreaIni, 
           statusValue: statusAreaIni, 
-        }, mappings);
+        }, mappings, dbProperties);
 
       const childrenBlocks = buildNotionBlocks(produkAreaIni, catatanAreaIni);
       const payload: any = { parent: { database_id: databaseId }, properties };
