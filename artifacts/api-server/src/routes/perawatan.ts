@@ -84,17 +84,19 @@ function buildPerawatanProperties(data: any, mappings: FieldMappingData | undefi
     if (!mapping?.propertyId) return;
 
     const propertyId = decodePropertyId(mapping.propertyId);
+    
+    // 1. Ambil nilai dasar
     let value = data[field.key];
     
-    // 👇👇👇 KUNCI ANTI-BEBAL: PAKSA OVERRIDE! 👇👇👇
-    // Kalau ada value custom dari looping (tanggalValue), HANCURKAN tanggal bawaan!
+    // 2. AMANKAN OVERRIDE SEBELUM DI-FILTER VALIDASI!
     if (field.key === "labaRugi" && data.labaRugiId) value = data.labaRugiId;
     if (field.key === "petugas" && data.petugasIds) value = data.petugasIds;
     if (field.key === "tags" && data.tagsValue) value = data.tagsValue; 
     if (field.key === "status" && data.statusValue) value = data.statusValue;
     if (field.key === "tanggal" && data.tanggalValue) value = data.tanggalValue; 
     
-    if (!value || (Array.isArray(value) && value.length === 0)) return;
+    // 3. Filter validasi ditaruh DI BAWAH setelah nilai override dipastikan masuk
+    if (value === undefined || value === null || value === "" || (Array.isArray(value) && value.length === 0)) return;
 
     switch (field.expectedType) {
       case "title": props[propertyId] = { title: [{ text: { content: String(value) } }] }; break;
