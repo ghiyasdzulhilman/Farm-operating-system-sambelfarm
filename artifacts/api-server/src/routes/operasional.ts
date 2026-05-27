@@ -23,12 +23,15 @@ const OPERASIONAL_PROPERTY_ALIASES: Record<string, string[]> = {
 interface NotionPage { id: string; properties: Record<string, { type: string; title?: Array<{ plain_text: string }> }>; }
 interface NotionDatabase { id: string; title?: Array<{ plain_text: string }>; properties?: Record<string, { id: string; type: string }>; }
 
+// STRUKTUR BARU: Area jadi Anchor. Kategori ikut dibikin dinamis.
 interface AddOperasionalBody {
   namaPekerjaan: string;
-  kategori: string;
-  areaId?: string; 
-  areaIds?: string[];
+  areaIds: string[]; // Anchor utama
   
+  modeKategori: "broadcast" | "spesifik";
+  kategoriBroadcast?: string; 
+  kategoriPerArea?: Record<string, string>;
+
   modeWaktu: "broadcast" | "spesifik"; 
   waktuMulaiBroadcast?: string; waktuSelesaiBroadcast?: string; 
   waktuMulaiPerArea?: Record<string, string>; waktuSelesaiPerArea?: Record<string, string>; 
@@ -132,16 +135,21 @@ function buildOperasionalProperties(data: any, mappings: FieldMappingData | unde
   OPERASIONAL_FIELDS.forEach((field) => {
     const propertyId = resolvePropertyId(field.key, field.expectedType, mappings, dbProperties);
     if (!propertyId) return; 
+    
     let value = data[field.key];
     let valueEnd: any = undefined; 
+    
     if (field.key === "area" && data.areaId) value = data.areaId;
     if (field.key === "ditugaskanKe" && data.pekerjaIds) value = data.pekerjaIds;
     if (field.key === "waktuPengerjaan" && data.waktuMulaiValue) {
         value = formatToNotionDate(data.waktuMulaiValue);
         valueEnd = formatToNotionDate(data.waktuSelesaiValue); 
     }
+    
     if (value === undefined || value === null || value === "" || (Array.isArray(value) && value.length === 0)) return;
+    
     const actualType = dbProperties.find(p => p.id === propertyId)?.type || field.expectedType.split("|")[0];
+    
     switch (actualType) {
       case "title": props[propertyId] = { title: [{ text: { content: String(value) } }] }; break;
       case "select": props[propertyId] = { select: { name: String(value) } }; break;
@@ -187,13 +195,13 @@ router.get("/notion/operasional-dropdown-options", async (req, res): Promise<voi
 router.post("/notion/add-operasional", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  
   const body = req.body as Partial<AddOperasionalBody>;
   const namaPekerjaan = (body.namaPekerjaan ?? "").trim();
-  const kategori = (body.kategori ?? "").trim();
-  const areaIds: string[] = Array.isArray(body.areaIds) ? body.areaIds.filter(Boolean) : body.areaId ? [body.areaId] : [];
+  const areaIds: string[] = Array.isArray(body.areaIds) ? body.areaIds.filter(Boolean) : [];
 
-  if (!namaPekerjaan || !kategori || areaIds.length === 0) {
-    res.status(400).json({ error: "Field 'namaPekerjaan', 'kategori', dan 'areaIds' (minimal 1) wajib diisi." }); return;
+  if (!namaPekerjaan || areaIds.length === 0) {
+    res.status(400).json({ error: "Field 'namaPekerjaan' dan 'areaIds' wajib diisi." }); return;
   }
 
   try {
@@ -206,24 +214,29 @@ router.post("/notion/add-operasional", async (req, res): Promise<void> => {
     const dbProperties = await getDatabasePropertyMeta(userId, accessToken, databaseId);
 
     const requests = areaIds.map(async (currentAreaId) => {
-      // 1. Resolve Waktu & Durasi
+      // 1. Resolve Kategori
+      const kategoriAreaIni = body.modeKategori === "broadcast" ? (body.kategoriBroadcast || "") : (body.kategoriPerArea?.[currentAreaId] || body.kategoriBroadcast || "");
+
+      // 2. Resolve Waktu & Durasi
       const waktuMulaiAreaIni = body.modeWaktu === "broadcast" ? body.waktuMulaiBroadcast : (body.waktuMulaiPerArea?.[currentAreaId] || body.waktuMulaiBroadcast);
       const waktuSelesaiAreaIni = body.modeWaktu === "broadcast" ? body.waktuSelesaiBroadcast : (body.waktuSelesaiPerArea?.[currentAreaId] || body.waktuSelesaiBroadcast);
       const durasiAreaIni = body.modeWaktu === "broadcast" ? body.durasiKerjaPerArea?.[currentAreaId] : body.durasiKerjaPerArea?.[currentAreaId];
       
-      // 2. Resolve Pekerja
+      // 3. Resolve Pekerja
       const pekerjaAreaIni = body.modePekerja === "broadcast" ? (body.pekerjaBroadcast || []) : (body.pekerjaPerArea?.[currentAreaId] || []);
       
-      // 3. Resolve Atribut (Status, Prioritas, Jenis Pekerja)
+      // 4. Resolve Atribut (Status, Prioritas, Jenis Pekerja)
       const statusAreaIni = body.modeAtribut === "broadcast" ? body.statusBroadcast : (body.statusPerArea?.[currentAreaId] || body.statusBroadcast);
       const prioritasAreaIni = body.modeAtribut === "broadcast" ? body.prioritasBroadcast : (body.prioritasPerArea?.[currentAreaId] || body.prioritasBroadcast);
       const jenisAreaIni = body.modeAtribut === "broadcast" ? body.jenisTenagaKerjaBroadcast : (body.jenisTenagaKerjaPerArea?.[currentAreaId] || body.jenisTenagaKerjaBroadcast);
 
-      // 4. Resolve Catatan
+      // 5. Resolve Catatan
       const catatanAreaIni = body.modeCatatan === "broadcast" ? (body.catatanBroadcast || "") : (body.catatanPerArea?.[currentAreaId] || "");
 
       const properties = buildOperasionalProperties({
-          namaPekerjaan, kategori, areaId: currentAreaId, 
+          namaPekerjaan, 
+          kategori: kategoriAreaIni, 
+          areaId: currentAreaId, 
           waktuMulaiValue: waktuMulaiAreaIni, waktuSelesaiValue: waktuSelesaiAreaIni, durasiKerja: durasiAreaIni, 
           pekerjaIds: pekerjaAreaIni,
           status: statusAreaIni, prioritas: prioritasAreaIni, jenisTenagaKerja: jenisAreaIni,
