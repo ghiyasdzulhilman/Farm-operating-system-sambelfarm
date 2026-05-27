@@ -39,6 +39,16 @@ interface AddPerawatanBody {
 
 function decodePropertyId(id: string): string { try { return decodeURIComponent(id); } catch { return id; } }
 
+// 👇 TAMBAHAN: Fungsi buat maksa zona waktu ke Indonesia (WIB / +07:00) biar ga jadi UTC
+function formatToNotionDate(dateStr: string | undefined): string | undefined {
+  if (!dateStr) return undefined;
+  // Jika input dari HTML datetime-local bentuknya "2026-05-30T15:30" (panjang 16 karakter)
+  if (dateStr.length === 16 && dateStr.includes("T")) {
+    return `${dateStr}:00+07:00`; // Paksa timezone ke WIB
+  }
+  return dateStr;
+}
+
 async function findDatabaseByName(userId: string, accessToken: string, name: string): Promise<string | null> {
   try {
     const response = await notionFetch(userId, accessToken, "https://api.notion.com/v1/search", { method: "POST", body: JSON.stringify({ query: name, filter: { value: "database", property: "object" } }) });
@@ -140,8 +150,9 @@ function buildPerawatanProperties(data: any, mappings: FieldMappingData | undefi
     if (field.key === "tags" && data.tagsValue) value = data.tagsValue; 
     if (field.key === "status" && data.statusValue) value = data.statusValue;
     if (field.key === "tanggal" && data.tanggalValue) {
-        value = data.tanggalValue;
-        valueEnd = data.tanggalEndValue; 
+        // 👇 Terapkan Format Zona Waktu WIB
+        value = formatToNotionDate(data.tanggalValue);
+        valueEnd = formatToNotionDate(data.tanggalEndValue); 
     }
     
     if (value === undefined || value === null || value === "" || (Array.isArray(value) && value.length === 0)) return;
@@ -209,7 +220,6 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
 
     const requests = areaIds.map(async (currentAreaId) => {
       
-      // 👇 PERUBAHAN UTAMA: .split("T")[0] dihapus agar jam dan zona waktu (ISO) tetap utuh
       const fallbackDate = new Date().toISOString(); 
       
       const tanggalAreaIni = body.modeTanggal === "broadcast" ? (body.tanggalBroadcast || fallbackDate) : (body.tanggalPerArea?.[currentAreaId] || body.tanggalBroadcast || fallbackDate);
@@ -224,6 +234,7 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
           kegiatan,
           labaRugiId: currentAreaId,
           tanggalValue: tanggalAreaIni, 
+          tanggalEndValue: tanggalSelesaiAreaIni, // 👈 INI YANG TADI KELUPAAN!
           petugasIds: pekerjaAreaIni,
           tagsValue: tagsAreaIni, 
           statusValue: statusAreaIni, 
