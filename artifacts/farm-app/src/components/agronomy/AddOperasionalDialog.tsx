@@ -6,62 +6,30 @@ import { format } from "date-fns";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft,
-  ArrowRight,
-  CalendarClock,
-  CheckCircle2,
-  ClipboardList,
-  ExternalLink,
-  FileText,
-  Gauge,
-  Loader2,
-  MapPinned,
-  PlusCircle,
-  Users,
-  Briefcase,
-  Wrench
+  ArrowLeft, ArrowRight, CalendarClock, CheckCircle2, ClipboardList, 
+  ExternalLink, FileText, Gauge, Loader2, MapPinned, PlusCircle, Users, 
+  Briefcase, Wrench, SlidersHorizontal
 } from "lucide-react";
 
 import { getGetDashboardSummaryQueryKey } from "@workspace/api-client-react";
-
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 
 // ==========================================
-// 1. ZOD SCHEMA (Ultimate Multi-Area Engine)
+// ZOD SCHEMA
 // ==========================================
 const operasionalSchema = z.object({
   namaPekerjaan: z.string().min(1, "Nama pekerjaan wajib diisi"),
   kategori: z.string().min(1, "Kategori wajib dipilih"),
   areaIds: z.array(z.string()).min(1, "Minimal pilih 1 area"),
   
-  // Mode Waktu & Durasi
   modeWaktu: z.enum(["broadcast", "spesifik"]).default("broadcast"),
   waktuMulaiBroadcast: z.string().optional(),
   waktuSelesaiBroadcast: z.string().optional(),
@@ -70,17 +38,18 @@ const operasionalSchema = z.object({
   waktuSelesaiPerArea: z.record(z.string()).default({}),
   durasiKerjaPerArea: z.record(z.number()).default({}),
 
-  // Mode Pekerja
   modePekerja: z.enum(["broadcast", "spesifik"]).default("broadcast"),
   pekerjaBroadcast: z.array(z.string()).default([]),
   pekerjaPerArea: z.record(z.array(z.string())).default({}),
 
-  // Atribut Tambahan
-  status: z.string().optional(),
-  prioritas: z.string().min(1, "Prioritas wajib dipilih"),
-  jenisTenagaKerja: z.string().optional(),
+  modeAtribut: z.enum(["broadcast", "spesifik"]).default("broadcast"),
+  statusBroadcast: z.string().default("Belum dikerjakan"),
+  prioritasBroadcast: z.string().default("Medium"),
+  jenisTenagaKerjaBroadcast: z.string().optional(),
+  statusPerArea: z.record(z.string()).default({}),
+  prioritasPerArea: z.record(z.string()).default({}),
+  jenisTenagaKerjaPerArea: z.record(z.string()).default({}),
 
-  // Mode Catatan
   modeCatatan: z.enum(["broadcast", "spesifik"]).default("broadcast"),
   catatanBroadcast: z.string().optional(),
   catatanPerArea: z.record(z.string()).default({}),
@@ -88,42 +57,17 @@ const operasionalSchema = z.object({
 
 type OperasionalFormValues = z.infer<typeof operasionalSchema>;
 
-interface DropdownOptions {
-  areas: Array<{ id: string; name: string }>;
-  petugas: Array<{ id: string; name: string }>;
-}
-
-interface AddOperasionalDialogProps {
-  onSuccess?: () => void;
-}
+interface DropdownOptions { areas: Array<{ id: string; name: string }>; petugas: Array<{ id: string; name: string }>; }
 
 const EMPTY_VALUES: OperasionalFormValues = {
-  namaPekerjaan: "",
-  kategori: "",
-  areaIds: [],
-  
-  modeWaktu: "broadcast",
-  waktuMulaiBroadcast: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
-  waktuSelesaiBroadcast: "",
-  durasiKerjaBroadcast: 0,
-  waktuMulaiPerArea: {},
-  waktuSelesaiPerArea: {},
-  durasiKerjaPerArea: {},
-
-  modePekerja: "broadcast",
-  pekerjaBroadcast: [],
-  pekerjaPerArea: {},
-
-  status: "Belum dikerjakan",
-  prioritas: "Medium",
-  jenisTenagaKerja: "",
-
-  modeCatatan: "broadcast",
-  catatanBroadcast: "",
-  catatanPerArea: {},
+  namaPekerjaan: "", kategori: "", areaIds: [],
+  modeWaktu: "broadcast", waktuMulaiBroadcast: format(new Date(), "yyyy-MM-dd'T'HH:mm"), waktuSelesaiBroadcast: "", durasiKerjaBroadcast: 0, waktuMulaiPerArea: {}, waktuSelesaiPerArea: {}, durasiKerjaPerArea: {},
+  modePekerja: "broadcast", pekerjaBroadcast: [], pekerjaPerArea: {},
+  modeAtribut: "broadcast", statusBroadcast: "Belum dikerjakan", prioritasBroadcast: "Medium", jenisTenagaKerjaBroadcast: "", statusPerArea: {}, prioritasPerArea: {}, jenisTenagaKerjaPerArea: {},
+  modeCatatan: "broadcast", catatanBroadcast: "", catatanPerArea: {},
 };
 
-export function AddOperasionalDialog({ onSuccess }: AddOperasionalDialogProps) {
+export function AddOperasionalDialog({ onSuccess }: { onSuccess?: () => void }) {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(1);
   const [successUrls, setSuccessUrls] = useState<string[]>([]);
@@ -134,7 +78,7 @@ export function AddOperasionalDialog({ onSuccess }: AddOperasionalDialogProps) {
     queryKey: ["operasional-dropdown-options"],
     queryFn: async () => {
       const res = await fetch("/api/notion/operasional-dropdown-options");
-      if (!res.ok) throw new Error("Gagal mengambil data dropdown operasional");
+      if (!res.ok) throw new Error("Gagal mengambil data dropdown");
       return res.json();
     },
     enabled: open,
@@ -147,61 +91,24 @@ export function AddOperasionalDialog({ onSuccess }: AddOperasionalDialogProps) {
 
   const closeAndReset = () => {
     form.reset(EMPTY_VALUES);
-    setStep(1);
-    setSuccessUrls([]);
-    setOpen(false);
-    onSuccess?.();
+    setStep(1); setSuccessUrls([]); setOpen(false); onSuccess?.();
   };
 
-  // ==========================================
-  // KALKULATOR DURASI CERDAS (AUTO-CALCULATE)
-  // ==========================================
   const calculateDuration = (start?: string, end?: string) => {
     if (!start || !end) return 0;
     const s = new Date(start).getTime();
     const e = new Date(end).getTime();
-    if (e > s) return Math.round(((e - s) / (1000 * 60 * 60)) * 10) / 10; // 1 angka di belakang koma
+    if (e > s) return Math.round(((e - s) / (1000 * 60 * 60)) * 10) / 10;
     return 0;
   };
 
   const saveOperasional = useMutation({
     mutationFn: async (payload: OperasionalFormValues) => {
-      // Menyusun durasi berdasarkan mode yang dipilih
-      const finalDurasiPerArea = payload.modeWaktu === "broadcast"
-        ? payload.areaIds.reduce((acc, id) => ({ ...acc, [id]: payload.durasiKerjaBroadcast }), {})
-        : payload.durasiKerjaPerArea;
-
-      const cleanData = {
-        namaPekerjaan: payload.namaPekerjaan,
-        kategori: payload.kategori,
-        areaIds: payload.areaIds,
-        
-        modeWaktu: payload.modeWaktu,
-        waktuMulaiBroadcast: payload.waktuMulaiBroadcast,
-        waktuSelesaiBroadcast: payload.waktuSelesaiBroadcast,
-        waktuMulaiPerArea: payload.waktuMulaiPerArea,
-        waktuSelesaiPerArea: payload.waktuSelesaiPerArea,
-        durasiKerjaPerArea: finalDurasiPerArea,
-
-        modePekerja: payload.modePekerja,
-        pekerjaBroadcast: payload.pekerjaBroadcast,
-        pekerjaPerArea: payload.pekerjaPerArea,
-
-        status: payload.status,
-        prioritas: payload.prioritas,
-        jenisTenagaKerja: payload.jenisTenagaKerja,
-
-        modeCatatan: payload.modeCatatan,
-        catatanBroadcast: payload.catatanBroadcast,
-        catatanPerArea: payload.catatanPerArea,
-      };
-
+      const finalDurasiPerArea = payload.modeWaktu === "broadcast" ? payload.areaIds.reduce((acc, id) => ({ ...acc, [id]: payload.durasiKerjaBroadcast }), {}) : payload.durasiKerjaPerArea;
       const response = await fetch("/api/notion/add-operasional", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(cleanData),
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...payload, durasiKerjaPerArea: finalDurasiPerArea }),
       });
-
       if (!response.ok) {
         const errText = await response.text();
         throw new Error(errText || "Gagal menyimpan operasional");
@@ -209,18 +116,11 @@ export function AddOperasionalDialog({ onSuccess }: AddOperasionalDialogProps) {
       return response.json();
     },
     onSuccess: async (responseData) => {
-      await queryClient.invalidateQueries({
-        queryKey: getGetDashboardSummaryQueryKey(),
-        refetchType: "all",
-      });
+      await queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey(), refetchType: "all" });
       const results = responseData?.data || [];
       const urls = results.map((d: any) => d.notionUrl).filter(Boolean);
-
       if (urls.length > 0) setSuccessUrls(urls);
-      else {
-        toast({ title: "Berhasil", description: "Data tersimpan di Notion." });
-        closeAndReset();
-      }
+      else { toast({ title: "Berhasil", description: "Data tersimpan." }); closeAndReset(); }
     },
     onError: (error) => {
       toast({ variant: "destructive", title: "Gagal menyimpan", description: error instanceof Error ? error.message : "Cek kembali koneksi internet." });
@@ -249,44 +149,25 @@ export function AddOperasionalDialog({ onSuccess }: AddOperasionalDialogProps) {
     let fieldsToValidate: Array<keyof OperasionalFormValues> = [];
     if (step === 1) fieldsToValidate = ["namaPekerjaan", "kategori"];
     if (step === 2) fieldsToValidate = ["areaIds"];
-    
-    // Validasi tambahan kalo mau ngetrik pekerja belum diisi
     if (step === 4) {
       if (form.getValues("modePekerja") === "broadcast" && form.getValues("pekerjaBroadcast").length === 0) {
-        toast({ variant: "destructive", title: "Oops!", description: "Minimal pilih 1 pekerja." });
-        return;
+        toast({ variant: "destructive", title: "Oops!", description: "Minimal pilih 1 pekerja." }); return;
       }
     }
-
     const isStepValid = await form.trigger(fieldsToValidate);
     if (isStepValid) setStep((prev) => prev + 1);
   };
 
-  function onSubmit(values: OperasionalFormValues) {
-    saveOperasional.mutate(values);
-  }
-
   return (
-    <Sheet
-      open={open}
-      onOpenChange={(val) => {
-        setOpen(val);
-        if (!val) setStep(1);
-      }}
-    >
+    <Sheet open={open} onOpenChange={(val) => { setOpen(val); if (!val) setStep(1); }}>
       <SheetTrigger asChild>
-        <Button className="h-11 rounded-xl px-5 font-bold bg-green-600 text-white hover:bg-green-700 transition-all active:scale-[0.98] gap-2">
-          <PlusCircle className="h-4 w-4" />
-          Operasional
-        </Button>
+        <Button className="h-11 rounded-xl px-5 font-bold bg-green-600 text-white hover:bg-green-700 transition-all active:scale-[0.98] gap-2"><PlusCircle className="h-4 w-4" /> Operasional</Button>
       </SheetTrigger>
 
       <SheetContent side="top" className="mx-auto max-w-md rounded-b-[2rem] border-x-0 border-t-0 p-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl pb-4 shadow-[0_16px_40px_rgba(0,0,0,0.12)]">
         {successUrls.length > 0 ? (
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center justify-center px-6 py-12 text-center space-y-6">
-            <div className="h-20 w-20 bg-green-500/10 text-green-600 rounded-full flex items-center justify-center">
-              <CheckCircle2 className="h-10 w-10" />
-            </div>
+            <div className="h-20 w-20 bg-green-500/10 text-green-600 rounded-full flex items-center justify-center"><CheckCircle2 className="h-10 w-10" /></div>
             <div>
               <h3 className="text-xl font-black text-foreground">Sukses Terkirim!</h3>
               <p className="text-sm text-muted-foreground mt-2 font-medium">Data operasional sudah mendarat di Notion.</p>
@@ -304,9 +185,7 @@ export function AddOperasionalDialog({ onSuccess }: AddOperasionalDialogProps) {
           <>
             <SheetHeader className="px-6 py-4 flex flex-row items-center justify-between border-b border-border">
               <div className="flex items-center gap-3">
-                <div className="rounded-xl bg-green-500/10 p-2 text-green-600">
-                  <ClipboardList className="h-5 w-5" />
-                </div>
+                <div className="rounded-xl bg-green-500/10 p-2 text-green-600"><ClipboardList className="h-5 w-5" /></div>
                 <div className="text-left">
                   <SheetTitle className="text-base font-black tracking-tight">Input Operasional</SheetTitle>
                   <p className="text-[10px] font-bold text-green-600 tracking-wider uppercase">Step {step} dari 6</p>
@@ -401,25 +280,10 @@ export function AddOperasionalDialog({ onSuccess }: AddOperasionalDialogProps) {
                             {form.watch("modeWaktu") === "broadcast" ? (
                               <div className="space-y-3 animate-in fade-in">
                                 <div className="grid grid-cols-2 gap-2">
-                                  <div className="space-y-1">
-                                    <p className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Mulai</p>
-                                    <Input type="datetime-local" className="h-11 rounded-xl bg-muted border-transparent text-xs font-bold" value={form.watch("waktuMulaiBroadcast") || ""} onChange={(e) => {
-                                      form.setValue("waktuMulaiBroadcast", e.target.value);
-                                      form.setValue("durasiKerjaBroadcast", calculateDuration(e.target.value, form.getValues("waktuSelesaiBroadcast")));
-                                    }} />
-                                  </div>
-                                  <div className="space-y-1">
-                                    <p className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Selesai</p>
-                                    <Input type="datetime-local" className="h-11 rounded-xl bg-muted border-transparent text-xs font-bold" value={form.watch("waktuSelesaiBroadcast") || ""} onChange={(e) => {
-                                      form.setValue("waktuSelesaiBroadcast", e.target.value);
-                                      form.setValue("durasiKerjaBroadcast", calculateDuration(form.getValues("waktuMulaiBroadcast"), e.target.value));
-                                    }} />
-                                  </div>
+                                  <div className="space-y-1"><p className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Mulai</p><Input type="datetime-local" className="h-11 rounded-xl bg-muted border-transparent text-xs font-bold" value={form.watch("waktuMulaiBroadcast") || ""} onChange={(e) => { form.setValue("waktuMulaiBroadcast", e.target.value); form.setValue("durasiKerjaBroadcast", calculateDuration(e.target.value, form.getValues("waktuSelesaiBroadcast"))); }} /></div>
+                                  <div className="space-y-1"><p className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Selesai</p><Input type="datetime-local" className="h-11 rounded-xl bg-muted border-transparent text-xs font-bold" value={form.watch("waktuSelesaiBroadcast") || ""} onChange={(e) => { form.setValue("waktuSelesaiBroadcast", e.target.value); form.setValue("durasiKerjaBroadcast", calculateDuration(form.getValues("waktuMulaiBroadcast"), e.target.value)); }} /></div>
                                 </div>
-                                <div className="space-y-1">
-                                  <p className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Total Durasi (Jam)</p>
-                                  <Input type="number" step="0.1" className="h-11 rounded-xl bg-muted border-transparent text-sm font-bold w-1/2" value={form.watch("durasiKerjaBroadcast") || 0} onChange={(e) => form.setValue("durasiKerjaBroadcast", Number(e.target.value))} />
-                                </div>
+                                <div className="space-y-1"><p className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Total Durasi (Jam)</p><Input type="number" step="0.1" className="h-11 rounded-xl bg-muted border-transparent text-sm font-bold w-1/2" value={form.watch("durasiKerjaBroadcast") || 0} onChange={(e) => form.setValue("durasiKerjaBroadcast", Number(e.target.value))} /></div>
                               </div>
                             ) : (
                               <div className="space-y-4 animate-in fade-in">
@@ -429,24 +293,10 @@ export function AddOperasionalDialog({ onSuccess }: AddOperasionalDialogProps) {
                                     <div key={areaId} className="space-y-2 p-3 rounded-xl border border-border bg-muted/10">
                                       <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 font-bold mb-1">{areaName}</Badge>
                                       <div className="grid grid-cols-2 gap-2">
-                                        <div className="space-y-1"><p className="text-[9px] font-bold text-muted-foreground uppercase ml-1">Mulai</p>
-                                          <Input type="datetime-local" className="h-9 text-[11px] font-bold" value={form.watch(`waktuMulaiPerArea.${areaId}`) || ""} onChange={(e) => {
-                                            form.setValue(`waktuMulaiPerArea.${areaId}`, e.target.value);
-                                            form.setValue(`durasiKerjaPerArea.${areaId}`, calculateDuration(e.target.value, form.getValues(`waktuSelesaiPerArea.${areaId}`)));
-                                          }} />
-                                        </div>
-                                        <div className="space-y-1"><p className="text-[9px] font-bold text-muted-foreground uppercase ml-1">Selesai</p>
-                                          <Input type="datetime-local" className="h-9 text-[11px] font-bold" value={form.watch(`waktuSelesaiPerArea.${areaId}`) || ""} onChange={(e) => {
-                                            form.setValue(`waktuSelesaiPerArea.${areaId}`, e.target.value);
-                                            form.setValue(`durasiKerjaPerArea.${areaId}`, calculateDuration(form.getValues(`waktuMulaiPerArea.${areaId}`), e.target.value));
-                                          }} />
-                                        </div>
+                                        <div className="space-y-1"><p className="text-[9px] font-bold text-muted-foreground uppercase ml-1">Mulai</p><Input type="datetime-local" className="h-9 text-[11px] font-bold" value={form.watch(`waktuMulaiPerArea.${areaId}`) || ""} onChange={(e) => { form.setValue(`waktuMulaiPerArea.${areaId}`, e.target.value); form.setValue(`durasiKerjaPerArea.${areaId}`, calculateDuration(e.target.value, form.getValues(`waktuSelesaiPerArea.${areaId}`))); }} /></div>
+                                        <div className="space-y-1"><p className="text-[9px] font-bold text-muted-foreground uppercase ml-1">Selesai</p><Input type="datetime-local" className="h-9 text-[11px] font-bold" value={form.watch(`waktuSelesaiPerArea.${areaId}`) || ""} onChange={(e) => { form.setValue(`waktuSelesaiPerArea.${areaId}`, e.target.value); form.setValue(`durasiKerjaPerArea.${areaId}`, calculateDuration(form.getValues(`waktuMulaiPerArea.${areaId}`), e.target.value)); }} /></div>
                                       </div>
-                                      <div className="flex items-center gap-2 mt-1">
-                                        <p className="text-[9px] font-bold text-muted-foreground uppercase ml-1">Durasi:</p>
-                                        <Input type="number" step="0.1" className="h-7 w-16 text-[10px] font-bold px-1" value={form.watch(`durasiKerjaPerArea.${areaId}`) || 0} onChange={(e) => form.setValue(`durasiKerjaPerArea.${areaId}`, Number(e.target.value))} />
-                                        <span className="text-[9px] text-muted-foreground font-bold">Jam</span>
-                                      </div>
+                                      <div className="flex items-center gap-2 mt-1"><p className="text-[9px] font-bold text-muted-foreground uppercase ml-1">Durasi:</p><Input type="number" step="0.1" className="h-7 w-16 text-[10px] font-bold px-1" value={form.watch(`durasiKerjaPerArea.${areaId}`) || 0} onChange={(e) => form.setValue(`durasiKerjaPerArea.${areaId}`, Number(e.target.value))} /><span className="text-[9px] text-muted-foreground font-bold">Jam</span></div>
                                     </div>
                                   );
                                 })}
@@ -464,15 +314,12 @@ export function AddOperasionalDialog({ onSuccess }: AddOperasionalDialogProps) {
                               <button type="button" onClick={() => form.setValue("modePekerja", "broadcast")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modePekerja") === "broadcast" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Tim Sama (Broadcast)</button>
                               <button type="button" onClick={() => form.setValue("modePekerja", "spesifik")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modePekerja") === "spesifik" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Beda Tim Per Area</button>
                             </div>
-
                             {form.watch("modePekerja") === "broadcast" ? (
                               <div className="space-y-2 animate-in fade-in">
                                 <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80 mb-2">Pilih Anggota Tim</p>
                                 <div className="flex flex-wrap gap-2">
                                   {dropdownOptions?.petugas?.map((item) => (
-                                    <button key={item.id} type="button" onClick={() => toggleWorkerBroadcast(item.id)} className={`px-3.5 py-2 rounded-xl text-sm font-semibold transition-all border ${form.watch("pekerjaBroadcast").includes(item.id) ? "bg-green-600 text-white border-green-600 shadow-sm scale-[1.02]" : "bg-muted/50 text-muted-foreground border-transparent hover:bg-muted"}`}>
-                                      {item.name}
-                                    </button>
+                                    <button key={item.id} type="button" onClick={() => toggleWorkerBroadcast(item.id)} className={`px-3.5 py-2 rounded-xl text-sm font-semibold transition-all border ${form.watch("pekerjaBroadcast").includes(item.id) ? "bg-green-600 text-white border-green-600 shadow-sm scale-[1.02]" : "bg-muted/50 text-muted-foreground border-transparent hover:bg-muted"}`}>{item.name}</button>
                                   ))}
                                 </div>
                               </div>
@@ -485,9 +332,7 @@ export function AddOperasionalDialog({ onSuccess }: AddOperasionalDialogProps) {
                                       <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 font-bold mb-2">{areaName}</Badge>
                                       <div className="flex flex-wrap gap-1.5">
                                         {dropdownOptions?.petugas?.map((item) => (
-                                          <button key={item.id} type="button" onClick={() => toggleWorkerPerArea(areaId, item.id)} className={`px-2 py-1.5 rounded-lg text-xs font-semibold transition-all border ${form.watch(`pekerjaPerArea.${areaId}`)?.includes(item.id) ? "bg-green-600 text-white border-green-600 shadow-sm" : "bg-background text-muted-foreground border-border/50 hover:bg-muted"}`}>
-                                            {item.name}
-                                          </button>
+                                          <button key={item.id} type="button" onClick={() => toggleWorkerPerArea(areaId, item.id)} className={`px-2 py-1.5 rounded-lg text-xs font-semibold transition-all border ${form.watch(`pekerjaPerArea.${areaId}`)?.includes(item.id) ? "bg-green-600 text-white border-green-600 shadow-sm" : "bg-background text-muted-foreground border-border/50 hover:bg-muted"}`}>{item.name}</button>
                                         ))}
                                       </div>
                                     </div>
@@ -499,47 +344,84 @@ export function AddOperasionalDialog({ onSuccess }: AddOperasionalDialogProps) {
                         </motion.div>
                       )}
 
-                      {/* STEP 5: Atribut Tambahan */}
+                      {/* STEP 5: Atribut Tambahan (Mode Sakelar) */}
                       {step === 5 && (
                         <motion.div key="step5" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-4">
-                          <FormField control={form.control} name="status" render={({ field }) => (
-                            <FormItem className="space-y-1.5">
-                              <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Status Pekerjaan</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value || ""}>
-                                <FormControl><SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-green-600/20"><SelectValue placeholder="Pilih status..." /></SelectTrigger></FormControl>
-                                <SelectContent className="rounded-xl">
-                                  <SelectItem value="Belum dikerjakan">Belum dikerjakan</SelectItem>
-                                  <SelectItem value="Dalam proses">Dalam proses</SelectItem>
-                                  <SelectItem value="Selesai">Selesai</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </FormItem>
-                          )} />
-                          <FormField control={form.control} name="prioritas" render={({ field }) => (
-                            <FormItem className="space-y-1.5">
-                              <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Prioritas</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value || ""}>
-                                <FormControl><SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-green-600/20"><SelectValue placeholder="Pilih prioritas..." /></SelectTrigger></FormControl>
-                                <SelectContent className="rounded-xl">
-                                  <SelectItem value="Low">Low</SelectItem>
-                                  <SelectItem value="Medium">Medium</SelectItem>
-                                  <SelectItem value="High">High</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </FormItem>
-                          )} />
-                          <FormField control={form.control} name="jenisTenagaKerja" render={({ field }) => (
-                            <FormItem className="space-y-1.5">
-                              <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Jenis Tenaga Kerja (Opsional)</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value || ""}>
-                                <FormControl><SelectTrigger className="h-12 rounded-xl bg-muted border-transparent focus:ring-2 focus:ring-green-600/20"><SelectValue placeholder="Pilih jenis..." /></SelectTrigger></FormControl>
-                                <SelectContent className="rounded-xl">
-                                  <SelectItem value="Internal">Internal (Karyawan)</SelectItem>
-                                  <SelectItem value="Eksternal">Eksternal (Borongan)</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </FormItem>
-                          )} />
+                          <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1 pb-4">
+                            <div className="grid grid-cols-2 gap-2 bg-muted/50 p-1.5 rounded-xl border border-border">
+                              <button type="button" onClick={() => form.setValue("modeAtribut", "broadcast")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modeAtribut") === "broadcast" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Atribut Sama Semua</button>
+                              <button type="button" onClick={() => {
+                                form.setValue("modeAtribut", "spesifik");
+                                const curStatus = form.getValues("statusBroadcast");
+                                const curPrio = form.getValues("prioritasBroadcast");
+                                const curJenis = form.getValues("jenisTenagaKerjaBroadcast");
+                                form.getValues("areaIds").forEach(id => {
+                                  if (!form.getValues(`statusPerArea.${id}`)) form.setValue(`statusPerArea.${id}`, curStatus || "Belum dikerjakan");
+                                  if (!form.getValues(`prioritasPerArea.${id}`)) form.setValue(`prioritasPerArea.${id}`, curPrio || "Medium");
+                                  if (!form.getValues(`jenisTenagaKerjaPerArea.${id}`)) form.setValue(`jenisTenagaKerjaPerArea.${id}`, curJenis || "");
+                                });
+                              }} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modeAtribut") === "spesifik" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Atur Beda Per Area</button>
+                            </div>
+
+                            {form.watch("modeAtribut") === "broadcast" ? (
+                              <div className="space-y-4 animate-in fade-in">
+                                <div className="space-y-1.5">
+                                  <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Status</FormLabel>
+                                  <Select onValueChange={(val) => form.setValue("statusBroadcast", val)} value={form.watch("statusBroadcast")}>
+                                    <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent"><SelectValue placeholder="Pilih status..." /></SelectTrigger>
+                                    <SelectContent><SelectItem value="Belum dikerjakan">Belum dikerjakan</SelectItem><SelectItem value="Dalam proses">Dalam proses</SelectItem><SelectItem value="Selesai">Selesai</SelectItem></SelectContent>
+                                  </Select>
+                                </div>
+                                <div className="space-y-1.5">
+                                  <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Prioritas</FormLabel>
+                                  <Select onValueChange={(val) => form.setValue("prioritasBroadcast", val)} value={form.watch("prioritasBroadcast")}>
+                                    <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent"><SelectValue placeholder="Pilih prioritas..." /></SelectTrigger>
+                                    <SelectContent><SelectItem value="Low">Low</SelectItem><SelectItem value="Medium">Medium</SelectItem><SelectItem value="High">High</SelectItem></SelectContent>
+                                  </Select>
+                                </div>
+                                <div className="space-y-1.5">
+                                  <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Jenis Tenaga Kerja (Opsional)</FormLabel>
+                                  <Select onValueChange={(val) => form.setValue("jenisTenagaKerjaBroadcast", val)} value={form.watch("jenisTenagaKerjaBroadcast") || ""}>
+                                    <SelectTrigger className="h-12 rounded-xl bg-muted border-transparent"><SelectValue placeholder="Pilih jenis..." /></SelectTrigger>
+                                    <SelectContent><SelectItem value="Internal">Internal (Karyawan)</SelectItem><SelectItem value="Eksternal">Eksternal (Borongan)</SelectItem></SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="space-y-4 animate-in fade-in">
+                                {form.watch("areaIds").map((areaId) => {
+                                  const areaName = dropdownOptions?.areas?.find((a) => a.id === areaId)?.name || `Area`;
+                                  return (
+                                    <div key={areaId} className="space-y-3 p-3 rounded-xl border border-border bg-muted/10">
+                                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 font-bold">{areaName}</Badge>
+                                      <div className="space-y-2">
+                                        <div className="grid grid-cols-2 gap-2">
+                                          <div className="space-y-1"><p className="text-[9px] font-bold text-muted-foreground uppercase ml-1">Status</p>
+                                            <Select onValueChange={(val) => form.setValue(`statusPerArea.${areaId}`, val)} value={form.watch(`statusPerArea.${areaId}`)}>
+                                              <SelectTrigger className="h-9 text-[11px] font-bold"><SelectValue placeholder="Status" /></SelectTrigger>
+                                              <SelectContent><SelectItem value="Belum dikerjakan">Belum dikerjakan</SelectItem><SelectItem value="Dalam proses">Dalam proses</SelectItem><SelectItem value="Selesai">Selesai</SelectItem></SelectContent>
+                                            </Select>
+                                          </div>
+                                          <div className="space-y-1"><p className="text-[9px] font-bold text-muted-foreground uppercase ml-1">Prioritas</p>
+                                            <Select onValueChange={(val) => form.setValue(`prioritasPerArea.${areaId}`, val)} value={form.watch(`prioritasPerArea.${areaId}`)}>
+                                              <SelectTrigger className="h-9 text-[11px] font-bold"><SelectValue placeholder="Prioritas" /></SelectTrigger>
+                                              <SelectContent><SelectItem value="Low">Low</SelectItem><SelectItem value="Medium">Medium</SelectItem><SelectItem value="High">High</SelectItem></SelectContent>
+                                            </Select>
+                                          </div>
+                                        </div>
+                                        <div className="space-y-1"><p className="text-[9px] font-bold text-muted-foreground uppercase ml-1">Jenis Pekerja</p>
+                                            <Select onValueChange={(val) => form.setValue(`jenisTenagaKerjaPerArea.${areaId}`, val)} value={form.watch(`jenisTenagaKerjaPerArea.${areaId}`) || ""}>
+                                              <SelectTrigger className="h-9 text-[11px] font-bold w-full"><SelectValue placeholder="Pilih Jenis..." /></SelectTrigger>
+                                              <SelectContent><SelectItem value="Internal">Internal (Karyawan)</SelectItem><SelectItem value="Eksternal">Eksternal (Borongan)</SelectItem></SelectContent>
+                                            </Select>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
                         </motion.div>
                       )}
 
@@ -551,7 +433,6 @@ export function AddOperasionalDialog({ onSuccess }: AddOperasionalDialogProps) {
                               <button type="button" onClick={() => form.setValue("modeCatatan", "broadcast")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modeCatatan") === "broadcast" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Satu Catatan</button>
                               <button type="button" onClick={() => form.setValue("modeCatatan", "spesifik")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modeCatatan") === "spesifik" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Beda Per Area</button>
                             </div>
-
                             {form.watch("modeCatatan") === "broadcast" ? (
                               <div className="space-y-2 animate-in fade-in">
                                 <Textarea placeholder="Ketik catatan untuk diterapkan ke semua area..." className="min-h-[140px] rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm" {...form.register("catatanBroadcast")} />
@@ -582,7 +463,6 @@ export function AddOperasionalDialog({ onSuccess }: AddOperasionalDialogProps) {
                       ) : (
                         <Button type="button" variant="ghost" className="h-11 rounded-xl px-4 font-bold text-muted-foreground" onClick={() => setOpen(false)}>Batal</Button>
                       )}
-
                       {step < 6 ? (
                         <Button type="button" className="h-11 rounded-xl px-5 font-bold bg-green-600 text-white hover:bg-green-700" onClick={handleNextStep}>
                           Lanjut <ArrowRight className="ml-2 h-4 w-4" />
