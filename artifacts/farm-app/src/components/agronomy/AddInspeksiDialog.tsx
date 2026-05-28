@@ -319,75 +319,80 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
                   <form onSubmit={(e) => e.preventDefault()} className="space-y-5 text-left">
                     <AnimatePresence mode="wait">
                       
-                      {/* STEP 1: INFO DASAR & WAKTU KERJA */}
+                                            {/* STEP 1: INFO DASAR & WAKTU KERJA */}
                       {step === 1 && (
-                        <motion.div key="step1" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-5">
-                          <FormField control={form.control} name="kegiatan" render={({ field }) => (
-                            <FormItem className="space-y-1.5">
-                              <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80"><Briefcase className="inline-block h-3.5 w-3.5 mr-1" /> Nama Inspeksi</FormLabel>
-                              <FormControl><Input className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-orange-500/20 text-sm font-medium" placeholder="Cth: Inspeksi Rutin..." {...field} /></FormControl>
-                              <FormMessage className="text-xs text-red-500" />
-                            </FormItem>
-                          )} />
-                          
-                          <div className="space-y-1.5 max-h-[35vh] overflow-y-auto">
-                            <div className="flex items-center justify-between sticky top-0 bg-white/90 dark:bg-slate-950/90 py-1 z-10">
-                              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80"><MapPinned className="inline-block h-3.5 w-3.5 mr-1" /> Pilih Area Lokasi</p>
-                              <span className="text-[10px] font-semibold text-muted-foreground">{form.watch("areaIds").length} terpilih</span>
-                            </div>
-                            <div className="flex flex-wrap gap-2 pt-2">
-                              {dropdownOptions?.areas?.map((item) => {
-                                const isSelected = form.watch("areaIds").includes(item.id);
-                                return (
-                                  <button key={item.id} type="button" onClick={() => toggleArea(item.id)} className={`px-3.5 py-2 rounded-xl text-sm font-semibold transition-all border ${isSelected ? "bg-orange-500 text-white border-orange-500 shadow-sm scale-[1.02]" : "bg-muted/50 text-muted-foreground border-transparent hover:bg-muted"}`}>
-                                    {item.name}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-
-                          <div className="space-y-3 pt-3 border-t border-border">
-                            <div className="grid grid-cols-2 gap-2 bg-muted/50 p-1.5 rounded-xl border border-border">
-                              <button type="button" onClick={() => form.setValue("modeWaktu", "broadcast")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modeWaktu") === "broadcast" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Sama Semua</button>
-                              <button type="button" onClick={() => {
-                                form.setValue("modeWaktu", "spesifik");
-                                const curMulai = form.getValues("waktuMulaiBroadcast");
-                                const curSelesai = form.getValues("waktuSelesaiBroadcast");
-                                const curDurasi = form.getValues("durasiKerjaBroadcast");
-                                form.getValues("areaIds").forEach(id => {
-                                  if (!form.getValues(`waktuMulaiPerArea.${id}`)) form.setValue(`waktuMulaiPerArea.${id}`, curMulai || "");
-                                  if (!form.getValues(`waktuSelesaiPerArea.${id}`)) form.setValue(`waktuSelesaiPerArea.${id}`, curSelesai || "");
-                                  if (!form.getValues(`durasiKerjaPerArea.${id}`)) form.setValue(`durasiKerjaPerArea.${id}`, curDurasi || 0);
-                                });
-                              }} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modeWaktu") === "spesifik" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Isi Per Area</button>
-                            </div>
+                        <motion.div key="step1" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }}>
+                          {/* 👇 BUNGKUSAN SCROLL UTAMA ADA DI SINI BORR 👇 */}
+                          <div className="space-y-5 max-h-[65vh] overflow-y-auto pr-1 pb-4">
                             
-                            {form.watch("modeWaktu") === "broadcast" ? (
-                              <div className="space-y-3 animate-in fade-in">
-                                <div className="grid grid-cols-2 gap-2">
-                                  <div className="space-y-1"><label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Mulai</label><Input type="datetime-local" className="h-11 rounded-xl bg-muted border-transparent text-xs font-bold" value={form.watch("waktuMulaiBroadcast") || ""} onChange={(e) => { form.setValue("waktuMulaiBroadcast", e.target.value); form.setValue("durasiKerjaBroadcast", calculateDuration(e.target.value, form.getValues("waktuSelesaiBroadcast"))); }} /></div>
-                                  <div className="space-y-1"><label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Selesai</label><Input type="datetime-local" className="h-11 rounded-xl bg-muted border-transparent text-xs font-bold" value={form.watch("waktuSelesaiBroadcast") || ""} onChange={(e) => { form.setValue("waktuSelesaiBroadcast", e.target.value); form.setValue("durasiKerjaBroadcast", calculateDuration(form.getValues("waktuMulaiBroadcast"), e.target.value)); }} /></div>
-                                </div>
-                                <div className="space-y-1"><label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Total Durasi (Jam)</label><Input type="number" step="0.1" className="h-11 rounded-xl bg-muted border-transparent text-sm font-bold w-1/2" value={form.watch("durasiKerjaBroadcast") || 0} onChange={(e) => form.setValue("durasiKerjaBroadcast", Number(e.target.value))} /></div>
+                            <FormField control={form.control} name="kegiatan" render={({ field }) => (
+                              <FormItem className="space-y-1.5">
+                                <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80"><Briefcase className="inline-block h-3.5 w-3.5 mr-1" /> Nama Inspeksi</FormLabel>
+                                <FormControl><Input className="h-12 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-orange-500/20 text-sm font-medium" placeholder="Cth: Inspeksi Rutin..." {...field} /></FormControl>
+                                <FormMessage className="text-xs text-red-500" />
+                              </FormItem>
+                            )} />
+                            
+                            <div className="space-y-1.5">
+                              <div className="flex items-center justify-between sticky top-0 bg-white/90 dark:bg-slate-950/90 py-1 z-10">
+                                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80"><MapPinned className="inline-block h-3.5 w-3.5 mr-1" /> Pilih Area Lokasi</p>
+                                <span className="text-[10px] font-semibold text-muted-foreground">{form.watch("areaIds").length} terpilih</span>
                               </div>
-                            ) : (
-                              <div className="space-y-4 animate-in fade-in">
-                                {form.watch("areaIds").map((areaId) => {
-                                  const areaName = dropdownOptions?.areas?.find((a) => a.id === areaId)?.name || `Area`;
+                              <div className="flex flex-wrap gap-2 pt-2">
+                                {dropdownOptions?.areas?.map((item) => {
+                                  const isSelected = form.watch("areaIds").includes(item.id);
                                   return (
-                                    <div key={areaId} className="space-y-2 p-3 rounded-xl border border-border bg-muted/10">
-                                      <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200 font-bold mb-1">{areaName}</Badge>
-                                      <div className="grid grid-cols-2 gap-2">
-                                        <div className="space-y-1"><label className="text-[9px] font-bold text-muted-foreground uppercase ml-1">Mulai</label><Input type="datetime-local" className="h-9 text-[11px] font-bold bg-background" value={form.watch(`waktuMulaiPerArea.${areaId}`) || ""} onChange={(e) => { form.setValue(`waktuMulaiPerArea.${areaId}`, e.target.value); form.setValue(`durasiKerjaPerArea.${areaId}`, calculateDuration(e.target.value, form.getValues(`waktuSelesaiPerArea.${areaId}`))); }} /></div>
-                                        <div className="space-y-1"><label className="text-[9px] font-bold text-muted-foreground uppercase ml-1">Selesai</label><Input type="datetime-local" className="h-9 text-[11px] font-bold bg-background" value={form.watch(`waktuSelesaiPerArea.${areaId}`) || ""} onChange={(e) => { form.setValue(`waktuSelesaiPerArea.${areaId}`, e.target.value); form.setValue(`durasiKerjaPerArea.${areaId}`, calculateDuration(form.getValues(`waktuMulaiPerArea.${areaId}`), e.target.value)); }} /></div>
-                                      </div>
-                                      <div className="flex items-center gap-2 mt-1"><label className="text-[9px] font-bold text-muted-foreground uppercase ml-1">Durasi:</label><Input type="number" step="0.1" className="h-7 w-16 text-[10px] font-bold px-1 bg-background" value={form.watch(`durasiKerjaPerArea.${areaId}`) || 0} onChange={(e) => form.setValue(`durasiKerjaPerArea.${areaId}`, Number(e.target.value))} /><span className="text-[9px] text-muted-foreground font-bold">Jam</span></div>
-                                    </div>
+                                    <button key={item.id} type="button" onClick={() => toggleArea(item.id)} className={`px-3.5 py-2 rounded-xl text-sm font-semibold transition-all border ${isSelected ? "bg-orange-500 text-white border-orange-500 shadow-sm scale-[1.02]" : "bg-muted/50 text-muted-foreground border-transparent hover:bg-muted"}`}>
+                                      {item.name}
+                                    </button>
                                   );
                                 })}
                               </div>
-                            )}
+                            </div>
+
+                            <div className="space-y-3 pt-3 border-t border-border">
+                              <div className="grid grid-cols-2 gap-2 bg-muted/50 p-1.5 rounded-xl border border-border">
+                                <button type="button" onClick={() => form.setValue("modeWaktu", "broadcast")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modeWaktu") === "broadcast" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Sama Semua</button>
+                                <button type="button" onClick={() => {
+                                  form.setValue("modeWaktu", "spesifik");
+                                  const curMulai = form.getValues("waktuMulaiBroadcast");
+                                  const curSelesai = form.getValues("waktuSelesaiBroadcast");
+                                  const curDurasi = form.getValues("durasiKerjaBroadcast");
+                                  form.getValues("areaIds").forEach(id => {
+                                    if (!form.getValues(`waktuMulaiPerArea.${id}`)) form.setValue(`waktuMulaiPerArea.${id}`, curMulai || "");
+                                    if (!form.getValues(`waktuSelesaiPerArea.${id}`)) form.setValue(`waktuSelesaiPerArea.${id}`, curSelesai || "");
+                                    if (!form.getValues(`durasiKerjaPerArea.${id}`)) form.setValue(`durasiKerjaPerArea.${id}`, curDurasi || 0);
+                                  });
+                                }} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modeWaktu") === "spesifik" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Isi Per Area</button>
+                              </div>
+                              
+                              {form.watch("modeWaktu") === "broadcast" ? (
+                                <div className="space-y-3 animate-in fade-in">
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <div className="space-y-1"><label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Mulai</label><Input type="datetime-local" className="h-11 rounded-xl bg-muted border-transparent text-xs font-bold" value={form.watch("waktuMulaiBroadcast") || ""} onChange={(e) => { form.setValue("waktuMulaiBroadcast", e.target.value); form.setValue("durasiKerjaBroadcast", calculateDuration(e.target.value, form.getValues("waktuSelesaiBroadcast"))); }} /></div>
+                                    <div className="space-y-1"><label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Selesai</label><Input type="datetime-local" className="h-11 rounded-xl bg-muted border-transparent text-xs font-bold" value={form.watch("waktuSelesaiBroadcast") || ""} onChange={(e) => { form.setValue("waktuSelesaiBroadcast", e.target.value); form.setValue("durasiKerjaBroadcast", calculateDuration(form.getValues("waktuMulaiBroadcast"), e.target.value)); }} /></div>
+                                  </div>
+                                  <div className="space-y-1"><label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Total Durasi (Jam)</label><Input type="number" step="0.1" className="h-11 rounded-xl bg-muted border-transparent text-sm font-bold w-1/2" value={form.watch("durasiKerjaBroadcast") || 0} onChange={(e) => form.setValue("durasiKerjaBroadcast", Number(e.target.value))} /></div>
+                                </div>
+                              ) : (
+                                <div className="space-y-4 animate-in fade-in">
+                                  {form.watch("areaIds").map((areaId) => {
+                                    const areaName = dropdownOptions?.areas?.find((a) => a.id === areaId)?.name || `Area`;
+                                    return (
+                                      <div key={areaId} className="space-y-2 p-3 rounded-xl border border-border bg-muted/10">
+                                        <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200 font-bold mb-1">{areaName}</Badge>
+                                        <div className="grid grid-cols-2 gap-2">
+                                          <div className="space-y-1"><label className="text-[9px] font-bold text-muted-foreground uppercase ml-1">Mulai</label><Input type="datetime-local" className="h-9 text-[11px] font-bold bg-background" value={form.watch(`waktuMulaiPerArea.${areaId}`) || ""} onChange={(e) => { form.setValue(`waktuMulaiPerArea.${areaId}`, e.target.value); form.setValue(`durasiKerjaPerArea.${areaId}`, calculateDuration(e.target.value, form.getValues(`waktuSelesaiPerArea.${areaId}`))); }} /></div>
+                                          <div className="space-y-1"><label className="text-[9px] font-bold text-muted-foreground uppercase ml-1">Selesai</label><Input type="datetime-local" className="h-9 text-[11px] font-bold bg-background" value={form.watch(`waktuSelesaiPerArea.${areaId}`) || ""} onChange={(e) => { form.setValue(`waktuSelesaiPerArea.${areaId}`, e.target.value); form.setValue(`durasiKerjaPerArea.${areaId}`, calculateDuration(form.getValues(`waktuMulaiPerArea.${areaId}`), e.target.value)); }} /></div>
+                                        </div>
+                                        <div className="flex items-center gap-2 mt-1"><label className="text-[9px] font-bold text-muted-foreground uppercase ml-1">Durasi:</label><Input type="number" step="0.1" className="h-7 w-16 text-[10px] font-bold px-1 bg-background" value={form.watch(`durasiKerjaPerArea.${areaId}`) || 0} onChange={(e) => form.setValue(`durasiKerjaPerArea.${areaId}`, Number(e.target.value))} /><span className="text-[9px] text-muted-foreground font-bold">Jam</span></div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                            
                           </div>
                         </motion.div>
                       )}
