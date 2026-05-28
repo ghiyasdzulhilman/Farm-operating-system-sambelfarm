@@ -33,14 +33,18 @@ const inspeksiSchema = z.object({
   kegiatan: z.string().min(1, "Nama kegiatan wajib diisi"),
   areaIds: z.array(z.string()).min(1, "Minimal pilih 1 area"),
 
-  modeTanggal: z.enum(["broadcast", "spesifik"]).default("broadcast"),
-  tanggalBroadcast: z.string().default(format(new Date(), "yyyy-MM-dd")),
-  tanggalPerArea: z.record(z.string()).default({}),
+  modeWaktu: z.enum(["broadcast", "spesifik"]).default("broadcast"),
+  waktuMulaiBroadcast: z.string().optional(),
+  waktuSelesaiBroadcast: z.string().optional(),
+  durasiKerjaBroadcast: z.coerce.number().min(0).default(0),
+  waktuMulaiPerArea: z.record(z.string()).default({}),
+  waktuSelesaiPerArea: z.record(z.string()).default({}),
+  durasiKerjaPerArea: z.record(z.number()).default({}),
 
   modeKendala: z.enum(["broadcast", "spesifik"]).default("broadcast"),
   kendalaBroadcast: z.array(z.string()).default([]),
   kendalaPerArea: z.record(z.array(z.string())).default({}),
-  temuanBroadcast: z.record(z.string()).default({}), // Catatan detail hama
+  temuanBroadcast: z.record(z.string()).default({}), 
   temuanPerArea: z.record(z.record(z.string())).default({}), 
 
   modeAngka: z.enum(["broadcast", "spesifik"]).default("broadcast"),
@@ -70,7 +74,7 @@ interface DropdownOptions { areas: Array<{ id: string; name: string }>; petugas:
 
 const EMPTY_VALUES: InspeksiFormValues = {
   kegiatan: "Inspeksi Rutin", areaIds: [],
-  modeTanggal: "broadcast", tanggalBroadcast: format(new Date(), "yyyy-MM-dd"), tanggalPerArea: {},
+  modeWaktu: "broadcast", waktuMulaiBroadcast: format(new Date(), "yyyy-MM-dd'T'HH:mm"), waktuSelesaiBroadcast: "", durasiKerjaBroadcast: 0, waktuMulaiPerArea: {}, waktuSelesaiPerArea: {}, durasiKerjaPerArea: {},
   modeKendala: "broadcast", kendalaBroadcast: [], kendalaPerArea: {}, temuanBroadcast: {}, temuanPerArea: {},
   modeAngka: "broadcast", phTanahBroadcast: "", tingkatSeranganBroadcast: "", radiusBroadcast: "", phTanahPerArea: {}, tingkatSeranganPerArea: {}, radiusPerArea: {},
   modePekerja: "broadcast", pekerjaBroadcast: [], pekerjaPerArea: {},
@@ -105,14 +109,20 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
     setStep(1); setSuccessUrls([]); setOpen(false); onSuccess?.();
   };
 
+  const calculateDuration = (start?: string, end?: string) => {
+    if (!start || !end) return 0;
+    const s = new Date(start).getTime();
+    const e = new Date(end).getTime();
+    if (e > s) return Math.round(((e - s) / (1000 * 60 * 60)) * 10) / 10;
+    return 0;
+  };
+
   const saveInspeksi = useMutation({
     mutationFn: async (payload: InspeksiFormValues) => {
-      // 1. Ekstrak Hama & Penyakit Broadcast
       const hamaBroadcast = payload.kendalaBroadcast.filter(k => DAFTAR_HAMA.includes(k));
       const penyakitBroadcast = payload.kendalaBroadcast.filter(k => DAFTAR_PENYAKIT.includes(k));
       const formatTemuanBroadcast = Object.entries(payload.temuanBroadcast).map(([nama, catatan]) => ({ nama, catatan }));
 
-      // 2. Ekstrak Hama & Penyakit Per Area
       const hamaPerArea: Record<string, string[]> = {};
       const penyakitPerArea: Record<string, string[]> = {};
       const formatTemuanPerArea: Record<string, Array<{nama: string; catatan: string}>> = {};
@@ -126,7 +136,6 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
         formatTemuanPerArea[id] = Object.entries(tArea).map(([nama, catatan]) => ({ nama, catatan }));
       });
 
-      // 3. Konversi format Angka (bagi 100 untuk serangan)
       const parseAngka = (val?: string) => val ? Number(val) : undefined;
       const parseSerangan = (val?: string) => val ? Number(val) / 100 : undefined;
       
@@ -139,13 +148,20 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
         const ph = parseAngka(payload.phTanahPerArea[id]); if (ph !== undefined) phPerArea[id] = ph;
       });
 
+      const finalDurasiPerArea = payload.modeWaktu === "broadcast" 
+        ? payload.areaIds.reduce((acc, id) => ({ ...acc, [id]: payload.durasiKerjaBroadcast }), {}) 
+        : payload.durasiKerjaPerArea;
+
       const cleanPayload = {
         kegiatan: payload.kegiatan,
         areaIds: payload.areaIds,
         
-        modeTanggal: payload.modeTanggal,
-        tanggalBroadcast: payload.tanggalBroadcast,
-        tanggalPerArea: payload.tanggalPerArea,
+        modeWaktu: payload.modeWaktu,
+        waktuMulaiBroadcast: payload.waktuMulaiBroadcast,
+        waktuSelesaiBroadcast: payload.waktuSelesaiBroadcast,
+        waktuMulaiPerArea: payload.waktuMulaiPerArea,
+        waktuSelesaiPerArea: payload.waktuSelesaiPerArea,
+        durasiKerjaPerArea: finalDurasiPerArea,
         
         modeKendala: payload.modeKendala,
         hamaBroadcast, penyakitBroadcast,
@@ -180,7 +196,7 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
       });
       if (!response.ok) {
         const errText = await response.text();
-        throw new Error(errText || "Gagal menyimpan operasional");
+        throw new Error(errText || "Gagal menyimpan inspeksi");
       }
       return response.json();
     },
@@ -230,7 +246,6 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
     saveInspeksi.mutate(values);
   }
 
-  // --- TOGGLE HAMA HELPER ---
   const handleToggleHamaBroadcast = (item: string) => {
     const cur = form.getValues("kendalaBroadcast");
     if (cur.includes(item)) {
@@ -304,7 +319,7 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
                   <form onSubmit={(e) => e.preventDefault()} className="space-y-5 text-left">
                     <AnimatePresence mode="wait">
                       
-                      {/* STEP 1: INFO DASAR (ANCHOR) & TANGGAL */}
+                      {/* STEP 1: INFO DASAR & WAKTU KERJA */}
                       {step === 1 && (
                         <motion.div key="step1" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-5">
                           <FormField control={form.control} name="kegiatan" render={({ field }) => (
@@ -334,28 +349,40 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
 
                           <div className="space-y-3 pt-3 border-t border-border">
                             <div className="grid grid-cols-2 gap-2 bg-muted/50 p-1.5 rounded-xl border border-border">
-                              <button type="button" onClick={() => form.setValue("modeTanggal", "broadcast")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modeTanggal") === "broadcast" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Satu Tanggal</button>
+                              <button type="button" onClick={() => form.setValue("modeWaktu", "broadcast")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modeWaktu") === "broadcast" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Sama Semua</button>
                               <button type="button" onClick={() => {
-                                form.setValue("modeTanggal", "spesifik");
-                                const cur = form.getValues("tanggalBroadcast");
+                                form.setValue("modeWaktu", "spesifik");
+                                const curMulai = form.getValues("waktuMulaiBroadcast");
+                                const curSelesai = form.getValues("waktuSelesaiBroadcast");
+                                const curDurasi = form.getValues("durasiKerjaBroadcast");
                                 form.getValues("areaIds").forEach(id => {
-                                  if (!form.getValues(`tanggalPerArea.${id}`)) form.setValue(`tanggalPerArea.${id}`, cur || "");
+                                  if (!form.getValues(`waktuMulaiPerArea.${id}`)) form.setValue(`waktuMulaiPerArea.${id}`, curMulai || "");
+                                  if (!form.getValues(`waktuSelesaiPerArea.${id}`)) form.setValue(`waktuSelesaiPerArea.${id}`, curSelesai || "");
+                                  if (!form.getValues(`durasiKerjaPerArea.${id}`)) form.setValue(`durasiKerjaPerArea.${id}`, curDurasi || 0);
                                 });
-                              }} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modeTanggal") === "spesifik" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Beda Per Area</button>
+                              }} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modeWaktu") === "spesifik" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Isi Per Area</button>
                             </div>
-                            {form.watch("modeTanggal") === "broadcast" ? (
-                              <div className="relative animate-in fade-in">
-                                <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                                <Input type="date" className="h-12 rounded-xl bg-muted border-transparent pl-11 pr-4 focus-visible:ring-2 focus-visible:ring-orange-500/20 font-bold text-sm w-full" value={form.watch("tanggalBroadcast") || ""} onChange={(e) => form.setValue("tanggalBroadcast", e.target.value)} />
+                            
+                            {form.watch("modeWaktu") === "broadcast" ? (
+                              <div className="space-y-3 animate-in fade-in">
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div className="space-y-1"><label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Mulai</label><Input type="datetime-local" className="h-11 rounded-xl bg-muted border-transparent text-xs font-bold" value={form.watch("waktuMulaiBroadcast") || ""} onChange={(e) => { form.setValue("waktuMulaiBroadcast", e.target.value); form.setValue("durasiKerjaBroadcast", calculateDuration(e.target.value, form.getValues("waktuSelesaiBroadcast"))); }} /></div>
+                                  <div className="space-y-1"><label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Selesai</label><Input type="datetime-local" className="h-11 rounded-xl bg-muted border-transparent text-xs font-bold" value={form.watch("waktuSelesaiBroadcast") || ""} onChange={(e) => { form.setValue("waktuSelesaiBroadcast", e.target.value); form.setValue("durasiKerjaBroadcast", calculateDuration(form.getValues("waktuMulaiBroadcast"), e.target.value)); }} /></div>
+                                </div>
+                                <div className="space-y-1"><label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Total Durasi (Jam)</label><Input type="number" step="0.1" className="h-11 rounded-xl bg-muted border-transparent text-sm font-bold w-1/2" value={form.watch("durasiKerjaBroadcast") || 0} onChange={(e) => form.setValue("durasiKerjaBroadcast", Number(e.target.value))} /></div>
                               </div>
                             ) : (
-                              <div className="space-y-3 animate-in fade-in">
+                              <div className="space-y-4 animate-in fade-in">
                                 {form.watch("areaIds").map((areaId) => {
                                   const areaName = dropdownOptions?.areas?.find((a) => a.id === areaId)?.name || `Area`;
                                   return (
-                                    <div key={areaId} className="flex items-center justify-between p-2 rounded-xl border border-border bg-muted/10">
-                                      <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200 font-bold">{areaName}</Badge>
-                                      <Input type="date" className="h-9 w-40 text-[11px] font-bold bg-background" value={form.watch(`tanggalPerArea.${areaId}`) || ""} onChange={(e) => form.setValue(`tanggalPerArea.${areaId}`, e.target.value)} />
+                                    <div key={areaId} className="space-y-2 p-3 rounded-xl border border-border bg-muted/10">
+                                      <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200 font-bold mb-1">{areaName}</Badge>
+                                      <div className="grid grid-cols-2 gap-2">
+                                        <div className="space-y-1"><label className="text-[9px] font-bold text-muted-foreground uppercase ml-1">Mulai</label><Input type="datetime-local" className="h-9 text-[11px] font-bold bg-background" value={form.watch(`waktuMulaiPerArea.${areaId}`) || ""} onChange={(e) => { form.setValue(`waktuMulaiPerArea.${areaId}`, e.target.value); form.setValue(`durasiKerjaPerArea.${areaId}`, calculateDuration(e.target.value, form.getValues(`waktuSelesaiPerArea.${areaId}`))); }} /></div>
+                                        <div className="space-y-1"><label className="text-[9px] font-bold text-muted-foreground uppercase ml-1">Selesai</label><Input type="datetime-local" className="h-9 text-[11px] font-bold bg-background" value={form.watch(`waktuSelesaiPerArea.${areaId}`) || ""} onChange={(e) => { form.setValue(`waktuSelesaiPerArea.${areaId}`, e.target.value); form.setValue(`durasiKerjaPerArea.${areaId}`, calculateDuration(form.getValues(`waktuMulaiPerArea.${areaId}`), e.target.value)); }} /></div>
+                                      </div>
+                                      <div className="flex items-center gap-2 mt-1"><label className="text-[9px] font-bold text-muted-foreground uppercase ml-1">Durasi:</label><Input type="number" step="0.1" className="h-7 w-16 text-[10px] font-bold px-1 bg-background" value={form.watch(`durasiKerjaPerArea.${areaId}`) || 0} onChange={(e) => form.setValue(`durasiKerjaPerArea.${areaId}`, Number(e.target.value))} /><span className="text-[9px] text-muted-foreground font-bold">Jam</span></div>
                                     </div>
                                   );
                                 })}
