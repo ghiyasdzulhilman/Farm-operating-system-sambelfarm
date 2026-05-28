@@ -21,6 +21,7 @@ export const INSPEKSI_SCHEMA = {
       expectedType: "date", 
       aliases: ["tanggal", "date", "waktu", "hari", "created"] 
     },
+    { key: "durasiKerja", label: "Durasi Kerja (Jam)", expectedType: "number" },
     { 
       key: "hst", 
       label: "HST", 
