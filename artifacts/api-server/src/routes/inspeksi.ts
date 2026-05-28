@@ -11,11 +11,11 @@ const router: IRouter = Router();
 // ==========================================
 interface NotionDatabasePropertyMeta { id: string; type: string; name: string; }
 
-// ALIAS KUSUS INSPEKSI DARI SKEMA LU
 const INSPEKSI_PROPERTY_ALIASES: Record<string, string[]> = {
   kegiatan: ["kegiatan", "judul", "nama", "task", "operasional", "treatment", "inspeksi"],
   labaRugi: ["area", "blok", "lahan", "pindah tanam"],
-  tanggal: ["tanggal", "date", "waktu", "hari", "created"],
+  tanggal: ["tanggal", "date", "waktu", "hari", "created", "waktu pengerjaan", "jam kerja"],
+  durasiKerja: ["durasi kerja", "durasi", "lama kerja", "jam"], // Tambahan durasi
   hst: ["hst", "hari setelah tanam"],
   hama: ["hama", "serangga", "kutu", "ulat"],
   penyakit: ["penyakit", "jamur", "virus", "bakteri", "bercak"],
@@ -28,40 +28,34 @@ const INSPEKSI_PROPERTY_ALIASES: Record<string, string[]> = {
 
 interface NotionPage { id: string; properties: Record<string, { type: string; title?: Array<{ plain_text: string }> }>; }
 interface NotionDatabase { id: string; title?: Array<{ plain_text: string }>; properties?: Record<string, { id: string; type: string }>; }
-
 interface TemuanDetail { nama: string; catatan: string; }
 
-// STRUKTUR MULTI-AREA ANCHOR
 interface AddInspeksiBody {
   kegiatan: string;
-  areaIds: string[]; // ANCHOR UTAMA
+  areaIds: string[]; 
 
-  modeTanggal: "broadcast" | "spesifik"; 
-  tanggalBroadcast?: string; 
-  tanggalPerArea?: Record<string, string>; 
+  // MODE WAKTU BARU
+  modeWaktu: "broadcast" | "spesifik"; 
+  waktuMulaiBroadcast?: string; waktuSelesaiBroadcast?: string; durasiKerjaBroadcast?: number;
+  waktuMulaiPerArea?: Record<string, string>; waktuSelesaiPerArea?: Record<string, string>; durasiKerjaPerArea?: Record<string, number>;
   
   modeKendala: "broadcast" | "spesifik"; 
   hamaBroadcast?: string[]; penyakitBroadcast?: string[];
   hamaPerArea?: Record<string, string[]>; penyakitPerArea?: Record<string, string[]>;
-  temuanBroadcast?: TemuanDetail[]; temuanPerArea?: Record<string, TemuanDetail[]>; // Bawaan form lama lu
+  temuanBroadcast?: TemuanDetail[]; temuanPerArea?: Record<string, TemuanDetail[]>; 
 
   modeAngka: "broadcast" | "spesifik"; 
   tingkatSeranganBroadcast?: number | string; radiusBroadcast?: number | string; phTanahBroadcast?: number | string;
-  tingkatSeranganPerArea?: Record<string, number | string>; 
-  radiusPerArea?: Record<string, number | string>; 
-  phTanahPerArea?: Record<string, number | string>;
+  tingkatSeranganPerArea?: Record<string, number | string>; radiusPerArea?: Record<string, number | string>; phTanahPerArea?: Record<string, number | string>;
 
   modePekerja: "broadcast" | "spesifik"; 
-  petugasBroadcast?: string[]; 
-  petugasPerArea?: Record<string, string[]>;
+  petugasBroadcast?: string[]; petugasPerArea?: Record<string, string[]>;
   
   modeAtribut: "broadcast" | "spesifik";
-  statusBroadcast?: string; 
-  statusPerArea?: Record<string, string>;
+  statusBroadcast?: string; statusPerArea?: Record<string, string>;
 
   modeCatatan: "broadcast" | "spesifik"; 
-  keteranganBroadcast?: string; // Bawaan form lama lu (catatan umum)
-  keteranganPerArea?: Record<string, string>;
+  keteranganBroadcast?: string; keteranganPerArea?: Record<string, string>;
 }
 
 // ==========================================
@@ -128,7 +122,6 @@ function formatToNotionDate(dateStr: string | undefined): string | undefined {
   return dateStr;
 }
 
-// Bawaan fungsi lama lu (diubah sedikt biar kompatibel)
 function buildNotionBlocks(temuan: TemuanDetail[] | undefined, detailNotes: string | undefined): any[] {
   const blocks: any[] = [];
   if (detailNotes && detailNotes.trim() !== "") {
@@ -157,6 +150,7 @@ const INSPEKSI_FIELDS = [
   { key: "kegiatan", expectedType: "title" },
   { key: "labaRugi", expectedType: "relation" },
   { key: "tanggal", expectedType: "date" },
+  { key: "durasiKerja", expectedType: "number" }, // Injeksi Durasi
   { key: "hama", expectedType: "multi_select" },
   { key: "penyakit", expectedType: "multi_select" },
   { key: "tingkatSerangan", expectedType: "number" },
@@ -173,11 +167,18 @@ function buildInspeksiProperties(data: any, mappings: FieldMappingData | undefin
     if (!propertyId) return; 
     
     let value = data[field.key];
+    let valueEnd: any = undefined; 
+
     if (field.key === "labaRugi" && data.areaId) value = data.areaId;
     if (field.key === "petugas" && data.petugasIds) value = data.petugasIds;
     if (field.key === "hama" && data.hamaIds) value = data.hamaIds;
     if (field.key === "penyakit" && data.penyakitIds) value = data.penyakitIds;
-    if (field.key === "tanggal" && data.tanggalValue) value = formatToNotionDate(data.tanggalValue);
+    
+    // Injeksi format waktu mulai-selesai
+    if (field.key === "tanggal" && data.waktuMulaiValue) {
+      value = formatToNotionDate(data.waktuMulaiValue);
+      valueEnd = formatToNotionDate(data.waktuSelesaiValue);
+    }
     
     if (value === undefined || value === null || value === "" || (Array.isArray(value) && value.length === 0)) return;
     
@@ -187,7 +188,7 @@ function buildInspeksiProperties(data: any, mappings: FieldMappingData | undefin
       case "title": props[propertyId] = { title: [{ text: { content: String(value) } }] }; break;
       case "select": props[propertyId] = { select: { name: String(value) } }; break;
       case "status": props[propertyId] = { status: { name: String(value) } }; break;
-      case "date": props[propertyId] = { date: { start: String(value) } }; break;
+      case "date": props[propertyId] = { date: { start: String(value), ...(valueEnd ? { end: String(valueEnd) } : {}) } }; break;
       case "multi_select": 
         if (Array.isArray(value)) {
             const valid = value.filter(v => v && String(v).trim() !== "");
@@ -250,7 +251,6 @@ router.post("/notion/add-inspeksi", async (req, res): Promise<void> => {
     const mappingRow = await getMappingRow(userId, "inspeksi");
     const mappings = mappingRow?.mappings as FieldMappingData | undefined;
     
-    // Cari nama DB sesuai form lama lu ("Inspeksi") atau ("Inspeksi Rutin")
     const databaseId = mappingRow?.notionDatabaseId || (await findDatabaseByName(userId, accessToken, "Inspeksi")) || (await findDatabaseByName(userId, accessToken, "Inspeksi Rutin"));
     if (!databaseId) { res.status(404).json({ error: "Database 'Inspeksi' tidak ditemukan di Notion." }); return; }
     
@@ -258,8 +258,10 @@ router.post("/notion/add-inspeksi", async (req, res): Promise<void> => {
 
     const requests = areaIds.map(async (currentAreaId) => {
       
-      // 1. Resolve Waktu
-      const tanggalAreaIni = body.modeTanggal === "broadcast" ? body.tanggalBroadcast : (body.tanggalPerArea?.[currentAreaId] || body.tanggalBroadcast);
+      // 1. Resolve Waktu & Durasi
+      const waktuMulaiAreaIni = body.modeWaktu === "broadcast" ? body.waktuMulaiBroadcast : (body.waktuMulaiPerArea?.[currentAreaId] || body.waktuMulaiBroadcast);
+      const waktuSelesaiAreaIni = body.modeWaktu === "broadcast" ? body.waktuSelesaiBroadcast : (body.waktuSelesaiPerArea?.[currentAreaId] || body.waktuSelesaiBroadcast);
+      const durasiAreaIni = body.modeWaktu === "broadcast" ? body.durasiKerjaBroadcast : body.durasiKerjaPerArea?.[currentAreaId];
       
       // 2. Resolve Kendala (Hama & Penyakit)
       const hamaAreaIni = body.modeKendala === "broadcast" ? (body.hamaBroadcast || []) : (body.hamaPerArea?.[currentAreaId] || []);
@@ -283,7 +285,9 @@ router.post("/notion/add-inspeksi", async (req, res): Promise<void> => {
       const properties = buildInspeksiProperties({
           kegiatan, 
           areaId: currentAreaId, 
-          tanggalValue: tanggalAreaIni, 
+          waktuMulaiValue: waktuMulaiAreaIni, 
+          waktuSelesaiValue: waktuSelesaiAreaIni, 
+          durasiKerja: durasiAreaIni,
           hamaIds: hamaAreaIni, 
           penyakitIds: penyakitAreaIni, 
           tingkatSerangan: seranganAreaIni, 
@@ -293,7 +297,6 @@ router.post("/notion/add-inspeksi", async (req, res): Promise<void> => {
           status: statusAreaIni, 
         }, mappings, dbProperties);
 
-      // Rakit block anak halaman (Catatan umum & list hama)
       const childrenBlocks = buildNotionBlocks(temuanAreaIni, catatanAreaIni);
       
       const payload: any = { parent: { database_id: databaseId }, properties };
@@ -307,11 +310,10 @@ router.post("/notion/add-inspeksi", async (req, res): Promise<void> => {
 
     const results = await Promise.all(requests);
     
-    // Nyesuaiin response JSON form lama lu yang nyari `notionPageId`
     res.status(201).json({ 
       success: true, 
-      notionPageId: results[0]?.pageId, // Kompatibilitas frontend lama
-      data: results // Data lengkap multi-area
+      notionPageId: results[0]?.pageId, 
+      data: results 
     });
   } catch (err) { if (handleNotionErrors(res, err)) return; res.status(500).json({ error: err instanceof Error ? err.message : "Internal Server Error" }); }
 });
