@@ -17,6 +17,13 @@ export const PERAWATAN_SCHEMA = {
     },
 
     {
+      key: "durasiKerja",
+      label: "Durasi kerja",
+      expectedType: "number",
+      aliases: ["durasi", "lama kerja", "jam"],
+    },
+
+    {
       key: "tags",
       label: "Tags",
       expectedType: "select",
@@ -29,22 +36,22 @@ export const PERAWATAN_SCHEMA = {
     },
 
     {
-  key: "petugas",
-  label: "Petugas",
-  expectedType: "relation",
-  aliases: [
-    "petugas",
-    "petugaslapangan",
-    "pekerja",
-    "team",
-    "operator",
-  ],
-},
+      key: "petugas",
+      label: "Petugas",
+      expectedType: "relation",
+      aliases: [
+      "petugas",
+      "petugaslapangan",
+      "pekerja",
+      "team",
+      "operator",
+      ],
+    },
 
-    {
+     {
       key: "labaRugi",
       label: "Area Laba Rugi",
       expectedType: "relation",
-    },
+      },
   ],
 } as const;
