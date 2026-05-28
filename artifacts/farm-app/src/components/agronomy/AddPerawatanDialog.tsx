@@ -29,7 +29,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 
-// SCHEMA
+// ==========================================
+// 1. ZOD SCHEMA (ULTIMATE CUSTOM ENGINE)
+// ==========================================
 const perawatanSchema = z.object({
   kegiatan: z.string().min(1, "Nama kegiatan wajib diisi"),
   labaRugiIds: z.array(z.string()).min(1, "Minimal pilih 1 area"),
@@ -37,9 +39,11 @@ const perawatanSchema = z.object({
   modeTanggal: z.enum(["broadcast", "spesifik"]).default("broadcast"),
   tanggalBroadcast: z.string().optional(),
   tanggalSelesaiBroadcast: z.string().optional(),
-
+  durasiKerjaBroadcast: z.coerce.number().min(0).default(0), // 👈 WADAH DURASI
+  
   tanggalPerArea: z.record(z.string()).default({}),
   tanggalSelesaiPerArea: z.record(z.string()).default({}),
+  durasiKerjaPerArea: z.record(z.number()).default({}), // 👈 WADAH DURASI
 
   modePekerja: z.enum(["broadcast", "spesifik"]).default("broadcast"),
   petugasBroadcast: z.array(z.string()).default([]),
@@ -67,9 +71,8 @@ type PerawatanFormValues = z.infer<typeof perawatanSchema>;
 interface AddPerawatanDialogProps { onSuccess?: () => void; }
 
 const EMPTY_VALUES: PerawatanFormValues = {
-  kegiatan: "",
-  labaRugiIds: [],
-  modeTanggal: "broadcast", tanggalBroadcast: format(new Date(), "yyyy-MM-dd'T'HH:mm"), tanggalSelesaiBroadcast: "", tanggalPerArea: {}, tanggalSelesaiPerArea: {},
+  kegiatan: "", labaRugiIds: [],
+  modeTanggal: "broadcast", tanggalBroadcast: format(new Date(), "yyyy-MM-dd'T'HH:mm"), tanggalSelesaiBroadcast: "", durasiKerjaBroadcast: 0, tanggalPerArea: {}, tanggalSelesaiPerArea: {}, durasiKerjaPerArea: {},
   modePekerja: "broadcast", petugasBroadcast: [], petugasPerArea: {},
   modeTags: "broadcast", tagsBroadcast: "", tagsPerArea: {},
   modeStatus: "broadcast", statusBroadcast: "Rencana", statusPerArea: {},
@@ -79,7 +82,7 @@ const EMPTY_VALUES: PerawatanFormValues = {
 
 export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
   const [open, setOpen] = useState(false);
-  const [step, setStep] = useState(1); // SEKARANG TOTAL ADA 6 STEP
+  const [step, setStep] = useState(1);
   const [submittedUrls, setSubmittedUrls] = useState<{pageId: string, notionUrl: string}[] | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -97,18 +100,38 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
   const form = useForm<PerawatanFormValues>({
     resolver: zodResolver(perawatanSchema),
     defaultValues: EMPTY_VALUES,
-    shouldUnregister: false, // Gembok data biar ga hilang pas ganti step
+    shouldUnregister: false, 
   });
 
   const { fields: produkFields, append: appendProduk, remove: removeProduk } = useFieldArray({
     control: form.control, name: "logProduk",
   });
 
+  // 👇 FUNGSI PENGHITUNG DURASI JAM KERJA 👇
+  const calculateDuration = (start?: string, end?: string) => {
+    if (!start || !end) return 0;
+    const s = new Date(start).getTime();
+    const e = new Date(end).getTime();
+    if (e > s) return Math.round(((e - s) / (1000 * 60 * 60)) * 10) / 10;
+    return 0;
+  };
+
   const savePerawatan = useMutation({
     mutationFn: async (payload: PerawatanFormValues) => {
+      
+      // 👇 PASTIKAN DURASI DISIAPKAN SEBELUM DIKIRIM 👇
+      const finalDurasiPerArea = payload.modeTanggal === "broadcast" 
+        ? payload.labaRugiIds.reduce((acc, id) => ({ ...acc, [id]: payload.durasiKerjaBroadcast }), {}) 
+        : payload.durasiKerjaPerArea;
+
+      const cleanPayload = {
+         ...payload,
+         durasiKerjaPerArea: finalDurasiPerArea
+      }
+
       const response = await fetch("/api/notion/add-perawatan", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(cleanPayload),
       });
       if (!response.ok) {
         const errText = await response.text();
@@ -131,6 +154,10 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
     if (step === 1) fieldsToValidate = ["kegiatan"];
     if (step === 2) fieldsToValidate = ["labaRugiIds"];
     
+    if (step === 2 && form.getValues("labaRugiIds").length === 0) {
+      toast({ variant: "destructive", title: "Oops!", description: "Pilih minimal 1 Area / Laba Rugi." }); return;
+    }
+
     const isStepValid = await form.trigger(fieldsToValidate);
     if (isStepValid) setStep((prev) => prev + 1);
   };
@@ -372,37 +399,45 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                     <motion.div key="step6" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="space-y-6 pb-2">
                       <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">6. Finalisasi Jadwal & Status</p>
                       
-                      {/* MULTI TANGGAL */}
+                      {/* 👇 MULTI TANGGAL DENGAN DURASI 👇 */}
                       <div className="space-y-2.5">
                         <p className="text-[11px] font-bold text-muted-foreground">Waktu Pelaksanaan (Mulai & Selesai)</p>
                         <div className="grid grid-cols-2 gap-2 bg-muted/50 p-1.5 rounded-xl border border-border">
                           <button type="button" onClick={() => form.setValue("modeTanggal", "broadcast")} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modeTanggal") === "broadcast" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Sama Semua</button>
                           <button type="button" onClick={() => {
                             form.setValue("modeTanggal", "spesifik");
-                            const currentTanggal = form.getValues("tanggalBroadcast");
-                            const currentSelesai = form.getValues("tanggalSelesaiBroadcast");
+                            const curMulai = form.getValues("tanggalBroadcast");
+                            const curSelesai = form.getValues("tanggalSelesaiBroadcast");
+                            const curDurasi = form.getValues("durasiKerjaBroadcast");
                             form.getValues("labaRugiIds").forEach(id => {
-                              if (!form.getValues(`tanggalPerArea.${id}`)) form.setValue(`tanggalPerArea.${id}`, currentTanggal || "");
-                              if (!form.getValues(`tanggalSelesaiPerArea.${id}`)) form.setValue(`tanggalSelesaiPerArea.${id}`, currentSelesai || "");
+                              if (!form.getValues(`tanggalPerArea.${id}`)) form.setValue(`tanggalPerArea.${id}`, curMulai || "");
+                              if (!form.getValues(`tanggalSelesaiPerArea.${id}`)) form.setValue(`tanggalSelesaiPerArea.${id}`, curSelesai || "");
+                              if (!form.getValues(`durasiKerjaPerArea.${id}`)) form.setValue(`durasiKerjaPerArea.${id}`, curDurasi || 0);
                             });
                           }} className={`py-2 text-xs font-bold rounded-lg transition-all ${form.watch("modeTanggal") === "spesifik" ? "bg-white dark:bg-slate-900 shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Isi Per Area</button>
                         </div>
                         
                         {form.watch("modeTanggal") === "broadcast" ? (
-                           <div className="grid grid-cols-2 gap-2 animate-in fade-in">
-                             <div className="space-y-1">
-                               <p className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Mulai</p>
-                               <div className="relative">
-                                 <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
-                                 <Input type="datetime-local" className="h-11 rounded-xl bg-muted border-transparent pl-9 pr-2 focus-visible:ring-2 focus-visible:ring-green-600/20 text-xs font-bold w-full" value={form.watch("tanggalBroadcast") || ""} onChange={(e) => form.setValue("tanggalBroadcast", e.target.value, { shouldValidate: true, shouldDirty: true })} />
+                           <div className="space-y-3 animate-in fade-in">
+                             <div className="grid grid-cols-2 gap-2">
+                               <div className="space-y-1">
+                                 <p className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Mulai</p>
+                                 <div className="relative">
+                                   <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
+                                   <Input type="datetime-local" className="h-11 rounded-xl bg-muted border-transparent pl-9 pr-2 focus-visible:ring-2 focus-visible:ring-green-600/20 text-[11px] font-bold w-full" value={form.watch("tanggalBroadcast") || ""} onChange={(e) => { form.setValue("tanggalBroadcast", e.target.value); form.setValue("durasiKerjaBroadcast", calculateDuration(e.target.value, form.getValues("tanggalSelesaiBroadcast"))); }} />
+                                 </div>
+                               </div>
+                               <div className="space-y-1">
+                                 <p className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Selesai</p>
+                                 <div className="relative">
+                                   <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
+                                   <Input type="datetime-local" className="h-11 rounded-xl bg-muted border-transparent pl-9 pr-2 focus-visible:ring-2 focus-visible:ring-green-600/20 text-[11px] font-bold w-full" value={form.watch("tanggalSelesaiBroadcast") || ""} onChange={(e) => { form.setValue("tanggalSelesaiBroadcast", e.target.value); form.setValue("durasiKerjaBroadcast", calculateDuration(form.getValues("tanggalBroadcast"), e.target.value)); }} />
+                                 </div>
                                </div>
                              </div>
                              <div className="space-y-1">
-                               <p className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Selesai (Opsional)</p>
-                               <div className="relative">
-                                 <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
-                                 <Input type="datetime-local" className="h-11 rounded-xl bg-muted border-transparent pl-9 pr-2 focus-visible:ring-2 focus-visible:ring-green-600/20 text-xs font-bold w-full" value={form.watch("tanggalSelesaiBroadcast") || ""} onChange={(e) => form.setValue("tanggalSelesaiBroadcast", e.target.value, { shouldValidate: true, shouldDirty: true })} />
-                               </div>
+                               <p className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Total Durasi (Jam)</p>
+                               <Input type="number" step="0.1" className="h-11 rounded-xl bg-muted border-transparent focus-visible:ring-2 focus-visible:ring-green-600/20 text-sm font-bold w-1/2" value={form.watch("durasiKerjaBroadcast") || 0} onChange={(e) => form.setValue("durasiKerjaBroadcast", Number(e.target.value))} />
                              </div>
                            </div>
                         ) : (
@@ -415,12 +450,17 @@ export function AddPerawatanDialog({ onSuccess }: AddPerawatanDialogProps) {
                                   <div className="grid grid-cols-2 gap-2">
                                     <div className="space-y-1">
                                       <p className="text-[9px] font-bold text-muted-foreground uppercase ml-1">Mulai</p>
-                                      <Input type="datetime-local" className="h-9 rounded-lg bg-background border-border/80 text-[11px] font-bold w-full px-2" value={form.watch(`tanggalPerArea.${areaId}`) || form.watch("tanggalBroadcast") || ""} onChange={(e) => form.setValue(`tanggalPerArea.${areaId}`, e.target.value, { shouldValidate: true, shouldDirty: true })} />
+                                      <Input type="datetime-local" className="h-9 rounded-lg bg-background border-border/80 text-[10px] font-bold w-full px-2" value={form.watch(`tanggalPerArea.${areaId}`) || ""} onChange={(e) => { form.setValue(`tanggalPerArea.${areaId}`, e.target.value); form.setValue(`durasiKerjaPerArea.${areaId}`, calculateDuration(e.target.value, form.getValues(`tanggalSelesaiPerArea.${areaId}`))); }} />
                                     </div>
                                     <div className="space-y-1">
                                       <p className="text-[9px] font-bold text-muted-foreground uppercase ml-1">Selesai</p>
-                                      <Input type="datetime-local" className="h-9 rounded-lg bg-background border-border/80 text-[11px] font-bold w-full px-2" value={form.watch(`tanggalSelesaiPerArea.${areaId}`) || form.watch("tanggalSelesaiBroadcast") || ""} onChange={(e) => form.setValue(`tanggalSelesaiPerArea.${areaId}`, e.target.value, { shouldValidate: true, shouldDirty: true })} />
+                                      <Input type="datetime-local" className="h-9 rounded-lg bg-background border-border/80 text-[10px] font-bold w-full px-2" value={form.watch(`tanggalSelesaiPerArea.${areaId}`) || ""} onChange={(e) => { form.setValue(`tanggalSelesaiPerArea.${areaId}`, e.target.value); form.setValue(`durasiKerjaPerArea.${areaId}`, calculateDuration(form.getValues(`tanggalPerArea.${areaId}`), e.target.value)); }} />
                                     </div>
+                                  </div>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <p className="text-[9px] font-bold text-muted-foreground uppercase ml-1">Durasi:</p>
+                                    <Input type="number" step="0.1" className="h-7 w-16 text-[10px] font-bold px-1 bg-background" value={form.watch(`durasiKerjaPerArea.${areaId}`) || 0} onChange={(e) => form.setValue(`durasiKerjaPerArea.${areaId}`, Number(e.target.value))} />
+                                    <span className="text-[9px] text-muted-foreground font-bold">Jam</span>
                                   </div>
                                 </div>
                               );
