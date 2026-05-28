@@ -23,10 +23,9 @@ const OPERASIONAL_PROPERTY_ALIASES: Record<string, string[]> = {
 interface NotionPage { id: string; properties: Record<string, { type: string; title?: Array<{ plain_text: string }> }>; }
 interface NotionDatabase { id: string; title?: Array<{ plain_text: string }>; properties?: Record<string, { id: string; type: string }>; }
 
-// STRUKTUR BARU: Area jadi Anchor. Kategori ikut dibikin dinamis.
 interface AddOperasionalBody {
   namaPekerjaan: string;
-  areaIds: string[]; // Anchor utama
+  areaIds: string[]; 
   
   modeKategori: "broadcast" | "spesifik";
   kategoriBroadcast?: string; 
@@ -34,6 +33,7 @@ interface AddOperasionalBody {
 
   modeWaktu: "broadcast" | "spesifik"; 
   waktuMulaiBroadcast?: string; waktuSelesaiBroadcast?: string; 
+  durasiKerjaBroadcast?: number; // 👈 FIX: WADAH DURASI BROADCAST
   waktuMulaiPerArea?: Record<string, string>; waktuSelesaiPerArea?: Record<string, string>; 
   durasiKerjaPerArea?: Record<string, number>; 
   
@@ -220,7 +220,9 @@ router.post("/notion/add-operasional", async (req, res): Promise<void> => {
       // 2. Resolve Waktu & Durasi
       const waktuMulaiAreaIni = body.modeWaktu === "broadcast" ? body.waktuMulaiBroadcast : (body.waktuMulaiPerArea?.[currentAreaId] || body.waktuMulaiBroadcast);
       const waktuSelesaiAreaIni = body.modeWaktu === "broadcast" ? body.waktuSelesaiBroadcast : (body.waktuSelesaiPerArea?.[currentAreaId] || body.waktuSelesaiBroadcast);
-      const durasiAreaIni = body.modeWaktu === "broadcast" ? body.durasiKerjaPerArea?.[currentAreaId] : body.durasiKerjaPerArea?.[currentAreaId];
+      
+      // 👇 FIX LOGIKA DURASI 👇
+      const durasiAreaIni = body.modeWaktu === "broadcast" ? body.durasiKerjaBroadcast : body.durasiKerjaPerArea?.[currentAreaId];
       
       // 3. Resolve Pekerja
       const pekerjaAreaIni = body.modePekerja === "broadcast" ? (body.pekerjaBroadcast || []) : (body.pekerjaPerArea?.[currentAreaId] || []);
