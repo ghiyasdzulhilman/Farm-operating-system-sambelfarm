@@ -11,6 +11,7 @@ interface NotionDatabasePropertyMeta { id: string; type: string; name: string; }
 const PERAWATAN_PROPERTY_ALIASES: Record<string, string[]> = {
   kegiatan: ["kegiatan", "aktivitas", "nama kegiatan"],
   tanggal: ["tanggal", "jadwal", "tanggal pelaksanaan", "date"],
+  durasiKerja: ["durasi kerja", "durasi", "lama kerja", "jam"], // 👈 INJEKSI ALIAS DURASI
   tags: ["tags", "tag", "jenis kegiatan"],
   status: ["status"],
   petugas: ["petugas", "pekerja", "operator"],
@@ -25,11 +26,15 @@ interface AddPerawatanBody {
   tanggal?: string; 
   labaRugiId?: string; 
   labaRugiIds?: string[]; 
+  
   modeTanggal: "broadcast" | "spesifik"; 
   tanggalBroadcast?: string; 
   tanggalSelesaiBroadcast?: string; 
+  durasiKerjaBroadcast?: number; // 👈 WADAH PAYLOAD DURASI
   tanggalPerArea?: Record<string, string>;
   tanggalSelesaiPerArea?: Record<string, string>; 
+  durasiKerjaPerArea?: Record<string, number>; // 👈 WADAH PAYLOAD DURASI
+  
   modePekerja: "broadcast" | "spesifik"; petugasBroadcast: string[]; petugasPerArea: Record<string, string[]>;
   modeTags: "broadcast" | "spesifik"; tagsBroadcast?: string; tagsPerArea?: Record<string, string>;
   modeStatus: "broadcast" | "spesifik"; statusBroadcast?: string; statusPerArea?: Record<string, string>;
@@ -39,12 +44,10 @@ interface AddPerawatanBody {
 
 function decodePropertyId(id: string): string { try { return decodeURIComponent(id); } catch { return id; } }
 
-// 👇 TAMBAHAN: Fungsi buat maksa zona waktu ke Indonesia (WIB / +07:00) biar ga jadi UTC
 function formatToNotionDate(dateStr: string | undefined): string | undefined {
   if (!dateStr) return undefined;
-  // Jika input dari HTML datetime-local bentuknya "2026-05-30T15:30" (panjang 16 karakter)
   if (dateStr.length === 16 && dateStr.includes("T")) {
-    return `${dateStr}:00+07:00`; // Paksa timezone ke WIB
+    return `${dateStr}:00+07:00`; 
   }
   return dateStr;
 }
@@ -101,10 +104,10 @@ function resolvePropertyId(
 
   const aliases = PERAWATAN_PROPERTY_ALIASES[fieldKey] ?? [fieldKey];
   const normalizedAliases = new Set(aliases.map(normalizeKey));
-  const byAlias = dbProperties.find((p) => p.type === expectedType && normalizedAliases.has(normalizeKey(p.name)));
+  const byAlias = dbProperties.find((p) => (expectedType.includes(p.type) || p.type === expectedType) && normalizedAliases.has(normalizeKey(p.name)));
   if (byAlias) return decodePropertyId(byAlias.id);
 
-  const firstTypeMatch = dbProperties.find((p) => p.type === expectedType);
+  const firstTypeMatch = dbProperties.find((p) => expectedType.includes(p.type) || p.type === expectedType);
   return firstTypeMatch ? decodePropertyId(firstTypeMatch.id) : null;
 }
 
@@ -129,6 +132,7 @@ function buildNotionBlocks(logProduk: Array<{ produk: string; dosis: string }> |
 const PERAWATAN_FIELDS = [
   { key: "kegiatan", expectedType: "title" },
   { key: "tanggal", expectedType: "date" },
+  { key: "durasiKerja", expectedType: "number" }, // 👈 INJEKSI FIELD DURASI
   { key: "tags", expectedType: "select" },
   { key: "status", expectedType: "status" },
   { key: "petugas", expectedType: "relation" },
@@ -150,14 +154,16 @@ function buildPerawatanProperties(data: any, mappings: FieldMappingData | undefi
     if (field.key === "tags" && data.tagsValue) value = data.tagsValue; 
     if (field.key === "status" && data.statusValue) value = data.statusValue;
     if (field.key === "tanggal" && data.tanggalValue) {
-        // 👇 Terapkan Format Zona Waktu WIB
         value = formatToNotionDate(data.tanggalValue);
         valueEnd = formatToNotionDate(data.tanggalEndValue); 
     }
     
     if (value === undefined || value === null || value === "" || (Array.isArray(value) && value.length === 0)) return;
 
-    switch (field.expectedType) {
+    // Pakai pengecekan actualType kayak di inspeksi/operasional biar presisi
+    const actualType = dbProperties.find(p => p.id === propertyId)?.type || field.expectedType.split("|")[0];
+
+    switch (actualType) {
       case "title": props[propertyId] = { title: [{ text: { content: String(value) } }] }; break;
       case "date": 
         props[propertyId] = { 
@@ -177,6 +183,11 @@ function buildPerawatanProperties(data: any, mappings: FieldMappingData | undefi
       case "relation": {
         const relationIds = Array.isArray(value) ? value.filter((id) => id && String(id).trim() !== "").map((id) => ({ id: String(id).trim() })) : [{ id: String(value).trim() }];
         if (relationIds.length > 0) props[propertyId] = { relation: relationIds };
+        break;
+      }
+      case "number": {
+        const parsed = Number(value);
+        if (!Number.isNaN(parsed)) props[propertyId] = { number: parsed };
         break;
       }
     }
@@ -213,7 +224,7 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
     const { accessToken } = connection;
     const mappingRow = await getMappingRow(userId, "perawatan");
     const mappings = mappingRow?.mappings as FieldMappingData | undefined;
-    const databaseId = mappingRow?.notionDatabaseId || (await findDatabaseByName(userId, accessToken, "Perawatan"));
+    const databaseId = mappingRow?.notionDatabaseId || (await findDatabaseByName(userId, accessToken, "Perawatan")) || (await findDatabaseByName(userId, accessToken, "Perawatan Kebun"));
     if (!databaseId) { res.status(404).json({ error: "Database 'Perawatan' tidak ditemukan di Notion." }); return; }
 
     const dbProperties = await getDatabasePropertyMeta(userId, accessToken, databaseId);
@@ -224,6 +235,8 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
       
       const tanggalAreaIni = body.modeTanggal === "broadcast" ? (body.tanggalBroadcast || fallbackDate) : (body.tanggalPerArea?.[currentAreaId] || body.tanggalBroadcast || fallbackDate);
       const tanggalSelesaiAreaIni = body.modeTanggal === "broadcast" ? body.tanggalSelesaiBroadcast : (body.tanggalSelesaiPerArea?.[currentAreaId] || body.tanggalSelesaiBroadcast);
+      const durasiAreaIni = body.modeTanggal === "broadcast" ? body.durasiKerjaBroadcast : body.durasiKerjaPerArea?.[currentAreaId]; // 👈 RESOLVE DURASI
+      
       const catatanAreaIni = body.modeCatatan === "broadcast" ? (body.catatanBroadcast || "") : (body.catatanPerArea?.[currentAreaId] || "");
       const pekerjaAreaIni = body.modePekerja === "broadcast" ? (body.petugasBroadcast || []) : (body.petugasPerArea?.[currentAreaId] || []);
       const produkAreaIni = body.modeProduk === "broadcast" ? (body.logProduk || []) : (body.produkPerArea?.[currentAreaId] || []);
@@ -234,7 +247,8 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
           kegiatan,
           labaRugiId: currentAreaId,
           tanggalValue: tanggalAreaIni, 
-          tanggalEndValue: tanggalSelesaiAreaIni, // 👈 INI YANG TADI KELUPAAN!
+          tanggalEndValue: tanggalSelesaiAreaIni, 
+          durasiKerja: durasiAreaIni, // 👈 KIRIM DURASI KE BUILDER
           petugasIds: pekerjaAreaIni,
           tagsValue: tagsAreaIni, 
           statusValue: statusAreaIni, 
