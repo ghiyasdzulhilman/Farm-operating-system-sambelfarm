@@ -8,6 +8,7 @@ import {
   Beaker, 
   SlidersHorizontal, 
   Plus, 
+  Wheat,
   Banknote,
   Sprout,
   ShoppingBasket, 
@@ -66,13 +67,13 @@ export function AppLayout({
     { href: "/settings", icon: SlidersHorizontal },
   ];
 
-    // URUTAN FAB MUNCUL KE ATAS (VERTIKAL LURUS) DENGAN ICON SPESIFIK
+  // URUTAN FAB MUNCUL KE ATAS (VERTIKAL LURUS) DENGAN ICON PILIHAN MANDOR
   const quickActions = [
     { id: "expense", component: AddExpenseDialog, icon: Banknote, delay: 0.12 },
-    { id: "inspeksi", component: AddInspeksiDialog, icon: Search, delay: 0.09 }, // 👈 Kaca Pembesar
-    { id: "operasional", component: AddOperasionalDialog, icon: Activity, delay: 0.06 }, // 👈 Kegiatan/Olahraga
+    { id: "inspeksi", component: AddInspeksiDialog, icon: Search, delay: 0.09 }, 
+    { id: "operasional", component: AddOperasionalDialog, icon: Activity, delay: 0.06 }, 
     { id: "perawatan", component: AddPerawatanDialog, icon: Sprout, delay: 0.03 },
-    { id: "harvest", component: AddHarvestDialog, icon: ShoppingBasket, delay: 0.0 }, // 👈 Keranjang
+    { id: "harvest", component: AddHarvestDialog, icon: ShoppingBasket, delay: 0.0 }, 
   ];
 
   return (
@@ -144,11 +145,9 @@ export function AppLayout({
       </AnimatePresence>
 
       {/* ─── THE ASYMMETRIC DYNAMIC FLOATING DOCK (z-50) ─── */}
-      {/* 🟢 EDIT: bottom-4 biar agak turun, gak ngatung banget */}
       <div className="fixed bottom-4 left-4 right-4 z-50 max-w-md mx-auto flex items-center justify-between gap-4 pointer-events-none">
         
-        {/* KAPSUL KIRI: MENU NAVIGASI (TANPA TEKS) */}
-        {/* 🟢 EDIT: h-14 biar ukurannya "Titik Emas" (sedang) */}
+        {/* KAPSUL KIRI: MENU NAVIGASI (PILL CONTAINER) */}
         <nav className="flex-1 h-14 rounded-full border border-white/20 bg-background/80 backdrop-blur-3xl shadow-[0_12px_32px_rgba(0,0,0,0.15)] px-2 flex items-center justify-around pointer-events-auto">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -176,7 +175,7 @@ export function AppLayout({
         {/* ─── KANAN: TOMBOL PUSAT (+) & MENU VERTIKAL ─── */}
         <div className="relative pointer-events-auto shrink-0 flex justify-center">
           
-        {/* MENU MUNCUL LURUS KE ATAS */}
+          {/* MENU MUNCUL LURUS KE ATAS */}
           <AnimatePresence>
             {isFabOpen && quickActions.map((action, index) => {
               const ActionDialog = action.component;
@@ -192,10 +191,11 @@ export function AppLayout({
                   transition={{ type: "spring", bounce: 0.35, duration: 0.5, delay: action.delay }}
                   className="absolute z-20"
                 >
+                  {/* LINGKARAN ICON PREMIUM */}
                   <div className="relative flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-primary text-primary-foreground shadow-xl active:scale-95 transition-all">
                     <Icon className="h-[20px] w-[20px] stroke-[2.5]" />
                     
-                    {/* 👇 INI YANG UDAH GUA PERBAIKI, ONCLICK-NYA DIHAPUS BIAR GAK MENTAL 👇 */}
+                    {/* JURUS INVISIBLE OVERLAY */}
                     <div className="absolute inset-0 z-30 opacity-0 overflow-hidden">
                       <div className="w-full h-full [&_button]:w-full [&_button]:h-full [&_button]:absolute [&_button]:inset-0 [&_button]:opacity-0">
                         <ActionDialog />
