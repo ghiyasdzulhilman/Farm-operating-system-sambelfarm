@@ -8,7 +8,11 @@ import {
   Beaker, 
   SlidersHorizontal, 
   Plus, 
-  Wheat
+  Wheat,
+  Banknote,
+  Activity,
+  Wrench,
+  Sprout
 } from "lucide-react";
 
 import { AddHarvestDialog } from "@/components/harvest/add-harvest-dialog";
@@ -54,21 +58,21 @@ export function AppLayout({
     );
   }
 
-  // IKON BARU: Lebih round, smooth, dan premium (Anti tajem-tajem)
+  // BOTTOM NAV ICON PREMIUM & MELENGKUNG (NO TEXT)
   const navItems = [
-    { href: "/dashboard", icon: Home, label: "Home" },
-    { href: "/operasional", icon: NotebookText, label: "Operasional" },
-    { href: "/lab", icon: Beaker, label: "Lab" },
-    { href: "/settings", icon: SlidersHorizontal, label: "Setelan" },
+    { href: "/dashboard", icon: Home },
+    { href: "/operasional", icon: NotebookText },
+    { href: "/lab", icon: Beaker },
+    { href: "/settings", icon: SlidersHorizontal },
   ];
 
-  // POPUP VERTIKAL KE ATAS (Angka offset minus = gerak ke atas)
+  // URUTAN FAB MUNCUL KE ATAS (VERTIKAL LURUS) DENGAN ICON SPESIFIK
   const quickActions = [
-    { id: "expense", component: AddExpenseDialog, offset: -320, delay: 0.14 },
-    { id: "inspeksi", component: AddInspeksiDialog, offset: -255, delay: 0.11 },
-    { id: "operasional", component: AddOperasionalDialog, offset: -190, delay: 0.08 },
-    { id: "perawatan", component: AddPerawatanDialog, offset: -125, delay: 0.05 },
-    { id: "harvest", component: AddHarvestDialog, offset: -60, delay: 0.02 },
+    { id: "expense", component: AddExpenseDialog, icon: Banknote, delay: 0.12 },
+    { id: "inspeksi", component: AddInspeksiDialog, icon: Activity, delay: 0.09 },
+    { id: "operasional", component: AddOperasionalDialog, icon: Wrench, delay: 0.06 },
+    { id: "perawatan", component: AddPerawatanDialog, icon: Sprout, delay: 0.03 },
+    { id: "harvest", component: AddHarvestDialog, icon: Wheat, delay: 0.0 },
   ];
 
   return (
@@ -126,93 +130,101 @@ export function AppLayout({
         {children}
       </main>
 
-      {/* BACKDROP OVERLAY OVERVIEW */}
+      {/* BACKDROP GELAP SAAT FAB DIBUKA */}
       <AnimatePresence>
         {isFabOpen && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
+            className="fixed inset-0 bg-black/20 backdrop-blur-[2px] z-40"
             onClick={() => setIsFabOpen(false)}
           />
         )}
       </AnimatePresence>
 
-      {/* ─── 🛠️ THE NEW ASYMMETRIC DYNAMIC FLOATING DOCK (z-50) ─── */}
-      <div className="fixed bottom-6 left-4 right-4 z-50 max-w-md mx-auto flex items-center justify-between gap-3 pointer-events-none">
+      {/* ─── THE ASYMMETRIC DYNAMIC FLOATING DOCK (z-50) ─── */}
+      <div className="fixed bottom-6 left-4 right-4 z-50 max-w-md mx-auto flex items-center justify-between gap-4 pointer-events-none">
         
-        {/* KAPSUL KIRI: MENU NAVIGASI UTAMA (PILL CONTAINER) */}
-        <nav className="flex-1 h-[52px] rounded-full border border-white/20 bg-background/85 backdrop-blur-3xl shadow-[0_12px_32px_rgba(0,0,0,0.15)] px-1.5 flex items-center justify-between pointer-events-auto">
+        {/* KAPSUL KIRI: MENU NAVIGASI (TANPA TEKS) */}
+        <nav className="flex-1 h-16 rounded-full border border-white/20 bg-background/80 backdrop-blur-3xl shadow-[0_12px_32px_rgba(0,0,0,0.15)] px-2 flex items-center justify-around pointer-events-auto">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location === item.href;
             return (
-              <Link key={item.label} href={item.href}>
-                <a className="relative flex items-center justify-center h-[40px] px-3.5 rounded-full transition-all duration-300">
-                  {/* PIL AKTIF GLOWING EFFECT */}
-                  {isActive ? (
+              <Link key={item.href} href={item.href}>
+                <a className="relative flex items-center justify-center h-12 w-12 rounded-full transition-all duration-300">
+                  {/* PIL AKTIF GLOWING EFFECT BEHIND ICON */}
+                  {isActive && (
                     <motion.div 
-                      layoutId="asymmetric-nav-pill"
-                      className="absolute inset-0 rounded-full bg-foreground/10 dark:bg-white/15 flex items-center px-3 shadow-inner"
+                      layoutId="active-nav-pill"
+                      className="absolute inset-0 rounded-full bg-primary/10 dark:bg-white/10"
                       transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                    >
-                      <span className="ml-[22px] text-xs font-bold text-foreground pr-0.5 tracking-tight animate-in fade-in duration-300">
-                        {item.label}
-                      </span>
-                    </motion.div>
-                  ) : null}
+                    />
+                  )}
                   
-                  {/* ICON */}
-                  <Icon className={"h-[18px] w-[18px] z-10 transition-colors duration-300 " + (isActive ? "text-primary stroke-[2.5]" : "text-foreground/45 stroke-[2] hover:text-foreground/80")} />
+                  {/* ICON SAJA (Lebih besar, lebih rounded) */}
+                  <Icon className={"h-6 w-6 z-10 transition-all duration-300 " + (isActive ? "text-primary stroke-[2.5] scale-110" : "text-foreground/45 stroke-[2] hover:text-foreground/80")} />
                 </a>
               </Link>
             );
           })}
         </nav>
 
-        {/* ─── CONTAINER TOMBOL PUSAT AKSI KANAN (FAB COCKPIT) ─── */}
+        {/* ─── KANAN: TOMBOL PUSAT (+) & MENU VERTIKAL ─── */}
         <div className="relative pointer-events-auto shrink-0 flex justify-center">
           
-          {/* POPUP SAKTI KE ATAS (VERTIKAL) */}
-          {quickActions.map((action) => {
-            const ActionDialog = action.component;
-            return (
-              <AnimatePresence key={action.id}>
-                {isFabOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 0, scale: 0.3 }}
-                    animate={{ opacity: 1, y: action.offset, scale: 1 }}
-                    exit={{ opacity: 0, y: 0, scale: 0.3 }}
-                    transition={{ type: "spring", bounce: 0.35, duration: 0.5, delay: action.delay }}
-                    className="absolute z-20 flex justify-center"
-                  >
-                    <div className="h-12 w-12 rounded-full border border-white/20 bg-primary shadow-xl active:scale-95 transition-all flex items-center justify-center overflow-hidden">
-                      {/* CSS HACK DEWA: Membunuh semua teks dan menyisakan SVG sempurna di tengah */}
-                      <div className="absolute inset-0 [&_button]:flex [&_button]:h-full [&_button]:w-full [&_button]:items-center [&_button]:justify-center [&_button]:rounded-full [&_button]:bg-transparent [&_button]:p-0 [&_button]:m-0 [&_button]:border-none [&_button]:shadow-none [&_button]:text-[0px] [&_button]:text-transparent [&_button>span]:hidden [&_button_svg]:mx-auto [&_button_svg]:h-[22px] [&_button_svg]:w-[22px] [&_button_svg]:text-white">
-                        <ActionDialog onSuccess={() => setIsFabOpen(false)} />
+          {/* MENU MUNCUL LURUS KE ATAS */}
+          <AnimatePresence>
+            {isFabOpen && quickActions.map((action, index) => {
+              const ActionDialog = action.component;
+              const Icon = action.icon;
+              // Ngitung offset otomatis ke atas: -65, -125, -185, dll
+              const verticalOffset = -((index + 1) * 60) - 5; 
+
+              return (
+                <motion.div
+                  key={action.id}
+                  initial={{ opacity: 0, y: 0, scale: 0.3 }}
+                  animate={{ opacity: 1, y: verticalOffset, scale: 1 }}
+                  exit={{ opacity: 0, y: 0, scale: 0.3 }}
+                  transition={{ type: "spring", bounce: 0.35, duration: 0.5, delay: action.delay }}
+                  className="absolute z-20"
+                >
+                  {/* LINGKARAN ICON PREMIUM */}
+                  <div className="relative flex h-[50px] w-[50px] items-center justify-center rounded-full border border-white/20 bg-primary text-primary-foreground shadow-xl active:scale-95 transition-all">
+                    <Icon className="h-5 w-5 stroke-[2.5]" />
+                    
+                    {/* JURUS INVISIBLE OVERLAY: Tombol Form Asli Dibikin Transparan & Nutupin Seluruh Lingkaran */}
+                    <div 
+                      className="absolute inset-0 z-30 opacity-0 overflow-hidden"
+                      onClick={() => setIsFabOpen(false)} // Opsional: tutup fab saat di klik
+                    >
+                      {/* Class ini maksa apapun tombol di dalam dialog jadi full size tembus pandang */}
+                      <div className="w-full h-full [&_button]:w-full [&_button]:h-full [&_button]:absolute [&_button]:inset-0 [&_button]:opacity-0">
+                        <ActionDialog />
                       </div>
                     </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            );
-          })}
+                  </div>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
 
-          {/* TOMBOL UTAMA LINGKARAN HITAM BESAR (+) SEPERTI GAMBAR LU */}
+          {/* TOMBOL UTAMA LINGKARAN HITAM BESAR (+) */}
           <motion.button
             onClick={() => setIsFabOpen(!isFabOpen)}
             animate={{ rotate: isFabOpen ? 135 : 0 }}
             transition={{ type: "spring", bounce: 0.3, duration: 0.5 }}
             className={
-              "flex h-[52px] w-[52px] items-center justify-center rounded-full border transition-all duration-300 active:scale-90 shadow-[0_8px_24px_rgba(0,0,0,0.2)] z-30 " +
+              "flex h-16 w-16 items-center justify-center rounded-full transition-all duration-300 active:scale-90 shadow-[0_8px_24px_rgba(0,0,0,0.2)] z-30 " +
               (isFabOpen 
-                ? "bg-destructive border-destructive/30 text-white" 
-                : "bg-slate-950 border-slate-800 text-white dark:bg-white dark:border-white dark:text-slate-950")
+                ? "bg-destructive text-white" 
+                : "bg-slate-950 text-white dark:bg-white dark:text-slate-950")
             }
             aria-label="Menu Aksi"
           >
-            <Plus className="h-6 w-6 stroke-[2.5]" />
+            <Plus className="h-7 w-7 stroke-[2.5]" />
           </motion.button>
         </div>
 
