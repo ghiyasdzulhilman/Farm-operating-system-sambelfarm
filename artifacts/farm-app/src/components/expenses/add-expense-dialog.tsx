@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
-import { PlusCircle, Loader2, CalendarIcon, Wallet, ArrowRight, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { PlusCircle, Loader2, CalendarIcon, Banknote, ArrowRight, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -200,7 +200,7 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
           data-testid="button-add-expense" 
           className="h-11 rounded-xl px-5 font-bold transition-all active:scale-[0.98] bg-primary text-primary-foreground hover:opacity-90 gap-2"
         >
-          <PlusCircle className="h-4 w-4" />
+          <Banknote className="h-4 w-4" />
           Tambah Pengeluaran
         </Button>
       </SheetTrigger>
@@ -213,7 +213,7 @@ export function AddExpenseDialog({ onSuccess }: AddExpenseDialogProps) {
         <SheetHeader className="px-6 py-4 flex flex-row items-center justify-between border-b border-border">
           <div className="flex items-center gap-3">
             <div className="rounded-xl bg-primary/10 p-2 text-primary">
-              <Wallet className="h-5 w-5" />
+              <Banknote className="h-5 w-5" />
             </div>
             <div className="text-left">
               <SheetTitle className="text-base font-black tracking-tight">Shortcut Input</SheetTitle>
