@@ -97,7 +97,7 @@ const INSPEKSI_OVERRIDE_FIELDS = [
 const INSPEKSI_MODE_KEYS = ["modeWaktu", "modeKendala", "modeAngka", "modePekerja", "modeAtribut", "modeCatatan"] as const satisfies Array<keyof InspeksiFormValues>;
 
 const EMPTY_VALUES: InspeksiFormValues = {
-  kegiatan: "Inspeksi Rutin", areaIds: [],
+  kegiatan: "", areaIds: [],
   modeWaktu: "broadcast", waktuMulaiBroadcast: format(new Date(), "yyyy-MM-dd'T'HH:mm"), waktuSelesaiBroadcast: "", durasiKerjaBroadcast: 0, waktuMulaiPerArea: {}, waktuSelesaiPerArea: {}, durasiKerjaPerArea: {},
   modeKendala: "broadcast", kendalaBroadcast: [], kendalaPerArea: {}, temuanBroadcast: {}, temuanPerArea: {},
   modeAngka: "broadcast", phTanahBroadcast: "", tingkatSeranganBroadcast: "", radiusBroadcast: "", phTanahPerArea: {}, tingkatSeranganPerArea: {}, radiusPerArea: {},
