@@ -6,7 +6,7 @@ import { format } from "date-fns";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft, ArrowRight, CheckCircle2, Activity, Search, Trash2,
+  ArrowLeft, ArrowRight, CheckCircle2, Search, Trash2,
   ExternalLink, Loader2, MapPinned, Briefcase, PlusCircle, Edit3, Undo2
 } from "lucide-react";
 
@@ -258,7 +258,7 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
     <Sheet open={open} onOpenChange={(val) => { setOpen(val); if (!val) { setStep(1); setSuccessUrls(null); setOverriddenAreas({}); } }}>
       <SheetTrigger asChild>
         <Button className="h-11 rounded-xl px-5 font-bold transition-all active:scale-[0.98] bg-primary text-primary-foreground hover:opacity-90 gap-2">
-          <Activity className="h-4 w-4" /> Inspeksi
+          <Search className="h-4 w-4" /> Inspeksi
         </Button>
       </SheetTrigger>
 
