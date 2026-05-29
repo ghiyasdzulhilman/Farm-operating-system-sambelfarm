@@ -12,7 +12,7 @@ import {
   Banknote,
   Sprout,
   ShoppingBasket, 
-  Activity, 
+  HardHat, 
   Search 
 } from "lucide-react";
 
@@ -71,7 +71,7 @@ export function AppLayout({
   const quickActions = [
     { id: "expense", component: AddExpenseDialog, icon: Banknote, delay: 0.12 },
     { id: "inspeksi", component: AddInspeksiDialog, icon: Search, delay: 0.09 }, 
-    { id: "operasional", component: AddOperasionalDialog, icon: Activity, delay: 0.06 }, 
+    { id: "operasional", component: AddOperasionalDialog, icon: HardHat, delay: 0.06 }, 
     { id: "perawatan", component: AddPerawatanDialog, icon: Sprout, delay: 0.03 },
     { id: "harvest", component: AddHarvestDialog, icon: ShoppingBasket, delay: 0.0 }, 
   ];
