@@ -257,10 +257,12 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
                           <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">1. Waktu & Durasi</p>
                           <div className="flex flex-col gap-3">
                            <div className="space-y-1.5"><p className="text-[10px] font-bold text-muted-foreground ml-1">Mulai</p>
-                           <Input type="datetime-local" className="h-11 rounded-xl bg-background border-input focus-visible:ring-primary/20 text-xs font-bold w-full" value={form.watch("tanggalBroadcast") || ""} onChange={(e) => { form.setValue("tanggalBroadcast", e.target.value); form.setValue("durasiKerjaBroadcast", calculateDuration(e.target.value, form.getValues("tanggalSelesaiBroadcast"))); }} />
+                           <Input type="datetime-local" 
+    className="h-11 rounded-xl bg-background border-input focus-visible:ring-primary/20 text-xs font-bold w-full min-w-0 flex-1 px-3 appearance-none" value={form.watch("tanggalBroadcast") || ""} onChange={(e) => { form.setValue("tanggalBroadcast", e.target.value); form.setValue("durasiKerjaBroadcast", calculateDuration(e.target.value, form.getValues("tanggalSelesaiBroadcast"))); }} />
                            </div>
                            <div className="space-y-1.5"><p className="text-[10px] font-bold text-muted-foreground ml-1">Selesai</p>
-                           <Input type="datetime-local" className="h-11 rounded-xl bg-background border-input focus-visible:ring-primary/20 text-xs font-bold w-full" value={form.watch("tanggalSelesaiBroadcast") || ""} onChange={(e) => { form.setValue("tanggalSelesaiBroadcast", e.target.value); form.setValue("durasiKerjaBroadcast", calculateDuration(form.getValues("tanggalBroadcast"), e.target.value)); }} />
+                           <Input type="datetime-local" 
+    className="h-11 rounded-xl bg-background border-input focus-visible:ring-primary/20 text-xs font-bold w-full min-w-0 flex-1 px-3 appearance-none" value={form.watch("tanggalSelesaiBroadcast") || ""} onChange={(e) => { form.setValue("tanggalSelesaiBroadcast", e.target.value); form.setValue("durasiKerjaBroadcast", calculateDuration(form.getValues("tanggalBroadcast"), e.target.value)); }} />
                            </div>
                            </div>
 
