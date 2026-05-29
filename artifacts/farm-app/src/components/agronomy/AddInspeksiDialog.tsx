@@ -338,12 +338,18 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
                         {/* Waktu & Durasi */}
                         <div className="bg-card p-4 rounded-2xl border border-border shadow-sm space-y-3">
                           <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">1. Waktu & Durasi</p>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1.5"><p className="text-[10px] font-bold text-muted-foreground ml-1">Mulai</p>
-                              <Input type="datetime-local" className="h-11 rounded-xl bg-background border-input focus-visible:ring-primary/20 text-xs font-bold w-full" value={form.watch("waktuMulaiBroadcast") || ""} onChange={(e) => { form.setValue("waktuMulaiBroadcast", e.target.value); form.setValue("durasiKerjaBroadcast", calculateDuration(e.target.value, form.getValues("waktuSelesaiBroadcast"))); }} />
+                           <div className="flex flex-col gap-3">
+                            <div className="space-y-1 w-full max-w-full overflow-hidden">
+                              <p className="text-[10px] font-bold text-muted-foreground ml-1">Mulai</p>
+                              <div className="w-full flex">
+                                <Input type="datetime-local" className="h-11 rounded-xl bg-background border-input focus-visible:ring-primary/20 text-xs font-bold w-full min-w-0 flex-1 px-3 appearance-none" value={form.watch("waktuMulaiBroadcast") || ""} onChange={(e) => { form.setValue("waktuMulaiBroadcast", e.target.value); form.setValue("durasiKerjaBroadcast", calculateDuration(e.target.value, form.getValues("waktuSelesaiBroadcast"))); }} />
+                              </div>
                             </div>
-                            <div className="space-y-1.5"><p className="text-[10px] font-bold text-muted-foreground ml-1">Selesai</p>
-                              <Input type="datetime-local" className="h-11 rounded-xl bg-background border-input focus-visible:ring-primary/20 text-xs font-bold w-full" value={form.watch("waktuSelesaiBroadcast") || ""} onChange={(e) => { form.setValue("waktuSelesaiBroadcast", e.target.value); form.setValue("durasiKerjaBroadcast", calculateDuration(form.getValues("waktuMulaiBroadcast"), e.target.value)); }} />
+                            <div className="space-y-1 w-full max-w-full overflow-hidden">
+                              <p className="text-[10px] font-bold text-muted-foreground ml-1">Selesai</p>
+                              <div className="w-full flex">
+                                <Input type="datetime-local" className="h-11 rounded-xl bg-background border-input focus-visible:ring-primary/20 text-xs font-bold w-full min-w-0 flex-1 px-3 appearance-none" value={form.watch("waktuSelesaiBroadcast") || ""} onChange={(e) => { form.setValue("waktuSelesaiBroadcast", e.target.value); form.setValue("durasiKerjaBroadcast", calculateDuration(form.getValues("waktuMulaiBroadcast"), e.target.value)); }} />
+                              </div>
                             </div>
                           </div>
                           <div className="space-y-1.5 pt-1.5"><p className="text-[10px] font-bold text-muted-foreground ml-1">Total Durasi (Jam)</p>
@@ -431,10 +437,20 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
 
                               {isOverridden && (
                                 <div className="mt-3 space-y-3.5 pt-3 border-t border-border/50 animate-in fade-in zoom-in-95">
-                                  {/* Waktu Spesifik */}
-                                  <div className="grid grid-cols-2 gap-2">
-                                    <div className="space-y-1"><p className="text-[9px] font-bold text-muted-foreground uppercase">Mulai</p><Input type="datetime-local" className="h-8 text-[10px] bg-background border-input" value={form.watch(`waktuMulaiPerArea.${areaId}`) || ""} onChange={(e) => { form.setValue(`waktuMulaiPerArea.${areaId}`, e.target.value); form.setValue(`durasiKerjaPerArea.${areaId}`, calculateDuration(e.target.value, form.getValues(`waktuSelesaiPerArea.${areaId}`))); }} /></div>
-                                    <div className="space-y-1"><p className="text-[9px] font-bold text-muted-foreground uppercase">Selesai</p><Input type="datetime-local" className="h-8 text-[10px] bg-background border-input" value={form.watch(`waktuSelesaiPerArea.${areaId}`) || ""} onChange={(e) => { form.setValue(`waktuSelesaiPerArea.${areaId}`, e.target.value); form.setValue(`durasiKerjaPerArea.${areaId}`, calculateDuration(form.getValues(`waktuMulaiPerArea.${areaId}`), e.target.value)); }} /></div>
+                                {/* Waktu Spesifik */}
+                                  <div className="flex flex-col gap-2">
+                                    <div className="space-y-1 w-full max-w-full overflow-hidden">
+                                      <p className="text-[9px] font-bold text-muted-foreground uppercase">Mulai</p>
+                                      <div className="w-full flex">
+                                        <Input type="datetime-local" className="h-8 text-[10px] bg-background border-input w-full min-w-0 flex-1 px-2 appearance-none" value={form.watch(`waktuMulaiPerArea.${areaId}`) || ""} onChange={(e) => { form.setValue(`waktuMulaiPerArea.${areaId}`, e.target.value); form.setValue(`durasiKerjaPerArea.${areaId}`, calculateDuration(e.target.value, form.getValues(`waktuSelesaiPerArea.${areaId}`))); }} />
+                                      </div>
+                                    </div>
+                                    <div className="space-y-1 w-full max-w-full overflow-hidden">
+                                      <p className="text-[9px] font-bold text-muted-foreground uppercase">Selesai</p>
+                                      <div className="w-full flex">
+                                        <Input type="datetime-local" className="h-8 text-[10px] bg-background border-input w-full min-w-0 flex-1 px-2 appearance-none" value={form.watch(`waktuSelesaiPerArea.${areaId}`) || ""} onChange={(e) => { form.setValue(`waktuSelesaiPerArea.${areaId}`, e.target.value); form.setValue(`durasiKerjaPerArea.${areaId}`, calculateDuration(form.getValues(`waktuMulaiPerArea.${areaId}`), e.target.value)); }} />
+                                      </div>
+                                    </div>
                                   </div>
                                   <div className="flex items-center gap-2"><p className="text-[9px] font-bold text-muted-foreground uppercase">Durasi:</p><Input type="number" step="0.1" className="h-7 w-16 text-[10px] font-bold px-1 bg-background border-input" value={form.watch(`durasiKerjaPerArea.${areaId}`) || 0} onChange={(e) => form.setValue(`durasiKerjaPerArea.${areaId}`, Number(e.target.value))} /><span className="text-[9px] font-bold">Jam</span></div>
 
