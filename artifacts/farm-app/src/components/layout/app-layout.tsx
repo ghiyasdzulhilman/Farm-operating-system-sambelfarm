@@ -176,12 +176,11 @@ export function AppLayout({
         {/* ─── KANAN: TOMBOL PUSAT (+) & MENU VERTIKAL ─── */}
         <div className="relative pointer-events-auto shrink-0 flex justify-center">
           
-          {/* MENU MUNCUL LURUS KE ATAS */}
+        {/* MENU MUNCUL LURUS KE ATAS */}
           <AnimatePresence>
             {isFabOpen && quickActions.map((action, index) => {
               const ActionDialog = action.component;
               const Icon = action.icon;
-              // 🟢 EDIT: Jarak vertikal dirapetin dikit menyesuaikan ukuran tombol baru
               const verticalOffset = -((index + 1) * 54) - 4; 
 
               return (
@@ -193,15 +192,11 @@ export function AppLayout({
                   transition={{ type: "spring", bounce: 0.35, duration: 0.5, delay: action.delay }}
                   className="absolute z-20"
                 >
-                  {/* LINGKARAN ICON PREMIUM (Ukuran dikecilin dikit jadi 44px) */}
                   <div className="relative flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-primary text-primary-foreground shadow-xl active:scale-95 transition-all">
                     <Icon className="h-[20px] w-[20px] stroke-[2.5]" />
                     
-                    {/* JURUS INVISIBLE OVERLAY */}
-                    <div 
-                      className="absolute inset-0 z-30 opacity-0 overflow-hidden"
-                      onClick={() => setIsFabOpen(false)} 
-                    >
+                    {/* 👇 INI YANG UDAH GUA PERBAIKI, ONCLICK-NYA DIHAPUS BIAR GAK MENTAL 👇 */}
+                    <div className="absolute inset-0 z-30 opacity-0 overflow-hidden">
                       <div className="w-full h-full [&_button]:w-full [&_button]:h-full [&_button]:absolute [&_button]:inset-0 [&_button]:opacity-0">
                         <ActionDialog />
                       </div>
@@ -213,7 +208,6 @@ export function AppLayout({
           </AnimatePresence>
 
           {/* TOMBOL UTAMA LINGKARAN HITAM BESAR (+) */}
-          {/* 🟢 EDIT: h-14 w-14 biar serasi sama tinggi nav kiri */}
           <motion.button
             onClick={() => setIsFabOpen(!isFabOpen)}
             animate={{ rotate: isFabOpen ? 135 : 0 }}
