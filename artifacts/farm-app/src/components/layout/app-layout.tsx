@@ -4,7 +4,10 @@ import { useAuth } from "@clerk/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Home, 
-  NotebookText, 
+  NotebookText,
+  FlashConical,
+  Database,
+  Compass, 
   Beaker, 
   SlidersHorizontal, 
   Plus, 
@@ -62,9 +65,9 @@ export function AppLayout({
   // BOTTOM NAV ICON PREMIUM & MELENGKUNG (NO TEXT)
   const navItems = [
     { href: "/dashboard", icon: Home },
-    { href: "/operasional", icon: NotebookText },
-    { href: "/lab", icon: Beaker },
-    { href: "/settings", icon: SlidersHorizontal },
+    { href: "/operasional", icon: Database },
+    { href: "/lab", icon: FlashConical },
+    { href: "/settings", icon: Compass },
   ];
 
   // URUTAN FAB MUNCUL KE ATAS (VERTIKAL LURUS) DENGAN ICON PILIHAN MANDOR
