@@ -6,7 +6,7 @@ import { format } from "date-fns";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft, ArrowRight, CheckCircle2, ClipboardList,
+  ArrowLeft, ArrowRight, CheckCircle2, ShoppingBasket,
   ExternalLink, FileText, Loader2, MapPinned, PlusCircle,
   Briefcase, Wrench, Edit3, Undo2
 } from "lucide-react";
@@ -225,7 +225,7 @@ export function AddOperasionalDialog({ onSuccess }: { onSuccess?: () => void }) 
         {/* HEADER */}
         <SheetHeader className="px-6 py-4 flex flex-row items-center justify-between border-b border-border">
           <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-primary/10 p-2 text-primary shadow-sm"><ClipboardList className="h-5 w-5" /></div>
+            <div className="rounded-xl bg-primary/10 p-2 text-primary shadow-sm"><ShoppingBasket className="h-5 w-5" /></div>
             <div className="text-left">
               <SheetTitle className="text-base font-black tracking-tight">Input Operasional</SheetTitle>
               <p className="text-[10px] font-bold text-primary tracking-wider uppercase">Step {step} dari 3</p>
