@@ -144,16 +144,18 @@ export function AppLayout({
       </AnimatePresence>
 
       {/* ─── THE ASYMMETRIC DYNAMIC FLOATING DOCK (z-50) ─── */}
-      <div className="fixed bottom-6 left-4 right-4 z-50 max-w-md mx-auto flex items-center justify-between gap-4 pointer-events-none">
+      {/* 🟢 EDIT: bottom-4 biar agak turun, gak ngatung banget */}
+      <div className="fixed bottom-4 left-4 right-4 z-50 max-w-md mx-auto flex items-center justify-between gap-4 pointer-events-none">
         
         {/* KAPSUL KIRI: MENU NAVIGASI (TANPA TEKS) */}
-        <nav className="flex-1 h-16 rounded-full border border-white/20 bg-background/80 backdrop-blur-3xl shadow-[0_12px_32px_rgba(0,0,0,0.15)] px-2 flex items-center justify-around pointer-events-auto">
+        {/* 🟢 EDIT: h-14 biar ukurannya "Titik Emas" (sedang) */}
+        <nav className="flex-1 h-14 rounded-full border border-white/20 bg-background/80 backdrop-blur-3xl shadow-[0_12px_32px_rgba(0,0,0,0.15)] px-2 flex items-center justify-around pointer-events-auto">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location === item.href;
             return (
               <Link key={item.href} href={item.href}>
-                <a className="relative flex items-center justify-center h-12 w-12 rounded-full transition-all duration-300">
+                <a className="relative flex items-center justify-center h-11 w-11 rounded-full transition-all duration-300">
                   {/* PIL AKTIF GLOWING EFFECT BEHIND ICON */}
                   {isActive && (
                     <motion.div 
@@ -163,8 +165,8 @@ export function AppLayout({
                     />
                   )}
                   
-                  {/* ICON SAJA (Lebih besar, lebih rounded) */}
-                  <Icon className={"h-6 w-6 z-10 transition-all duration-300 " + (isActive ? "text-primary stroke-[2.5] scale-110" : "text-foreground/45 stroke-[2] hover:text-foreground/80")} />
+                  {/* ICON SAJA */}
+                  <Icon className={"h-[22px] w-[22px] z-10 transition-all duration-300 " + (isActive ? "text-primary stroke-[2.5] scale-110" : "text-foreground/45 stroke-[2] hover:text-foreground/80")} />
                 </a>
               </Link>
             );
@@ -179,8 +181,8 @@ export function AppLayout({
             {isFabOpen && quickActions.map((action, index) => {
               const ActionDialog = action.component;
               const Icon = action.icon;
-              // Ngitung offset otomatis ke atas: -65, -125, -185, dll
-              const verticalOffset = -((index + 1) * 60) - 5; 
+              // 🟢 EDIT: Jarak vertikal dirapetin dikit menyesuaikan ukuran tombol baru
+              const verticalOffset = -((index + 1) * 54) - 4; 
 
               return (
                 <motion.div
@@ -191,16 +193,15 @@ export function AppLayout({
                   transition={{ type: "spring", bounce: 0.35, duration: 0.5, delay: action.delay }}
                   className="absolute z-20"
                 >
-                  {/* LINGKARAN ICON PREMIUM */}
-                  <div className="relative flex h-[50px] w-[50px] items-center justify-center rounded-full border border-white/20 bg-primary text-primary-foreground shadow-xl active:scale-95 transition-all">
-                    <Icon className="h-5 w-5 stroke-[2.5]" />
+                  {/* LINGKARAN ICON PREMIUM (Ukuran dikecilin dikit jadi 44px) */}
+                  <div className="relative flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-primary text-primary-foreground shadow-xl active:scale-95 transition-all">
+                    <Icon className="h-[20px] w-[20px] stroke-[2.5]" />
                     
-                    {/* JURUS INVISIBLE OVERLAY: Tombol Form Asli Dibikin Transparan & Nutupin Seluruh Lingkaran */}
+                    {/* JURUS INVISIBLE OVERLAY */}
                     <div 
                       className="absolute inset-0 z-30 opacity-0 overflow-hidden"
-                      onClick={() => setIsFabOpen(false)} // Opsional: tutup fab saat di klik
+                      onClick={() => setIsFabOpen(false)} 
                     >
-                      {/* Class ini maksa apapun tombol di dalam dialog jadi full size tembus pandang */}
                       <div className="w-full h-full [&_button]:w-full [&_button]:h-full [&_button]:absolute [&_button]:inset-0 [&_button]:opacity-0">
                         <ActionDialog />
                       </div>
@@ -212,19 +213,20 @@ export function AppLayout({
           </AnimatePresence>
 
           {/* TOMBOL UTAMA LINGKARAN HITAM BESAR (+) */}
+          {/* 🟢 EDIT: h-14 w-14 biar serasi sama tinggi nav kiri */}
           <motion.button
             onClick={() => setIsFabOpen(!isFabOpen)}
             animate={{ rotate: isFabOpen ? 135 : 0 }}
             transition={{ type: "spring", bounce: 0.3, duration: 0.5 }}
             className={
-              "flex h-16 w-16 items-center justify-center rounded-full transition-all duration-300 active:scale-90 shadow-[0_8px_24px_rgba(0,0,0,0.2)] z-30 " +
+              "flex h-14 w-14 items-center justify-center rounded-full border transition-all duration-300 active:scale-90 shadow-[0_8px_24px_rgba(0,0,0,0.2)] z-30 " +
               (isFabOpen 
-                ? "bg-destructive text-white" 
-                : "bg-slate-950 text-white dark:bg-white dark:text-slate-950")
+                ? "bg-destructive border-destructive/30 text-white" 
+                : "bg-slate-950 border-slate-800 text-white dark:bg-white dark:border-white dark:text-slate-950")
             }
             aria-label="Menu Aksi"
           >
-            <Plus className="h-7 w-7 stroke-[2.5]" />
+            <Plus className="h-6 w-6 stroke-[2.5]" />
           </motion.button>
         </div>
 
