@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   Home, 
   NotebookText,
-  FlashConical,
+  FlaskConical,
   Database,
   Compass, 
   Beaker, 
@@ -66,7 +66,7 @@ export function AppLayout({
   const navItems = [
     { href: "/dashboard", icon: Home },
     { href: "/operasional", icon: Database },
-    { href: "/lab", icon: FlashConical },
+    { href: "/lab", icon: FlaskConical },
     { href: "/settings", icon: Compass },
   ];
 
