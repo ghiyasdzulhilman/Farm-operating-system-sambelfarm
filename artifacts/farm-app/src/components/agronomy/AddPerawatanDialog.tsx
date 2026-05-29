@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
@@ -20,11 +20,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import {
+  buildAreaOverridePayload,
+  buildBroadcastPerAreaRecord,
+  copyBroadcastToArea,
+  pruneOverrideState,
+  resetAreaOverride,
+} from "@/lib/areaOverrideForm";
 
 const perawatanSchema = z.object({
   kegiatan: z.string().min(1, "Nama kegiatan wajib diisi"),
   labaRugiIds: z.array(z.string()).min(1, "Minimal pilih 1 area"),
-  
+
   modeTanggal: z.enum(["broadcast", "spesifik"]).default("broadcast"),
   tanggalBroadcast: z.string().optional(), tanggalSelesaiBroadcast: z.string().optional(),
   durasiKerjaBroadcast: z.coerce.number().min(0).default(0),
@@ -32,22 +39,37 @@ const perawatanSchema = z.object({
 
   modePekerja: z.enum(["broadcast", "spesifik"]).default("broadcast"),
   petugasBroadcast: z.array(z.string()).default([]), petugasPerArea: z.record(z.array(z.string())).default({}),
-  
+
   modeTags: z.enum(["broadcast", "spesifik"]).default("broadcast"),
   tagsBroadcast: z.string().optional(), tagsPerArea: z.record(z.string()).default({}),
 
   modeStatus: z.enum(["broadcast", "spesifik"]).default("broadcast"),
   statusBroadcast: z.string().default("Rencana"), statusPerArea: z.record(z.string()).default({}),
-  
+
   modeCatatan: z.enum(["broadcast", "spesifik"]).default("broadcast"),
   catatanBroadcast: z.string().optional(), catatanPerArea: z.record(z.string()).optional(),
-  
+
   modeProduk: z.enum(["broadcast", "spesifik"]).default("broadcast"),
   logProduk: z.array(z.object({ produk: z.string().min(1, "Wajib"), dosis: z.string().min(1, "Wajib") })).default([]),
   produkPerArea: z.record(z.array(z.object({ produk: z.string(), dosis: z.string() }))).default({}),
 });
 
 type PerawatanFormValues = z.infer<typeof perawatanSchema>;
+
+interface DropdownOptions { areas: Array<{ id: string; name: string }>; petugas: Array<{ id: string; name: string }>; }
+
+const PERAWATAN_OVERRIDE_FIELDS = [
+  { broadcastKey: "tanggalBroadcast", perAreaKey: "tanggalPerArea" },
+  { broadcastKey: "tanggalSelesaiBroadcast", perAreaKey: "tanggalSelesaiPerArea" },
+  { broadcastKey: "durasiKerjaBroadcast", perAreaKey: "durasiKerjaPerArea" },
+  { broadcastKey: "petugasBroadcast", perAreaKey: "petugasPerArea" },
+  { broadcastKey: "tagsBroadcast", perAreaKey: "tagsPerArea" },
+  { broadcastKey: "statusBroadcast", perAreaKey: "statusPerArea" },
+  { broadcastKey: "catatanBroadcast", perAreaKey: "catatanPerArea" },
+  { broadcastKey: "logProduk", perAreaKey: "produkPerArea" },
+] as const satisfies Array<{ broadcastKey: keyof PerawatanFormValues; perAreaKey: keyof PerawatanFormValues }>;
+
+const PERAWATAN_MODE_KEYS = ["modeTanggal", "modePekerja", "modeTags", "modeStatus", "modeCatatan", "modeProduk"] as const satisfies Array<keyof PerawatanFormValues>;
 
 const EMPTY_VALUES: PerawatanFormValues = {
   kegiatan: "", labaRugiIds: [],
@@ -59,16 +81,25 @@ const EMPTY_VALUES: PerawatanFormValues = {
   modeProduk: "broadcast", logProduk: [], produkPerArea: {},
 };
 
+function sanitizePerawatanPayload(payload: PerawatanFormValues): PerawatanFormValues {
+  return {
+    ...payload,
+    durasiKerjaPerArea: payload.modeTanggal === "broadcast"
+      ? buildBroadcastPerAreaRecord(payload.labaRugiIds, payload.durasiKerjaBroadcast)
+      : payload.durasiKerjaPerArea,
+  };
+}
+
 export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(1);
-  const [overriddenAreas, setOverriddenAreas] = useState<Record<string, boolean>>({}); 
+  const [overriddenAreas, setOverriddenAreas] = useState<Record<string, boolean>>({});
   const [submittedUrls, setSubmittedUrls] = useState<{pageId: string, notionUrl: string}[] | null>(null);
-  
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: dropdownOptions, isLoading: isLoadingOptions } = useQuery({
+  const { data: dropdownOptions, isLoading: isLoadingOptions } = useQuery<DropdownOptions>({
     queryKey: ["perawatan-dropdown-options"], queryFn: async () => {
       const res = await fetch("/api/notion/perawatan-dropdown-options");
       if (!res.ok) throw new Error("Gagal mengambil dropdown"); return res.json();
@@ -77,6 +108,7 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
 
   const form = useForm<PerawatanFormValues>({ resolver: zodResolver(perawatanSchema), defaultValues: EMPTY_VALUES, shouldUnregister: false });
   const { fields: produkFields, append: appendProduk, remove: removeProduk } = useFieldArray({ control: form.control, name: "logProduk" });
+  const selectedAreaIds = useWatch({ control: form.control, name: "labaRugiIds" }) ?? [];
 
   const calculateDuration = (start?: string, end?: string) => {
     if (!start || !end) return 0;
@@ -87,11 +119,7 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
 
   const savePerawatan = useMutation({
     mutationFn: async (payload: PerawatanFormValues) => {
-      const finalDurasiPerArea = payload.modeTanggal === "broadcast" 
-        ? payload.labaRugiIds.reduce((acc, id) => ({ ...acc, [id]: payload.durasiKerjaBroadcast }), {}) 
-        : payload.durasiKerjaPerArea;
-
-      const cleanPayload = { ...payload, durasiKerjaPerArea: finalDurasiPerArea };
+      const cleanPayload = sanitizePerawatanPayload(payload);
 
       const response = await fetch("/api/notion/add-perawatan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cleanPayload) });
       if (!response.ok) { const errText = await response.text(); throw new Error(errText || "Gagal menyimpan perawatan"); }
@@ -109,51 +137,37 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
     let fieldsToValidate: Array<keyof PerawatanFormValues> = [];
     if (step === 1) fieldsToValidate = ["kegiatan", "labaRugiIds"];
     if (step === 1 && form.getValues("labaRugiIds").length === 0) { toast({ variant: "destructive", title: "Oops!", description: "Pilih minimal 1 Area." }); return; }
-    
+
     const isStepValid = await form.trigger(fieldsToValidate);
     if (isStepValid) setStep((prev) => prev + 1);
   };
 
-  function onSubmit(values: PerawatanFormValues) { 
-    const hasOverride = Object.values(overriddenAreas).some(Boolean);
-    const finalPayload = { ...values };
-
-    if (hasOverride) {
-      finalPayload.modeTanggal = "spesifik"; finalPayload.modePekerja = "spesifik"; finalPayload.modeTags = "spesifik"; finalPayload.modeStatus = "spesifik"; finalPayload.modeCatatan = "spesifik"; finalPayload.modeProduk = "spesifik";
-      
-      finalPayload.labaRugiIds.forEach(id => {
-        if (!overriddenAreas[id]) {
-          finalPayload.tanggalPerArea[id] = values.tanggalBroadcast || "";
-          finalPayload.tanggalSelesaiPerArea[id] = values.tanggalSelesaiBroadcast || "";
-          finalPayload.durasiKerjaPerArea[id] = values.durasiKerjaBroadcast || 0;
-          finalPayload.petugasPerArea[id] = values.petugasBroadcast || [];
-          finalPayload.tagsPerArea[id] = values.tagsBroadcast || "";
-          finalPayload.statusPerArea[id] = values.statusBroadcast || "Rencana";
-          finalPayload.catatanPerArea[id] = values.catatanBroadcast || "";
-          finalPayload.produkPerArea[id] = values.logProduk || [];
-        }
-      });
-    } else {
-      finalPayload.modeTanggal = "broadcast"; finalPayload.modePekerja = "broadcast"; finalPayload.modeTags = "broadcast"; finalPayload.modeStatus = "broadcast"; finalPayload.modeCatatan = "broadcast"; finalPayload.modeProduk = "broadcast";
-    }
-    
-    savePerawatan.mutate(finalPayload); 
+  function onSubmit(values: PerawatanFormValues) {
+    savePerawatan.mutate(
+      buildAreaOverridePayload({
+        values,
+        areaIds: values.labaRugiIds,
+        overriddenAreas,
+        modeKeys: PERAWATAN_MODE_KEYS,
+        fields: PERAWATAN_OVERRIDE_FIELDS,
+      }),
+    );
   }
 
   const handleEnableOverride = (areaId: string) => {
-    form.setValue(`tanggalPerArea.${areaId}`, form.getValues("tanggalBroadcast"));
-    form.setValue(`tanggalSelesaiPerArea.${areaId}`, form.getValues("tanggalSelesaiBroadcast"));
-    form.setValue(`durasiKerjaPerArea.${areaId}`, form.getValues("durasiKerjaBroadcast"));
-    form.setValue(`petugasPerArea.${areaId}`, [...form.getValues("petugasBroadcast")]);
-    form.setValue(`tagsPerArea.${areaId}`, form.getValues("tagsBroadcast"));
-    form.setValue(`statusPerArea.${areaId}`, form.getValues("statusBroadcast"));
-    form.setValue(`catatanPerArea.${areaId}`, form.getValues("catatanBroadcast"));
-    form.setValue(`produkPerArea.${areaId}`, JSON.parse(JSON.stringify(form.getValues("logProduk")))); 
-    setOverriddenAreas(prev => ({ ...prev, [areaId]: true }));
+    const updates = copyBroadcastToArea(form.getValues(), areaId, PERAWATAN_OVERRIDE_FIELDS);
+    Object.entries(updates).forEach(([key, value]) => form.setValue(key as keyof PerawatanFormValues, value));
+    setOverriddenAreas(prev => ({ ...pruneOverrideState(form.getValues("labaRugiIds"), prev), [areaId]: true }));
   };
 
   const handleCancelOverride = (areaId: string) => {
-    setOverriddenAreas(prev => ({ ...prev, [areaId]: false }));
+    const updates = resetAreaOverride(form.getValues(), areaId, PERAWATAN_OVERRIDE_FIELDS);
+    Object.entries(updates).forEach(([key, value]) => form.setValue(key as keyof PerawatanFormValues, value));
+    setOverriddenAreas(prev => {
+      const next = pruneOverrideState(form.getValues("labaRugiIds"), prev);
+      delete next[areaId];
+      return next;
+    });
   };
 
   return (
@@ -163,10 +177,10 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
           <PlusCircle className="h-4 w-4" /> Perawatan
         </Button>
       </SheetTrigger>
-      
-      {/* 👇 TINGGI FULL-LAYAR DIHAPUS, BIAR SERAGAM IPHONE SHORTCUT SHEET 👇 */}
+
+      {/* TINGGI FULL-LAYAR DIHAPUS, BIAR SERAGAM IPHONE SHORTCUT SHEET */}
       <SheetContent side="top" className="mx-auto max-w-md rounded-b-[2rem] border-x-0 border-t-0 p-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl shadow-[0_16px_40px_rgba(0,0,0,0.12)] pb-5">
-        
+
         {/* HEADER */}
         <SheetHeader className="px-6 py-4 flex flex-row items-center justify-between border-b border-border">
           <div className="flex items-center gap-3">
@@ -178,7 +192,7 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
           </div>
           <div className="flex gap-1.5">{[1, 2, 3].map((i) => (<div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${step === i ? "w-6 bg-primary" : "w-1.5 bg-border"}`} />))}</div>
         </SheetHeader>
- 
+
         <div className="px-6 py-4">
           {submittedUrls ? (
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center justify-center py-6 text-center space-y-5">
@@ -196,11 +210,11 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
           ) : isLoadingOptions ? ( <Skeleton className="h-12 w-full rounded-xl" /> ) : (
             <Form {...form}>
               <form onSubmit={(e) => e.preventDefault()} className="space-y-5 text-left">
-                
-                {/* 👇 PANEL SCROLLING KHUSUS UNTUK KONTEN INPUTAN SAJA 👇 */}
+
+                {/* PANEL SCROLLING KHUSUS UNTUK KONTEN INPUTAN SAJA */}
                 <div className="max-h-[55vh] overflow-y-auto pr-1 pb-2 space-y-5">
                   <AnimatePresence mode="wait">
-                    
+
                     {/* ================= STEP 1: INFO DASAR & AREA ================= */}
                     {step === 1 && (
                       <motion.div key="step1" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-5 pt-1">
@@ -212,15 +226,15 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
                             </FormControl>
                           </FormItem>
                         )} />
-                        
+
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
                             <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80"><MapPinned className="inline-block h-3.5 w-3.5 mr-1" /> Pilih Area Lokasi</p>
-                            <span className="text-[10px] font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded-md">{form.watch("labaRugiIds").length} terpilih</span>
+                            <span className="text-[10px] font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded-md">{selectedAreaIds.length} terpilih</span>
                           </div>
                           <div className="flex flex-wrap gap-2 pt-1">
                             {dropdownOptions?.areas?.map((item) => {
-                              const isSelected = form.watch("labaRugiIds").includes(item.id);
+                              const isSelected = selectedAreaIds.includes(item.id);
                               return (
                                 <button key={item.id} type="button" onClick={() => {
                                   const cur = form.getValues("labaRugiIds"); form.setValue("labaRugiIds", isSelected ? cur.filter(id => id !== item.id) : [...cur, item.id], { shouldValidate: true });
@@ -237,7 +251,7 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
                     {/* ================= STEP 2: DATA MASTER ================= */}
                     {step === 2 && (
                       <motion.div key="step2" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-4 pt-1">
-                        
+
                         {/* CARD 1. Waktu */}
                         <div className="bg-card p-4 rounded-2xl border border-border shadow-sm space-y-3">
                           <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">1. Waktu & Durasi</p>
@@ -261,7 +275,7 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
                             <Button type="button" variant="outline" size="sm" className="h-7 text-[10px] rounded-md bg-primary/10 text-primary border-primary/20 hover:bg-primary/20" onClick={() => appendProduk({ produk: "", dosis: "" })}><Plus className="h-3 w-3 mr-1" /> Tambah</Button>
                           </div>
                           {produkFields.length === 0 && <p className="text-xs text-muted-foreground/60 italic p-3 text-center border border-dashed border-border rounded-xl">Belum ada bahan ditambahkan.</p>}
-                          
+
                           <div className="space-y-2">
                             <AnimatePresence>
                               {produkFields.map((field, index) => (
@@ -316,7 +330,7 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
                           💡 <span className="font-bold">Info:</span> Semua area otomatis memakai <span className="font-bold">Data Master</span>. Klik "Ubah Khusus" jika ada area dengan racikan / jam kerja yang berbeda.
                         </div>
 
-                        {form.watch("labaRugiIds").map((areaId) => {
+                        {selectedAreaIds.map((areaId) => {
                           const areaName = dropdownOptions?.areas?.find((a) => a.id === areaId)?.name || `Area`;
                           const isOverridden = overriddenAreas[areaId];
 
@@ -339,7 +353,7 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
                                     <div className="space-y-1"><p className="text-[9px] font-bold text-muted-foreground uppercase">Selesai</p><Input type="datetime-local" className="h-8 text-[10px] bg-background border-input" value={form.watch(`tanggalSelesaiPerArea.${areaId}`) || ""} onChange={(e) => { form.setValue(`tanggalSelesaiPerArea.${areaId}`, e.target.value); form.setValue(`durasiKerjaPerArea.${areaId}`, calculateDuration(form.getValues(`tanggalPerArea.${areaId}`), e.target.value)); }} /></div>
                                   </div>
                                   <div className="flex items-center gap-2"><p className="text-[9px] font-bold text-muted-foreground uppercase">Durasi:</p><Input type="number" step="0.1" className="h-7 w-16 text-[10px] font-bold px-1 bg-background border-input" value={form.watch(`durasiKerjaPerArea.${areaId}`) || 0} onChange={(e) => form.setValue(`durasiKerjaPerArea.${areaId}`, Number(e.target.value))} /><span className="text-[9px] font-bold">Jam</span></div>
-                                  
+
                                   {/* Bahan Spesifik */}
                                   <div className="space-y-1.5 pt-2 border-t border-border/50">
                                     <div className="flex justify-between items-center"><p className="text-[9px] font-bold text-muted-foreground uppercase">Bahan / Dosis</p><Button type="button" variant="outline" size="sm" className="h-6 text-[9px] py-0 px-1.5 rounded bg-primary/10 text-primary border-primary/20 hover:bg-primary/20" onClick={() => form.setValue(`produkPerArea.${areaId}`, [...(form.getValues(`produkPerArea.${areaId}`)||[]), {produk:"", dosis:""}])}><Plus className="h-2 w-2 mr-1" /> Tambah</Button></div>
@@ -347,7 +361,7 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
                                       <div key={idx} className="flex gap-1.5"><Input className="h-8 text-[10px] bg-background border-input" placeholder="Produk" value={prod.produk} onChange={(e) => { const arr = [...form.getValues(`produkPerArea.${areaId}`)]; arr[idx].produk = e.target.value; form.setValue(`produkPerArea.${areaId}`, arr); }} /><Input className="h-8 text-[10px] bg-background border-input" placeholder="Dosis" value={prod.dosis} onChange={(e) => { const arr = [...form.getValues(`produkPerArea.${areaId}`)]; arr[idx].dosis = e.target.value; form.setValue(`produkPerArea.${areaId}`, arr); }} /><Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive rounded-md" onClick={() => { const arr = [...form.getValues(`produkPerArea.${areaId}`)]; arr.splice(idx,1); form.setValue(`produkPerArea.${areaId}`, arr); }}><Trash2 className="h-3.5 w-3.5" /></Button></div>
                                     ))}
                                   </div>
-                                  
+
                                   {/* Status & Catatan Spesifik */}
                                   <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/50">
                                     <Select onValueChange={(val) => form.setValue(`tagsPerArea.${areaId}`, val)} value={form.watch(`tagsPerArea.${areaId}`) || ""}><SelectTrigger className="h-8 text-[10px] bg-background border-input"><SelectValue placeholder="Tag" /></SelectTrigger><SelectContent><SelectItem value="Pengocoran">Pengocoran</SelectItem><SelectItem value="Penyemprotan">Penyemprotan</SelectItem><SelectItem value="Lainnya">Lainnya</SelectItem></SelectContent></Select>
@@ -371,7 +385,7 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
                   ) : (
                     <Button type="button" variant="ghost" className="h-11 rounded-xl px-4 font-bold text-muted-foreground hover:bg-muted" onClick={() => setOpen(false)}>Batal</Button>
                   )}
-                  
+
                   {step < 3 ? (
                     <Button type="button" className="h-11 rounded-xl px-5 font-bold bg-primary text-primary-foreground hover:opacity-90 transition-all shadow-sm" onClick={handleNextStep}>Lanjut <ArrowRight className="ml-2 h-4 w-4" /></Button>
                   ) : (
@@ -385,8 +399,8 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
             </Form>
           )}
         </div>
-        
-        {/* 👇 CAPSULE BAR KHAS IPHONE DI SINI TETAP UTUH & MELAYANG INDAH 👇 */}
+
+        {/* CAPSULE BAR KHAS IPHONE DI SINI TETAP UTUH & MELAYANG INDAH */}
         <div className="mx-auto mt-1 h-1 w-10 rounded-full bg-border" />
       </SheetContent>
     </Sheet>
