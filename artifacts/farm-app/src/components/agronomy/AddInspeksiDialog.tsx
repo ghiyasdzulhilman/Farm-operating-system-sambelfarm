@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft, ArrowRight, CheckCircle2, Activity, Trash2, 
+  ArrowLeft, ArrowRight, CheckCircle2, Activity, Trash2,
   ExternalLink, Loader2, MapPinned, Briefcase, PlusCircle, Edit3, Undo2
 } from "lucide-react";
 
@@ -20,6 +20,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import {
+  buildAreaOverridePayload,
+  buildBroadcastPerAreaRecord,
+  copyBroadcastToArea,
+  pruneOverrideState,
+  resetAreaOverride,
+  sanitizeNestedRecordByAllowedKeys,
+} from "@/lib/areaOverrideForm";
 
 // --- DAFTAR HAMA & PENYAKIT BAWAAN ---
 const DAFTAR_HAMA = ["Thrips", "Kutu Kebul", "Aphids", "Tungau", "Ulat", "Lalat Buah"];
@@ -44,8 +52,8 @@ const inspeksiSchema = z.object({
   modeKendala: z.enum(["broadcast", "spesifik"]).default("broadcast"),
   kendalaBroadcast: z.array(z.string()).default([]),
   kendalaPerArea: z.record(z.array(z.string())).default({}),
-  temuanBroadcast: z.record(z.string()).default({}), 
-  temuanPerArea: z.record(z.record(z.string())).default({}), 
+  temuanBroadcast: z.record(z.string()).default({}),
+  temuanPerArea: z.record(z.record(z.string())).default({}),
 
   modeAngka: z.enum(["broadcast", "spesifik"]).default("broadcast"),
   phTanahBroadcast: z.string().optional(),
@@ -72,6 +80,22 @@ type InspeksiFormValues = z.infer<typeof inspeksiSchema>;
 
 interface DropdownOptions { areas: Array<{ id: string; name: string }>; petugas: Array<{ id: string; name: string }>; }
 
+const INSPEKSI_OVERRIDE_FIELDS = [
+  { broadcastKey: "waktuMulaiBroadcast", perAreaKey: "waktuMulaiPerArea" },
+  { broadcastKey: "waktuSelesaiBroadcast", perAreaKey: "waktuSelesaiPerArea" },
+  { broadcastKey: "durasiKerjaBroadcast", perAreaKey: "durasiKerjaPerArea" },
+  { broadcastKey: "kendalaBroadcast", perAreaKey: "kendalaPerArea" },
+  { broadcastKey: "temuanBroadcast", perAreaKey: "temuanPerArea" },
+  { broadcastKey: "phTanahBroadcast", perAreaKey: "phTanahPerArea" },
+  { broadcastKey: "tingkatSeranganBroadcast", perAreaKey: "tingkatSeranganPerArea" },
+  { broadcastKey: "radiusBroadcast", perAreaKey: "radiusPerArea" },
+  { broadcastKey: "pekerjaBroadcast", perAreaKey: "pekerjaPerArea" },
+  { broadcastKey: "statusBroadcast", perAreaKey: "statusPerArea" },
+  { broadcastKey: "keteranganBroadcast", perAreaKey: "keteranganPerArea" },
+] as const satisfies Array<{ broadcastKey: keyof InspeksiFormValues; perAreaKey: keyof InspeksiFormValues }>;
+
+const INSPEKSI_MODE_KEYS = ["modeWaktu", "modeKendala", "modeAngka", "modePekerja", "modeAtribut", "modeCatatan"] as const satisfies Array<keyof InspeksiFormValues>;
+
 const EMPTY_VALUES: InspeksiFormValues = {
   kegiatan: "Inspeksi Rutin", areaIds: [],
   modeWaktu: "broadcast", waktuMulaiBroadcast: format(new Date(), "yyyy-MM-dd'T'HH:mm"), waktuSelesaiBroadcast: "", durasiKerjaBroadcast: 0, waktuMulaiPerArea: {}, waktuSelesaiPerArea: {}, durasiKerjaPerArea: {},
@@ -82,12 +106,63 @@ const EMPTY_VALUES: InspeksiFormValues = {
   modeCatatan: "broadcast", keteranganBroadcast: "", keteranganPerArea: {},
 };
 
+function sanitizeTemuanBroadcast(kendalaBroadcast: string[], temuanBroadcast: Record<string, string>) {
+  return kendalaBroadcast.reduce<Record<string, string>>((next, kendala) => {
+    if (temuanBroadcast[kendala] !== undefined) next[kendala] = temuanBroadcast[kendala];
+    return next;
+  }, {});
+}
+
+function sanitizeInspeksiPayload(payload: InspeksiFormValues) {
+  const temuanBroadcast = sanitizeTemuanBroadcast(payload.kendalaBroadcast, payload.temuanBroadcast);
+  const temuanPerArea = sanitizeNestedRecordByAllowedKeys(payload.temuanPerArea, payload.kendalaPerArea);
+  const hamaBroadcast = payload.kendalaBroadcast.filter(k => DAFTAR_HAMA.includes(k));
+  const penyakitBroadcast = payload.kendalaBroadcast.filter(k => DAFTAR_PENYAKIT.includes(k));
+  const formatTemuanBroadcast = Object.entries(temuanBroadcast).map(([nama, catatan]) => ({ nama, catatan }));
+
+  const hamaPerArea: Record<string, string[]> = {};
+  const penyakitPerArea: Record<string, string[]> = {};
+  const formatTemuanPerArea: Record<string, Array<{nama: string; catatan: string}>> = {};
+
+  payload.areaIds.forEach(id => {
+    const k = payload.kendalaPerArea[id] || [];
+    hamaPerArea[id] = k.filter(item => DAFTAR_HAMA.includes(item));
+    penyakitPerArea[id] = k.filter(item => DAFTAR_PENYAKIT.includes(item));
+    formatTemuanPerArea[id] = Object.entries(temuanPerArea[id] || {}).map(([nama, catatan]) => ({ nama, catatan }));
+  });
+
+  const parseAngka = (val?: string) => val ? Number(val) : undefined;
+  const parseSerangan = (val?: string) => val ? Number(val) / 100 : undefined;
+
+  const tsPerArea: Record<string, number> = {};
+  const radPerArea: Record<string, number> = {};
+  const phPerArea: Record<string, number> = {};
+  payload.areaIds.forEach(id => {
+    const ts = parseSerangan(payload.tingkatSeranganPerArea[id]); if (ts !== undefined) tsPerArea[id] = ts;
+    const rd = parseAngka(payload.radiusPerArea[id]); if (rd !== undefined) radPerArea[id] = rd;
+    const ph = parseAngka(payload.phTanahPerArea[id]); if (ph !== undefined) phPerArea[id] = ph;
+  });
+
+  return {
+    ...payload,
+    durasiKerjaPerArea: payload.modeWaktu === "broadcast"
+      ? buildBroadcastPerAreaRecord(payload.areaIds, payload.durasiKerjaBroadcast)
+      : payload.durasiKerjaPerArea,
+    hamaBroadcast, penyakitBroadcast, hamaPerArea, penyakitPerArea,
+    temuanBroadcast: formatTemuanBroadcast, temuanPerArea: formatTemuanPerArea,
+    tingkatSeranganBroadcast: parseSerangan(payload.tingkatSeranganBroadcast),
+    radiusBroadcast: parseAngka(payload.radiusBroadcast), phTanahBroadcast: parseAngka(payload.phTanahBroadcast),
+    tingkatSeranganPerArea: tsPerArea, radiusPerArea: radPerArea, phTanahPerArea: phPerArea,
+    petugasBroadcast: payload.pekerjaBroadcast, petugasPerArea: payload.pekerjaPerArea,
+  };
+}
+
 export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(1);
-  const [overriddenAreas, setOverriddenAreas] = useState<Record<string, boolean>>({}); 
+  const [overriddenAreas, setOverriddenAreas] = useState<Record<string, boolean>>({});
   const [successUrls, setSuccessUrls] = useState<{pageId: string, notionUrl: string}[] | null>(null);
-  
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -100,6 +175,7 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
   });
 
   const form = useForm<InspeksiFormValues>({ resolver: zodResolver(inspeksiSchema), defaultValues: EMPTY_VALUES, shouldUnregister: false });
+  const selectedAreaIds = useWatch({ control: form.control, name: "areaIds" }) ?? [];
 
   const calculateDuration = (start?: string, end?: string) => {
     if (!start || !end) return 0;
@@ -109,50 +185,7 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
 
   const saveInspeksi = useMutation({
     mutationFn: async (payload: InspeksiFormValues) => {
-      const hamaBroadcast = payload.kendalaBroadcast.filter(k => DAFTAR_HAMA.includes(k));
-      const penyakitBroadcast = payload.kendalaBroadcast.filter(k => DAFTAR_PENYAKIT.includes(k));
-      const formatTemuanBroadcast = Object.entries(payload.temuanBroadcast).map(([nama, catatan]) => ({ nama, catatan }));
-
-      const hamaPerArea: Record<string, string[]> = {};
-      const penyakitPerArea: Record<string, string[]> = {};
-      const formatTemuanPerArea: Record<string, Array<{nama: string; catatan: string}>> = {};
-      
-      payload.areaIds.forEach(id => {
-        const k = payload.kendalaPerArea[id] || [];
-        hamaPerArea[id] = k.filter(item => DAFTAR_HAMA.includes(item));
-        penyakitPerArea[id] = k.filter(item => DAFTAR_PENYAKIT.includes(item));
-        
-        const tArea = payload.temuanPerArea[id] || {};
-        formatTemuanPerArea[id] = Object.entries(tArea).map(([nama, catatan]) => ({ nama, catatan }));
-      });
-
-      const parseAngka = (val?: string) => val ? Number(val) : undefined;
-      const parseSerangan = (val?: string) => val ? Number(val) / 100 : undefined;
-      
-      const tsPerArea: Record<string, number> = {};
-      const radPerArea: Record<string, number> = {};
-      const phPerArea: Record<string, number> = {};
-      payload.areaIds.forEach(id => {
-        const ts = parseSerangan(payload.tingkatSeranganPerArea[id]); if (ts !== undefined) tsPerArea[id] = ts;
-        const rd = parseAngka(payload.radiusPerArea[id]); if (rd !== undefined) radPerArea[id] = rd;
-        const ph = parseAngka(payload.phTanahPerArea[id]); if (ph !== undefined) phPerArea[id] = ph;
-      });
-
-      const finalDurasiPerArea = payload.modeWaktu === "broadcast" 
-        ? payload.areaIds.reduce((acc, id) => ({ ...acc, [id]: payload.durasiKerjaBroadcast }), {}) 
-        : payload.durasiKerjaPerArea;
-
-      const cleanPayload = {
-        ...payload,
-        durasiKerjaPerArea: finalDurasiPerArea,
-        hamaBroadcast, penyakitBroadcast, hamaPerArea, penyakitPerArea,
-        temuanBroadcast: formatTemuanBroadcast, temuanPerArea: formatTemuanPerArea,
-        tingkatSeranganBroadcast: parseSerangan(payload.tingkatSeranganBroadcast),
-        radiusBroadcast: parseAngka(payload.radiusBroadcast), phTanahBroadcast: parseAngka(payload.phTanahBroadcast),
-        tingkatSeranganPerArea: tsPerArea, radiusPerArea: radPerArea, phTanahPerArea: phPerArea,
-        petugasBroadcast: payload.pekerjaBroadcast, petugasPerArea: payload.pekerjaPerArea,
-      };
-
+      const cleanPayload = sanitizeInspeksiPayload(payload);
       const response = await fetch("/api/notion/add-inspeksi", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cleanPayload) });
       if (!response.ok) { const errText = await response.text(); throw new Error(errText || "Gagal menyimpan inspeksi"); }
       return response.json();
@@ -177,52 +210,32 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
 
   // 👇 MANIPULATOR PAYLOAD OTOMATIS SEBELUM SUBMIT 👇
   function onSubmit(values: InspeksiFormValues) {
-    const hasOverride = Object.values(overriddenAreas).some(Boolean);
-    const finalPayload = { ...values };
-
-    if (hasOverride) {
-      finalPayload.modeWaktu = "spesifik"; finalPayload.modeKendala = "spesifik"; finalPayload.modeAngka = "spesifik"; finalPayload.modePekerja = "spesifik"; finalPayload.modeAtribut = "spesifik"; finalPayload.modeCatatan = "spesifik";
-      
-      finalPayload.areaIds.forEach(id => {
-        if (!overriddenAreas[id]) {
-          finalPayload.waktuMulaiPerArea[id] = values.waktuMulaiBroadcast || "";
-          finalPayload.waktuSelesaiPerArea[id] = values.waktuSelesaiBroadcast || "";
-          finalPayload.durasiKerjaPerArea[id] = values.durasiKerjaBroadcast || 0;
-          finalPayload.kendalaPerArea[id] = [...values.kendalaBroadcast];
-          finalPayload.temuanPerArea[id] = { ...values.temuanBroadcast };
-          finalPayload.phTanahPerArea[id] = values.phTanahBroadcast || "";
-          finalPayload.tingkatSeranganPerArea[id] = values.tingkatSeranganBroadcast || "";
-          finalPayload.radiusPerArea[id] = values.radiusBroadcast || "";
-          finalPayload.pekerjaPerArea[id] = [...values.pekerjaBroadcast];
-          finalPayload.statusPerArea[id] = values.statusBroadcast || "Baru di temukan";
-          finalPayload.keteranganPerArea[id] = values.keteranganBroadcast || "";
-        }
-      });
-    } else {
-      finalPayload.modeWaktu = "broadcast"; finalPayload.modeKendala = "broadcast"; finalPayload.modeAngka = "broadcast"; finalPayload.modePekerja = "broadcast"; finalPayload.modeAtribut = "broadcast"; finalPayload.modeCatatan = "broadcast";
-    }
-    
-    saveInspeksi.mutate(finalPayload);
+    saveInspeksi.mutate(
+      buildAreaOverridePayload({
+        values,
+        areaIds: values.areaIds,
+        overriddenAreas,
+        modeKeys: INSPEKSI_MODE_KEYS,
+        fields: INSPEKSI_OVERRIDE_FIELDS,
+      }),
+    );
   }
 
   // --- HELPER UNTUK OVERRIDE ---
   const handleEnableOverride = (areaId: string) => {
-    form.setValue(`waktuMulaiPerArea.${areaId}`, form.getValues("waktuMulaiBroadcast"));
-    form.setValue(`waktuSelesaiPerArea.${areaId}`, form.getValues("waktuSelesaiBroadcast"));
-    form.setValue(`durasiKerjaPerArea.${areaId}`, form.getValues("durasiKerjaBroadcast"));
-    form.setValue(`kendalaPerArea.${areaId}`, [...form.getValues("kendalaBroadcast")]);
-    form.setValue(`temuanPerArea.${areaId}`, { ...form.getValues("temuanBroadcast") });
-    form.setValue(`phTanahPerArea.${areaId}`, form.getValues("phTanahBroadcast"));
-    form.setValue(`tingkatSeranganPerArea.${areaId}`, form.getValues("tingkatSeranganBroadcast"));
-    form.setValue(`radiusPerArea.${areaId}`, form.getValues("radiusBroadcast"));
-    form.setValue(`pekerjaPerArea.${areaId}`, [...form.getValues("pekerjaBroadcast")]);
-    form.setValue(`statusPerArea.${areaId}`, form.getValues("statusBroadcast"));
-    form.setValue(`keteranganPerArea.${areaId}`, form.getValues("keteranganBroadcast"));
-    setOverriddenAreas(prev => ({ ...prev, [areaId]: true }));
+    const updates = copyBroadcastToArea(form.getValues(), areaId, INSPEKSI_OVERRIDE_FIELDS);
+    Object.entries(updates).forEach(([key, value]) => form.setValue(key as keyof InspeksiFormValues, value));
+    setOverriddenAreas(prev => ({ ...pruneOverrideState(form.getValues("areaIds"), prev), [areaId]: true }));
   };
 
   const handleCancelOverride = (areaId: string) => {
-    setOverriddenAreas(prev => ({ ...prev, [areaId]: false }));
+    const updates = resetAreaOverride(form.getValues(), areaId, INSPEKSI_OVERRIDE_FIELDS);
+    Object.entries(updates).forEach(([key, value]) => form.setValue(key as keyof InspeksiFormValues, value));
+    setOverriddenAreas(prev => {
+      const next = pruneOverrideState(form.getValues("areaIds"), prev);
+      delete next[areaId];
+      return next;
+    });
   };
 
   const handleToggleHamaBroadcast = (item: string) => {
@@ -251,7 +264,7 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
 
       {/* FLOAT SHEET iPHONE STYLE */}
       <SheetContent side="top" className="mx-auto max-w-md rounded-b-[2rem] border-x-0 border-t-0 p-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl shadow-[0_16px_40px_rgba(0,0,0,0.12)] pb-5">
-        
+
         {/* HEADER */}
         <SheetHeader className="px-6 py-4 flex flex-row items-center justify-between border-b border-border">
           <div className="flex items-center gap-3">
@@ -281,11 +294,11 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
           ) : isLoadingOptions ? ( <Skeleton className="h-12 w-full rounded-xl" /> ) : (
             <Form {...form}>
               <form onSubmit={(e) => e.preventDefault()} className="space-y-5 text-left">
-                
+
                 {/* 👇 PANEL SCROLLING KHUSUS KONTEN 👇 */}
                 <div className="max-h-[55vh] overflow-y-auto pr-1 pb-2 space-y-5">
                   <AnimatePresence mode="wait">
-                    
+
                     {/* ================= STEP 1: INFO DASAR (ANCHOR) ================= */}
                     {step === 1 && (
                       <motion.div key="step1" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-5 pt-1">
@@ -296,15 +309,15 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
                             <FormMessage className="text-xs text-destructive" />
                           </FormItem>
                         )} />
-                        
+
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
                             <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80"><MapPinned className="inline-block h-3.5 w-3.5 mr-1" /> Pilih Area Lokasi</p>
-                            <span className="text-[10px] font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded-md">{form.watch("areaIds").length} terpilih</span>
+                            <span className="text-[10px] font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded-md">{selectedAreaIds.length} terpilih</span>
                           </div>
                           <div className="flex flex-wrap gap-2 pt-1">
                             {dropdownOptions?.areas?.map((item) => {
-                              const isSelected = form.watch("areaIds").includes(item.id);
+                              const isSelected = selectedAreaIds.includes(item.id);
                               return (
                                 <button key={item.id} type="button" onClick={() => {
                                   const cur = form.getValues("areaIds"); form.setValue("areaIds", isSelected ? cur.filter(id => id !== item.id) : [...cur, item.id], { shouldValidate: true });
@@ -321,7 +334,7 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
                     {/* ================= STEP 2: DATA MASTER INSPEKSI ================= */}
                     {step === 2 && (
                       <motion.div key="step2" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-4 pt-1">
-                        
+
                         {/* Waktu & Durasi */}
                         <div className="bg-card p-4 rounded-2xl border border-border shadow-sm space-y-3">
                           <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">1. Waktu & Durasi</p>
@@ -345,9 +358,9 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
                             <SelectTrigger className="w-full h-11 rounded-xl bg-background border-input font-bold text-xs"><SelectValue placeholder="+ Tambah Hama / Penyakit" /></SelectTrigger>
                             <SelectContent className="max-h-60 rounded-xl">{PRESET_HAMA_PENYAKIT.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
                           </Select>
-                          
+
                           {form.watch("kendalaBroadcast").length === 0 && <p className="text-xs text-muted-foreground/60 italic p-3 text-center border border-dashed border-border rounded-xl mt-2">Belum ada temuan.</p>}
-                          
+
                           <div className="space-y-2 mt-2">
                             <AnimatePresence>
                               {form.watch("kendalaBroadcast").map((item) => (
@@ -401,7 +414,7 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
                           💡 <span className="font-bold">Info:</span> Semua area otomatis memakai <span className="font-bold">Data Master</span>. Klik "Ubah Khusus" jika ada area dengan jenis hama atau status yang berbeda.
                         </div>
 
-                        {form.watch("areaIds").map((areaId) => {
+                        {selectedAreaIds.map((areaId) => {
                           const areaName = dropdownOptions?.areas?.find((a) => a.id === areaId)?.name || `Area`;
                           const isOverridden = overriddenAreas[areaId];
 
@@ -424,7 +437,7 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
                                     <div className="space-y-1"><p className="text-[9px] font-bold text-muted-foreground uppercase">Selesai</p><Input type="datetime-local" className="h-8 text-[10px] bg-background border-input" value={form.watch(`waktuSelesaiPerArea.${areaId}`) || ""} onChange={(e) => { form.setValue(`waktuSelesaiPerArea.${areaId}`, e.target.value); form.setValue(`durasiKerjaPerArea.${areaId}`, calculateDuration(form.getValues(`waktuMulaiPerArea.${areaId}`), e.target.value)); }} /></div>
                                   </div>
                                   <div className="flex items-center gap-2"><p className="text-[9px] font-bold text-muted-foreground uppercase">Durasi:</p><Input type="number" step="0.1" className="h-7 w-16 text-[10px] font-bold px-1 bg-background border-input" value={form.watch(`durasiKerjaPerArea.${areaId}`) || 0} onChange={(e) => form.setValue(`durasiKerjaPerArea.${areaId}`, Number(e.target.value))} /><span className="text-[9px] font-bold">Jam</span></div>
-                                  
+
                                   {/* Temuan Hama / Penyakit Spesifik */}
                                   <div className="space-y-2 pt-2 border-t border-border/50">
                                     <Select onValueChange={(val) => handleToggleHamaSpesifik(areaId, val)}>
@@ -445,7 +458,7 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
                                     <div className="space-y-1"><p className="text-[9px] font-bold text-muted-foreground">Serangan(%)</p><Input type="number" className="h-8 text-[10px] font-bold bg-background border-input" value={form.watch(`tingkatSeranganPerArea.${areaId}`) || ""} onChange={(e) => form.setValue(`tingkatSeranganPerArea.${areaId}`, e.target.value)} /></div>
                                     <div className="space-y-1"><p className="text-[9px] font-bold text-muted-foreground">Radius(m2)</p><Input type="number" className="h-8 text-[10px] font-bold bg-background border-input" value={form.watch(`radiusPerArea.${areaId}`) || ""} onChange={(e) => form.setValue(`radiusPerArea.${areaId}`, e.target.value)} /></div>
                                   </div>
-                                  
+
                                   {/* Pekerja Spesifik */}
                                   <div className="space-y-1.5 pt-2 border-t border-border/50">
                                     <p className="text-[9px] font-bold text-muted-foreground uppercase">Tim Pekerja Area Ini</p>
@@ -460,7 +473,7 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
                                       })}
                                     </div>
                                   </div>
-                                  
+
                                   {/* Status & Catatan Spesifik */}
                                   <div className="pt-2 border-t border-border/50 space-y-2">
                                     <Select onValueChange={(val) => form.setValue(`statusPerArea.${areaId}`, val)} value={form.watch(`statusPerArea.${areaId}`) || ""}><SelectTrigger className="h-8 text-[10px]"><SelectValue placeholder="Status" /></SelectTrigger><SelectContent><SelectItem value="Baru di temukan">Baru di temukan</SelectItem><SelectItem value="Sedang ditangani">Sedang ditangani</SelectItem><SelectItem value="Sudah ditangani">Sudah ditangani</SelectItem></SelectContent></Select>
@@ -479,11 +492,11 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
                 {/* ================= NAVIGASI NORMAL DI BAWAH KONTEN ================= */}
                 <div className="flex justify-between items-center pt-4 border-t border-border mt-2">
                   {step > 1 ? (
-                    <Button type="button" variant="ghost" className="h-11 rounded-xl px-4 font-bold text-muted-foreground hover:bg-muted" onClick={() => setStep((p) => p - 1)} disabled={saveInspeksi.isPending}><ArrowLeft className="mr-2 h-4 w-4" /> Kembali</Button>
-                  ) : (
-                    <Button type="button" variant="ghost" className="h-11 rounded-xl px-4 font-bold text-muted-foreground hover:bg-muted" onClick={() => setOpen(false)}>Batal</Button>
-                  )}
-                  
+                     <Button type="button" variant="ghost" className="h-11 rounded-xl px-4 font-bold text-muted-foreground hover:bg-muted" onClick={() => setStep((p) => p - 1)} disabled={saveInspeksi.isPending}><ArrowLeft className="mr-2 h-4 w-4" /> Kembali</Button>
+                   ) : (
+                     <Button type="button" variant="ghost" className="h-11 rounded-xl px-4 font-bold text-muted-foreground hover:bg-muted" onClick={() => setOpen(false)}>Batal</Button>
+                   )}
+
                   {step < 3 ? (
                     <Button type="button" className="h-11 rounded-xl px-5 font-bold bg-primary text-primary-foreground hover:opacity-90 transition-all shadow-sm" onClick={handleNextStep}>Lanjut <ArrowRight className="ml-2 h-4 w-4" /></Button>
                   ) : (
@@ -497,7 +510,7 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
             </Form>
           )}
         </div>
-        
+
         {/* CAPSULE BAR KHAS IPHONE */}
         <div className="mx-auto mt-1 h-1 w-10 rounded-full bg-border" />
       </SheetContent>
