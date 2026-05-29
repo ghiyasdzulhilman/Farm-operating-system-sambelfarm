@@ -6,7 +6,7 @@ import { format } from "date-fns";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft, ArrowRight, CheckCircle2, Search, Trash2,
+  ArrowLeft, ArrowRight, CheckCircle2, Activity, Search, Trash2,
   ExternalLink, Loader2, MapPinned, Briefcase, PlusCircle, Edit3, Undo2
 } from "lucide-react";
 
