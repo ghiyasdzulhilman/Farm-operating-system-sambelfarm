@@ -8,11 +8,11 @@ import {
   Beaker, 
   SlidersHorizontal, 
   Plus, 
-  Wheat,
   Banknote,
-  Activity,
-  Wrench,
-  Sprout
+  Sprout,
+  ShoppingBasket, 
+  Activity, 
+  Search 
 } from "lucide-react";
 
 import { AddHarvestDialog } from "@/components/harvest/add-harvest-dialog";
@@ -66,13 +66,13 @@ export function AppLayout({
     { href: "/settings", icon: SlidersHorizontal },
   ];
 
-  // URUTAN FAB MUNCUL KE ATAS (VERTIKAL LURUS) DENGAN ICON SPESIFIK
+    // URUTAN FAB MUNCUL KE ATAS (VERTIKAL LURUS) DENGAN ICON SPESIFIK
   const quickActions = [
     { id: "expense", component: AddExpenseDialog, icon: Banknote, delay: 0.12 },
-    { id: "inspeksi", component: AddInspeksiDialog, icon: Activity, delay: 0.09 },
-    { id: "operasional", component: AddOperasionalDialog, icon: Wrench, delay: 0.06 },
+    { id: "inspeksi", component: AddInspeksiDialog, icon: Search, delay: 0.09 }, // 👈 Kaca Pembesar
+    { id: "operasional", component: AddOperasionalDialog, icon: Activity, delay: 0.06 }, // 👈 Kegiatan/Olahraga
     { id: "perawatan", component: AddPerawatanDialog, icon: Sprout, delay: 0.03 },
-    { id: "harvest", component: AddHarvestDialog, icon: Wheat, delay: 0.0 },
+    { id: "harvest", component: AddHarvestDialog, icon: ShoppingBasket, delay: 0.0 }, // 👈 Keranjang
   ];
 
   return (
