@@ -7,7 +7,9 @@ import { SummaryHeader } from "@/components/operasional/SummaryHeader";
 import { FilterControls } from "@/components/operasional/FilterControls";
 import { LiveFeedView } from "@/components/operasional/LiveFeedView";
 import { ActivityDetailSheet } from "@/components/operasional/ActivityDetailSheet";
+import { MasterTableView } from "@/components/operasional/MasterTableView";
 import type { AgronomyItem, ModuleKey, ViewKey } from "@/types/operasional";
+
 
 export function AgronomyHubPage() {
   const [activeView, setActiveView] = useState<ViewKey>("feed");
@@ -97,8 +99,8 @@ export function AgronomyHubPage() {
             <LiveFeedView items={filteredItems} onItemClick={setSelectedItem} />
           )}
           {activeView === "table" && (
-            <div className="text-center py-10 font-bold text-muted-foreground border rounded-3xl">Fitur Tabel Segera Hadir</div>
-          )}
+          <MasterTableView items={filteredItems} onItemClick={setSelectedItem} />
+        )}
         </div>
 
         <aside className="space-y-4">
