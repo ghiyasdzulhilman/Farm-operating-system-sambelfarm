@@ -23,16 +23,27 @@ export function AgronomyHubPage() {
   const feedData: AgronomyItem[] = response?.feed || [];
   const meta = response?.meta || { stagingCount: 0 };
 
+    // --- TIMPA BLOK LOGIKA FILTER INI DI AGRONOMYHUBPAGE.TSX ---
   const filteredItems = useMemo(() => {
     return feedData.filter((item) => {
+      // 1. Filter Berdasarkan Tab Modul (Semua, Perawatan, Inspeksi, dll)
       const matchModule = activeModule === "all" ? true : item.module === activeModule;
-      const matchDate = activeFilter === "Hari ini" ? item.dateLabel === "Hari ini"
-                      : activeFilter === "Kemarin" ? item.dateLabel === "Kemarin" : true;
-      const matchStatus = activeFilter === "Selesai" ? item.status === "Selesai"
-                        : activeFilter === "Dalam proses" ? item.status === "Dalam proses" : true;
-      const matchPriority = activeFilter === "High Priority" ? item.priority === "High" : true;
+      
+      // 2. Filter Berdasarkan Tombol Waktu & Status (Hari ini, Kemarin, Selesai, dll)
+      let matchFilter = true;
+      if (activeFilter === "Hari ini") {
+        matchFilter = item.dateLabel === "Hari ini";
+      } else if (activeFilter === "Kemarin") {
+        matchFilter = item.dateLabel === "Kemarin";
+      } else if (activeFilter === "Selesai") {
+        matchFilter = item.status === "Selesai";
+      } else if (activeFilter === "Dalam proses") {
+        matchFilter = item.status === "Dalam proses";
+      } else if (activeFilter === "High Priority") {
+        matchFilter = item.priority === "High" || item.priority === "HIGH";
+      }
 
-      return matchModule && matchDate && matchStatus && matchPriority;
+      return matchModule && matchFilter;
     });
   }, [feedData, activeModule, activeFilter]);
 
