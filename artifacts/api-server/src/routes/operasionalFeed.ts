@@ -92,17 +92,18 @@ async function fetchSingleDatabaseFeed(
 
       
 
-      // ==========================================
+            // ==========================================
       // 🧠 SMART STATUS NORMALIZER (ANTI-DIRTY DATA)
       // ==========================================
-      const safeStatus = (rawStatus || "").toString().toLowerCase().trim();
-      
-      // Default awal kita set ke Belum dikerjakan buat jaga-jaga kalau kosong melompong
       let statusStyle: "Selesai" | "Dalam proses" | "Belum dikerjakan" = "Belum dikerjakan";
 
+      // 👇 1. ATURAN VIP FINANCE (Mutlak, gak boleh diganggu gugat)
       if (dbType === "panen" || dbType === "expenses") {
         statusStyle = "Selesai";
-      }
+      } 
+      // 👇 2. ATURAN AGRONOMI (Baru jalan kalau bukan finance)
+      else {
+        const safeStatus = (rawStatus || "").toString().toLowerCase().trim();
 
       // 1. Sapu Jagat untuk status SELESAI
       if (
