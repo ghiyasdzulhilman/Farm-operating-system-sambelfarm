@@ -1,26 +1,20 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Leaf, Plus, FileText, Loader2 } from "lucide-react";
+import { Leaf, Plus, FileText, Loader2, TrendingUp, MoreHorizontal, Sprout, Wrench, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-// Import pecahan komponen kita (Pastikan path-nya sesuai)
 import { SummaryHeader } from "@/components/operasional/SummaryHeader";
+import { FilterControls } from "@/components/operasional/FilterControls";
+import { LiveFeedView } from "@/components/operasional/LiveFeedView";
+import { ActivityDetailSheet } from "@/components/operasional/ActivityDetailSheet";
 import type { AgronomyItem, ModuleKey, ViewKey } from "@/types/operasional";
 
-// Nanti lu import 4 file ini di Tahap 2:
-// import { FilterControls } from "@/components/operasional/FilterControls";
-// import { LiveFeedView } from "@/components/operasional/LiveFeedView";
-// import { MasterTableView } from "@/components/operasional/MasterTableView";
-// import { ActivityDetailSheet } from "@/components/operasional/ActivityDetailSheet";
-
 export function AgronomyHubPage() {
-  // --- STATE LOKAL ---
   const [activeView, setActiveView] = useState<ViewKey>("feed");
   const [activeModule, setActiveModule] = useState<ModuleKey>("all");
   const [activeFilter, setActiveFilter] = useState("Hari ini");
   const [selectedItem, setSelectedItem] = useState<AgronomyItem | null>(null);
 
-  // --- PEMANGGILAN PELAYAN BACKEND ---
   const { data: response, isLoading } = useQuery({
     queryKey: ["operasional-feed"],
     queryFn: () => fetch("/api/operasional/feed").then((res) => res.json()),
@@ -29,7 +23,6 @@ export function AgronomyHubPage() {
   const feedData: AgronomyItem[] = response?.feed || [];
   const meta = response?.meta || { stagingCount: 0 };
 
-  // --- LOGIKA FILTER UTAMA ---
   const filteredItems = useMemo(() => {
     return feedData.filter((item) => {
       const matchModule = activeModule === "all" ? true : item.module === activeModule;
@@ -43,7 +36,6 @@ export function AgronomyHubPage() {
     });
   }, [feedData, activeModule, activeFilter]);
 
-  // --- EFEK LOADING ---
   if (isLoading) {
     return (
       <div className="flex h-[60vh] w-full flex-col items-center justify-center gap-4 text-muted-foreground">
@@ -56,7 +48,6 @@ export function AgronomyHubPage() {
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6 space-y-6">
       
-      {/* HEADER PAGE */}
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground shadow-sm">
@@ -67,7 +58,7 @@ export function AgronomyHubPage() {
             Pusat Aktivitas Agronomy
           </h1>
           <p className="max-w-2xl text-sm text-muted-foreground">
-            Gabungan perawatan, inspeksi, operasional harian, dan aliran cashflow.
+            Gabungan perawatan, inspeksi, operasional harian, dan cashflow.
           </p>
         </div>
 
@@ -81,18 +72,81 @@ export function AgronomyHubPage() {
         </div>
       </div>
 
-      {/* COMPONENT 1: WIDGET 4 KARTU */}
       <SummaryHeader feedData={feedData} meta={meta} />
 
-      {/* COMPONENT 2: FILTER PANEL (Nanti di Tahap 2) */}
-      {/* <FilterControls ... /> */}
+      <FilterControls 
+        feedData={feedData}
+        activeView={activeView} setActiveView={setActiveView}
+        activeModule={activeModule} setActiveModule={setActiveModule}
+        activeFilter={activeFilter} setActiveFilter={setActiveFilter}
+      />
 
-      {/* COMPONENT 3 & 4: RENDER KONTEN (Nanti di Tahap 2) */}
-      {/* activeView === "feed" ? <LiveFeedView ... /> : <MasterTableView ... /> */}
+      <div className="mt-6 grid gap-6 lg:grid-cols-[1.4fr_0.9fr]">
+        <div className="space-y-6">
+          {activeView === "feed" && (
+            <LiveFeedView items={filteredItems} onItemClick={setSelectedItem} />
+          )}
+          {activeView === "table" && (
+            <div className="text-center py-10 font-bold text-muted-foreground border rounded-3xl">Fitur Tabel Segera Hadir</div>
+          )}
+        </div>
 
-      {/* COMPONENT 5: LACI DETAIL (Nanti di Tahap 2) */}
-      {/* <ActivityDetailSheet ... /> */}
+        <aside className="space-y-4">
+          <div className="rounded-3xl border border-border/60 bg-card p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Snapshot</p>
+                <h3 className="mt-1 text-lg font-black tracking-tight">Ringkasan Cepat</h3>
+              </div>
+              <div className="rounded-2xl bg-primary/10 p-3 text-primary"><TrendingUp className="h-5 w-5" /></div>
+            </div>
+            <div className="mt-4 space-y-3">
+              <InfoRow label="Total Aktivitas" value={`${feedData.length}`} />
+              <InfoRow label="Aktivitas Tertunda" value={`${feedData.filter(i => i.status === "Belum dikerjakan").length}`} />
+              <InfoRow label="Data Terakhir Sync" value={new Date(meta.lastSynced).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} />
+            </div>
+          </div>
 
+          <div className="rounded-3xl border border-border/60 bg-card p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Shortcut</p>
+                <h3 className="mt-1 text-lg font-black tracking-tight">Aksi Cepat</h3>
+              </div>
+              <div className="rounded-2xl bg-muted p-3 text-muted-foreground"><MoreHorizontal className="h-5 w-5" /></div>
+            </div>
+            <div className="mt-4 grid gap-2">
+              <ShortcutButton icon={Sprout} label="Tambah Perawatan" />
+              <ShortcutButton icon={Leaf} label="Tambah Inspeksi" />
+              <ShortcutButton icon={Wrench} label="Tambah Operasional" />
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <ActivityDetailSheet item={selectedItem} onClose={() => setSelectedItem(null)} />
     </div>
+  );
+}
+
+// Mini komponen buat Sidebar Kanan
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between rounded-2xl bg-muted/30 px-4 py-3">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className="text-sm font-bold">{value}</span>
+    </div>
+  );
+}
+
+function ShortcutButton({ icon: Icon, label }: { icon: any; label: string }) {
+  return (
+    <button className="flex items-center justify-between rounded-2xl border border-border/60 bg-card px-4 py-3 text-left shadow-sm transition-all hover:bg-muted/20 w-full">
+      <div className="flex items-center gap-3">
+        <div className="rounded-2xl bg-primary/10 p-2 text-primary"><Icon className="h-4 w-4" /></div>
+        <span className="text-sm font-semibold">{label}</span>
+      </div>
+      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+    </button>
   );
 }
