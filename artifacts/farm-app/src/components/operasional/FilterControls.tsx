@@ -13,7 +13,8 @@ const VIEW_OPTIONS: Array<{ key: ViewKey; label: string }> = [
   { key: "feed", label: "Feed" },
   { key: "table", label: "Tabel" },
 ];
-const FILTERS = ["Hari ini", "Kemarin", "Selesai", "Dalam proses", "High Priority"];
+
+const FILTERS = ["Hari ini", "Kemarin", "Selesai", "Dalam proses", "Belum dikerjakan"];
 
 export function FilterControls({ feedData, activeView, setActiveView, activeModule, setActiveModule, activeFilter, setActiveFilter }: FilterProps) {
   
