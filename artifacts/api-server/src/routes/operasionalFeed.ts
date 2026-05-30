@@ -90,10 +90,52 @@ async function fetchSingleDatabaseFeed(
       const relatedAreaIds = extractNotionProp(page, areaId, "relation") || [];
       const relatedWorkerIds = extractNotionProp(page, workersId, "relation") || [];
 
-      // Standarisasi Status
+      
+
+      // ==========================================
+      // 🧠 SMART STATUS NORMALIZER (ANTI-DIRTY DATA)
+      // ==========================================
+      const safeStatus = (rawStatus || "").toString().toLowerCase().trim();
+      
+      // Default awal kita set ke Belum dikerjakan buat jaga-jaga kalau kosong melompong
       let statusStyle: "Selesai" | "Dalam proses" | "Belum dikerjakan" = "Belum dikerjakan";
-      if (["Done", "Selesai", "Selesai Pasca", "Lunas"].includes(rawStatus)) statusStyle = "Selesai";
-      else if (["In progress", "Dalam proses", "Sedang Jalan", "Parsial"].includes(rawStatus)) statusStyle = "Dalam proses";
+
+      // 1. Sapu Jagat untuk status SELESAI
+      if (
+        safeStatus.includes("selesai") || 
+        safeStatus.includes("done") || 
+        safeStatus.includes("lunas") || 
+        safeStatus.includes("Sudah ditangani") || 
+        safeStatus.includes("complete") ||
+        safeStatus.includes("berhasil")
+      ) {
+        statusStyle = "Selesai";
+      } 
+      // 2. Sapu Jagat untuk status DALAM PROSES
+      else if (
+        safeStatus.includes("Dalam proses") || 
+        safeStatus.includes("progress") || 
+        safeStatus.includes("jalan") || 
+        safeStatus.includes("Sedang ditangani") || 
+        safeStatus.includes("on going") ||
+        safeStatus.includes("working") ||
+        safeStatus.includes("proses")
+      ) {
+        statusStyle = "Dalam proses";
+      }
+      // 3. Sapu Jagat untuk status RENCANA / BELUM (Lebih Aman & Eksplisit)
+      else if (
+        safeStatus.includes("rencana") ||
+        safeStatus.includes("plan") ||
+        safeStatus.includes("to do") ||
+        safeStatus.includes("todo") ||
+        safeStatus.includes("belum") ||
+        safeStatus.includes("pending") ||
+        safeStatus.includes("baru di temukan") ||
+        safeStatus.includes("draft")
+      ) {
+        statusStyle = "Belum dikerjakan";
+      }
 
       // Template Dasar (Sesuai AgronomyItem Type)
       let normalizedItem: any = {
