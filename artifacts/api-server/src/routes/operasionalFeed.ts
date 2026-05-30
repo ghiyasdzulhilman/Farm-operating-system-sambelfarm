@@ -100,7 +100,6 @@ async function fetchSingleDatabaseFeed(
       // Default awal kita set ke Belum dikerjakan buat jaga-jaga kalau kosong melompong
       let statusStyle: "Selesai" | "Dalam proses" | "Belum dikerjakan" = "Belum dikerjakan";
 
-      // 👇 ATURAN VIP: Kalo datanya dari modul panen atau expenses, OTOMATIS BERES!
       if (dbType === "panen" || dbType === "expenses") {
         statusStyle = "Selesai";
       }
