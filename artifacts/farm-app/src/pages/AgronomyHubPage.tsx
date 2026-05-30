@@ -23,13 +23,12 @@ export function AgronomyHubPage() {
   const feedData: AgronomyItem[] = response?.feed || [];
   const meta = response?.meta || { stagingCount: 0 };
 
-    // --- TIMPA BLOK LOGIKA FILTER INI DI AGRONOMYHUBPAGE.TSX ---
-  const filteredItems = useMemo(() => {
+    const filteredItems = useMemo(() => {
     return feedData.filter((item) => {
-      // 1. Filter Berdasarkan Tab Modul (Semua, Perawatan, Inspeksi, dll)
+      // 1. Filter Modul (Tab Atas)
       const matchModule = activeModule === "all" ? true : item.module === activeModule;
       
-      // 2. Filter Berdasarkan Tombol Waktu & Status (Hari ini, Kemarin, Selesai, dll)
+      // 2. Filter Waktu & Status (Pil Bawah)
       let matchFilter = true;
       if (activeFilter === "Hari ini") {
         matchFilter = item.dateLabel === "Hari ini";
@@ -39,8 +38,8 @@ export function AgronomyHubPage() {
         matchFilter = item.status === "Selesai";
       } else if (activeFilter === "Dalam proses") {
         matchFilter = item.status === "Dalam proses";
-      } else if (activeFilter === "High Priority") {
-        matchFilter = item.priority === "High" || item.priority === "HIGH";
+      } else if (activeFilter === "Belum dikerjakan") { // 👈 High priority diganti ini
+        matchFilter = item.status === "Belum dikerjakan";
       }
 
       return matchModule && matchFilter;
