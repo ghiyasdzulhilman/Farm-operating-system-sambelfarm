@@ -141,6 +141,7 @@ async function fetchSingleDatabaseFeed(
       ) {
         statusStyle = "Belum dikerjakan";
       }
+      }
 
       // Template Dasar (Sesuai AgronomyItem Type)
       let normalizedItem: any = {
