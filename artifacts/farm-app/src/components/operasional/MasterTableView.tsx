@@ -23,15 +23,15 @@ export function MasterTableView({
   }
 
   return (
-    // 👇 KUNCI UTAMA: max-w-[calc(100vw-2rem)] biar bener-bener dikunci ke lebar layar HP!
-    <div className="w-full max-w-[calc(100vw-2rem)] md:max-w-full mx-auto overflow-hidden rounded-3xl border border-border/60 bg-card shadow-sm flex flex-col">
+    // 👇 SABUK DICOPOT: Cuma pakai w-full biar dia ngikutin lebar parent (sejajar sama Filter)
+    <div className="w-full overflow-hidden rounded-3xl border border-border/60 bg-card shadow-sm flex flex-col">
       
       <div className="border-b border-border/60 px-4 py-3 bg-card shrink-0">
         <p className="text-sm font-black tracking-tight">Tabel Master (Mirror Notion)</p>
         <p className="text-[10px] text-muted-foreground">Geser tabel ke samping untuk melihat properti lain.</p>
       </div>
 
-      <div className="w-full overflow-auto max-h-[60vh] custom-scrollbar relative">
+      <div className="w-full overflow-x-auto overflow-y-auto max-h-[60vh] custom-scrollbar relative">
         <table className="w-full min-w-[700px] text-left border-collapse">
           
           <thead className="sticky top-0 z-20 bg-muted/95 backdrop-blur-md shadow-sm border-b border-border/60 text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground">
@@ -68,7 +68,6 @@ export function MasterTableView({
                   <select
                     value={item.status}
                     onChange={(e) => onStatusChange?.(item.id, e.target.value)}
-                    // w-max ditambahin biar tombol statusnya presisi gak kepanjangan
                     className={cn(
                       "w-max rounded-xl border border-border/80 bg-background px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider focus:outline-none focus:ring-1 focus:ring-primary appearance-none cursor-pointer",
                       item.status === "Selesai" && "border-emerald-500/30 bg-emerald-500/5 text-emerald-700",
