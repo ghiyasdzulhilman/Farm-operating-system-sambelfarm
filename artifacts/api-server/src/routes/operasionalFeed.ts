@@ -278,18 +278,57 @@ router.get("/operasional/feed", async (req, res): Promise<void> => {
       req.log.info({ userId }, "Operasional Feed: Cache hit!");
     }
 
-    // --- PEMETAAN NAMA AREA (RELATION ID -> TEKS) ---
+    // --- PEMETAAN NAMA AREA & PEKERJA (SELF-HEALING: AMBIL DARI NOTION JIKA CACHE KOSONG) ---
     const areaMap: Record<string, string> = {};
-    const workerMap: Record<string, string> = {}; // ✅ TAMBAHKAN INI
+    const workerMap: Record<string, string> = {};
     const cacheDashboard = notionCache.get<any>(`dashboard:summary:${userId}`);
-    
+
+    // 1. Coba dapatkan data area dari cache
     if (cacheDashboard?.resultLabaRugi?.areas) {
       cacheDashboard.resultLabaRugi.areas.forEach((a: any) => { areaMap[a.id] = a.name; });
     }
-
-    // ✅ TAMBAHKAN BLOK INI UNTUK MENGAMBIL NAMA PEKERJA DARI CACHE
+    // 2. Coba dapatkan data pekerja dari cache
     if (cacheDashboard?.resultPekerja?.petugas) {
       cacheDashboard.resultPekerja.petugas.forEach((p: any) => { workerMap[p.id] = p.name; });
+    }
+
+    // 3. JIKA CACHE KOSONG, AMBIL LANGSUNG DARI NOTION (OBAT MANJUR!)
+    if (Object.keys(areaMap).length === 0 || Object.keys(workerMap).length === 0) {
+      try {
+        // Cari database "Laba Rugi" dan "Data Pekerja" dari daftar mapping yang sudah ada
+        const areaConfig = savedMappings.find(m => m.databaseType === 'perawatan' || m.databaseType === 'operasional');
+        const workerConfig = savedMappings.find(m => m.databaseType === 'operasional' || m.databaseType === 'perawatan');
+
+        // Ambil ID database dari mapping, atau cari manual
+        const areaDbId = areaConfig?.mappings?.labaRugi?.relatedDatabaseId || areaConfig?.mappings?.area?.relatedDatabaseId;
+        const workerDbId = workerConfig?.mappings?.petugas?.relatedDatabaseId || workerConfig?.mappings?.ditugaskanKe?.relatedDatabaseId;
+
+        // Fungsi cepat untuk mencari database (tanpa import tambahan, gunakan fetch manual)
+        const quickFetch = async (dbId: string) => {
+          const res = await notionFetch(userId, connection.accessToken, `https://api.notion.com/v1/databases/${dbId}/query`, {
+            method: 'POST', body: JSON.stringify({ page_size: 100 })
+          });
+          if (!res.ok) return [];
+          const data = await res.json();
+          return data.results.map((p: any) => {
+            const titleProp = Object.values(p.properties).find((prop: any) => prop.type === 'title') as any;
+            return { id: p.id, name: titleProp?.title?.[0]?.plain_text || 'Tanpa Nama' };
+          });
+        };
+
+        // Jalankan pencarian jika ID database ada
+        if (areaDbId && Object.keys(areaMap).length === 0) {
+          const areas = await quickFetch(areaDbId);
+          areas.forEach((a: any) => { areaMap[a.id] = a.name; });
+        }
+        if (workerDbId && Object.keys(workerMap).length === 0) {
+          const workers = await quickFetch(workerDbId);
+          workers.forEach((w: any) => { workerMap[w.id] = w.name; });
+        }
+      } catch (err) {
+        console.error("Gagal mengambil data area/pekerja dari Notion:", err);
+        // Biarkan map kosong, akan fallback ke "Area Tanpa Blok" / "Tim Lapangan"
+      }
     }
 
     // --- BUFFERING STAGING (ANTI-DOBEL TIME WINDOW) ---
