@@ -1,4 +1,4 @@
-import { Eye, Trash2, MapPin, Clock } from "lucide-react";
+import { Eye, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AgronomyItem } from "@/types/operasional";
 
@@ -23,75 +23,95 @@ export function MasterTableView({
   }
 
   return (
-    <div className="w-full flex flex-col gap-3">
-      {/* HEADER */}
-      <div className="px-2 py-1">
-        <p className="text-sm font-black tracking-tight">Tampilan List (Mobile Friendly)</p>
-        <p className="text-[10px] text-muted-foreground">Edit status langsung tanpa perlu geser layar.</p>
+    // CONTROLLER UTAMA: Kita pasang `inline-block` dan `max-w-full` biar dia sejajar presisi sama kotak Filter
+    <div className="w-full max-w-full inline-block align-middle overflow-hidden rounded-3xl border border-border/60 bg-card shadow-sm">
+      
+      <div className="border-b border-border/60 px-4 py-3 bg-card">
+        <p className="text-sm font-black tracking-tight">Tabel Master (Mirror Notion)</p>
+        <p className="text-[10px] text-muted-foreground">Geser tabel ke samping untuk melihat properti lain.</p>
       </div>
 
-      {/* LIST KARTU NOTION */}
-      <div className="flex flex-col gap-3 pb-6">
-        {items.map((item) => (
-          <div key={item.id} className="w-full rounded-2xl border border-border/60 bg-card p-3 shadow-sm hover:shadow-md transition-all flex flex-col gap-3">
-            
-            {/* Bagian Atas: Judul & Area */}
-            <div className="flex justify-between items-start gap-2">
-              <div className="flex-1">
-                <h3 className="text-sm font-black leading-tight max-w-[200px] truncate">{item.title}</h3>
-                <p className="text-[10px] text-muted-foreground mt-0.5">{item.category}</p>
-              </div>
-              <div className="flex items-center gap-1 bg-muted/30 px-2 py-1 rounded-md border border-border/50 shrink-0">
-                <MapPin className="h-3 w-3 text-muted-foreground" />
-                <span className="text-[10px] font-bold truncate max-w-[90px]">{item.area}</span>
-              </div>
-            </div>
+      {/* 👇 INI TAMENG UTAMANYA: `overflow-x-auto` di sini mengunci scroll samping HANYA di dalam kotak ini */}
+      <div className="w-full overflow-x-auto overflow-y-auto max-h-[60vh] custom-scrollbar">
+        {/* `table-fixed` memaksa kolom tunduk pada lebar `w-[...]` yang kita tentukan */}
+        <table className="w-full min-w-[700px] table-fixed text-left border-collapse">
+          
+          {/* JUDUL PROPERTI MELAYANG (Sticky Top) & Ikut Geser Samping */}
+          <thead className="sticky top-0 z-20 bg-muted/95 backdrop-blur-md shadow-sm border-b border-border/60 text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+            <tr>
+              <th className="w-[100px] px-4 py-3">Waktu</th>
+              <th className="w-[200px] px-4 py-3">Aktivitas</th>
+              <th className="w-[130px] px-4 py-3">Area</th>
+              <th className="w-[150px] px-4 py-3">Status</th>
+              <th className="w-[120px] px-4 py-3 text-right">Aksi</th>
+            </tr>
+          </thead>
 
-            {/* Bagian Bawah: Waktu, Status, Tombol Aksi */}
-            <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/50">
-              
-              {/* Waktu */}
-              <div className="flex items-center gap-1.5 text-[10px] font-semibold text-muted-foreground">
-                <Clock className="h-3 w-3" />
-                <span>{item.dateLabel}, {item.time}</span>
-              </div>
-
-              {/* Status & Aksi */}
-              <div className="flex items-center gap-2">
-                <select
-                  value={item.status}
-                  onChange={(e) => onStatusChange?.(item.id, e.target.value)}
-                  className={cn(
-                    "rounded-lg border border-border/80 bg-background px-2 py-1 text-[9px] font-bold uppercase tracking-wider focus:outline-none focus:ring-1 focus:ring-primary appearance-none cursor-pointer",
-                    item.status === "Selesai" && "border-emerald-500/30 bg-emerald-500/5 text-emerald-700",
-                    item.status === "Dalam proses" && "border-amber-500/30 bg-amber-500/5 text-amber-700",
-                    item.status === "Belum dikerjakan" && "border-muted-foreground/20 bg-muted/30 text-muted-foreground"
-                  )}
-                >
-                  <option value="Belum dikerjakan">❌ Belum</option>
-                  <option value="Dalam proses">⚡ Proses</option>
-                  <option value="Selesai">✅ Selesai</option>
-                </select>
-
-                <div className="flex items-center gap-1 shrink-0">
-                  <button
-                    onClick={() => onItemClick(item)}
-                    className="p-1.5 rounded-md border border-border/60 bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
+          <tbody className="divide-y divide-border/60">
+            {items.map((item) => (
+              <tr key={item.id} className="hover:bg-muted/10 transition-colors">
+                
+                {/* WAKTU */}
+                <td className="px-4 py-3">
+                  <div className="text-xs font-bold text-foreground/90 whitespace-nowrap">{item.time}</div>
+                  <div className="text-[9px] font-semibold text-muted-foreground whitespace-nowrap">{item.dateLabel}</div>
+                </td>
+                
+                {/* AKTIVITAS */}
+                <td className="px-4 py-3">
+                  <div className="text-xs font-black tracking-tight truncate w-full" title={item.title}>
+                    {item.title}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground truncate w-full">{item.category}</div>
+                </td>
+                
+                {/* AREA */}
+                <td className="px-4 py-3 text-xs font-medium text-foreground/80 truncate">
+                  {item.area}
+                </td>
+                
+                {/* STATUS DROPDOWN */}
+                <td className="px-4 py-3">
+                  <select
+                    value={item.status}
+                    onChange={(e) => onStatusChange?.(item.id, e.target.value)}
+                    className={cn(
+                      "w-full rounded-xl border border-border/80 bg-background px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider focus:outline-none focus:ring-1 focus:ring-primary appearance-none cursor-pointer text-center",
+                      item.status === "Selesai" && "border-emerald-500/30 bg-emerald-500/5 text-emerald-700",
+                      item.status === "Dalam proses" && "border-amber-500/30 bg-amber-500/5 text-amber-700",
+                      item.status === "Belum dikerjakan" && "border-muted-foreground/20 bg-muted/30 text-muted-foreground"
+                    )}
                   >
-                    <Eye className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    onClick={() => onDeleteClick?.(item.id)}
-                    className="p-1.5 rounded-md border border-destructive/20 bg-destructive/5 text-destructive hover:bg-destructive hover:text-white"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </div>
-
-            </div>
-          </div>
-        ))}
+                    <option value="Belum dikerjakan">❌ Belum</option>
+                    <option value="Dalam proses">⚡ Proses</option>
+                    <option value="Selesai">✅ Selesai</option>
+                  </select>
+                </td>
+                
+                {/* AKSI EDIT / HAPUS */}
+                <td className="px-4 py-3 text-right">
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      onClick={() => onItemClick(item)}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border/60 bg-background text-muted-foreground transition-all hover:bg-muted hover:text-foreground"
+                      title="Buka Detail"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => onDeleteClick?.(item.id)}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-destructive/20 bg-destructive/5 text-destructive transition-all hover:bg-destructive hover:text-white"
+                      title="Hapus Baris"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </td>
+                
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
