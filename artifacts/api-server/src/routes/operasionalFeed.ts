@@ -429,7 +429,7 @@ router.get("/operasional/feed", async (req, res): Promise<void> => {
     }
   ]
 };
-
+});
     // --- GABUNGKAN & FINISHING SENTUHAN UI ---
     const finalFeed = [...pendingFeedItems, ...masterFeed]
       .map(item => {
