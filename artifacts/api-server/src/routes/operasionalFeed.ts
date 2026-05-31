@@ -280,9 +280,16 @@ router.get("/operasional/feed", async (req, res): Promise<void> => {
 
     // --- PEMETAAN NAMA AREA (RELATION ID -> TEKS) ---
     const areaMap: Record<string, string> = {};
+    const workerMap: Record<string, string> = {}; // ✅ TAMBAHKAN INI
     const cacheDashboard = notionCache.get<any>(`dashboard:summary:${userId}`);
+    
     if (cacheDashboard?.resultLabaRugi?.areas) {
       cacheDashboard.resultLabaRugi.areas.forEach((a: any) => { areaMap[a.id] = a.name; });
+    }
+
+    // ✅ TAMBAHKAN BLOK INI UNTUK MENGAMBIL NAMA PEKERJA DARI CACHE
+    if (cacheDashboard?.resultPekerja?.petugas) {
+      cacheDashboard.resultPekerja.petugas.forEach((p: any) => { workerMap[p.id] = p.name; });
     }
 
     // --- BUFFERING STAGING (ANTI-DOBEL TIME WINDOW) ---
@@ -328,15 +335,29 @@ router.get("/operasional/feed", async (req, res): Promise<void> => {
     const finalFeed = [...pendingFeedItems, ...masterFeed]
       .map(item => {
         const itemDate = new Date(item.rawDate);
+        
+        // ✅ AMBIL NAMA PEKERJA ASLI DARI workerMap
+        let resolvedWorkers: string[];
+        if (item.workerIds && item.workerIds.length > 0) {
+          resolvedWorkers = item.workerIds
+            .map((id: string) => workerMap[id] || null)
+            .filter(Boolean) as string[];
+        }
+        // Fallback ke item.workers (misal dari staging) atau "Tim Lapangan"
+        if (!resolvedWorkers || resolvedWorkers.length === 0) {
+          resolvedWorkers = item.workers.length ? item.workers : ["Tim Lapangan"];
+        }
+
         return {
           ...item,
           area: areaMap[item.areaId] || "Area Tanpa Blok",
-          workers: item.workers.length ? item.workers : ["Tim Lapangan"], // Fallback nama pekerja
+          workers: resolvedWorkers, // ✅ GUNAKAN NAMA ASLI
           dateLabel: itemDate.toDateString() === new Date().toDateString() ? "Hari ini" : 
                     (itemDate.toDateString() === new Date(Date.now() - 86400000).toDateString() ? "Kemarin" : "Riwayat Lama"),
           timeLabel: formatRelativeTime(item.rawDate)
         };
       })
+
       .sort((a, b) => new Date(b.rawDate).getTime() - new Date(a.rawDate).getTime());
 
     res.json({
