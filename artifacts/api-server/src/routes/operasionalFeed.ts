@@ -143,20 +143,42 @@ async function fetchSingleDatabaseFeed(
       }
       }
 
-      // Template Dasar (Sesuai AgronomyItem Type)
-      let normalizedItem: any = {
-        id: page.id,
-        title: rawTitle,
-        time: new Date(rawDate).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
-        rawDate: rawDate,
-        status: statusStyle,
-        areaId: relatedAreaIds[0] || null,
-        workers: [], // Akan diisi di proses mapping akhir
-        workerIds: relatedWorkerIds,
-        priority: "Medium",
-        attachments: [], // Siap diisi fitur file upload ke depannya
-        history: [{ time: "Notion Sync", text: "Data disinkronisasi dari database utama." }]
-      };
+  // Template Dasar (Sesuai AgronomyItem Type)
+  let normalizedItem: any = {
+  id: page.id,
+  title: rawTitle,
+  time: new Date(rawDate).toLocaleTimeString("id-ID", {
+    hour: "2-digit",
+    minute: "2-digit"
+  }),
+  rawDate: rawDate,
+  status: statusStyle,
+
+  // Legacy (jangan hapus dulu)
+  areaId: relatedAreaIds[0] || null,
+
+  // V2
+  areaIds: relatedAreaIds,
+  areaCount: relatedAreaIds.length,
+
+  workers: [],
+  workerIds: relatedWorkerIds,
+  workerCount: relatedWorkerIds.length,
+
+  priority: null,
+
+  duration: "0 jam",
+  durationHours: 0,
+
+  attachments: [],
+
+  history: [
+    {
+      time: "Notion Sync",
+      text: "Data disinkronisasi dari database utama."
+    }
+  ]
+};
 
       // Injeksi Spesifik per Domain Agronomi / Finance
       if (dbType === "perawatan") {
@@ -165,7 +187,13 @@ async function fetchSingleDatabaseFeed(
         normalizedItem.module = "perawatan";
         normalizedItem.icon = "sprout";
         normalizedItem.category = extractNotionProp(page, tagId, "select") || "Treatment";
-        normalizedItem.duration = `${extractNotionProp(page, durationId, "number") || 0} jam`;
+        
+const durationHours =
+  extractNotionProp(page, durationId, "number") || 0;
+
+normalizedItem.durationHours = durationHours;
+normalizedItem.duration = `${durationHours} jam`;
+
         normalizedItem.notes = `Kegiatan perawatan reguler pada area tercatat.`;
       } 
       else if (dbType === "inspeksi") {
@@ -177,7 +205,12 @@ async function fetchSingleDatabaseFeed(
         normalizedItem.module = "inspeksi";
         normalizedItem.icon = "leaf";
         normalizedItem.category = "Diagnosis";
-        normalizedItem.duration = `${extractNotionProp(page, durationId, "number") || 0} jam`;
+        
+const durationHours =
+  extractNotionProp(page, durationId, "number") || 0;
+
+normalizedItem.durationHours = durationHours;
+normalizedItem.duration = `${durationHours} jam`;
 
         const hamas = extractNotionProp(page, hamaId, "multi_select") || [];
         const penyakits = extractNotionProp(page, penyakitId, "multi_select") || [];
@@ -195,8 +228,16 @@ async function fetchSingleDatabaseFeed(
         normalizedItem.module = "operasional";
         normalizedItem.icon = "wrench";
         normalizedItem.category = extractNotionProp(page, catId, "select") || "Operasional";
-        normalizedItem.priority = extractNotionProp(page, priorityId, "select") || "Medium";
-        normalizedItem.duration = `${extractNotionProp(page, durationId, "number") || 0} jam`;
+        
+normalizedItem.priority =
+  extractNotionProp(page, priorityId, "select") || null;
+
+const durationHours =
+  extractNotionProp(page, durationId, "number") || 0;
+
+normalizedItem.durationHours = durationHours;
+normalizedItem.duration = `${durationHours} jam`;
+
         normalizedItem.notes = `Tugas operasional umum dan maintenance kebun.`;
       }
       else if (dbType === "panen") {
@@ -209,7 +250,10 @@ async function fetchSingleDatabaseFeed(
         normalizedItem.icon = "banknote"; // Nanti di UI kita tangkap untuk kasih icon duit
         normalizedItem.category = "Pendapatan";
         normalizedItem.title = `Panen: ${rawTitle}`;
-        normalizedItem.duration = "0 jam";
+        
+normalizedItem.durationHours = 0;
+normalizedItem.duration = "0 jam";
+
         normalizedItem.notes = `Hasil timbangan bruto: ${weight}kg. Nilai estimasi transaksi: Rp${(weight * price).toLocaleString("id-ID")}.`;
       }
       else if (dbType === "expenses") {
@@ -221,8 +265,11 @@ async function fetchSingleDatabaseFeed(
         normalizedItem.module = "finance";
         normalizedItem.icon = "banknote";
         normalizedItem.category = "Pengeluaran";
-        normalizedItem.priority = "High";
-        normalizedItem.duration = "0 jam";
+        
+normalizedItem.priority = null;
+normalizedItem.durationHours = 0;
+normalizedItem.duration = "0 jam";
+
         normalizedItem.notes = `Pembelian operasional: ${qty} unit dengan total biaya Rp${(qty * price).toLocaleString("id-ID")}.`;
       }
 
@@ -306,31 +353,112 @@ router.get("/operasional/feed", async (req, res): Promise<void> => {
       let moduleName = isFinance ? "finance" : record.databaseType;
       
       return {
-        id: `staging-${record.id}`,
-        module: moduleName,
-        icon: isFinance ? "banknote" : (moduleName === "perawatan" ? "sprout" : (moduleName === "inspeksi" ? "leaf" : "wrench")),
-        title: d.kegiatan || d.namaPekerjaan || d.pengeluaran || "Data Antrean Cloud",
-        time: "Sekarang",
-        rawDate: record.createdAt || new Date().toISOString(),
-        status: record.status === "pending" ? "Belum dikerjakan" : "Dalam proses",
-        areaId: d.labaRugiId || d.areaId || null,
-        workers: ["Sistem Pending"],
-        duration: "0 jam",
-        priority: "High",
-        category: record.databaseType === "panen" ? "Pendapatan" : "Sinkronisasi",
-        notes: "Data sedang dalam antrean atau proses indexing oleh Notion. Harap tunggu sesaat.",
-        attachments: [],
-        history: [{ time: "Local", text: "Dibuat di perangkat lokal, menunggu awan." }]
-      };
-    });
+  id: `staging-${record.id}`,
+
+  module: moduleName,
+
+  icon: isFinance
+    ? "banknote"
+    : (
+        moduleName === "perawatan"
+          ? "sprout"
+          : (
+              moduleName === "inspeksi"
+                ? "leaf"
+                : "wrench"
+            )
+      ),
+
+  title:
+    d.kegiatan ||
+    d.namaPekerjaan ||
+    d.pengeluaran ||
+    "Data Antrean Cloud",
+
+  time: "Sekarang",
+
+  rawDate:
+    record.createdAt ||
+    new Date().toISOString(),
+
+  status:
+    record.status === "pending"
+      ? "Belum dikerjakan"
+      : "Dalam proses",
+
+  areaId:
+    d.labaRugiId ||
+    d.areaId ||
+    null,
+
+  areaIds:
+    d.labaRugiIds ||
+    d.areaIds ||
+    [],
+
+  areaCount:
+    (d.labaRugiIds?.length || 0) ||
+    (d.areaIds?.length || 0),
+
+  workers: ["Sistem Pending"],
+
+  workerIds: [],
+
+  workerCount: 0,
+
+  duration: "0 jam",
+
+  durationHours: 0,
+
+  priority: null,
+
+  category:
+    record.databaseType === "panen"
+      ? "Pendapatan"
+      : "Sinkronisasi",
+
+  notes:
+    "Data sedang dalam antrean atau proses indexing oleh Notion. Harap tunggu sesaat.",
+
+  attachments: [],
+
+  history: [
+    {
+      time: "Local",
+      text: "Dibuat di perangkat lokal, menunggu awan."
+    }
+  ]
+};
 
     // --- GABUNGKAN & FINISHING SENTUHAN UI ---
     const finalFeed = [...pendingFeedItems, ...masterFeed]
       .map(item => {
         const itemDate = new Date(item.rawDate);
-        return {
-          ...item,
-          area: areaMap[item.areaId] || "Area Tanpa Blok",
+        
+return {
+  ...item,
+
+  area:
+    areaMap[item.areaId] ||
+    "Area Tanpa Blok",
+
+  areas:
+    item.areaIds?.length
+      ? item.areaIds
+          .map((id: string) => areaMap[id])
+          .filter(Boolean)
+      : [],
+
+  areaCount:
+    item.areaCount ||
+    item.areaIds?.length ||
+    0,
+
+  workerCount:
+    item.workerCount ||
+    item.workerIds?.length ||
+    0,
+
           workers: item.workers.length ? item.workers : ["Tim Lapangan"], // Fallback nama pekerja
           dateLabel: itemDate.toDateString() === new Date().toDateString() ? "Hari ini" : 
                     (itemDate.toDateString() === new Date(Date.now() - 86400000).toDateString() ? "Kemarin" : "Riwayat Lama"),
