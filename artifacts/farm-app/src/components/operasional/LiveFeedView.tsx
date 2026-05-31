@@ -51,9 +51,16 @@ export function LiveFeedView({ items, onItemClick }: { items: AgronomyItem[], on
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-xs font-bold text-muted-foreground">{item.time}</span>
-                        <Badge variant="secondary" className="rounded-full bg-muted/60 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider">
-                          {item.category}
-                        </Badge>
+                        
+{item.category && (
+  <Badge
+    variant="secondary"
+    className="rounded-full bg-muted/60 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider"
+  >
+    {item.category}
+  </Badge>
+)}
+
                         <Badge variant="outline" className={cn("rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
                             item.status === "Selesai" ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700"
                           : item.status === "Dalam proses" ? "border-amber-500/20 bg-amber-500/10 text-amber-700"
@@ -64,9 +71,32 @@ export function LiveFeedView({ items, onItemClick }: { items: AgronomyItem[], on
                       </div>
 
                       <h3 className="mt-2 text-base font-black tracking-tight truncate">{item.title}</h3>
-                      <p className="mt-1 text-sm text-muted-foreground truncate">{item.area}</p>
-                    </div>
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
 
+  <span>
+    {item.area}
+  </span>
+
+  {(item.areaCount ?? 0) > 1 && (
+    <span>
+      +{(item.areaCount ?? 1) - 1} area
+    </span>
+  )}
+
+  {(item.workerCount ?? 0) > 0 && (
+    <span>
+      👷 {item.workerCount}
+    </span>
+  )}
+
+  {(item.durationHours ?? 0) > 0 && (
+    <span>
+      ⏱ {item.durationHours} jam
+    </span>
+  )}
+
+</div>
+</div>
                     <div className="flex shrink-0 flex-col items-end gap-2">
                       <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
                     </div>
