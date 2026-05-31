@@ -23,15 +23,16 @@ export function MasterTableView({
   }
 
   return (
-    // 👇 SABUK DICOPOT: Cuma pakai w-full biar dia ngikutin lebar parent (sejajar sama Filter)
-    <div className="w-full overflow-hidden rounded-3xl border border-border/60 bg-card shadow-sm flex flex-col">
+    // 👇 JURUS PAMUNGKAS: w-full digabung max-w-full biar dia sadar batas parent (sejajar Filter)
+    <div className="w-full max-w-full overflow-hidden rounded-3xl border border-border/60 bg-card shadow-sm">
       
-      <div className="border-b border-border/60 px-4 py-3 bg-card shrink-0">
+      <div className="border-b border-border/60 px-4 py-3 bg-card">
         <p className="text-sm font-black tracking-tight">Tabel Master (Mirror Notion)</p>
         <p className="text-[10px] text-muted-foreground">Geser tabel ke samping untuk melihat properti lain.</p>
       </div>
 
-      <div className="w-full overflow-x-auto overflow-y-auto max-h-[60vh] custom-scrollbar relative">
+      {/* Wrapper scroll dijamin aman gak ngedorong layar */}
+      <div className="w-full overflow-auto max-h-[60vh] custom-scrollbar">
         <table className="w-full min-w-[700px] text-left border-collapse">
           
           <thead className="sticky top-0 z-20 bg-muted/95 backdrop-blur-md shadow-sm border-b border-border/60 text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground">
