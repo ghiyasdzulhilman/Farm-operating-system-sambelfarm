@@ -1,4 +1,10 @@
-export type ModuleKey = "all" | "perawatan" | "inspeksi" | "operasional" | "finance";
+export type ModuleKey =
+  | "all"
+  | "perawatan"
+  | "inspeksi"
+  | "operasional"
+  | "finance";
+  
 export type ViewKey = "feed" | "modules" | "table";
 
 export type AgronomyItem = {
@@ -18,4 +24,12 @@ export type AgronomyItem = {
   history: Array<{ time: string; text: string }>;
   icon: "sprout" | "leaf" | "wrench" | "banknote";
   isPendingStaging?: boolean;
+  source?: {
+    type: "notion" | "staging";
+    databaseType?: string;
+    pageId?: string;
+    stagingId?: string;
+    url?: string;
+  };
+  metaEkstra?: Record<string, any>;
 };
