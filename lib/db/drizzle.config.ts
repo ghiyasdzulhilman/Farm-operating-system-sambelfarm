@@ -6,10 +6,7 @@ if (!process.env.DATABASE_URL) {
 }
 
 export default defineConfig({
-  schema: [
-    path.join(__dirname, "./src/schema.ts"),
-    path.join(__dirname, "./src/schema/stagingData.ts")
-  ],
+  schema: "./src/**/*", // ✨ Cari semua file di folder src!
   dialect: "postgresql",
   dbCredentials: {
     url: process.env.DATABASE_URL,
