@@ -6,9 +6,8 @@ if (!process.env.DATABASE_URL) {
 }
 
 export default defineConfig({
-  // ✨ INI KUNCINYA: Kita daftarin manual biar dia gak bisa ngeles lagi!
   schema: [
-    path.join(__dirname, "./src/schema/index.ts"),
+    path.join(__dirname, "./src/schema.ts"),
     path.join(__dirname, "./src/schema/stagingData.ts")
   ],
   dialect: "postgresql",
