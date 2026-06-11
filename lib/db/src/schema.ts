@@ -1,17 +1,11 @@
 import { pgTable, uuid, text, timestamp, integer, doublePrecision, jsonb } from "drizzle-orm/pg-core";
 
-// ==========================================
-// 1. TABEL MASTER: AREA / BLOK KEBUN
-// ==========================================
 export const areasTable = pgTable("areas", {
   id: uuid("id").defaultRandom().primaryKey(),
-  name: text("name").notNull(),
+  name: text("name").notNull(), 
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// ==========================================
-// 2. MODUL PERAWATAN (NUTRISI & PUPUK)
-// ==========================================
 export const perawatanTable = pgTable("perawatan", {
   id: uuid("id").defaultRandom().primaryKey(),
   kegiatan: text("kegiatan").notNull(),
@@ -33,9 +27,6 @@ export const perawatanProdukTable = pgTable("perawatan_produk", {
   dosis: text("dosis").notNull(),
 });
 
-// ==========================================
-// 3. MODUL INSPEKSI (KESEHATAN & HAMA)
-// ==========================================
 export const inspeksiTable = pgTable("inspeksi", {
   id: uuid("id").defaultRandom().primaryKey(),
   kegiatan: text("kegiatan").notNull(),
@@ -60,9 +51,6 @@ export const inspeksiTemuanTable = pgTable("inspeksi_temuan", {
   catatanKhusus: text("catatan_khusus"),
 });
 
-// ==========================================
-// 4. MODUL OPERASIONAL UMUM & MAINTENANCE
-// ==========================================
 export const operasionalTable = pgTable("operasional", {
   id: uuid("id").defaultRandom().primaryKey(),
   namaPekerjaan: text("nama_pekerjaan").notNull(),
