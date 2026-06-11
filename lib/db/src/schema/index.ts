@@ -1,3 +1,4 @@
+cat << 'EOF' > src/schema/index.ts
 export * from "./notionConnections";
 export * from "./oauthStates";
 export * from "./fieldMappings";
@@ -10,7 +11,7 @@ import { pgTable, uuid, text, timestamp, integer, doublePrecision, jsonb } from 
 // ==========================================
 export const areasTable = pgTable("areas", {
   id: uuid("id").defaultRandom().primaryKey(),
-  name: text("name").notNull(), // Cth: "Blok A", "Blok B"
+  name: text("name").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -19,24 +20,23 @@ export const areasTable = pgTable("areas", {
 // ==========================================
 export const perawatanTable = pgTable("perawatan", {
   id: uuid("id").defaultRandom().primaryKey(),
-  kegiatan: text("kegiatan").notNull(), // Cth: "Penyemprotan Rutin", "Pengocoran"
+  kegiatan: text("kegiatan").notNull(),
   areaId: uuid("area_id").references(() => areasTable.id, { onDelete: "cascade" }).notNull(),
   waktuMulai: timestamp("waktu_mulai").notNull(),
   waktuSelesai: timestamp("waktu_selesai"),
-  durasiKerja: integer("durasi_kerja").default(0).notNull(), // Dalam satuan jam
-  tagCategory: text("tag_category").notNull(), // Cth: "Fungisida", "Nutrisi", "Insektisida"
-  status: text("status").default("Belum dikerjakan").notNull(), // "Belum dikerjakan" | "Dalam proses" | "Selesai"
-  pekerjaIds: jsonb("pekerja_ids").default([]).notNull(), // Menyimpan array ID pekerja/mandor
+  durasiKerja: integer("durasi_kerja").default(0).notNull(),
+  tagCategory: text("tag_category").notNull(),
+  status: text("status").default("Belum dikerjakan").notNull(),
+  pekerjaIds: jsonb("pekerja_ids").default([]).notNull(),
   catatan: text("catatan"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// Tabel khusus racikan bahan/produk kimia/organik per perawatan
 export const perawatanProdukTable = pgTable("perawatan_produk", {
   id: uuid("id").defaultRandom().primaryKey(),
   perawatanId: uuid("perawatan_id").references(() => perawatanTable.id, { onDelete: "cascade" }).notNull(),
-  namaProduk: text("nama_produk").notNull(), // Cth: "Trichoderma", "Calbovit", "Kalinet"
-  dosis: text("dosis").notNull(), // Cth: "2 gr/L", "1 tutup botol"
+  namaProduk: text("nama_produk").notNull(),
+  dosis: text("dosis").notNull(),
 });
 
 // ==========================================
@@ -44,27 +44,26 @@ export const perawatanProdukTable = pgTable("perawatan_produk", {
 // ==========================================
 export const inspeksiTable = pgTable("inspeksi", {
   id: uuid("id").defaultRandom().primaryKey(),
-  kegiatan: text("kegiatan").notNull(), // Cth: "Inspeksi Mingguan"
+  kegiatan: text("kegiatan").notNull(),
   areaId: uuid("area_id").references(() => areasTable.id, { onDelete: "cascade" }).notNull(),
   waktuMulai: timestamp("waktu_mulai").notNull(),
   waktuSelesai: timestamp("waktu_selesai"),
   durasiKerja: integer("durasi_kerja").default(0).notNull(),
-  phTanah: doublePrecision("ph_tanah"), // Angka desimal (Cth: 6.5)
-  tingkatSerangan: doublePrecision("tingkat_serangan"), // Persentase desimal (Cth: 0.15 untuk 15%)
-  radius: doublePrecision("radius"), // Dalam satuan meter persegi (m2)
-  status: text("status").default("Baru ditemukan").notNull(), // "Baru ditemukan" | "Sedang ditangani" | "Sudah ditangani"
+  phTanah: doublePrecision("ph_tanah"),
+  tingkatSerangan: doublePrecision("tingkat_serangan"),
+  radius: doublePrecision("radius"),
+  status: text("status").default("Baru ditemukan").notNull(),
   pekerjaIds: jsonb("pekerja_ids").default([]).notNull(),
   keterangan: text("keterangan"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// Tabel khusus temuan hama atau penyakit di lapangan
 export const inspeksiTemuanTable = pgTable("inspeksi_temuan", {
   id: uuid("id").defaultRandom().primaryKey(),
   inspeksiId: uuid("inspeksi_id").references(() => inspeksiTable.id, { onDelete: "cascade" }).notNull(),
-  jenisKendala: text("jenis_kendala").notNull(), // "Hama" | "Penyakit"
-  namaKendala: text("nama_kendala").notNull(), // Cth: "Thrips", "Kutu Kebul", "Patek"
-  catatanKhusus: text("catatan_khusus"), // Detil gejala visual tanaman
+  jenisKendala: text("jenis_kendala").notNull(),
+  namaKendala: text("nama_kendala").notNull(),
+  catatanKhusus: text("catatan_khusus"),
 });
 
 // ==========================================
@@ -72,16 +71,17 @@ export const inspeksiTemuanTable = pgTable("inspeksi_temuan", {
 // ==========================================
 export const operasionalTable = pgTable("operasional", {
   id: uuid("id").defaultRandom().primaryKey(),
-  namaPekerjaan: text("nama_pekerjaan").notNull(), // Cth: "Sanitasi Gulma", "Perbaikan Gembor"
+  namaPekerjaan: text("nama_pekerjaan").notNull(),
   areaId: uuid("area_id").references(() => areasTable.id, { onDelete: "cascade" }).notNull(),
   waktuMulai: timestamp("waktu_mulai").notNull(),
   waktuSelesai: timestamp("waktu_selesai"),
   durasiKerja: integer("durasi_kerja").default(0).notNull(),
-  kategori: text("kategori").notNull(), // Cth: "Sanitasi", "Infrastruktur", "Panen"
-  prioritas: text("prioritas").default("Medium").notNull(), // "Low" | "Medium" | "High"
-  jenisTenagaKerja: text("jenis_tenaga_kerja").notNull(), // "Internal / Karyawan" | "Eksternal / Borongan"
+  kategori: text("kategori").notNull(),
+  prioritas: text("prioritas").default("Medium").notNull(),
+  jenisTenagaKerja: text("jenis_tenaga_kerja").notNull(),
   pekerjaIds: jsonb("pekerja_ids").default([]).notNull(),
-  status: text("status").default("Belum dikerjakan").notNull(), // "Belum dikerjakan" | "Dalam proses" | "Selesai"
+  status: text("status").default("Belum dikerjakan").notNull(),
   catatan: text("catatan"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+EOF
