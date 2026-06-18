@@ -1,272 +1,170 @@
 import { Router, type IRouter } from "express";
 import { getAuth } from "@clerk/express";
-import { db, fieldMappingsTable, type FieldMappingData } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
-import { getNotionConnection, notionFetch, handleNotionErrors, NotionTokenInvalidError } from "../lib/notionClient";
+import { 
+  db, 
+  areasTable, 
+  perawatanTable, 
+  perawatanProdukTable 
+} from "@workspace/db";
 
 const router: IRouter = Router();
 
-interface NotionDatabasePropertyMeta { id: string; type: string; name: string; }
-
-const PERAWATAN_PROPERTY_ALIASES: Record<string, string[]> = {
-  kegiatan: ["kegiatan", "aktivitas", "nama kegiatan"],
-  tanggal: ["tanggal", "jadwal", "tanggal pelaksanaan", "date"],
-  durasiKerja: ["durasi kerja", "durasi", "lama kerja", "jam"], // 👈 INJEKSI ALIAS DURASI
-  tags: ["tags", "tag", "jenis kegiatan"],
-  status: ["status"],
-  petugas: ["petugas", "pekerja", "operator"],
-  labaRugi: ["laba rugi", "area", "laba-rugi"],
-};
-
-interface NotionPage { id: string; properties: Record<string, { type: string; title?: Array<{ plain_text: string }> }>; }
-interface NotionDatabase { id: string; title?: Array<{ plain_text: string }>; properties?: Record<string, { id: string; type: string }>; }
-
 interface AddPerawatanBody {
   kegiatan: string;
-  tanggal?: string; 
-  labaRugiId?: string; 
   labaRugiIds?: string[]; 
+  labaRugiId?: string;    
   
   modeTanggal: "broadcast" | "spesifik"; 
   tanggalBroadcast?: string; 
   tanggalSelesaiBroadcast?: string; 
-  durasiKerjaBroadcast?: number; // 👈 WADAH PAYLOAD DURASI
+  durasiKerjaBroadcast?: number;
   tanggalPerArea?: Record<string, string>;
   tanggalSelesaiPerArea?: Record<string, string>; 
-  durasiKerjaPerArea?: Record<string, number>; // 👈 WADAH PAYLOAD DURASI
+  durasiKerjaPerArea?: Record<string, number>;
   
-  modePekerja: "broadcast" | "spesifik"; petugasBroadcast: string[]; petugasPerArea: Record<string, string[]>;
-  modeTags: "broadcast" | "spesifik"; tagsBroadcast?: string; tagsPerArea?: Record<string, string>;
-  modeStatus: "broadcast" | "spesifik"; statusBroadcast?: string; statusPerArea?: Record<string, string>;
-  modeCatatan: "broadcast" | "spesifik"; catatanBroadcast?: string; catatanPerArea?: Record<string, string>;
-  modeProduk: "broadcast" | "spesifik"; logProduk: Array<{ produk: string; dosis: string }>; produkPerArea: Record<string, Array<{ produk: string; dosis: string }>>;
+  modePekerja: "broadcast" | "spesifik"; 
+  petugasBroadcast: string[]; 
+  petugasPerArea: Record<string, string[]>;
+  
+  modeTags: "broadcast" | "spesifik"; 
+  tagsBroadcast?: string; 
+  tagsPerArea?: Record<string, string>;
+  
+  modeStatus: "broadcast" | "spesifik"; 
+  statusBroadcast?: string; 
+  statusPerArea?: Record<string, string>;
+  
+  modeCatatan: "broadcast" | "spesifik"; 
+  catatanBroadcast?: string; 
+  catatanPerArea?: Record<string, string>;
+  
+  modeProduk: "broadcast" | "spesifik"; 
+  logProduk: Array<{ produk: string; dosis: string }>; 
+  produkPerArea: Record<string, Array<{ produk: string; dosis: string }>>;
 }
 
-function decodePropertyId(id: string): string { try { return decodeURIComponent(id); } catch { return id; } }
-
-function formatToNotionDate(dateStr: string | undefined): string | undefined {
-  if (!dateStr) return undefined;
-  if (dateStr.length === 16 && dateStr.includes("T")) {
-    return `${dateStr}:00+07:00`; 
-  }
-  return dateStr;
-}
-
-async function findDatabaseByName(userId: string, accessToken: string, name: string): Promise<string | null> {
-  try {
-    const response = await notionFetch(userId, accessToken, "https://api.notion.com/v1/search", { method: "POST", body: JSON.stringify({ query: name, filter: { value: "database", property: "object" } }) });
-    if (!response.ok) return null;
-    const data = (await response.json()) as { results: NotionDatabase[] };
-    const found = data.results.find((r) => r.title?.some((t) => t.plain_text.toLowerCase().includes(name.toLowerCase())));
-    return found?.id ?? null;
-  } catch (err) { if (err instanceof NotionTokenInvalidError) throw err; return null; }
-}
-
-async function queryAllPages(userId: string, accessToken: string, databaseId: string): Promise<Array<{ id: string; name: string }>> {
-  try {
-    const response = await notionFetch(userId, accessToken, `https://api.notion.com/v1/databases/${databaseId}/query`, { method: "POST", body: JSON.stringify({ page_size: 100 }) });
-    if (!response.ok) return [];
-    const data = (await response.json()) as { results: NotionPage[] };
-    return data.results.map((page) => {
-      const titleProp = Object.values(page.properties).find((p) => p.type === "title");
-      const name = titleProp?.title?.[0]?.plain_text ?? "Tanpa Nama";
-      return { id: page.id, name };
-    });
-  } catch (err) { if (err instanceof NotionTokenInvalidError) throw err; return []; }
-}
-
-async function getDatabasePropertyMeta(userId: string, accessToken: string, databaseId: string): Promise<NotionDatabasePropertyMeta[]> {
-  const response = await notionFetch(userId, accessToken, `https://api.notion.com/v1/databases/${databaseId}`);
-  if (!response.ok) return [];
-  const data = (await response.json()) as NotionDatabase;
-  const entries = Object.entries(data.properties ?? {});
-  return entries.map(([name, value]) => ({ name, id: value.id, type: value.type }));
-}
-
-function normalizeKey(input: string): string {
-  return input.toLowerCase().replace(/[^a-z0-9]/g, "");
-}
-
-function resolvePropertyId(
-  fieldKey: string,
-  expectedType: string,
-  mappings: FieldMappingData | undefined,
-  dbProperties: NotionDatabasePropertyMeta[],
-): string | null {
-  const mapping = mappings?.[fieldKey as keyof FieldMappingData];
-  const mappedId = mapping?.propertyId ? decodePropertyId(mapping.propertyId) : null;
-
-  if (mappedId) {
-    const matchById = dbProperties.find((p) => decodePropertyId(p.id) === mappedId || p.name === mappedId);
-    if (!matchById) return mappedId;
-    if (matchById.type === expectedType) return decodePropertyId(matchById.id);
-  }
-
-  const aliases = PERAWATAN_PROPERTY_ALIASES[fieldKey] ?? [fieldKey];
-  const normalizedAliases = new Set(aliases.map(normalizeKey));
-  const byAlias = dbProperties.find((p) => (expectedType.includes(p.type) || p.type === expectedType) && normalizedAliases.has(normalizeKey(p.name)));
-  if (byAlias) return decodePropertyId(byAlias.id);
-
-  const firstTypeMatch = dbProperties.find((p) => expectedType.includes(p.type) || p.type === expectedType);
-  return firstTypeMatch ? decodePropertyId(firstTypeMatch.id) : null;
-}
-
-async function getMappingRow(userId: string, databaseType: string) {
-  const [row] = await db.select().from(fieldMappingsTable).where(and(eq(fieldMappingsTable.userId, userId), eq(fieldMappingsTable.databaseType, databaseType)));
-  return row ?? null;
-}
-
-function buildNotionBlocks(logProduk: Array<{ produk: string; dosis: string }> | undefined, detailNotes: string | undefined): any[] {
-  const blocks: any[] = [];
-  if (detailNotes && detailNotes.trim() !== "") {
-    blocks.push({ object: "block", type: "heading_3", heading_3: { rich_text: [{ type: "text", text: { content: "📝 Catatan Detail" } }] } });
-    blocks.push({ object: "block", type: "paragraph", paragraph: { rich_text: [{ type: "text", text: { content: detailNotes.trim() } }] } });
-  }
-  if (logProduk && logProduk.length > 0) {
-    blocks.push({ object: "block", type: "heading_3", heading_3: { rich_text: [{ type: "text", text: { content: "🌱 Racikan Bahan / Produk" } }] } });
-    blocks.push(...logProduk.map((p) => ({ object: "block", type: "bulleted_list_item", bulleted_list_item: { rich_text: [{ type: "text", text: { content: `${p.produk} ` } }, { type: "text", text: { content: `(Dosis: ${p.dosis})`, link: null }, annotations: { bold: true, color: "green" } }] } })));
-  }
-  return blocks;
-}
-
-const PERAWATAN_FIELDS = [
-  { key: "kegiatan", expectedType: "title" },
-  { key: "tanggal", expectedType: "date" },
-  { key: "durasiKerja", expectedType: "number" }, // 👈 INJEKSI FIELD DURASI
-  { key: "tags", expectedType: "select" },
-  { key: "status", expectedType: "status" },
-  { key: "petugas", expectedType: "relation" },
-  { key: "labaRugi", expectedType: "relation" },
-];
-
-function buildPerawatanProperties(data: any, mappings: FieldMappingData | undefined, dbProperties: NotionDatabasePropertyMeta[]): Record<string, unknown> {
-  const props: Record<string, unknown> = {};
-
-    PERAWATAN_FIELDS.forEach((field) => {
-    const propertyId = resolvePropertyId(field.key, field.expectedType, mappings, dbProperties);
-    if (!propertyId) return;
-    
-    let value = data[field.key];
-    let valueEnd: any = undefined; 
-    
-    if (field.key === "labaRugi" && data.labaRugiId) value = data.labaRugiId;
-    if (field.key === "petugas" && data.petugasIds) value = data.petugasIds;
-    if (field.key === "tags" && data.tagsValue) value = data.tagsValue; 
-    if (field.key === "status" && data.statusValue) value = data.statusValue;
-    if (field.key === "tanggal" && data.tanggalValue) {
-        value = formatToNotionDate(data.tanggalValue);
-        valueEnd = formatToNotionDate(data.tanggalEndValue); 
-    }
-    
-    if (value === undefined || value === null || value === "" || (Array.isArray(value) && value.length === 0)) return;
-
-    // Pakai pengecekan actualType kayak di inspeksi/operasional biar presisi
-    const actualType = dbProperties.find(p => p.id === propertyId)?.type || field.expectedType.split("|")[0];
-
-    switch (actualType) {
-      case "title": props[propertyId] = { title: [{ text: { content: String(value) } }] }; break;
-      case "date": 
-        props[propertyId] = { 
-          date: { 
-            start: String(value), 
-            ...(valueEnd ? { end: String(valueEnd) } : {}) 
-          } 
-        }; 
-        break;
-
-      case "select": props[propertyId] = { select: { name: String(value) } }; break;
-      case "multi_select": 
-        if (Array.isArray(value)) props[propertyId] = { multi_select: value.map((t) => ({ name: String(t) })) };
-        else props[propertyId] = { multi_select: [{ name: String(value) }] };
-        break;
-      case "status": props[propertyId] = { status: { name: String(value) } }; break;
-      case "relation": {
-        const relationIds = Array.isArray(value) ? value.filter((id) => id && String(id).trim() !== "").map((id) => ({ id: String(id).trim() })) : [{ id: String(value).trim() }];
-        if (relationIds.length > 0) props[propertyId] = { relation: relationIds };
-        break;
-      }
-      case "number": {
-        const parsed = Number(value);
-        if (!Number.isNaN(parsed)) props[propertyId] = { number: parsed };
-        break;
-      }
-    }
-  });
-  return props;
-}
-
+// ==========================================
+// 1. ENDPOINT DROPDOWN OPTIONS
+// ==========================================
 router.get("/notion/perawatan-dropdown-options", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!userId) { 
+    res.status(401).json({ error: "Unauthorized" }); 
+    return; 
+  }
+
   try {
-    const connection = await getNotionConnection(userId);
-    const { accessToken } = connection;
-    const mappingRow = await getMappingRow(userId, "perawatan");
-    const mappings = mappingRow?.mappings as FieldMappingData | undefined;
-    const [labaRugiDbId, petugasDbId] = await Promise.all([ mappings?.labaRugi?.relatedDatabaseId || findDatabaseByName(userId, accessToken, "Laba Rugi"), mappings?.petugas?.relatedDatabaseId || findDatabaseByName(userId, accessToken, "Data pekerja") ]);
-    const [labaRugi, petugas] = await Promise.all([ labaRugiDbId ? queryAllPages(userId, accessToken, labaRugiDbId) : Promise.resolve([]), petugasDbId ? queryAllPages(userId, accessToken, petugasDbId) : Promise.resolve([]) ]);
-    res.json({ areas: labaRugi, petugas });
-  } catch (err) { if (handleNotionErrors(res, err)) return; res.status(500).json({ error: "Internal Server Error" }); }
+    const areas = await db.select().from(areasTable);
+    
+    const formattedAreas = areas.map(a => ({
+      id: a.id,
+      name: a.name
+    }));
+
+    res.json({ areas: formattedAreas, petugas: [] });
+  } catch (err) {
+    res.status(500).json({ error: "Gagal mengambil opsi dropdown dari database." });
+  }
 });
 
+// ==========================================
+// 2. ENDPOINT SAVE DATA PERAWATAN KEBUN
+// ==========================================
 router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!userId) { 
+    res.status(401).json({ error: "Unauthorized" }); 
+    return; 
+  }
 
   const body = req.body as Partial<AddPerawatanBody>;
   const kegiatan = (body.kegiatan ?? "").trim();
-  const areaIds: string[] = Array.isArray(body.labaRugiIds) ? body.labaRugiIds.filter(Boolean) : body.labaRugiId ? [body.labaRugiId] : [];
+  
+  const areaIds: string[] = Array.isArray(body.labaRugiIds) 
+    ? body.labaRugiIds.filter(Boolean) 
+    : body.labaRugiId ? [body.labaRugiId] : [];
 
-  if (!kegiatan || areaIds.length === 0) { res.status(400).json({ error: "Field 'kegiatan' dan area wajib diisi (minimal 1)." }); return; }
+  if (!kegiatan || areaIds.length === 0) { 
+    res.status(400).json({ error: "Field 'kegiatan' dan area wajib diisi (minimal 1)." }); 
+    return; 
+  }
 
   try {
-    const connection = await getNotionConnection(userId);
-    const { accessToken } = connection;
-    const mappingRow = await getMappingRow(userId, "perawatan");
-    const mappings = mappingRow?.mappings as FieldMappingData | undefined;
-    const databaseId = mappingRow?.notionDatabaseId || (await findDatabaseByName(userId, accessToken, "Perawatan")) || (await findDatabaseByName(userId, accessToken, "Perawatan Kebun"));
-    if (!databaseId) { res.status(404).json({ error: "Database 'Perawatan' tidak ditemukan di Notion." }); return; }
+    const recordsCreated: any[] = [];
 
-    const dbProperties = await getDatabasePropertyMeta(userId, accessToken, databaseId);
+    for (const currentAreaId of areaIds) {
+      const tanggalMulaiStr = body.modeTanggal === "broadcast" 
+        ? body.tanggalBroadcast 
+        : body.tanggalPerArea?.[currentAreaId] || body.tanggalBroadcast;
+        
+      const tanggalSelesaiStr = body.modeTanggal === "broadcast" 
+        ? body.tanggalSelesaiBroadcast 
+        : body.tanggalSelesaiPerArea?.[currentAreaId] || body.tanggalSelesaiBroadcast;
+        
+      const durasiKerjaNum = body.modeTanggal === "broadcast" 
+        ? body.durasiKerjaBroadcast 
+        : body.durasiKerjaPerArea?.[currentAreaId] || body.durasiKerjaBroadcast;
 
-    const requests = areaIds.map(async (currentAreaId) => {
-      
-      const fallbackDate = new Date().toISOString(); 
-      
-      const tanggalAreaIni = body.modeTanggal === "broadcast" ? (body.tanggalBroadcast || fallbackDate) : (body.tanggalPerArea?.[currentAreaId] || body.tanggalBroadcast || fallbackDate);
-      const tanggalSelesaiAreaIni = body.modeTanggal === "broadcast" ? body.tanggalSelesaiBroadcast : (body.tanggalSelesaiPerArea?.[currentAreaId] || body.tanggalSelesaiBroadcast);
-      const durasiAreaIni = body.modeTanggal === "broadcast" ? body.durasiKerjaBroadcast : body.durasiKerjaPerArea?.[currentAreaId]; // 👈 RESOLVE DURASI
-      
-      const catatanAreaIni = body.modeCatatan === "broadcast" ? (body.catatanBroadcast || "") : (body.catatanPerArea?.[currentAreaId] || "");
-      const pekerjaAreaIni = body.modePekerja === "broadcast" ? (body.petugasBroadcast || []) : (body.petugasPerArea?.[currentAreaId] || []);
-      const produkAreaIni = body.modeProduk === "broadcast" ? (body.logProduk || []) : (body.produkPerArea?.[currentAreaId] || []);
-      const tagsAreaIni = body.modeTags === "broadcast" ? body.tagsBroadcast : body.tagsPerArea?.[currentAreaId];
-      const statusAreaIni = body.modeStatus === "broadcast" ? (body.statusBroadcast || "Rencana") : (body.statusPerArea?.[currentAreaId] || "Rencana");
+      const pekerjaIdsArray = body.modePekerja === "broadcast" 
+        ? body.petugasBroadcast 
+        : body.petugasPerArea?.[currentAreaId] || body.petugasBroadcast;
 
-      const properties = buildPerawatanProperties({
-          kegiatan,
-          labaRugiId: currentAreaId,
-          tanggalValue: tanggalAreaIni, 
-          tanggalEndValue: tanggalSelesaiAreaIni, 
-          durasiKerja: durasiAreaIni, // 👈 KIRIM DURASI KE BUILDER
-          petugasIds: pekerjaAreaIni,
-          tagsValue: tagsAreaIni, 
-          statusValue: statusAreaIni, 
-        }, mappings, dbProperties);
+      const tagCategoryStr = body.modeTags === "broadcast" 
+        ? body.tagsBroadcast 
+        : body.tagsPerArea?.[currentAreaId] || body.tagsBroadcast;
 
-      const childrenBlocks = buildNotionBlocks(produkAreaIni, catatanAreaIni);
-      const payload: any = { parent: { database_id: databaseId }, properties };
-      if (childrenBlocks.length > 0) payload.children = childrenBlocks;
+      const statusStr = body.modeStatus === "broadcast" 
+        ? body.statusBroadcast 
+        : body.statusPerArea?.[currentAreaId] || body.statusBroadcast;
 
-      const response = await notionFetch(userId, accessToken, "https://api.notion.com/v1/pages", { method: "POST", body: JSON.stringify(payload) });
-      if (!response.ok) { const errText = await response.text(); throw new Error(errText || `Gagal menyimpan untuk area ${currentAreaId}`); }
-      const created = await response.json();
-      return { pageId: created.id, notionUrl: created.url };
+      const catatanStr = body.modeCatatan === "broadcast" 
+        ? body.catatanBroadcast 
+        : body.catatanPerArea?.[currentAreaId] || body.catatanBroadcast;
+
+      const produkArray = body.modeProduk === "broadcast" 
+        ? body.logProduk 
+        : body.produkPerArea?.[currentAreaId] || body.logProduk;
+
+      // 1. Simpan Data Induk
+      const [insertedPerawatan] = await db.insert(perawatanTable).values({
+        kegiatan: kegiatan,
+        areaId: currentAreaId,
+        waktuMulai: tanggalMulaiStr ? new Date(tanggalMulaiStr) : new Date(),
+        waktuSelesai: tanggalSelesaiStr ? new Date(tanggalSelesaiStr) : null,
+        durasiKerja: Number(durasiKerjaNum ?? 0),
+        tagCategory: tagCategoryStr || "Nutrisi",
+        status: statusStr || "Belum dikerjakan",
+        pekerjaIds: pekerjaIdsArray || [], 
+        catatan: catatanStr || null,
+      }).returning();
+
+      // 2. Simpan Racikan Produk (Jika ada)
+      if (produkArray && produkArray.length > 0) {
+        const dataProduk = produkArray.map((p) => ({
+          perawatanId: insertedPerawatan.id,
+          namaProduk: p.produk,
+          dosis: p.dosis,
+        }));
+        
+        await db.insert(perawatanProdukTable).values(dataProduk);
+      }
+
+      recordsCreated.push({
+        id: insertedPerawatan.id,
+        kegiatan: insertedPerawatan.kegiatan,
+        areaId: currentAreaId
+      });
+    }
+
+    res.status(201).json({ 
+      success: true, 
+      message: `Berhasil mencatat perawatan kebun untuk ${areaIds.length} area.`, 
+      data: recordsCreated 
     });
 
-    const results = await Promise.all(requests);
-    res.status(201).json({ success: true, message: `Berhasil mencatat perawatan untuk ${areaIds.length} area.`, data: results });
-  } catch (err) { if (handleNotionErrors(res, err)) return; res.status(500).json({ error: err instanceof Error ? err.message : "Internal Server Error" }); }
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : "Internal Server Error" });
+  }
 });
 
 export default router;
