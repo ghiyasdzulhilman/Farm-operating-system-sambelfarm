@@ -1,3 +1,8 @@
+export * from "./schema/notionConnections";
+export * from "./schema/oauthStates";
+export * from "./schema/fieldMappings";
+export * from "./schema/stagingData";
+
 import { pgTable, uuid, text, timestamp, integer, doublePrecision, jsonb } from "drizzle-orm/pg-core";
 
 export const areasTable = pgTable("areas", {
