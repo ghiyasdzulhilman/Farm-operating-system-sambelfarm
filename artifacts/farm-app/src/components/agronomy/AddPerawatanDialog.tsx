@@ -94,7 +94,7 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(1);
   const [overriddenAreas, setOverriddenAreas] = useState<Record<string, boolean>>({});
-  const [submittedUrls, setSubmittedUrls] = useState<{pageId: string, notionUrl: string}[] | null>(null);
+  const [submittedRecords, setSubmittedRecords] = useState<any[] | null>(null);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -126,10 +126,14 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
       return response.json();
     },
     onSuccess: async (data) => {
-      await queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey(), refetchType: "all" });
-      if (data && data.data) setSubmittedUrls(data.data);
-      form.reset(EMPTY_VALUES); setOverriddenAreas({});
-    },
+  await queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey(), refetchType: "all" });
+  
+  // 🎯 GANTI DI SINI: Sesuaikan nama fungsinya dengan state yang baru
+  if (data && data.data) setSubmittedRecords(data.data);
+  
+  form.reset(EMPTY_VALUES); 
+  setOverriddenAreas({});
+},
     onError: (error) => toast({ variant: "destructive", title: "Gagal menyimpan", description: error instanceof Error ? error.message : "Cek kembali koneksi internet.", }),
   });
 
@@ -171,7 +175,7 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
   };
 
   return (
-    <Sheet open={open} onOpenChange={(val) => { setOpen(val); if (!val) { setStep(1); setSubmittedUrls(null); setOverriddenAreas({}); } }}>
+    <Sheet open={open} onOpenChange={(val) => { setOpen(val); if (!val) { setStep(1); setSubmittedRecords(null); setOverriddenAreas({}); } }}>
       <SheetTrigger asChild>
         <Button className="h-11 rounded-xl px-5 font-bold transition-all active:scale-[0.98] bg-primary text-primary-foreground hover:opacity-90 gap-2">
           <PlusCircle className="h-4 w-4" /> Perawatan
@@ -194,17 +198,31 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
         </SheetHeader>
 
         <div className="px-6 py-4">
-          {submittedUrls ? (
+            {submittedRecords ? (
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center justify-center py-6 text-center space-y-5">
-              <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center mb-1"><CheckCircle2 className="h-8 w-8 text-primary" /></div>
-              <div className="space-y-1"><h3 className="text-base font-black text-foreground tracking-tight">Sukses Tersimpan!</h3><p className="text-xs text-muted-foreground font-medium px-4">Data berhasil dicatat ke Notion.</p></div>
-              <div className="w-full space-y-2 pt-2 max-h-[40vh] overflow-y-auto">
-                {submittedUrls.map((item, idx) => (
-                  <Button key={item.pageId} type="button" variant="outline" className="w-full h-11 rounded-xl text-xs font-bold border-primary/20 text-primary bg-primary/5 hover:bg-primary/10" onClick={() => window.open(item.notionUrl, "_blank")}>
-                    <ExternalLink className="mr-2 h-3.5 w-3.5" /> Buka Notion Area {idx + 1}
-                  </Button>
-                ))}
-                <Button type="button" className="w-full h-11 rounded-xl text-xs font-bold bg-secondary text-secondary-foreground hover:opacity-90 mt-1" onClick={() => { setOpen(false); setStep(1); setSubmittedUrls(null); setOverriddenAreas({}); onSuccess?.(); }}>Tutup Form</Button>
+              <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center mb-1">
+                <CheckCircle2 className="h-8 w-8 text-primary" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-black text-foreground tracking-tight">Sukses Tersimpan!</h3>
+                <p className="text-xs text-muted-foreground font-medium px-4">
+                  Data perawatan berhasil disimpan langsung ke database Supabase.
+                </p>
+              </div>
+              <div className="w-full space-y-2 pt-4">
+                <Button 
+                  type="button" 
+                  className="w-full h-11 rounded-xl text-xs font-bold bg-secondary text-secondary-foreground hover:opacity-90 mt-1" 
+                  onClick={() => { 
+                    setOpen(false); 
+                    setStep(1); 
+                    setSubmittedRecords(null); 
+                    setOverriddenAreas({}); 
+                    onSuccess?.(); 
+                  }}
+                >
+                  Tutup Form
+                </Button>
               </div>
             </motion.div>
           ) : isLoadingOptions ? ( <Skeleton className="h-12 w-full rounded-xl" /> ) : (
@@ -415,7 +433,7 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
                     <Button type="button" className="h-11 rounded-xl px-5 font-bold bg-primary text-primary-foreground hover:opacity-90 transition-all shadow-sm" onClick={handleNextStep}>Lanjut <ArrowRight className="ml-2 h-4 w-4" /></Button>
                   ) : (
                     <Button type="button" className="h-11 rounded-xl px-6 font-bold bg-primary text-primary-foreground hover:opacity-90 transition-all active:scale-[0.98] shadow-sm" disabled={savePerawatan.isPending} onClick={form.handleSubmit(onSubmit)}>
-                      {savePerawatan.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Menyimpan...</> : <><CheckCircle2 className="mr-2 h-4 w-4" /> Kirim ke Notion</>}
+                      {savePerawatan.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Menyimpan...</> : <><CheckCircle2 className="mr-2 h-4 w-4" /> Simpan Data</>}
                     </Button>
                   )}
                 </div>
