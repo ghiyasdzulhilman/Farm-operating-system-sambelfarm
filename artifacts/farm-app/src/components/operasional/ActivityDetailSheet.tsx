@@ -9,6 +9,7 @@ import {
   Users,
   Briefcase,
   Thermometer,
+  Radar,
 } from "lucide-react";
 import {
   Sheet,
@@ -19,6 +20,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { AgronomyItem } from "@/types/operasional";
+import { format } from "date-fns";
 
 interface ActivityDetailSheetProps {
   item: AgronomyItem | null;
@@ -32,6 +34,16 @@ export function ActivityDetailSheet({
   onStatusChange,
 }: ActivityDetailSheetProps) {
   if (!item) return null;
+
+  // Helper untuk memformat jam mulai & selesai agar rapi di layar HP
+  const formatJamMendalam = (dateStr?: string) => {
+    if (!dateStr) return "-";
+    try {
+      return format(new Date(dateStr), "HH:mm");
+    } catch {
+      return "-";
+    }
+  };
 
   return (
     <Sheet open={!!item} onOpenChange={(open) => !open && onClose()}>
@@ -137,10 +149,30 @@ export function ActivityDetailSheet({
                       <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
                         <div className="flex items-center gap-2 text-muted-foreground mb-1">
                           <TrendingUp className="h-4 w-4 text-destructive" />
-                          <span className="text-xs font-bold uppercase">Tingkat Serangan</span>
+                          <span className="text-xs font-bold uppercase">Serangan</span>
                         </div>
                         <p className="text-lg font-black text-destructive">
                           {item.metaEkstra.tingkatSerangan ? `${item.metaEkstra.tingkatSerangan}%` : "0%"}
+                        </p>
+                      </div>
+
+                      <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
+                        <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                          <Radar className="h-4 w-4 text-sky-600" />
+                          <span className="text-xs font-bold uppercase">Radius</span>
+                        </div>
+                        <p className="text-lg font-black text-sky-600">
+                          {item.metaEkstra.radius ? `${item.metaEkstra.radius} meter` : "-"}
+                        </p>
+                      </div>
+
+                      <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
+                        <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                          <Clock3 className="h-4 w-4 text-amber-600" />
+                          <span className="text-xs font-bold uppercase">Jam Kerja</span>
+                        </div>
+                        <p className="text-sm font-black text-amber-700">
+                          {formatJamMendalam(item.metaEkstra.waktuMulai)} - {formatJamMendalam(item.metaEkstra.waktuSelesai)}
                         </p>
                       </div>
 
@@ -186,16 +218,39 @@ export function ActivityDetailSheet({
                           {item.metaEkstra.prioritas || "Medium"}
                         </p>
                       </div>
+
+                      <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm sm:col-span-2">
+                        <div className="mb-1 flex items-center gap-2 text-muted-foreground">
+                          <Clock3 className="h-4 w-4 text-amber-600" />
+                          <span className="text-xs font-bold uppercase">Durasi Operasional</span>
+                        </div>
+                        <p className="text-sm font-black text-amber-700">
+                          {formatJamMendalam(item.metaEkstra.waktuMulai)} - {formatJamMendalam(item.metaEkstra.waktuSelesai)}
+                        </p>
+                      </div>
                     </div>
                   )}
 
                   {/* 3. KONDISI MODUL PERAWATAN */}
                   {item.module === "perawatan" && (
-                    <div className="col-span-2 rounded-2xl border border-border/60 bg-card p-3 shadow-sm flex items-center gap-3">
-                      <Activity className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-medium">
-                        Kategori Treatment: <strong className="font-black">{item.metaEkstra.tagCategory || "Nutrisi"}</strong>
-                      </span>
+                    <div className="col-span-2 grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
+                        <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                          <Activity className="h-4 w-4 text-primary" />
+                          <span className="text-xs font-bold uppercase">Kategori</span>
+                        </div>
+                        <p className="text-sm font-black">{item.metaEkstra.tagCategory || "Nutrisi"}</p>
+                      </div>
+
+                      <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
+                        <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                          <Clock3 className="h-4 w-4 text-amber-600" />
+                          <span className="text-xs font-bold uppercase">Durasi Treatment</span>
+                        </div>
+                        <p className="text-sm font-black text-amber-700">
+                          {formatJamMendalam(item.metaEkstra.waktuMulai)} - {formatJamMendalam(item.metaEkstra.waktuSelesai)}
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>
