@@ -132,7 +132,7 @@ function sanitizeInspeksiPayload(payload: InspeksiFormValues) {
   });
 
   const parseAngka = (val?: string) => val ? Number(val) : undefined;
-  const parseSerangan = (val?: string) => val ? Number(val) / 100 : undefined;
+  const parseSerangan = (val?: string) => val ? Number(val) : undefined;
 
   const tsPerArea: Record<string, number> = {};
   const radPerArea: Record<string, number> = {};
