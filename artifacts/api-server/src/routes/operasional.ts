@@ -3,7 +3,8 @@ import { getAuth } from "@clerk/express";
 import { 
   db, 
   areasTable, 
-  operasionalTable 
+  operasionalTable
+  pekerjaTable 
 } from "@workspace/db";
 
 const router: IRouter = Router();
@@ -55,15 +56,18 @@ router.get("/notion/operasional-dropdown-options", async (req, res): Promise<voi
       name: a.name
     }));
 
-         // Pakai data dummy sementara biar form bisa dilewati
-    const listPekerjaDummy = [
-      { id: "pekerja-1", name: "Mang Udin" },
-      { id: "pekerja-2", name: "Kang Asep" },
-      { id: "pekerja-3", name: "Wakijan" }
-    ];
+    // Ambil data pekerja aktif langsung dari Supabase
+    const dbPekerja = await db.select().from(pekerjaTable);
+    
+    // Mapping properti 'nama' dari DB menjadi 'name' untuk Frontend
+    const formattedPetugas = dbPekerja.map((p) => ({
+      id: p.id,
+      name: p.nama,
+    }));
 
-    res.json({ areas: formattedAreas, petugas: listPekerjaDummy });
-  } catch (err) { 
+    // Kirim data asli ke frontend
+    res.json({ areas: formattedAreas, petugas: formattedPetugas });
+  } catch (err) {
 
     res.status(500).json({ error: "Gagal mengambil opsi dropdown dari database." }); 
   }
