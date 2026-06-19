@@ -48,7 +48,12 @@ export function AgronomyHubPage() {
 
       // --- BATAS ATAS FORMAT ITEM ---
 const formatItem = (item: any, module: ModuleKey, icon: string, titleKey: string): AgronomyItem => {
-  const itemDate = new Date(item.waktuMulai || new Date());
+  // 💡 1. Bersihkan tanda zona waktu UTC sebelum dikonversi ke objek Date
+  const rawDate = item.waktuMulai || new Date().toISOString();
+  const cleanDate = rawDate.replace(/(Z|\+00:00)$/, '');
+  const itemDate = new Date(cleanDate);
+
+  // 💡 2. Pengecekan hari tetap sama seperti biasa
   const isToday = itemDate.toDateString() === new Date().toDateString();
   const isYesterday = itemDate.toDateString() === new Date(Date.now() - 86400000).toDateString();
 
