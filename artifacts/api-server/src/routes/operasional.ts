@@ -3,7 +3,7 @@ import { getAuth } from "@clerk/express";
 import { 
   db, 
   areasTable, 
-  operasionalTable
+  operasionalTable,
   pekerjaTable 
 } from "@workspace/db";
 
