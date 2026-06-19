@@ -46,49 +46,48 @@ export function AgronomyHubPage() {
         workerMap[p.id] = p.name;
       });
 
-      const formatItem = (item: any, module: ModuleKey, icon: string, titleKey: string): AgronomyItem => {
-        const itemDate = new Date(item.waktuMulai || new Date());
-        const isToday = itemDate.toDateString() === new Date().toDateString();
-        const isYesterday = itemDate.toDateString() === new Date(Date.now() - 86400000).toDateString();
+      // --- BATAS ATAS FORMAT ITEM ---
+const formatItem = (item: any, module: ModuleKey, icon: string, titleKey: string): AgronomyItem => {
+  const itemDate = new Date(item.waktuMulai || new Date());
+  const isToday = itemDate.toDateString() === new Date().toDateString();
+  const isYesterday = itemDate.toDateString() === new Date(Date.now() - 86400000).toDateString();
 
-        // 💡 Terjemahkan array UUID menjadi array Nama Orang
-        const rawWorkerIds = Array.isArray(item.pekerjaIds) ? item.pekerjaIds : [];
-        const resolvedWorkers = rawWorkerIds
-          .map((id: string) => workerMap[id] || null)
-          .filter(Boolean);
+  const rawWorkerIds = Array.isArray(item.pekerjaIds) ? item.pekerjaIds : [];
+  const resolvedWorkers = rawWorkerIds
+    .map((id: string) => workerMap[id] || null)
+    .filter(Boolean);
 
-        return {
-          id: item.id,
-          module: module,
-          icon: icon,
-          title: item[titleKey] || "Tanpa Judul",
-          time: itemDate.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
-          rawDate: item.waktuMulai || new Date().toISOString(),
-          status: item.status || "Belum dikerjakan",
-          areaId: item.areaId,
-          area: item.areaName || "Area Master",
-          // Jika tidak ada pekerja tercatat, kasih fallback "Tim Lapangan"
-          workers: resolvedWorkers.length ? resolvedWorkers : ["Tim Lapangan"], 
-          duration: `${item.durasiKerja || 0} jam`, // 💡 Bersihkan durasi dari parsing string bawaan
-          priority: item.prioritas || "Medium",
-          category: item.kategori || item.tagCategory || (module === "inspeksi" ? "Diagnosis" : "Umum"),
-          
-// Bikin teks otomatis untuk racikan bahan jika modulnya adalah perawatan
-const catatanRacikan = module === "perawatan" && Array.isArray(item.logProduk) && item.logProduk.length > 0
-  ? `Bahan & Dosis:\n${item.logProduk.map((p: any) => `- ${p.produk} (${p.dosis})`).join("\n")}${item.catatan ? `\n\nCatatan Tambahan:\n${item.catatan}` : ""}`
-  : (item.catatan || item.keterangan || "Tidak ada catatan.");
+  // 💡 TARUH KODE DI SINI (Di luar skema return objek, di bawah baris resolvedWorkers)
+  const catatanRacikan = module === "perawatan" && Array.isArray(item.logProduk) && item.logProduk.length > 0
+    ? `Bahan & Dosis:\n${item.logProduk.map((p: any) => `- ${p.produk} (${p.dosis})`).join("\n")}${item.catatan ? `\n\nCatatan Tambahan:\n${item.catatan}` : ""}`
+    : (item.catatan || item.keterangan || "Tidak ada catatan.");
 
-return {
-  id: item.id,
-  module: module,
-  icon: icon,
-  title: item[titleKey] || "Tanpa Judul",
-  // ... (biarkan field lainnya tetap seperti biasa)
-  notes: catatanRacikan, // 💡 Gunakan variabel baru ini bro!
-  attachments: [],
-  history: [{ time: "Supabase Live", text: "Data ditarik langsung dari server lokal." }],
-  metaEkstra: { ...item },
-} as unknown as AgronomyItem;
+  // Sekarang baru aman untuk mengembalikan objeknya
+  return {
+    id: item.id,
+    module: module,
+    icon: icon,
+    title: item[titleKey] || "Tanpa Judul",
+    time: itemDate.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+    rawDate: item.waktuMulai || new Date().toISOString(),
+    status: item.status || "Belum dikerjakan",
+    areaId: item.areaId,
+    area: item.areaName || "Area Master",
+    workers: resolvedWorkers.length ? resolvedWorkers : ["Tim Lapangan"], 
+    duration: `${item.durasiKerja || 0} jam`,
+    priority: item.prioritas || "Medium",
+    category: item.kategori || item.tagCategory || (module === "inspeksi" ? "Diagnosis" : "Umum"),
+    
+    notes: catatanRacikan, // 💡 Panggil nama variabelnya langsung di sini tanpa 'const'
+    
+    dateLabel: isToday ? "Hari ini" : isYesterday ? "Kemarin" : "Riwayat Lama",
+    timeLabel: "Disinkronkan",
+    attachments: [],
+    history: [{ time: "Supabase Live", text: "Data ditarik langsung dari server lokal." }],
+    metaEkstra: { ...item },
+  } as unknown as AgronomyItem;
+};
+// --- BATAS BAWAH FORMAT ITEM ---
 
 
           dateLabel: isToday ? "Hari ini" : isYesterday ? "Kemarin" : "Riwayat Lama",
