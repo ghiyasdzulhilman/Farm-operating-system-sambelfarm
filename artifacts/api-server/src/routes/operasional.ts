@@ -55,8 +55,16 @@ router.get("/notion/operasional-dropdown-options", async (req, res): Promise<voi
       name: a.name
     }));
 
-    res.json({ areas: formattedAreas, petugas: [] });
+         // Pakai data dummy sementara biar form bisa dilewati
+    const listPekerjaDummy = [
+      { id: "pekerja-1", name: "Mang Udin" },
+      { id: "pekerja-2", name: "Kang Asep" },
+      { id: "pekerja-3", name: "Wakijan" }
+    ];
+
+    res.json({ areas: formattedAreas, petugas: listPekerjaDummy });
   } catch (err) { 
+
     res.status(500).json({ error: "Gagal mengambil opsi dropdown dari database." }); 
   }
 });
