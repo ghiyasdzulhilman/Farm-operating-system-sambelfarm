@@ -204,9 +204,8 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
                 <CheckCircle2 className="h-8 w-8 text-primary" />
               </div>
               <div className="space-y-1">
-                <h3 className="text-base font-black text-foreground tracking-tight">Sukses Tersimpan!</h3>
+                <h3 className="text-base font-black text-foreground tracking-tight">Data Berhasil Disimpan</h3>
                 <p className="text-xs text-muted-foreground font-medium px-4">
-                  Data perawatan berhasil disimpan langsung ke database Supabase.
                 </p>
               </div>
               <div className="w-full space-y-2 pt-4">
