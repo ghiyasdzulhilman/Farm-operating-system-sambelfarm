@@ -35,13 +35,23 @@ export function ActivityDetailSheet({
 }: ActivityDetailSheetProps) {
   if (!item) return null;
 
-    // Helper untuk memformat jam mulai & selesai agar rapi di layar HP
+      // Helper untuk memformat jam mulai & selesai agar rapi di layar HP
   const formatJamMendalam = (dateStr?: string) => {
     if (!dateStr) return "-";
     try {
-      // 💡 Hapus marker UTC ('Z' atau '+00:00') agar dipaksa jadi waktu lokal WIB
       const cleanDate = dateStr.replace(/(Z|\+00:00)$/, '');
       return format(new Date(cleanDate), "HH:mm");
+    } catch {
+      return "-";
+    }
+  };
+
+  // 💡 TAMBAHKAN HELPER INI:
+  const formatTanggalLengkap = (dateStr?: string) => {
+    if (!dateStr) return "-";
+    try {
+      const cleanDate = dateStr.replace(/(Z|\+00:00)$/, '');
+      return format(new Date(cleanDate), "dd MMM yyyy"); // Format: 19 Jun 2026
     } catch {
       return "-";
     }
@@ -90,16 +100,31 @@ export function ActivityDetailSheet({
             </div>
           </SheetHeader>
 
-          <div className="flex-1 overflow-y-auto px-5 py-5 custom-scrollbar text-left">
+            <div className="flex-1 overflow-y-auto px-5 py-5 custom-scrollbar text-left">
             {/* KARTU IDENTITAS UTAMA */}
             <div className="rounded-3xl bg-gradient-to-br from-primary/10 to-transparent p-5 border border-primary/10">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                  {/* 💡 BAGIAN YANG DIPERBAIKI: Tanggal & Jam */}
+                  <div className="flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
                     <span>{item.time}</span>
                     <span>•</span>
-                    <span>{item.dateLabel}</span>
+                    {/* Format Tanggal Lengkap (19 Jun 2026) */}
+                    <span className="text-foreground">
+                      {format(new Date(item.rawDate.replace(/(Z|\+00:00)$/, '')), "dd MMM yyyy")}
+                    </span>
+                    
+                    {/* Label Hari Ini / Kemarin */}
+                    {item.dateLabel !== "Riwayat Lama" && (
+                      <>
+                        <span>•</span>
+                        <span className={item.dateLabel === "Hari ini" ? "text-primary" : ""}>
+                          {item.dateLabel}
+                        </span>
+                      </>
+                    )}
                   </div>
+                  
                   <h2 className="mt-2 text-2xl font-black tracking-tight">
                     {item.title}
                   </h2>
@@ -111,6 +136,7 @@ export function ActivityDetailSheet({
                   <CalendarDays className="h-5 w-5 text-primary" />
                 </div>
               </div>
+              
               <div className="mt-4 flex flex-wrap gap-2">
                 <Badge className="rounded-full bg-primary text-primary-foreground shadow-sm">
                   {item.priority} Priority
