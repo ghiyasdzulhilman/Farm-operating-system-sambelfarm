@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import { getAuth } from "@clerk/express";
+import { eq } from "drizzle-orm";
 import { 
   db, 
   areasTable, 
@@ -177,6 +178,44 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
 
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : "Internal Server Error" });
+  }
+});
+
+// ==========================================
+// 3. ENDPOINT GET ALL PERAWATAN (SUPABASE REALTIME + NAMA AREA)
+// ==========================================
+router.get("/notion/all-perawatan", async (req, res): Promise<void> => {
+  const { userId } = getAuth(req);
+  if (!userId) { 
+    res.status(401).json({ error: "Unauthorized" }); 
+    return; 
+  }
+
+  try {
+    // Query pintar: Ambil data perawatan sekaligus tarik nama areanya
+    const data = await db
+      .select({
+        id: perawatanTable.id,
+        kegiatan: perawatanTable.kegiatan,
+        areaId: perawatanTable.areaId,
+        areaName: areasTable.name, // 💡 Ini nama area dari tabel sebelah!
+        waktuMulai: perawatanTable.waktuMulai,
+        waktuSelesai: perawatanTable.waktuSelesai,
+        durasiKerja: perawatanTable.durasiKerja,
+        tagCategory: perawatanTable.tagCategory,
+        status: perawatanTable.status,
+        pekerjaIds: perawatanTable.pekerjaIds,
+        catatan: perawatanTable.catatan
+      })
+      .from(perawatanTable)
+      .leftJoin(areasTable, eq(perawatanTable.areaId, areasTable.id)); // 🔗 Hubungkan lewat ID Area
+
+    res.json({ 
+      success: true, 
+      data: data 
+    });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : "Gagal mengambil riwayat perawatan." });
   }
 });
 
