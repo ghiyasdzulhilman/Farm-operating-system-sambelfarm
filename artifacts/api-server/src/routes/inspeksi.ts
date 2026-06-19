@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import { getAuth } from "@clerk/express";
+import { eq } from "drizzle-orm";
 import { 
   db, 
   areasTable, 
@@ -172,5 +173,46 @@ router.post("/notion/add-inspeksi", async (req, res): Promise<void> => {
     res.status(500).json({ error: err instanceof Error ? err.message : "Internal Server Error" }); 
   }
 });
+
+// ==========================================
+// 4. ENDPOINT GET ALL INSPEKSI (SUPABASE REALTIME + NAMA AREA)
+// ==========================================
+router.get("/notion/all-inspeksi", async (req, res): Promise<void> => {
+  const { userId } = getAuth(req);
+  if (!userId) { 
+    res.status(401).json({ error: "Unauthorized" }); 
+    return; 
+  }
+
+  try {
+    // Tarik data inspeksi real-time, gabungkan dengan tabel area untuk dapet nama blok kebun
+    const data = await db
+      .select({
+        id: inspeksiTable.id,
+        kegiatan: inspeksiTable.kegiatan,
+        areaId: inspeksiTable.areaId,
+        areaName: areasTable.name, // 💡 Nama area/blok cabai asli dari tabel sebelah
+        waktuMulai: inspeksiTable.waktuMulai,
+        waktuSelesai: inspeksiTable.waktuSelesai,
+        durasiKerja: inspeksiTable.durasiKerja,
+        phTanah: inspeksiTable.phTanah,
+        tingkatSerangan: inspeksiTable.tingkatSerangan, // 💡 Sudah angka bulat (cth: 30)
+        radius: inspeksiTable.radius,
+        status: inspeksiTable.status,
+        pekerjaIds: inspeksiTable.pekerjaIds,
+        keterangan: inspeksiTable.keterangan
+      })
+      .from(inspeksiTable)
+      .leftJoin(areasTable, eq(inspeksiTable.areaId, areasTable.id)); // 🔗 Ikat relasinya
+
+    res.json({ 
+      success: true, 
+      data: data 
+    });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : "Gagal mengambil riwayat inspeksi." });
+  }
+});
+
 
 export default router;
