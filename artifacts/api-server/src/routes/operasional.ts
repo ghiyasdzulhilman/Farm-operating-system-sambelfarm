@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import { getAuth } from "@clerk/express";
+import { eq } from "drizzle-orm";
 import { 
   db, 
   areasTable, 
@@ -147,5 +148,46 @@ router.post("/notion/add-operasional", async (req, res): Promise<void> => {
     res.status(500).json({ error: err instanceof Error ? err.message : "Internal Server Error" }); 
   }
 });
+
+// ==========================================
+// 4. ENDPOINT GET ALL OPERASIONAL (SUPABASE REALTIME + NAMA AREA)
+// ==========================================
+router.get("/notion/all-operasional", async (req, res): Promise<void> => {
+  const { userId } = getAuth(req);
+  if (!userId) { 
+    res.status(401).json({ error: "Unauthorized" }); 
+    return; 
+  }
+
+  try {
+    // Tarik data operasional real-time dari Supabase + join nama area lokasinya
+    const data = await db
+      .select({
+        id: operasionalTable.id,
+        namaPekerjaan: operasionalTable.namaPekerjaan,
+        areaId: operasionalTable.areaId,
+        areaName: areasTable.name, // 💡 Nama area dari tabel sebelah
+        kategori: operasionalTable.kategori,
+        waktuMulai: operasionalTable.waktuMulai,
+        waktuSelesai: operasionalTable.waktuSelesai,
+        durasiKerja: operasionalTable.durasiKerja,
+        pekerjaIds: operasionalTable.pekerjaIds,
+        status: operasionalTable.status,
+        prioritas: operasionalTable.prioritas,
+        jenisTenagaKerja: operasionalTable.jenisTenagaKerja,
+        catatan: operasionalTable.catatan
+      })
+      .from(operasionalTable)
+      .leftJoin(areasTable, eq(operasionalTable.areaId, areasTable.id)); // 🔗 Hubungkan relasi ID
+
+    res.json({ 
+      success: true, 
+      data: data 
+    });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : "Gagal mengambil riwayat operasional." });
+  }
+});
+
 
 export default router;
