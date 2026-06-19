@@ -278,7 +278,6 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
         </SheetHeader>
 
         <div className="px-6 py-4">
-          // --- BATAS BAWAH ---
   {submittedRecords ? (
   <motion.div className="flex flex-col items-center justify-center py-6 text-center space-y-5">
     <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center">
