@@ -4,7 +4,8 @@ import {
   db, 
   areasTable, 
   perawatanTable, 
-  perawatanProdukTable 
+  perawatanProdukTable,
+  pekerjaTable
 } from "@workspace/db";
 
 const router: IRouter = Router();
@@ -53,6 +54,7 @@ router.get("/notion/perawatan-dropdown-options", async (req, res): Promise<void>
     return; 
   }
 
+  // --- BATAS ATAS PERBAIKAN ---
   try {
     const areas = await db.select().from(areasTable);
     
@@ -61,8 +63,19 @@ router.get("/notion/perawatan-dropdown-options", async (req, res): Promise<void>
       name: a.name
     }));
 
-    res.json({ areas: formattedAreas, petugas: [] });
+    // 1. Ambil data pekerja aktif langsung dari Supabase
+    const dbPekerja = await db.select().from(pekerjaTable);
+    
+    // 2. Mapping properti 'nama' dari DB menjadi 'name' untuk Frontend
+    const formattedPetugas = dbPekerja.map((p) => ({
+      id: p.id,
+      name: p.nama,
+    }));
+
+    // 3. Kirim data asli ke frontend (Bukan array kosong lagi)
+    res.json({ areas: formattedAreas, petugas: formattedPetugas });
   } catch (err) {
+// --- BATAS BAWAH PERBAIKAN --
     res.status(500).json({ error: "Gagal mengambil opsi dropdown dari database." });
   }
 });
