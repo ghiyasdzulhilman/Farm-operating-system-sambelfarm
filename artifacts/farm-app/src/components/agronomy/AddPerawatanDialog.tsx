@@ -396,6 +396,29 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
     </div>
    <div className="flex items-center gap-2"><p className="text-[9px] font-bold text-muted-foreground uppercase">Durasi:</p><Input type="number" step="0.1" className="h-7 w-16 text-[10px] font-bold px-1 bg-background border-input" value={form.watch(`durasiKerjaPerArea.${areaId}`) || 0} onChange={(e) => form.setValue(`durasiKerjaPerArea.${areaId}`, Number(e.target.value))} /><span className="text-[9px] font-bold">Jam</span></div>
 
+                                  {/* 👇 SELIPIN KODE PEKERJA SPESIFIK DI SINI 👇 */}
+                                  <div className="space-y-1.5 pt-3 border-t border-border/50 mt-3">
+                                    <p className="text-[9px] font-bold text-muted-foreground uppercase">Tim Pekerja Area Ini</p>
+                                    <div className="flex flex-wrap gap-1">
+                                      {dropdownOptions?.petugas?.map((item) => {
+                                        const isSelected = form.watch(`petugasPerArea.${areaId}`)?.includes(item.id);
+                                        return (
+                                          <button 
+                                            key={item.id} 
+                                            type="button" 
+                                            onClick={() => {
+                                              const cur = form.getValues(`petugasPerArea.${areaId}`) || []; 
+                                              form.setValue(`petugasPerArea.${areaId}`, isSelected ? cur.filter(id => id !== item.id) : [...cur, item.id]);
+                                            }} 
+                                            className={`px-2 py-1 rounded-full text-[9px] font-semibold transition-all border ${isSelected ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-border"}`}
+                                          >
+                                            {item.name}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+
                                   {/* Bahan Spesifik */}
                                   <div className="space-y-1.5 pt-2 border-t border-border/50">
                                     <div className="flex justify-between items-center"><p className="text-[9px] font-bold text-muted-foreground uppercase">Bahan / Dosis</p><Button type="button" variant="outline" size="sm" className="h-6 text-[9px] py-0 px-1.5 rounded bg-primary/10 text-primary border-primary/20 hover:bg-primary/20" onClick={() => form.setValue(`produkPerArea.${areaId}`, [...(form.getValues(`produkPerArea.${areaId}`)||[]), {produk:"", dosis:""}])}><Plus className="h-2 w-2 mr-1" /> Tambah</Button></div>
