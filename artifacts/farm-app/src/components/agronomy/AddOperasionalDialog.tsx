@@ -105,7 +105,7 @@ export function AddOperasionalDialog({ onSuccess }: { onSuccess?: () => void }) 
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(1);
   const [overriddenAreas, setOverriddenAreas] = useState<Record<string, boolean>>({});
-  const [successUrls, setSuccessUrls] = useState<{pageId: string, notionUrl: string}[] | null>(null);
+  const [submittedRecords, setSubmittedRecords] = useState<any[] | null>(null);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -151,7 +151,7 @@ export function AddOperasionalDialog({ onSuccess }: { onSuccess?: () => void }) 
     onSuccess: async (responseData) => {
       await queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey(), refetchType: "all" });
       const results = responseData?.data || [];
-      if (results.length > 0) setSuccessUrls(results);
+      if (results.length > 0) setSubmittedRecords(results);
       form.reset(EMPTY_VALUES); setOverriddenAreas({});
     },
     onError: (error) => {
@@ -212,7 +212,7 @@ export function AddOperasionalDialog({ onSuccess }: { onSuccess?: () => void }) 
   };
 
   return (
-    <Sheet open={open} onOpenChange={(val) => { setOpen(val); if (!val) { setStep(1); setSuccessUrls(null); setOverriddenAreas({}); } }}>
+    <Sheet open={open} onOpenChange={(val) => { setOpen(val); if (!val) { setStep(1); setSubmittedRecords(null); setOverriddenAreas({}); } }}>
       <SheetTrigger asChild>
         <Button className="h-11 rounded-xl px-5 font-bold bg-primary text-primary-foreground hover:opacity-90 transition-all active:scale-[0.98] gap-2">
           <PlusCircle className="h-4 w-4" /> Operasional
@@ -235,17 +235,31 @@ export function AddOperasionalDialog({ onSuccess }: { onSuccess?: () => void }) 
         </SheetHeader>
 
         <div className="px-6 py-4">
-          {successUrls ? (
+          {submittedRecords ? (
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center justify-center py-6 text-center space-y-5">
-              <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center mb-1"><CheckCircle2 className="h-8 w-8 text-primary" /></div>
-              <div className="space-y-1"><h3 className="text-base font-black text-foreground tracking-tight">Sukses Tersimpan!</h3><p className="text-xs text-muted-foreground font-medium px-4">Data berhasil dicatat ke Notion.</p></div>
-              <div className="w-full space-y-2 pt-2 max-h-[40vh] overflow-y-auto">
-                {successUrls.map((item, idx) => (
-                  <Button key={item.pageId} type="button" variant="outline" className="w-full h-11 rounded-xl text-xs font-bold border-primary/20 text-primary bg-primary/5 hover:bg-primary/10" onClick={() => window.open(item.notionUrl, "_blank")}>
-                    <ExternalLink className="mr-2 h-3.5 w-3.5" /> Buka Notion Area {idx + 1}
-                  </Button>
-                ))}
-                <Button type="button" className="w-full h-11 rounded-xl text-xs font-bold bg-secondary text-secondary-foreground hover:opacity-90 mt-1" onClick={() => { setOpen(false); setStep(1); setSuccessUrls(null); setOverriddenAreas({}); onSuccess?.(); }}>Tutup Form</Button>
+              <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center mb-1">
+                <CheckCircle2 className="h-8 w-8 text-primary" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-black text-foreground tracking-tight">Data Berhasil Disimpan</h3>
+                <p className="text-xs text-muted-foreground font-medium px-4">
+                  
+                </p>
+              </div>
+              <div className="w-full space-y-2 pt-4">
+                <Button 
+                  type="button" 
+                  className="w-full h-11 rounded-xl text-xs font-bold bg-secondary text-secondary-foreground hover:opacity-90 mt-1" 
+                  onClick={() => { 
+                    setOpen(false); 
+                    setStep(1); 
+                    setSubmittedRecords(null); 
+                    setOverriddenAreas({}); 
+                    onSuccess?.(); 
+                  }}
+                >
+                  Tutup Form
+                </Button>
               </div>
             </motion.div>
           ) : isLoadingOptions ? ( <Skeleton className="h-12 w-full rounded-xl" /> ) : (
