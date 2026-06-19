@@ -35,11 +35,13 @@ export function ActivityDetailSheet({
 }: ActivityDetailSheetProps) {
   if (!item) return null;
 
-  // Helper untuk memformat jam mulai & selesai agar rapi di layar HP
+    // Helper untuk memformat jam mulai & selesai agar rapi di layar HP
   const formatJamMendalam = (dateStr?: string) => {
     if (!dateStr) return "-";
     try {
-      return format(new Date(dateStr), "HH:mm");
+      // 💡 Hapus marker UTC ('Z' atau '+00:00') agar dipaksa jadi waktu lokal WIB
+      const cleanDate = dateStr.replace(/(Z|\+00:00)$/, '');
+      return format(new Date(cleanDate), "HH:mm");
     } catch {
       return "-";
     }
