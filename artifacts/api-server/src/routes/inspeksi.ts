@@ -175,7 +175,7 @@ router.post("/notion/add-inspeksi", async (req, res): Promise<void> => {
 });
 
 // ==========================================
-// 4. ENDPOINT GET ALL INSPEKSI (SUPABASE REALTIME + NAMA AREA)
+// 4. ENDPOINT GET ALL INSPEKSI (SUPABASE REALTIME + NAMA AREA + DETAIL TEMUAN)
 // ==========================================
 router.get("/notion/all-inspeksi", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
@@ -185,34 +185,60 @@ router.get("/notion/all-inspeksi", async (req, res): Promise<void> => {
   }
 
   try {
-    // Tarik data inspeksi real-time, gabungkan dengan tabel area untuk dapet nama blok kebun
-    const data = await db
+    // 1. Ambil data induk inspeksi
+    const indukData = await db
       .select({
         id: inspeksiTable.id,
         kegiatan: inspeksiTable.kegiatan,
         areaId: inspeksiTable.areaId,
-        areaName: areasTable.name, // 💡 Nama area/blok cabai asli dari tabel sebelah
+        areaName: areasTable.name,
         waktuMulai: inspeksiTable.waktuMulai,
         waktuSelesai: inspeksiTable.waktuSelesai,
         durasiKerja: inspeksiTable.durasiKerja,
         phTanah: inspeksiTable.phTanah,
-        tingkatSerangan: inspeksiTable.tingkatSerangan, // 💡 Sudah angka bulat (cth: 30)
+        tingkatSerangan: inspeksiTable.tingkatSerangan,
         radius: inspeksiTable.radius,
         status: inspeksiTable.status,
         pekerjaIds: inspeksiTable.pekerjaIds,
         keterangan: inspeksiTable.keterangan
       })
       .from(inspeksiTable)
-      .leftJoin(areasTable, eq(inspeksiTable.areaId, areasTable.id)); // 🔗 Ikat relasinya
+      .leftJoin(areasTable, eq(inspeksiTable.areaId, areasTable.id));
+
+    // 2. Ambil semua data temuan hama/penyakit dari tabel anak
+    const semuaTemuan = await db.select().from(inspeksiTemuanTable);
+
+    // 3. Petakan temuan masuk ke induk inspeksi masing-masing
+    const dataMatang = indukData.map((inspeksi) => {
+      const temuanKhusus = semuaTemuan.filter((t) => t.inspeksiId === inspeksi.id);
+
+      // Pisahkan nama hama dan penyakit ke dalam array string untuk dibaca UI lama lu
+      const daftarHama = temuanKhusus.filter((t) => t.jenisKendala === "Hama").map((t) => t.namaKendala);
+      const daftarPenyakit = temuanKhusus.filter((t) => t.jenisKendala === "Penyakit").map((t) => t.namaKendala);
+      
+      // Kumpulkan catatan detail temuan lapangan (sebagai pengganti children block Notion)
+      const catatanTemuan = temuanKhusus
+        .map((t) => `${t.namaKendala}: ${t.catatanKhusus || "Tanpa catatan khusus"}`)
+        .join("\n");
+
+      return {
+        ...inspeksi,
+        hama: daftarHama,
+        penyakit: daftarPenyakit,
+        // Gabungkan keterangan induk dengan rincian catatan dari tabel anak kendala
+        keterangan: inspeksi.keterangan 
+          ? `${inspeksi.keterangan}\n\n⚠️ Detail Kendala:\n${catatanTemuan}`
+          : catatanTemuan || "Kondisi tanaman terpantau aman terkendali."
+      };
+    });
 
     res.json({ 
       success: true, 
-      data: data 
+      data: dataMatang 
     });
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : "Gagal mengambil riwayat inspeksi." });
   }
 });
-
 
 export default router;
