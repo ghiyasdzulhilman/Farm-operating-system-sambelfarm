@@ -27,23 +27,35 @@ export function AgronomyHubPage() {
   const [selectedItem, setSelectedItem] = useState<AgronomyItem | null>(null);
 
   // =====================================================================
-  // 1. FETCH DATA (LANGSUNG DARI 3 ENDPOINT SUPABASE)
+  // 1. FETCH DATA (LANGSUNG DARI 3 ENDPOINT SUPABASE + MASTER PEKERJA)
   // =====================================================================
   const { data: unifiedFeedData, isLoading } = useQuery({
     queryKey: ["agronomy-feed-supabase"],
     queryFn: async () => {
-      // Tarik 3 data sekaligus
-      const [resOp, resPer, resIns] = await Promise.all([
+      // Tarik 3 data transaksi + 1 data master pekerja sekaligus
+      const [resOp, resPer, resIns, resOptions] = await Promise.all([
         fetch("/api/notion/all-operasional").then((res) => res.json()),
         fetch("/api/notion/all-perawatan").then((res) => res.json()),
         fetch("/api/notion/all-inspeksi").then((res) => res.json()),
+        fetch("/api/notion/operasional-dropdown-options").then((res) => res.json()), // 💡 Ambil master pekerja
       ]);
 
-      // Fungsi helper buat nyeragamin format Supabase ke format UI AgronomyItem lu
+      // Bikin kamus penerjemah ID Pekerja -> Nama Pekerja
+      const workerMap: Record<string, string> = {};
+      resOptions?.petugas?.forEach((p: any) => {
+        workerMap[p.id] = p.name;
+      });
+
       const formatItem = (item: any, module: ModuleKey, icon: string, titleKey: string): AgronomyItem => {
         const itemDate = new Date(item.waktuMulai || new Date());
         const isToday = itemDate.toDateString() === new Date().toDateString();
         const isYesterday = itemDate.toDateString() === new Date(Date.now() - 86400000).toDateString();
+
+        // 💡 Terjemahkan array UUID menjadi array Nama Orang
+        const rawWorkerIds = Array.isArray(item.pekerjaIds) ? item.pekerjaIds : [];
+        const resolvedWorkers = rawWorkerIds
+          .map((id: string) => workerMap[id] || null)
+          .filter(Boolean);
 
         return {
           id: item.id,
@@ -55,31 +67,29 @@ export function AgronomyHubPage() {
           status: item.status || "Belum dikerjakan",
           areaId: item.areaId,
           area: item.areaName || "Area Master",
-          workers: item.pekerjaIds || ["Tim Lapangan"], // Bisa di-map ke nama pekerja nanti
-          duration: `${item.durasiKerja || 0} jam`,
+          // Jika tidak ada pekerja tercatat, kasih fallback "Tim Lapangan"
+          workers: resolvedWorkers.length ? resolvedWorkers : ["Tim Lapangan"], 
+          duration: `${item.durasiKerja || 0} jam`, // 💡 Bersihkan durasi dari parsing string bawaan
           priority: item.prioritas || "Medium",
           category: item.kategori || item.tagCategory || (module === "inspeksi" ? "Diagnosis" : "Umum"),
           notes: item.catatan || item.keterangan || "",
           dateLabel: isToday ? "Hari ini" : isYesterday ? "Kemarin" : "Riwayat Lama",
-          timeLabel: "Disinkronkan", // Bisa pakai date-fns relative time
+          timeLabel: "Disinkronkan",
           attachments: [],
           history: [{ time: "Supabase Live", text: "Data ditarik langsung dari server lokal." }],
           metaEkstra: { ...item },
-        } as unknown as AgronomyItem; // Paksa casting biar cocok sama tipe UI lama lu
+        } as unknown as AgronomyItem;
       };
 
-      // Format dan gabungkan semua data
       const ops = (resOp.data || []).map((i: any) => formatItem(i, "operasional", "wrench", "namaPekerjaan"));
       const per = (resPer.data || []).map((i: any) => formatItem(i, "perawatan", "sprout", "kegiatan"));
       const ins = (resIns.data || []).map((i: any) => formatItem(i, "inspeksi", "leaf", "kegiatan"));
 
-      const combined = [...ops, ...per, ...ins].sort(
+      return [...ops, ...per, ...ins].sort(
         (a, b) => new Date(b.rawDate).getTime() - new Date(a.rawDate).getTime()
       );
-
-      return combined;
     },
-    refetchInterval: 60000, // Refresh tiap 1 menit
+    refetchInterval: 60000,
   });
 
   const feedData: AgronomyItem[] = unifiedFeedData || [];
