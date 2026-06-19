@@ -5,10 +5,10 @@ import {
   Activity,
   TrendingUp,
   LeafyGreen,
-  ShieldAlert,
   Clock3,
   Users,
   Briefcase,
+  Thermometer,
 } from "lucide-react";
 import {
   Sheet,
@@ -48,7 +48,7 @@ export function ActivityDetailSheet({
                   Detail Aktivitas
                 </SheetTitle>
                 <p className="text-left text-xs text-muted-foreground">
-                  Sistem tersinkronisasi dengan Notion
+                  Sistem Terhubung ke Supabase DB
                 </p>
               </div>
 
@@ -76,7 +76,7 @@ export function ActivityDetailSheet({
             </div>
           </SheetHeader>
 
-          <div className="flex-1 overflow-y-auto px-5 py-5 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto px-5 py-5 custom-scrollbar text-left">
             {/* KARTU IDENTITAS UTAMA */}
             <div className="rounded-3xl bg-gradient-to-br from-primary/10 to-transparent p-5 border border-primary/10">
               <div className="flex items-start justify-between gap-4">
@@ -104,16 +104,13 @@ export function ActivityDetailSheet({
                 <Badge variant="secondary" className="rounded-full shadow-sm">
                   {item.duration}
                 </Badge>
-                <Badge
-                  variant="secondary"
-                  className="rounded-full uppercase shadow-sm"
-                >
+                <Badge variant="secondary" className="rounded-full uppercase shadow-sm">
                   {item.module}
                 </Badge>
               </div>
             </div>
 
-            {/* SEGMEN DATA KAYA (RICH METADATA) */}
+            {/* SEGMEN DATA KAYA (RICH METADATA) FROM SUPABASE */}
             {item.metaEkstra && Object.keys(item.metaEkstra).length > 0 && (
               <section className="mt-6 space-y-3">
                 <div className="flex items-center gap-2">
@@ -124,182 +121,80 @@ export function ActivityDetailSheet({
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  {/* Ekstraksi Modul Inspeksi */}
+                  {/* 1. KONDISI MODUL INSPEKSI */}
                   {item.module === "inspeksi" && (
                     <>
                       <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
                         <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                          <LeafyGreen className="h-4 w-4" />
-                          <span className="text-xs font-bold uppercase">
-                            Umur Tanaman
-                          </span>
+                          <Thermometer className="h-4 w-4 text-emerald-600" />
+                          <span className="text-xs font-bold uppercase">pH Tanah</span>
                         </div>
-                        <p className="text-lg font-black">
-                          {item.metaEkstra.hst || 0}{" "}
-                          <span className="text-sm font-medium text-muted-foreground">
-                            HST
-                          </span>
+                        <p className="text-lg font-black text-emerald-600">
+                          {item.metaEkstra.phTanah || "-"}
                         </p>
                       </div>
 
-                      <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-3 shadow-sm">
+                      <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
+                        <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                          <TrendingUp className="h-4 w-4 text-destructive" />
+                          <span className="text-xs font-bold uppercase">Tingkat Serangan</span>
+                        </div>
+                        <p className="text-lg font-black text-destructive">
+                          {item.metaEkstra.tingkatSerangan ? `${item.metaEkstra.tingkatSerangan}%` : "0%"}
+                        </p>
+                      </div>
+
+                      <div className="col-span-2 rounded-2xl border border-red-500/20 bg-red-500/5 p-3 shadow-sm">
                         <div className="flex items-center gap-2 text-red-600 mb-2">
                           <Bug className="h-4 w-4" />
-                          <span className="text-xs font-bold uppercase">
-                            Hama / Penyakit
-                          </span>
+                          <span className="text-xs font-bold uppercase">Daftar Temuan Kendala</span>
                         </div>
                         <div className="flex flex-wrap gap-1">
                           {item.metaEkstra.hama?.map((h: string) => (
-                            <Badge
-                              key={h}
-                              variant="destructive"
-                              className="text-[10px] rounded-sm py-0 bg-red-500/80"
-                            >
-                              {h}
-                            </Badge>
+                            <Badge key={h} variant="destructive" className="text-[10px] rounded-sm py-0 bg-red-500/80">{h}</Badge>
                           ))}
                           {item.metaEkstra.penyakit?.map((p: string) => (
-                            <Badge
-                              key={p}
-                              variant="destructive"
-                              className="text-[10px] rounded-sm py-0 bg-orange-500/80"
-                            >
-                              {p}
-                            </Badge>
+                            <Badge key={p} variant="destructive" className="text-[10px] rounded-sm py-0 bg-orange-500/80">{p}</Badge>
                           ))}
-                          {!item.metaEkstra.hama?.length &&
-                            !item.metaEkstra.penyakit?.length && (
-                              <span className="text-xs font-medium text-emerald-600">
-                                Aman Terkendali
-                              </span>
-                            )}
+                          {!item.metaEkstra.hama?.length && !item.metaEkstra.penyakit?.length && (
+                            <span className="text-xs font-medium text-emerald-600">Tanaman Aman Terkendali</span>
+                          )}
                         </div>
                       </div>
                     </>
                   )}
 
-                  {/* Ekstraksi Modul Finance */}
-                  {item.module === "finance" &&
-                    item.metaEkstra.nominal !== undefined && (
-                      <div className="col-span-2 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 shadow-sm flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-emerald-500/10 rounded-xl text-emerald-600">
-                            <TrendingUp className="h-5 w-5" />
-                          </div>
-                          <div>
-                            <p className="text-xs font-bold uppercase text-emerald-700/70">
-                              Estimasi Nilai Transaksi
-                            </p>
-                            <p className="text-xl font-black text-emerald-700">
-                              Rp{" "}
-                              {item.metaEkstra.nominal.toLocaleString("id-ID")}
-                            </p>
-                          </div>
+                  {/* 2. KONDISI MODUL OPERASIONAL */}
+                  {item.module === "operasional" && (
+                    <div className="col-span-2 grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
+                        <div className="mb-1 flex items-center gap-2 text-muted-foreground">
+                          <Briefcase className="h-4 w-4" />
+                          <span className="text-xs font-bold uppercase">Jenis Tenaga</span>
                         </div>
+                        <p className="text-sm font-black">
+                          {item.metaEkstra.jenisTenagaKerja || "Harian"}
+                        </p>
                       </div>
-                    )}
 
-                  {/* Ekstraksi Modul Operasional dari payload form input */}
-                  {item.module === "operasional" &&
-                    item.metaEkstra.formInput && (
-                      <div className="col-span-2 grid gap-3 sm:grid-cols-2">
-                        <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
-                          <div className="mb-1 flex items-center gap-2 text-muted-foreground">
-                            <Briefcase className="h-4 w-4" />
-                            <span className="text-xs font-bold uppercase">
-                              Jenis Tenaga
-                            </span>
-                          </div>
-                          <p className="text-sm font-black">
-                            {item.metaEkstra.formInput.jenisTenagaKerja ||
-                              "Belum diisi"}
-                          </p>
+                      <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
+                        <div className="mb-1 flex items-center gap-2 text-muted-foreground">
+                          <Clock3 className="h-4 w-4" />
+                          <span className="text-xs font-bold uppercase">Prioritas Lapangan</span>
                         </div>
-
-                        <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
-                          <div className="mb-1 flex items-center gap-2 text-muted-foreground">
-                            <Clock3 className="h-4 w-4" />
-                            <span className="text-xs font-bold uppercase">
-                              Jadwal
-                            </span>
-                          </div>
-                          <p className="text-xs font-bold text-foreground">
-                            {item.metaEkstra.formInput.waktuMulai || "-"}
-                            {item.metaEkstra.formInput.waktuSelesai
-                              ? ` → ${item.metaEkstra.formInput.waktuSelesai}`
-                              : ""}
-                          </p>
-                        </div>
-
-                        <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm sm:col-span-2">
-                          <div className="mb-2 flex items-center gap-2 text-muted-foreground">
-                            <Users className="h-4 w-4" />
-                            <span className="text-xs font-bold uppercase">
-                              Payload Form Operasional
-                            </span>
-                          </div>
-                          <div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
-                            <span>
-                              Kategori:{" "}
-                              <strong className="text-foreground">
-                                {item.metaEkstra.formInput.kategori ||
-                                  item.category}
-                              </strong>
-                            </span>
-                            <span>
-                              Status asli:{" "}
-                              <strong className="text-foreground">
-                                {item.metaEkstra.formInput.status ||
-                                  item.status}
-                              </strong>
-                            </span>
-                            <span>
-                              Prioritas:{" "}
-                              <strong className="text-foreground">
-                                {item.metaEkstra.formInput.prioritas ||
-                                  item.priority}
-                              </strong>
-                            </span>
-                            <span>
-                              Durasi:{" "}
-                              <strong className="text-foreground">
-                                {item.metaEkstra.formInput.durasiKerja ?? 0} jam
-                              </strong>
-                            </span>
-                          </div>
-                        </div>
+                        <p className="text-sm font-black uppercase tracking-wider">
+                          {item.metaEkstra.prioritas || "Medium"}
+                        </p>
                       </div>
-                    )}
-
-                  {/* Ringkasan properti Notion mentah untuk audit data */}
-                  {item.metaEkstra.notion?.properties && (
-                    <div className="col-span-2 rounded-2xl border border-sky-500/20 bg-sky-500/5 p-3 shadow-sm">
-                      <div className="mb-2 flex items-center gap-2 text-sky-700 dark:text-sky-400">
-                        <ShieldAlert className="h-4 w-4" />
-                        <span className="text-xs font-bold uppercase">
-                          Audit Properti Notion
-                        </span>
-                      </div>
-                      <p className="text-xs leading-5 text-muted-foreground">
-                        {Object.keys(item.metaEkstra.notion.properties).length}{" "}
-                        properti Notion ikut dibawa di{" "}
-                        <code>metaEkstra.notion.properties</code> agar Agronomy
-                        Hub bisa mengolah data tambahan tanpa menunggu perubahan
-                        endpoint baru.
-                      </p>
                     </div>
                   )}
 
-                  {/* Ekstraksi Modul Perawatan / Tag Tambahan */}
-                  {item.module === "perawatan" && item.metaEkstra.tags && (
+                  {/* 3. KONDISI MODUL PERAWATAN */}
+                  {item.module === "perawatan" && (
                     <div className="col-span-2 rounded-2xl border border-border/60 bg-card p-3 shadow-sm flex items-center gap-3">
                       <Activity className="h-4 w-4 text-primary" />
                       <span className="text-sm font-medium">
-                        Kategori Treatment:{" "}
-                        <strong className="font-black">
-                          {item.metaEkstra.tags}
-                        </strong>
+                        Kategori Treatment: <strong className="font-black">{item.metaEkstra.tagCategory || "Nutrisi"}</strong>
                       </span>
                     </div>
                   )}
@@ -330,11 +225,7 @@ export function ActivityDetailSheet({
               </div>
               <div className="flex flex-wrap gap-2">
                 {item.workers.map((worker) => (
-                  <Badge
-                    key={worker}
-                    variant="outline"
-                    className="rounded-full px-3 py-1 shadow-sm"
-                  >
+                  <Badge key={worker} variant="outline" className="rounded-full px-3 py-1 shadow-sm">
                     {worker}
                   </Badge>
                 ))}
