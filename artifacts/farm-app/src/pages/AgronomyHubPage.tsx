@@ -72,7 +72,25 @@ export function AgronomyHubPage() {
           duration: `${item.durasiKerja || 0} jam`, // 💡 Bersihkan durasi dari parsing string bawaan
           priority: item.prioritas || "Medium",
           category: item.kategori || item.tagCategory || (module === "inspeksi" ? "Diagnosis" : "Umum"),
-          notes: item.catatan || item.keterangan || "",
+          
+// Bikin teks otomatis untuk racikan bahan jika modulnya adalah perawatan
+const catatanRacikan = module === "perawatan" && Array.isArray(item.logProduk) && item.logProduk.length > 0
+  ? `Bahan & Dosis:\n${item.logProduk.map((p: any) => `- ${p.produk} (${p.dosis})`).join("\n")}${item.catatan ? `\n\nCatatan Tambahan:\n${item.catatan}` : ""}`
+  : (item.catatan || item.keterangan || "Tidak ada catatan.");
+
+return {
+  id: item.id,
+  module: module,
+  icon: icon,
+  title: item[titleKey] || "Tanpa Judul",
+  // ... (biarkan field lainnya tetap seperti biasa)
+  notes: catatanRacikan, // 💡 Gunakan variabel baru ini bro!
+  attachments: [],
+  history: [{ time: "Supabase Live", text: "Data ditarik langsung dari server lokal." }],
+  metaEkstra: { ...item },
+} as unknown as AgronomyItem;
+
+
           dateLabel: isToday ? "Hari ini" : isYesterday ? "Kemarin" : "Riwayat Lama",
           timeLabel: "Disinkronkan",
           attachments: [],
