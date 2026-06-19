@@ -182,7 +182,7 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
 });
 
 // ==========================================
-// 3. ENDPOINT GET ALL PERAWATAN (SUPABASE REALTIME + NAMA AREA)
+// 3. ENDPOINT GET ALL PERAWATAN (SUPABASE REALTIME + NAMA AREA + DETAIL PRODUK)
 // ==========================================
 router.get("/notion/all-perawatan", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
@@ -192,13 +192,13 @@ router.get("/notion/all-perawatan", async (req, res): Promise<void> => {
   }
 
   try {
-    // Query pintar: Ambil data perawatan sekaligus tarik nama areanya
-    const data = await db
+    // 1. Ambil data induk perawatan + nama area
+    const indukData = await db
       .select({
         id: perawatanTable.id,
         kegiatan: perawatanTable.kegiatan,
         areaId: perawatanTable.areaId,
-        areaName: areasTable.name, // 💡 Ini nama area dari tabel sebelah!
+        areaName: areasTable.name,
         waktuMulai: perawatanTable.waktuMulai,
         waktuSelesai: perawatanTable.waktuSelesai,
         durasiKerja: perawatanTable.durasiKerja,
@@ -208,11 +208,29 @@ router.get("/notion/all-perawatan", async (req, res): Promise<void> => {
         catatan: perawatanTable.catatan
       })
       .from(perawatanTable)
-      .leftJoin(areasTable, eq(perawatanTable.areaId, areasTable.id)); // 🔗 Hubungkan lewat ID Area
+      .leftJoin(areasTable, eq(perawatanTable.areaId, areasTable.id));
+
+    // 2. Ambil semua detail produk racikan dari tabel anak
+    const semuaProduk = await db.select().from(perawatanProdukTable);
+
+    // 3. Gabungkan produk ke masing-masing induk perawatan yang cocok
+    const dataMatang = indukData.map((perawatan) => {
+      const racikanBahan = semuaProduk
+        .filter((p) => p.perawatanId === perawatan.id)
+        .map((p) => ({
+          produk: p.namaProduk,
+          dosis: p.dosis
+        }));
+
+      return {
+        ...perawatan,
+        logProduk: racikanBahan // 💡 Kita namakan logProduk agar struktur payload-nya sama persis dengan form input lu!
+      };
+    });
 
     res.json({ 
       success: true, 
-      data: data 
+      data: dataMatang 
     });
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : "Gagal mengambil riwayat perawatan." });
