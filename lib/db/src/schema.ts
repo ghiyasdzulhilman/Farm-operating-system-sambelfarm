@@ -3,7 +3,7 @@ export * from "./schema/oauthStates";
 export * from "./schema/fieldMappings";
 export * from "./schema/stagingData";
 
-import { pgTable, uuid, text, timestamp, integer, doublePrecision, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, timestamp, integer, doublePrecision, jsonb, date } from "drizzle-orm/pg-core";
 
 export const areasTable = pgTable("areas", {
   id: uuid("id").defaultRandom().primaryKey(),
