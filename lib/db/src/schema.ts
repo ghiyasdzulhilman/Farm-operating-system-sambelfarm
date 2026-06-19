@@ -71,3 +71,14 @@ export const operasionalTable = pgTable("operasional", {
   catatan: text("catatan"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const pekerjaTable = pgTable("pekerja", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  nama: text("nama").notNull(),
+  kontak: text("kontak"), // Nomor WhatsApp/HP
+  role: text("role").default("Karyawan Kebun").notNull(), // Karyawan Kebun, Kepala Blok, dll
+  jenisTenagaKerja: text("jenis_tenaga_kerja").default("Internal").notNull(), // Internal (Bulanan/Harian) vs Eksternal (Borongan)
+  status: text("status").default("Aktif").notNull(), // Aktif, Resign, Cuti
+  mulaiBekerja: date("mulai_bekerja"), // Tanggal pertama gabung
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
