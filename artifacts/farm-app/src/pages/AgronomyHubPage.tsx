@@ -89,15 +89,6 @@ const formatItem = (item: any, module: ModuleKey, icon: string, titleKey: string
 };
 // --- BATAS BAWAH FORMAT ITEM ---
 
-
-          dateLabel: isToday ? "Hari ini" : isYesterday ? "Kemarin" : "Riwayat Lama",
-          timeLabel: "Disinkronkan",
-          attachments: [],
-          history: [{ time: "Supabase Live", text: "Data ditarik langsung dari server lokal." }],
-          metaEkstra: { ...item },
-        } as unknown as AgronomyItem;
-      };
-
       const ops = (resOp.data || []).map((i: any) => formatItem(i, "operasional", "wrench", "namaPekerjaan"));
       const per = (resPer.data || []).map((i: any) => formatItem(i, "perawatan", "sprout", "kegiatan"));
       const ins = (resIns.data || []).map((i: any) => formatItem(i, "inspeksi", "leaf", "kegiatan"));
