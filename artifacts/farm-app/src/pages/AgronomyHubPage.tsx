@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Leaf, Plus, FileText, Loader2, TrendingUp,
@@ -109,53 +109,24 @@ const formatItem = (item: any, module: ModuleKey, icon: string, titleKey: string
   // Meta staging dinonaktifkan karena kita udah ngga pakai sistem antrean offline
   const meta = { stagingCount: 0, lastSynced: new Date().toISOString() };
 
-// 💡 SOLUSI 2: Sinkronisasi otomatis (Live Update) untuk lembar detail
-  useEffect(() => {
-    if (selectedItem && unifiedFeedData) {
-      // Cari versi data terbaru dari feed
-      const freshItem = unifiedFeedData.find((i: any) => i.id === selectedItem.id);
-      
-      // Kalau datanya ada dan beda dengan yang lagi dibuka, update layarnya!
-      if (freshItem && JSON.stringify(freshItem) !== JSON.stringify(selectedItem)) {
-        setSelectedItem(freshItem);
-      }
-    }
-  }, [unifiedFeedData, selectedItem]);
-
   // =====================================================================
-  // 2. MUTATION: INLINE QUICK ACTIONS (Edit Status & Data Dinamis)
+  // 2. MUTATION: INLINE QUICK ACTIONS (Nanti diarahkan ke endpoint baru)
   // =====================================================================
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ id, module, ...updateData }: { id: string; module: string; [key: string]: any }) => {
-      // 💡 Kita tembak ke endpoint dinamis universal yang ada di operasional.ts
-      const response = await fetch(`/api/notion/edit-activity/${id}`, {
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      // TODO: Nanti endpoint ini kita ubah di Langkah C (Edit Data)
+      const response = await fetch(`/api/notion/edit-status/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        // 💡 Kirimkan modul dan data yang mau diubah (dalam kasus ini: { status: "Selesai" })
-        body: JSON.stringify({ module, ...updateData }), 
+        body: JSON.stringify({ status }),
       });
-      
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(errText || "Gagal mengubah data di database");
-      }
+      if (!response.ok) throw new Error("Gagal mengubah status");
       return response.json();
     },
-    onSuccess: (_, variables) => {
-      // 💡 Refresh cache otomatis biar tabel/feed di layar langsung nge-update
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] });
-      toast({ 
-        title: "Perubahan Tersimpan", 
-        description: `Status aktivitas telah diubah menjadi ${variables.status}.` 
-      });
+      toast({ title: "Status Diperbarui", description: "Perubahan tersimpan ke database." });
     },
-    onError: (err) => {
-      toast({ 
-        variant: "destructive", 
-        title: "Gagal Menyimpan", 
-        description: err instanceof Error ? err.message : "Terjadi kesalahan jaringan." 
-      });
-    }
   });
 
   // =====================================================================
@@ -223,7 +194,6 @@ const formatItem = (item: any, module: ModuleKey, icon: string, titleKey: string
       />
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1.4fr_0.9fr]">
-
         <div className="space-y-6">
           {activeView === "feed" && (
             <div className="flex items-center justify-between rounded-2xl border border-border/60 bg-muted/20 px-4 py-2">
@@ -236,25 +206,11 @@ const formatItem = (item: any, module: ModuleKey, icon: string, titleKey: string
           )}
 
           {activeView === "feed" && (
-            <LiveFeedView 
-              items={filteredItems} 
-              onItemClick={setSelectedItem} 
-              onStatusChange={(id, status) => {
-                const targetItem = filteredItems.find(i => i.id === id);
-                if (targetItem) updateStatusMutation.mutate({ id, status, module: targetItem.module });
-              }} 
-            />
+            <LiveFeedView items={filteredItems} onItemClick={setSelectedItem} onStatusChange={(id, status) => updateStatusMutation.mutate({ id, status })} />
           )}
 
           {activeView === "table" && (
-            <MasterTableView 
-              items={filteredItems} 
-              onItemClick={setSelectedItem} 
-              onStatusChange={(id, status) => {
-                const targetItem = filteredItems.find(i => i.id === id);
-                if (targetItem) updateStatusMutation.mutate({ id, status, module: targetItem.module });
-              }} 
-            />
+            <MasterTableView items={filteredItems} onItemClick={setSelectedItem} onStatusChange={(id, status) => updateStatusMutation.mutate({ id, status })} />
           )}
         </div>
 
@@ -291,17 +247,7 @@ const formatItem = (item: any, module: ModuleKey, icon: string, titleKey: string
         </aside>
       </div>
 
-            <ActivityDetailSheet 
-        item={selectedItem} 
-        onClose={() => setSelectedItem(null)} 
-        onStatusChange={(id, status) => {
-          if (selectedItem) updateStatusMutation.mutate({ id, status, module: selectedItem.module });
-        }}
-        // 💡 TAMBAHKAN BARIS INI: 
-        onSaveEdit={(id, payload) => {
-          if (selectedItem) updateStatusMutation.mutate({ id, module: selectedItem.module, ...payload });
-        }}
-      />
+      <ActivityDetailSheet item={selectedItem} onClose={() => setSelectedItem(null)} onStatusChange={(id, status) => updateStatusMutation.mutate({ id, status })} />
     </div>
   );
 }
