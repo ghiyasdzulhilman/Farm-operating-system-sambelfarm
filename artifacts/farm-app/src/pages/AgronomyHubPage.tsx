@@ -278,12 +278,16 @@ const formatItem = (item: any, module: ModuleKey, icon: string, titleKey: string
         </aside>
       </div>
 
-      <ActivityDetailSheet 
+            <ActivityDetailSheet 
         item={selectedItem} 
         onClose={() => setSelectedItem(null)} 
         onStatusChange={(id, status) => {
           if (selectedItem) updateStatusMutation.mutate({ id, status, module: selectedItem.module });
-        }} 
+        }}
+        // 💡 TAMBAHKAN BARIS INI: 
+        onSaveEdit={(id, payload) => {
+          if (selectedItem) updateStatusMutation.mutate({ id, module: selectedItem.module, ...payload });
+        }}
       />
     </div>
   );
