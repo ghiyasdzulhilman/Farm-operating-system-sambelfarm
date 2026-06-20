@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Leaf, Plus, FileText, Loader2, TrendingUp,
@@ -25,6 +25,19 @@ export function AgronomyHubPage() {
   const [activeModule, setActiveModule] = useState<ModuleKey>("all");
   const [activeFilter, setActiveFilter] = useState("Hari ini");
   const [selectedItem, setSelectedItem] = useState<AgronomyItem | null>(null);
+
+  // 💡 SOLUSI 2: Sinkronisasi otomatis (Live Update) untuk lembar detail
+  useEffect(() => {
+    if (selectedItem && unifiedFeedData) {
+      // Cari versi data terbaru dari feed
+      const freshItem = unifiedFeedData.find((i: any) => i.id === selectedItem.id);
+      
+      // Kalau datanya ada dan beda dengan yang lagi dibuka, update layarnya!
+      if (freshItem && JSON.stringify(freshItem) !== JSON.stringify(selectedItem)) {
+        setSelectedItem(freshItem);
+      }
+    }
+  }, [unifiedFeedData, selectedItem]);
 
   // =====================================================================
   // 1. FETCH DATA (LANGSUNG DARI 3 ENDPOINT SUPABASE + MASTER PEKERJA)
