@@ -26,19 +26,6 @@ export function AgronomyHubPage() {
   const [activeFilter, setActiveFilter] = useState("Hari ini");
   const [selectedItem, setSelectedItem] = useState<AgronomyItem | null>(null);
 
-  // 💡 SOLUSI 2: Sinkronisasi otomatis (Live Update) untuk lembar detail
-  useEffect(() => {
-    if (selectedItem && unifiedFeedData) {
-      // Cari versi data terbaru dari feed
-      const freshItem = unifiedFeedData.find((i: any) => i.id === selectedItem.id);
-      
-      // Kalau datanya ada dan beda dengan yang lagi dibuka, update layarnya!
-      if (freshItem && JSON.stringify(freshItem) !== JSON.stringify(selectedItem)) {
-        setSelectedItem(freshItem);
-      }
-    }
-  }, [unifiedFeedData, selectedItem]);
-
   // =====================================================================
   // 1. FETCH DATA (LANGSUNG DARI 3 ENDPOINT SUPABASE + MASTER PEKERJA)
   // =====================================================================
@@ -121,6 +108,19 @@ const formatItem = (item: any, module: ModuleKey, icon: string, titleKey: string
   const feedData: AgronomyItem[] = unifiedFeedData || [];
   // Meta staging dinonaktifkan karena kita udah ngga pakai sistem antrean offline
   const meta = { stagingCount: 0, lastSynced: new Date().toISOString() };
+
+// 💡 SOLUSI 2: Sinkronisasi otomatis (Live Update) untuk lembar detail
+  useEffect(() => {
+    if (selectedItem && unifiedFeedData) {
+      // Cari versi data terbaru dari feed
+      const freshItem = unifiedFeedData.find((i: any) => i.id === selectedItem.id);
+      
+      // Kalau datanya ada dan beda dengan yang lagi dibuka, update layarnya!
+      if (freshItem && JSON.stringify(freshItem) !== JSON.stringify(selectedItem)) {
+        setSelectedItem(freshItem);
+      }
+    }
+  }, [unifiedFeedData, selectedItem]);
 
   // =====================================================================
   // 2. MUTATION: INLINE QUICK ACTIONS (Edit Status & Data Dinamis)
