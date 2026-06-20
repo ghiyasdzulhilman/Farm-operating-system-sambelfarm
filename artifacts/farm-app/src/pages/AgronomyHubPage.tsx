@@ -210,6 +210,7 @@ const formatItem = (item: any, module: ModuleKey, icon: string, titleKey: string
       />
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1.4fr_0.9fr]">
+
         <div className="space-y-6">
           {activeView === "feed" && (
             <div className="flex items-center justify-between rounded-2xl border border-border/60 bg-muted/20 px-4 py-2">
@@ -222,11 +223,25 @@ const formatItem = (item: any, module: ModuleKey, icon: string, titleKey: string
           )}
 
           {activeView === "feed" && (
-            <LiveFeedView items={filteredItems} onItemClick={setSelectedItem} onStatusChange={(id, status) => updateStatusMutation.mutate({ id, status })} />
+            <LiveFeedView 
+              items={filteredItems} 
+              onItemClick={setSelectedItem} 
+              onStatusChange={(id, status) => {
+                const targetItem = filteredItems.find(i => i.id === id);
+                if (targetItem) updateStatusMutation.mutate({ id, status, module: targetItem.module });
+              }} 
+            />
           )}
 
           {activeView === "table" && (
-            <MasterTableView items={filteredItems} onItemClick={setSelectedItem} onStatusChange={(id, status) => updateStatusMutation.mutate({ id, status })} />
+            <MasterTableView 
+              items={filteredItems} 
+              onItemClick={setSelectedItem} 
+              onStatusChange={(id, status) => {
+                const targetItem = filteredItems.find(i => i.id === id);
+                if (targetItem) updateStatusMutation.mutate({ id, status, module: targetItem.module });
+              }} 
+            />
           )}
         </div>
 
@@ -263,7 +278,13 @@ const formatItem = (item: any, module: ModuleKey, icon: string, titleKey: string
         </aside>
       </div>
 
-      <ActivityDetailSheet item={selectedItem} onClose={() => setSelectedItem(null)} onStatusChange={(id, status) => updateStatusMutation.mutate({ id, status })} />
+      <ActivityDetailSheet 
+        item={selectedItem} 
+        onClose={() => setSelectedItem(null)} 
+        onStatusChange={(id, status) => {
+          if (selectedItem) updateStatusMutation.mutate({ id, status, module: selectedItem.module });
+        }} 
+      />
     </div>
   );
 }
