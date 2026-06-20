@@ -5,7 +5,9 @@ import {
   db, 
   areasTable, 
   operasionalTable,
-  pekerjaTable 
+  pekerjaTable,
+  perawatanTable,
+  inspeksiTable
 } from "@workspace/db";
 
 const router: IRouter = Router();
@@ -186,6 +188,76 @@ router.get("/notion/all-operasional", async (req, res): Promise<void> => {
     });
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : "Gagal mengambil riwayat operasional." });
+  }
+});
+
+// ==========================================
+// 5. ENDPOINT DYNAMIC EDIT (STATUS & DATA LAINNYA)
+// ==========================================
+router.patch("/notion/edit-activity/:id", async (req, res): Promise<void> => {
+  const { userId } = getAuth(req);
+  if (!userId) { 
+    res.status(401).json({ error: "Unauthorized" }); 
+    return; 
+  }
+
+  const { id } = req.params;
+  // 💡 Kita pisahkan 'module' dari sisa data yang mau di-update
+  const { module, ...updateData } = req.body; 
+
+  if (!id || !module) {
+    res.status(400).json({ error: "Parameter 'id' dan 'module' wajib diisi." });
+    return;
+  }
+
+  try {
+    let result;
+    
+    // 💡 Bersihkan objek dari nilai undefined biar Drizzle gak error
+    const cleanPayload = Object.fromEntries(
+      Object.entries(updateData).filter(([_, v]) => v !== undefined)
+    );
+
+    if (Object.keys(cleanPayload).length === 0) {
+       res.status(400).json({ error: "Tidak ada data yang dikirim untuk diupdate." });
+       return;
+    }
+
+    // 💡 Deteksi modul dan tembak ke tabel yang sesuai secara dinamis
+    if (module === "operasional") {
+      result = await db.update(operasionalTable)
+        .set(cleanPayload)
+        .where(eq(operasionalTable.id, id))
+        .returning();
+    } else if (module === "perawatan") {
+      result = await db.update(perawatanTable)
+        .set(cleanPayload)
+        .where(eq(perawatanTable.id, id))
+        .returning();
+    } else if (module === "inspeksi") {
+      result = await db.update(inspeksiTable)
+        .set(cleanPayload)
+        .where(eq(inspeksiTable.id, id))
+        .returning();
+    } else {
+      res.status(400).json({ error: "Modul tidak valid." });
+      return;
+    }
+
+    if (!result || result.length === 0) {
+      res.status(404).json({ error: "Data tidak ditemukan di database." });
+      return;
+    }
+
+    res.json({ 
+      success: true, 
+      message: `Data pada modul ${module} berhasil diperbarui.`, 
+      data: result[0] 
+    });
+
+  } catch (err) {
+    console.error("Error update activity:", err);
+    res.status(500).json({ error: err instanceof Error ? err.message : "Internal Server Error" });
   }
 });
 
