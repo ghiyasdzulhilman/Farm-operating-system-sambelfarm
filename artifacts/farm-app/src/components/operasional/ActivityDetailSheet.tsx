@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   CalendarDays,
   ChevronDown,
@@ -25,7 +26,8 @@ import { format } from "date-fns";
 interface ActivityDetailSheetProps {
   item: AgronomyItem | null;
   onClose: () => void;
-  onStatusChange?: (id: string, status: string) => void;
+  // 💡 Tipe diubah agar bisa menerima string (untuk status) atau object (untuk data lain)
+  onStatusChange?: (id: string, payload: any) => void; 
 }
 
 export function ActivityDetailSheet({
@@ -33,9 +35,12 @@ export function ActivityDetailSheet({
   onClose,
   onStatusChange,
 }: ActivityDetailSheetProps) {
+  // 💡 State untuk mendeteksi elemen mana yang lagi di-tap (inline edit)
+  const [activeField, setActiveField] = useState<string | null>(null);
+  const [localValue, setLocalValue] = useState<string>("");
+
   if (!item) return null;
 
-      // Helper untuk memformat jam mulai & selesai agar rapi di layar HP
   const formatJamMendalam = (dateStr?: string) => {
     if (!dateStr) return "-";
     try {
@@ -46,15 +51,37 @@ export function ActivityDetailSheet({
     }
   };
 
-  // 💡 TAMBAHKAN HELPER INI:
   const formatTanggalLengkap = (dateStr?: string) => {
     if (!dateStr) return "-";
     try {
       const cleanDate = dateStr.replace(/(Z|\+00:00)$/, '');
-      return format(new Date(cleanDate), "dd MMM yyyy"); // Format: 19 Jun 2026
+      return format(new Date(cleanDate), "dd MMM yyyy");
     } catch {
       return "-";
     }
+  };
+
+  // 💡 Fungsi pintar untuk memotong teks "⚠️ Detail Kendala:" agar tidak ganda saat diedit
+  const getCleanCatatan = () => {
+    const raw = item.notes || "";
+    return raw.split("\n\n⚠️ Detail Kendala:")[0];
+  };
+
+  // 💡 Fungsi penembak data otomatis ala Notion (dipanggil saat klik di luar input / onBlur)
+  const handleInlineSave = (field: string) => {
+    setActiveField(null); // Tutup form input-nya
+
+    const payload: any = {};
+    if (field === "title") payload[item.module === "operasional" ? "namaPekerjaan" : "kegiatan"] = localValue;
+    if (field === "phTanah") payload.phTanah = localValue ? Number(localValue) : null;
+    if (field === "tingkatSerangan") payload.tingkatSerangan = localValue ? Number(localValue) : null;
+    if (field === "radius") payload.radius = localValue ? Number(localValue) : null;
+    if (field === "jenisTenagaKerja") payload.jenisTenagaKerja = localValue;
+    if (field === "tagCategory") payload.tagCategory = localValue;
+    if (field === "catatan") payload[item.module === "inspeksi" ? "keterangan" : "catatan"] = localValue;
+
+    // Kirim payload ke halaman utama buat di-eksekusi mutasinya
+    onStatusChange?.(item.id, payload);
   };
 
   return (
@@ -72,7 +99,7 @@ export function ActivityDetailSheet({
                   Detail Aktivitas
                 </SheetTitle>
                 <p className="text-left text-xs text-muted-foreground">
-                  Sistem Terhubung ke Supabase DB
+                  Tap teks untuk mengedit data secara langsung
                 </p>
               </div>
 
@@ -100,21 +127,15 @@ export function ActivityDetailSheet({
             </div>
           </SheetHeader>
 
-            <div className="flex-1 overflow-y-auto px-5 py-5 custom-scrollbar text-left">
-            {/* KARTU IDENTITAS UTAMA */}
+          <div className="flex-1 overflow-y-auto px-5 py-5 custom-scrollbar text-left">
+            {/* KARTU IDENTITAS UTAMA (JUDUL INLINE EDIT) */}
             <div className="rounded-3xl bg-gradient-to-br from-primary/10 to-transparent p-5 border border-primary/10">
               <div className="flex items-start justify-between gap-4">
-                <div>
-                  {/* 💡 BAGIAN YANG DIPERBAIKI: Tanggal & Jam */}
+                <div className="w-full">
                   <div className="flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
                     <span>{item.time}</span>
                     <span>•</span>
-                    {/* Format Tanggal Lengkap (19 Jun 2026) */}
-                    <span className="text-foreground">
-                      {format(new Date(item.rawDate.replace(/(Z|\+00:00)$/, '')), "dd MMM yyyy")}
-                    </span>
-                    
-                    {/* Label Hari Ini / Kemarin */}
+                    <span className="text-foreground">{formatTanggalLengkap(item.rawDate)}</span>
                     {item.dateLabel !== "Riwayat Lama" && (
                       <>
                         <span>•</span>
@@ -125,32 +146,43 @@ export function ActivityDetailSheet({
                     )}
                   </div>
                   
-                  <h2 className="mt-2 text-2xl font-black tracking-tight">
-                    {item.title}
-                  </h2>
+                  {/* 💡 JUDUL: Tap untuk Edit */}
+                  {activeField === "title" ? (
+                    <input
+                      autoFocus
+                      type="text"
+                      value={localValue}
+                      onChange={(e) => setLocalValue(e.target.value)}
+                      onBlur={() => handleInlineSave("title")}
+                      onKeyDown={(e) => e.key === "Enter" && handleInlineSave("title")}
+                      className="mt-2 w-full bg-transparent text-2xl font-black tracking-tight text-foreground border-b border-primary/50 outline-none pb-1"
+                    />
+                  ) : (
+                    <h2 
+                      onClick={() => { setActiveField("title"); setLocalValue(item.title); }}
+                      className="mt-2 text-2xl font-black tracking-tight cursor-pointer hover:bg-muted/40 rounded transition-colors w-full"
+                    >
+                      {item.title}
+                    </h2>
+                  )}
+
                   <p className="mt-1 text-sm font-medium text-muted-foreground">
                     {item.area} • {item.category}
                   </p>
                 </div>
-                <div className="rounded-3xl bg-background/80 backdrop-blur-sm p-3 shadow-sm border border-border/40">
+                <div className="rounded-3xl bg-background/80 backdrop-blur-sm p-3 shadow-sm border border-border/40 shrink-0">
                   <CalendarDays className="h-5 w-5 text-primary" />
                 </div>
               </div>
               
               <div className="mt-4 flex flex-wrap gap-2">
-                <Badge className="rounded-full bg-primary text-primary-foreground shadow-sm">
-                  {item.priority} Priority
-                </Badge>
-                <Badge variant="secondary" className="rounded-full shadow-sm">
-                  {item.duration}
-                </Badge>
-                <Badge variant="secondary" className="rounded-full uppercase shadow-sm">
-                  {item.module}
-                </Badge>
+                <Badge className="rounded-full bg-primary text-primary-foreground shadow-sm">{item.priority} Priority</Badge>
+                <Badge variant="secondary" className="rounded-full shadow-sm">{item.duration}</Badge>
+                <Badge variant="secondary" className="rounded-full uppercase shadow-sm">{item.module}</Badge>
               </div>
             </div>
 
-            {/* SEGMEN DATA KAYA (RICH METADATA) FROM SUPABASE */}
+            {/* SEGMEN SPESIFIKASI LAPANGAN INLINE EDIT */}
             {item.metaEkstra && Object.keys(item.metaEkstra).length > 0 && (
               <section className="mt-6 space-y-3">
                 <div className="flex items-center gap-2">
@@ -161,37 +193,56 @@ export function ActivityDetailSheet({
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  {/* 1. KONDISI MODUL INSPEKSI */}
+                  
+                  {/* 1. MODUL INSPEKSI */}
                   {item.module === "inspeksi" && (
                     <>
-                      <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
+                      {/* pH Tanah */}
+                      <div 
+                        onClick={() => { if(activeField !== "phTanah") { setActiveField("phTanah"); setLocalValue(String(item.metaEkstra.phTanah || "")); } }}
+                        className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm cursor-pointer hover:bg-muted/40 transition-colors"
+                      >
                         <div className="flex items-center gap-2 text-muted-foreground mb-1">
                           <Thermometer className="h-4 w-4 text-emerald-600" />
                           <span className="text-xs font-bold uppercase">pH Tanah</span>
                         </div>
-                        <p className="text-lg font-black text-emerald-600">
-                          {item.metaEkstra.phTanah || "-"}
-                        </p>
+                        {activeField === "phTanah" ? (
+                          <input autoFocus type="number" step="0.1" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("phTanah")} onKeyDown={(e) => e.key === "Enter" && handleInlineSave("phTanah")} className="w-full bg-transparent text-lg font-black text-emerald-600 outline-none border-b border-emerald-600/30 p-0" />
+                        ) : (
+                          <p className="text-lg font-black text-emerald-600">{item.metaEkstra.phTanah || "-"}</p>
+                        )}
                       </div>
 
-                      <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
+                      {/* Tingkat Serangan */}
+                      <div 
+                        onClick={() => { if(activeField !== "tingkatSerangan") { setActiveField("tingkatSerangan"); setLocalValue(String(item.metaEkstra.tingkatSerangan || "")); } }}
+                        className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm cursor-pointer hover:bg-muted/40 transition-colors"
+                      >
                         <div className="flex items-center gap-2 text-muted-foreground mb-1">
                           <TrendingUp className="h-4 w-4 text-destructive" />
                           <span className="text-xs font-bold uppercase">Serangan</span>
                         </div>
-                        <p className="text-lg font-black text-destructive">
-                          {item.metaEkstra.tingkatSerangan ? `${item.metaEkstra.tingkatSerangan}%` : "0%"}
-                        </p>
+                        {activeField === "tingkatSerangan" ? (
+                          <input autoFocus type="number" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("tingkatSerangan")} onKeyDown={(e) => e.key === "Enter" && handleInlineSave("tingkatSerangan")} className="w-full bg-transparent text-lg font-black text-destructive outline-none border-b border-destructive/30 p-0" />
+                        ) : (
+                          <p className="text-lg font-black text-destructive">{item.metaEkstra.tingkatSerangan ? `${item.metaEkstra.tingkatSerangan}%` : "0%"}</p>
+                        )}
                       </div>
 
-                      <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
+                      {/* Radius */}
+                      <div 
+                        onClick={() => { if(activeField !== "radius") { setActiveField("radius"); setLocalValue(String(item.metaEkstra.radius || "")); } }}
+                        className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm cursor-pointer hover:bg-muted/40 transition-colors"
+                      >
                         <div className="flex items-center gap-2 text-muted-foreground mb-1">
                           <Radar className="h-4 w-4 text-sky-600" />
                           <span className="text-xs font-bold uppercase">Radius</span>
                         </div>
-                        <p className="text-lg font-black text-sky-600">
-                          {item.metaEkstra.radius ? `${item.metaEkstra.radius} meter` : "-"}
-                        </p>
+                        {activeField === "radius" ? (
+                          <input autoFocus type="number" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("radius")} onKeyDown={(e) => e.key === "Enter" && handleInlineSave("radius")} className="w-full bg-transparent text-lg font-black text-sky-600 outline-none border-b border-sky-600/30 p-0" />
+                        ) : (
+                          <p className="text-lg font-black text-sky-600">{item.metaEkstra.radius ? `${item.metaEkstra.radius} meter` : "-"}</p>
+                        )}
                       </div>
 
                       <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
@@ -199,11 +250,10 @@ export function ActivityDetailSheet({
                           <Clock3 className="h-4 w-4 text-amber-600" />
                           <span className="text-xs font-bold uppercase">Jam Kerja</span>
                         </div>
-                        <p className="text-sm font-black text-amber-700">
-                          {formatJamMendalam(item.metaEkstra.waktuMulai)} - {formatJamMendalam(item.metaEkstra.waktuSelesai)}
-                        </p>
+                        <p className="text-sm font-black text-amber-700">{formatJamMendalam(item.metaEkstra.waktuMulai)} - {formatJamMendalam(item.metaEkstra.waktuSelesai)}</p>
                       </div>
 
+                      {/* ⛔ BADGE KENDALA: Read-Only (Tidak bisa diklik agar aman) */}
                       <div className="col-span-2 rounded-2xl border border-red-500/20 bg-red-500/5 p-3 shadow-sm">
                         <div className="flex items-center gap-2 text-red-600 mb-2">
                           <Bug className="h-4 w-4" />
@@ -224,60 +274,60 @@ export function ActivityDetailSheet({
                     </>
                   )}
 
-                  {/* 2. KONDISI MODUL OPERASIONAL */}
+                  {/* 2. MODUL OPERASIONAL */}
                   {item.module === "operasional" && (
                     <div className="col-span-2 grid gap-3 sm:grid-cols-2">
-                      <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
-                        <div className="mb-1 flex items-center gap-2 text-muted-foreground">
-                          <Briefcase className="h-4 w-4" />
-                          <span className="text-xs font-bold uppercase">Jenis Tenaga</span>
-                        </div>
-                        <p className="text-sm font-black">
-                          {item.metaEkstra.jenisTenagaKerja || "Harian"}
-                        </p>
+                      <div 
+                        onClick={() => { if(activeField !== "jenisTenagaKerja") { setActiveField("jenisTenagaKerja"); setLocalValue(item.metaEkstra.jenisTenagaKerja || ""); } }}
+                        className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm cursor-pointer hover:bg-muted/40 transition-colors"
+                      >
+                        <div className="mb-1 flex items-center gap-2 text-muted-foreground"><Briefcase className="h-4 w-4" /><span className="text-xs font-bold uppercase">Jenis Tenaga</span></div>
+                        {activeField === "jenisTenagaKerja" ? (
+                          <input autoFocus type="text" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("jenisTenagaKerja")} onKeyDown={(e) => e.key === "Enter" && handleInlineSave("jenisTenagaKerja")} className="w-full bg-transparent text-sm font-black outline-none border-b border-primary/30 p-0" />
+                        ) : (
+                          <p className="text-sm font-black">{item.metaEkstra.jenisTenagaKerja || "Harian"}</p>
+                        )}
                       </div>
 
+                      {/* Prioritas (Dropdown Langsung Nyala ala Notion) */}
                       <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
-                        <div className="mb-1 flex items-center gap-2 text-muted-foreground">
-                          <Clock3 className="h-4 w-4" />
-                          <span className="text-xs font-bold uppercase">Prioritas Lapangan</span>
-                        </div>
-                        <p className="text-sm font-black uppercase tracking-wider">
-                          {item.metaEkstra.prioritas || "Medium"}
-                        </p>
+                        <div className="mb-1 flex items-center gap-2 text-muted-foreground"><Clock3 className="h-4 w-4" /><span className="text-xs font-bold uppercase">Prioritas Lapangan</span></div>
+                        <select 
+                          value={item.metaEkstra.prioritas || "Medium"}
+                          onChange={(e) => onStatusChange?.(item.id, { prioritas: e.target.value })}
+                          className="w-full bg-transparent text-sm font-black uppercase tracking-wider outline-none cursor-pointer appearance-none"
+                        >
+                          <option value="Tinggi">TINGGI</option>
+                          <option value="Medium">MEDIUM</option>
+                          <option value="Rendah">RENDAH</option>
+                        </select>
                       </div>
 
                       <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm sm:col-span-2">
-                        <div className="mb-1 flex items-center gap-2 text-muted-foreground">
-                          <Clock3 className="h-4 w-4 text-amber-600" />
-                          <span className="text-xs font-bold uppercase">Durasi Operasional</span>
-                        </div>
-                        <p className="text-sm font-black text-amber-700">
-                          {formatJamMendalam(item.metaEkstra.waktuMulai)} - {formatJamMendalam(item.metaEkstra.waktuSelesai)}
-                        </p>
+                        <div className="mb-1 flex items-center gap-2 text-muted-foreground"><Clock3 className="h-4 w-4 text-amber-600" /><span className="text-xs font-bold uppercase">Durasi Operasional</span></div>
+                        <p className="text-sm font-black text-amber-700">{formatJamMendalam(item.metaEkstra.waktuMulai)} - {formatJamMendalam(item.metaEkstra.waktuSelesai)}</p>
                       </div>
                     </div>
                   )}
 
-                  {/* 3. KONDISI MODUL PERAWATAN */}
+                  {/* 3. MODUL PERAWATAN */}
                   {item.module === "perawatan" && (
                     <div className="col-span-2 grid gap-3 sm:grid-cols-2">
-                      <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
-                        <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                          <Activity className="h-4 w-4 text-primary" />
-                          <span className="text-xs font-bold uppercase">Kategori</span>
-                        </div>
-                        <p className="text-sm font-black">{item.metaEkstra.tagCategory || "Nutrisi"}</p>
+                      <div 
+                        onClick={() => { if(activeField !== "tagCategory") { setActiveField("tagCategory"); setLocalValue(item.metaEkstra.tagCategory || ""); } }}
+                        className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm cursor-pointer hover:bg-muted/40 transition-colors"
+                      >
+                        <div className="flex items-center gap-2 text-muted-foreground mb-1"><Activity className="h-4 w-4 text-primary" /><span className="text-xs font-bold uppercase">Kategori</span></div>
+                        {activeField === "tagCategory" ? (
+                          <input autoFocus type="text" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("tagCategory")} onKeyDown={(e) => e.key === "Enter" && handleInlineSave("tagCategory")} className="w-full bg-transparent text-sm font-black outline-none border-b border-primary/30 p-0" />
+                        ) : (
+                          <p className="text-sm font-black">{item.metaEkstra.tagCategory || "Nutrisi"}</p>
+                        )}
                       </div>
 
                       <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
-                        <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                          <Clock3 className="h-4 w-4 text-amber-600" />
-                          <span className="text-xs font-bold uppercase">Durasi Treatment</span>
-                        </div>
-                        <p className="text-sm font-black text-amber-700">
-                          {formatJamMendalam(item.metaEkstra.waktuMulai)} - {formatJamMendalam(item.metaEkstra.waktuSelesai)}
-                        </p>
+                        <div className="flex items-center gap-2 text-muted-foreground mb-1"><Clock3 className="h-4 w-4 text-amber-600" /><span className="text-xs font-bold uppercase">Durasi Treatment</span></div>
+                        <p className="text-sm font-black text-amber-700">{formatJamMendalam(item.metaEkstra.waktuMulai)} - {formatJamMendalam(item.metaEkstra.waktuSelesai)}</p>
                       </div>
                     </div>
                   )}
@@ -285,7 +335,7 @@ export function ActivityDetailSheet({
               </section>
             )}
 
-            {/* SEGMEN CATATAN */}
+            {/* SEGMEN CATATAN INLINE EDIT */}
             <section className="mt-6 space-y-3">
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-primary" />
@@ -293,8 +343,22 @@ export function ActivityDetailSheet({
                   Catatan / Detail
                 </h3>
               </div>
-              <div className="rounded-3xl border border-border/60 bg-muted/20 p-4 text-sm leading-6 text-foreground whitespace-pre-wrap">
-                {item.notes || "Tidak ada catatan spesifik dari lapangan."}
+              <div 
+                onClick={() => { if(activeField !== "catatan") { setActiveField("catatan"); setLocalValue(getCleanCatatan()); } }}
+                className="rounded-3xl border border-border/60 bg-muted/20 p-4 text-sm leading-6 text-foreground min-h-[80px] cursor-pointer hover:bg-muted/40 transition-colors"
+              >
+                {activeField === "catatan" ? (
+                  <textarea 
+                    autoFocus 
+                    rows={4} 
+                    value={localValue} 
+                    onChange={(e) => setLocalValue(e.target.value)} 
+                    onBlur={() => handleInlineSave("catatan")} 
+                    className="w-full bg-transparent outline-none resize-none p-0" 
+                  />
+                ) : (
+                  <div className="whitespace-pre-wrap">{getCleanCatatan() || "Ketik catatan disini..."}</div>
+                )}
               </div>
             </section>
 
