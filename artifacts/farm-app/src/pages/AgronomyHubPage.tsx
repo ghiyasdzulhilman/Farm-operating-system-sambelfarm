@@ -110,23 +110,39 @@ const formatItem = (item: any, module: ModuleKey, icon: string, titleKey: string
   const meta = { stagingCount: 0, lastSynced: new Date().toISOString() };
 
   // =====================================================================
-  // 2. MUTATION: INLINE QUICK ACTIONS (Nanti diarahkan ke endpoint baru)
+  // 2. MUTATION: INLINE QUICK ACTIONS (Edit Status & Data Dinamis)
   // =====================================================================
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      // TODO: Nanti endpoint ini kita ubah di Langkah C (Edit Data)
-      const response = await fetch(`/api/notion/edit-status/${id}`, {
+    mutationFn: async ({ id, module, ...updateData }: { id: string; module: string; [key: string]: any }) => {
+      // 💡 Kita tembak ke endpoint dinamis universal yang ada di operasional.ts
+      const response = await fetch(`/api/notion/edit-activity/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
+        // 💡 Kirimkan modul dan data yang mau diubah (dalam kasus ini: { status: "Selesai" })
+        body: JSON.stringify({ module, ...updateData }), 
       });
-      if (!response.ok) throw new Error("Gagal mengubah status");
+      
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(errText || "Gagal mengubah data di database");
+      }
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      // 💡 Refresh cache otomatis biar tabel/feed di layar langsung nge-update
       queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] });
-      toast({ title: "Status Diperbarui", description: "Perubahan tersimpan ke database." });
+      toast({ 
+        title: "Perubahan Tersimpan", 
+        description: `Status aktivitas telah diubah menjadi ${variables.status}.` 
+      });
     },
+    onError: (err) => {
+      toast({ 
+        variant: "destructive", 
+        title: "Gagal Menyimpan", 
+        description: err instanceof Error ? err.message : "Terjadi kesalahan jaringan." 
+      });
+    }
   });
 
   // =====================================================================
