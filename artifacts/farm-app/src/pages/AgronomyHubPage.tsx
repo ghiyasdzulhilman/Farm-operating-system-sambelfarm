@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Leaf, Plus, FileText, Loader2, TrendingUp,
@@ -32,67 +32,57 @@ export function AgronomyHubPage() {
   const { data: unifiedFeedData, isLoading } = useQuery({
     queryKey: ["agronomy-feed-supabase"],
     queryFn: async () => {
-      // Tarik 3 data transaksi + 1 data master pekerja sekaligus
       const [resOp, resPer, resIns, resOptions] = await Promise.all([
         fetch("/api/notion/all-operasional").then((res) => res.json()),
         fetch("/api/notion/all-perawatan").then((res) => res.json()),
         fetch("/api/notion/all-inspeksi").then((res) => res.json()),
-        fetch("/api/notion/operasional-dropdown-options").then((res) => res.json()), // 💡 Ambil master pekerja
+        fetch("/api/notion/operasional-dropdown-options").then((res) => res.json()),
       ]);
 
-      // Bikin kamus penerjemah ID Pekerja -> Nama Pekerja
       const workerMap: Record<string, string> = {};
       resOptions?.petugas?.forEach((p: any) => {
         workerMap[p.id] = p.name;
       });
 
-      // --- BATAS ATAS FORMAT ITEM ---
-const formatItem = (item: any, module: ModuleKey, icon: string, titleKey: string): AgronomyItem => {
-  // 💡 1. Bersihkan tanda zona waktu UTC sebelum dikonversi ke objek Date
-  const rawDate = item.waktuMulai || new Date().toISOString();
-  const cleanDate = rawDate.replace(/(Z|\+00:00)$/, '');
-  const itemDate = new Date(cleanDate);
+      const formatItem = (item: any, module: ModuleKey, icon: string, titleKey: string): AgronomyItem => {
+        const rawDate = item.waktuMulai || new Date().toISOString();
+        const cleanDate = rawDate.replace(/(Z|\+00:00)$/, '');
+        const itemDate = new Date(cleanDate);
 
-  // 💡 2. Pengecekan hari tetap sama seperti biasa
-  const isToday = itemDate.toDateString() === new Date().toDateString();
-  const isYesterday = itemDate.toDateString() === new Date(Date.now() - 86400000).toDateString();
+        const isToday = itemDate.toDateString() === new Date().toDateString();
+        const isYesterday = itemDate.toDateString() === new Date(Date.now() - 86400000).toDateString();
 
-  const rawWorkerIds = Array.isArray(item.pekerjaIds) ? item.pekerjaIds : [];
-  const resolvedWorkers = rawWorkerIds
-    .map((id: string) => workerMap[id] || null)
-    .filter(Boolean);
+        const rawWorkerIds = Array.isArray(item.pekerjaIds) ? item.pekerjaIds : [];
+        const resolvedWorkers = rawWorkerIds
+          .map((id: string) => workerMap[id] || null)
+          .filter(Boolean);
 
-  // 💡 TARUH KODE DI SINI (Di luar skema return objek, di bawah baris resolvedWorkers)
-  const catatanRacikan = module === "perawatan" && Array.isArray(item.logProduk) && item.logProduk.length > 0
-    ? `Bahan & Dosis:\n${item.logProduk.map((p: any) => `- ${p.produk} (${p.dosis})`).join("\n")}${item.catatan ? `\n\nCatatan Tambahan:\n${item.catatan}` : ""}`
-    : (item.catatan || item.keterangan || "Tidak ada catatan.");
+        const catatanRacikan = module === "perawatan" && Array.isArray(item.logProduk) && item.logProduk.length > 0
+          ? `Bahan & Dosis:\n${item.logProduk.map((p: any) => `- ${p.produk} (${p.dosis})`).join("\n")}${item.catatan ? `\n\nCatatan Tambahan:\n${item.catatan}` : ""}`
+          : (item.catatan || item.keterangan || "Tidak ada catatan.");
 
-  // Sekarang baru aman untuk mengembalikan objeknya
-  return {
-    id: item.id,
-    module: module,
-    icon: icon,
-    title: item[titleKey] || "Tanpa Judul",
-    time: itemDate.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
-    rawDate: item.waktuMulai || new Date().toISOString(),
-    status: item.status || "Belum dikerjakan",
-    areaId: item.areaId,
-    area: item.areaName || "Area Master",
-    workers: resolvedWorkers.length ? resolvedWorkers : ["Tim Lapangan"], 
-    duration: `${item.durasiKerja || 0} jam`,
-    priority: item.prioritas || "Medium",
-    category: item.kategori || item.tagCategory || (module === "inspeksi" ? "Diagnosis" : "Umum"),
-    
-    notes: catatanRacikan, // 💡 Panggil nama variabelnya langsung di sini tanpa 'const'
-    
-    dateLabel: isToday ? "Hari ini" : isYesterday ? "Kemarin" : "Riwayat Lama",
-    timeLabel: "Disinkronkan",
-    attachments: [],
-    history: [{ time: "Supabase Live", text: "Data ditarik langsung dari server lokal." }],
-    metaEkstra: { ...item },
-  } as unknown as AgronomyItem;
-};
-// --- BATAS BAWAH FORMAT ITEM ---
+        return {
+          id: item.id,
+          module: module,
+          icon: icon,
+          title: item[titleKey] || "Tanpa Judul",
+          time: itemDate.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+          rawDate: item.waktuMulai || new Date().toISOString(),
+          status: item.status || "Belum dikerjakan",
+          areaId: item.areaId,
+          area: item.areaName || "Area Master",
+          workers: resolvedWorkers.length ? resolvedWorkers : ["Tim Lapangan"], 
+          duration: `${item.durasiKerja || 0} jam`,
+          priority: item.prioritas || "Medium",
+          category: item.kategori || item.tagCategory || (module === "inspeksi" ? "Diagnosis" : "Umum"),
+          notes: catatanRacikan,
+          dateLabel: isToday ? "Hari ini" : isYesterday ? "Kemarin" : "Riwayat Lama",
+          timeLabel: "Disinkronkan",
+          attachments: [],
+          history: [{ time: "Supabase Live", text: "Data ditarik langsung dari server lokal." }],
+          metaEkstra: { ...item },
+        } as unknown as AgronomyItem;
+      };
 
       const ops = (resOp.data || []).map((i: any) => formatItem(i, "operasional", "wrench", "namaPekerjaan"));
       const per = (resPer.data || []).map((i: any) => formatItem(i, "perawatan", "sprout", "kegiatan"));
@@ -106,27 +96,40 @@ const formatItem = (item: any, module: ModuleKey, icon: string, titleKey: string
   });
 
   const feedData: AgronomyItem[] = unifiedFeedData || [];
-  // Meta staging dinonaktifkan karena kita udah ngga pakai sistem antrean offline
   const meta = { stagingCount: 0, lastSynced: new Date().toISOString() };
 
+  // 💡 AUTO-REFRESH DETAIL SHEET (Penting buat efek Notion)
+  // Kalau ada data berubah di background, sheet detail yang lagi kebuka langsung kedip update otomatis
+  useEffect(() => {
+    if (selectedItem && unifiedFeedData) {
+      const freshItem = unifiedFeedData.find((i: any) => i.id === selectedItem.id);
+      if (freshItem && JSON.stringify(freshItem) !== JSON.stringify(selectedItem)) {
+        setSelectedItem(freshItem);
+      }
+    }
+  }, [unifiedFeedData, selectedItem]);
+
   // =====================================================================
-  // 2. MUTATION: INLINE QUICK ACTIONS (Nanti diarahkan ke endpoint baru)
+  // 2. MUTATION: UNIVERSAL DYNAMIC UPDATE (Siap nerima data apa aja)
   // =====================================================================
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      // TODO: Nanti endpoint ini kita ubah di Langkah C (Edit Data)
-      const response = await fetch(`/api/notion/edit-status/${id}`, {
+    mutationFn: async ({ id, module, ...updateData }: { id: string; module: string; [key: string]: any }) => {
+      // Tembak langsung ke endpoint universal yang udah lu siapin di operasional.ts
+      const response = await fetch(`/api/notion/edit-activity/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ module, ...updateData }),
       });
-      if (!response.ok) throw new Error("Gagal mengubah status");
+      if (!response.ok) throw new Error("Gagal menyimpan perubahan");
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] });
-      toast({ title: "Status Diperbarui", description: "Perubahan tersimpan ke database." });
+      // Toast kita hilangkan sebagian biar persis Notion: save di background secara diam-diam tanpa berisik
     },
+    onError: (err) => {
+      toast({ variant: "destructive", title: "Gagal Menyimpan", description: err instanceof Error ? err.message : "Kesalahan jaringan." });
+    }
   });
 
   // =====================================================================
@@ -158,7 +161,6 @@ const formatItem = (item: any, module: ModuleKey, icon: string, titleKey: string
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6 space-y-6 text-left">
-      {/* HEADER SECTION */}
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground shadow-sm">
@@ -206,11 +208,27 @@ const formatItem = (item: any, module: ModuleKey, icon: string, titleKey: string
           )}
 
           {activeView === "feed" && (
-            <LiveFeedView items={filteredItems} onItemClick={setSelectedItem} onStatusChange={(id, status) => updateStatusMutation.mutate({ id, status })} />
+            <LiveFeedView 
+              items={filteredItems} 
+              onItemClick={setSelectedItem} 
+              // 💡 WAJIB ngirim 'module' biar backend tau tabel mana yang ditembak
+              onStatusChange={(id, status) => {
+                const target = filteredItems.find(i => i.id === id);
+                if (target) updateStatusMutation.mutate({ id, status, module: target.module });
+              }} 
+            />
           )}
 
           {activeView === "table" && (
-            <MasterTableView items={filteredItems} onItemClick={setSelectedItem} onStatusChange={(id, status) => updateStatusMutation.mutate({ id, status })} />
+            <MasterTableView 
+              items={filteredItems} 
+              onItemClick={setSelectedItem} 
+              // 💡 WAJIB ngirim 'module'
+              onStatusChange={(id, status) => {
+                const target = filteredItems.find(i => i.id === id);
+                if (target) updateStatusMutation.mutate({ id, status, module: target.module });
+              }} 
+            />
           )}
         </div>
 
@@ -247,7 +265,18 @@ const formatItem = (item: any, module: ModuleKey, icon: string, titleKey: string
         </aside>
       </div>
 
-      <ActivityDetailSheet item={selectedItem} onClose={() => setSelectedItem(null)} onStatusChange={(id, status) => updateStatusMutation.mutate({ id, status })} />
+      <ActivityDetailSheet 
+        item={selectedItem} 
+        onClose={() => setSelectedItem(null)} 
+        // 💡 Di sini kita juga bisa passing payload dinamis tambahan (selain status) ke mutasi yang sama!
+        onStatusChange={(id, payload) => {
+          if (selectedItem) {
+            // Kalau payload bentuknya string, berarti itu status. Kalau objek, berarti update data lain.
+            const updateData = typeof payload === "string" ? { status: payload } : payload;
+            updateStatusMutation.mutate({ id, module: selectedItem.module, ...updateData });
+          }
+        }} 
+      />
     </div>
   );
 }
