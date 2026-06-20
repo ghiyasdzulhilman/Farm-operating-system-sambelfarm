@@ -44,13 +44,18 @@ export function ActivityDetailSheet({
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<any>({});
 
-  // Reset state tiap kali sheet dibuka untuk item baru
+    // Reset state tiap kali sheet dibuka untuk item baru
   useEffect(() => {
     if (item) {
       setIsEditing(false);
+      
+      // 💡 SOLUSI 1: Potong teks tempelan dari backend biar gak ikut ke-save
+      const rawCatatan = item.metaEkstra.catatan || item.metaEkstra.keterangan || "";
+      const cleanCatatan = rawCatatan.split("\n\n⚠️ Detail Kendala:")[0];
+
       setFormData({
         judul: item.title || "",
-        catatan: item.metaEkstra.catatan || item.metaEkstra.keterangan || "",
+        catatan: cleanCatatan, // ⬅️ Masukkan versi bersihnya ke form
         phTanah: item.metaEkstra.phTanah || "",
         tingkatSerangan: item.metaEkstra.tingkatSerangan || "",
         radius: item.metaEkstra.radius || "",
