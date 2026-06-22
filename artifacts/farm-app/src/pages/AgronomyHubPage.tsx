@@ -196,7 +196,7 @@ export function AgronomyHubPage() {
       />
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1.4fr_0.9fr]">
-        <div className="space-y-6">
+        <div className="space-y-6"> min-w-0">
           {activeView === "feed" && (
             <div className="flex items-center justify-between rounded-2xl border border-border/60 bg-muted/20 px-4 py-2">
               <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Mode Tampilan:</span>
