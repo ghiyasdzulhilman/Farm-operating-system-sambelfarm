@@ -71,6 +71,16 @@ export function MasterTableView({
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["operasional-options-list"] })
   });
 
+  // Mutasi Hapus Baris (Row) Aktivitas
+  const deleteActivityMutation = useMutation({
+    mutationFn: async ({ id, module }: { id: string; module: string }) => {
+      const res = await fetch(`/api/notion/activity/${module}/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error("Gagal menghapus baris");
+      return res.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] })
+  });
+
   // 3. Helper Pengatur Waktu & Tanggal
   const updateDateTime = (item: RichAgronomyItem, field: 'waktuMulai' | 'waktuSelesai', dateStr?: string, timeStr?: string) => {
     // Ambil basis waktu dari metaEkstra atau sekarang
@@ -296,11 +306,20 @@ export function MasterTableView({
         />
       ),
     },
-    {
+        {
       id: "actions",
       header: "",
       cell: ({ row }) => (
-        <Button variant="ghost" size="sm" onClick={() => onDeleteClick?.(row.original.id)} className="text-destructive hover:bg-destructive/10 h-8 w-8 p-0">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={() => {
+            if (confirm("Yakin ingin menghapus baris data ini?")) {
+              deleteActivityMutation.mutate({ id: row.original.id, module: row.original.module });
+            }
+          }} 
+          className="text-destructive hover:bg-destructive/10 h-8 w-8 p-0"
+        >
           <Trash2 className="h-4 w-4" />
         </Button>
       ),
