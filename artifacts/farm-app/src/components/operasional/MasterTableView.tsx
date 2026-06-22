@@ -1,29 +1,25 @@
-// artifacts/farm-app/src/components/operasional/MasterTableView.tsx
-import { useState, useMemo } from "react";
-import {
-  useReactTable,
-  getCoreRowModel,
-  getSortedRowModel,
-  flexRender,
-  type ColumnDef,
-} from "@tanstack/react-table";
-import { ArrowUpDown, Eye, Trash2, Loader2 } from "lucide-react";
+// src/components/operasional/MasterTableView.tsx
+import { useMemo } from "react";
+import { useReactTable, getCoreRowModel, getSortedRowModel, flexRender, type ColumnDef } from "@tanstack/react-table";
+import { Eye, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import type { AgronomyItem } from "@/types/operasional";
-import { EditableCell } from "./EditableCell"; // Kita buat component ini terpisah
+import { EditableCell } from "./EditableCell";
 
 type RichAgronomyItem = AgronomyItem & { metaEkstra?: Record<string, any> };
 
-interface MasterTableViewProps {
-  items: RichAgronomyItem[];
+export function MasterTableView({ 
+  items, 
+  onItemClick, 
+  onDeleteClick 
+}: { 
+  items: RichAgronomyItem[]; 
   onItemClick: (item: RichAgronomyItem) => void;
   onDeleteClick?: (id: string) => void;
-}
-
-export function MasterTableView({ items, onItemClick, onDeleteClick }: MasterTableViewProps) {
+}) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -34,18 +30,13 @@ export function MasterTableView({ items, onItemClick, onDeleteClick }: MasterTab
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ module, ...payload }),
       });
-      if (!res.ok) throw new Error("Gagal menyimpan");
+      if (!res.ok) throw new Error("Gagal menyimpan perubahan");
       return res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] });
-    },
-    onError: (err: any) => {
-      toast({ variant: "destructive", title: "Gagal Simpan", description: err.message });
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] }),
+    onError: (err: any) => toast({ variant: "destructive", title: "Gagal Simpan", description: err.message }),
   });
 
-  // Column Definitions (Modular)
   const columns = useMemo<ColumnDef<RichAgronomyItem>[]>(() => [
     {
       accessorKey: "title",
@@ -53,17 +44,18 @@ export function MasterTableView({ items, onItemClick, onDeleteClick }: MasterTab
       cell: ({ row }) => (
         <EditableCell
           value={row.original.title}
-          onSave={(newValue) => {
+          onSave={(val) => {
             const field = row.original.module === "operasional" ? "namaPekerjaan" : "kegiatan";
-            updateMutation.mutate({
-              id: row.original.id,
-              module: row.original.module,
-              payload: { [field]: newValue }
-            });
+            updateMutation.mutate({ id: row.original.id, module: row.original.module, payload: { [field]: val } });
           }}
-          className="font-bold"
+          className="font-semibold"
         />
       ),
+    },
+    {
+      accessorKey: "area",
+      header: "Area",
+      cell: ({ row }) => <span className="font-medium">{row.original.area || "—"}</span>,
     },
     {
       accessorKey: "status",
@@ -73,20 +65,14 @@ export function MasterTableView({ items, onItemClick, onDeleteClick }: MasterTab
           value={row.original.status}
           type="select"
           options={["Belum dikerjakan", "Dalam proses", "Selesai"]}
-          onSave={(newValue) => 
-            updateMutation.mutate({
-              id: row.original.id,
-              module: row.original.module,
-              payload: { status: newValue }
-            })
-          }
+          onSave={(val) => updateMutation.mutate({ id: row.original.id, module: row.original.module, payload: { status: val } })}
         />
       ),
     },
     {
-      accessorKey: "area",
-      header: "Area",
-      cell: ({ row }) => <span className="font-medium">{row.original.area || "-"}</span>,
+      accessorKey: "duration",
+      header: "Durasi",
+      cell: ({ row }) => `${row.original.duration || 0} jam`,
     },
     // Kolom khusus Inspeksi
     {
@@ -96,22 +82,40 @@ export function MasterTableView({ items, onItemClick, onDeleteClick }: MasterTab
         <EditableCell
           value={row.original.metaEkstra?.phTanah}
           type="number"
-          onSave={(newValue) => 
-            updateMutation.mutate({
-              id: row.original.id,
-              module: "inspeksi",
-              payload: { phTanah: newValue ? Number(newValue) : null }
-            })
-          }
+          onSave={(val) => updateMutation.mutate({ id: row.original.id, module: "inspeksi", payload: { phTanah: val } })}
         />
-      ) : "-",
+      ) : "—",
     },
-    // Tambahkan kolom lain sesuai kebutuhan...
+    {
+      id: "tingkatSerangan",
+      header: "Serangan (%)",
+      cell: ({ row }) => row.original.module === "inspeksi" ? (
+        <EditableCell
+          value={row.original.metaEkstra?.tingkatSerangan}
+          type="number"
+          onSave={(val) => updateMutation.mutate({ id: row.original.id, module: "inspeksi", payload: { tingkatSerangan: val } })}
+        />
+      ) : "—",
+    },
+    {
+      accessorKey: "notes",
+      header: "Catatan",
+      cell: ({ row }) => (
+        <EditableCell
+          value={row.original.notes}
+          type="textarea"
+          onSave={(val) => {
+            const field = row.original.module === "inspeksi" ? "keterangan" : "catatan";
+            updateMutation.mutate({ id: row.original.id, module: row.original.module, payload: { [field]: val } });
+          }}
+        />
+      ),
+    },
     {
       id: "actions",
       header: "Aksi",
       cell: ({ row }) => (
-        <div className="flex gap-2">
+        <div className="flex gap-1">
           <Button variant="ghost" size="sm" onClick={() => onItemClick(row.original)}>
             <Eye className="h-4 w-4" />
           </Button>
@@ -133,33 +137,33 @@ export function MasterTableView({ items, onItemClick, onDeleteClick }: MasterTab
   });
 
   return (
-    <div className="w-full rounded-3xl border border-border/60 bg-card shadow-sm overflow-hidden">
-      <div className="border-b border-border/60 px-6 py-4 flex justify-between items-center bg-muted/30">
+    <div className="rounded-3xl border border-border/60 bg-card shadow-sm overflow-hidden">
+      <div className="px-6 py-4 border-b bg-muted/30 flex justify-between items-center">
         <div>
-          <p className="font-black tracking-tight">Tabel Master Agronomi</p>
-          <p className="text-xs text-muted-foreground">Klik sel untuk mengedit • Data real-time dari Supabase</p>
+          <p className="font-black">Master Agronomy Table</p>
+          <p className="text-xs text-muted-foreground">Inline editing • Real-time Supabase</p>
         </div>
-        <Badge variant="outline">Supabase Live</Badge>
+        <Badge variant="outline">3 Modul Terintegrasi</Badge>
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-full divide-y divide-border/40">
+        <table className="w-full">
           <thead>
             {table.getHeaderGroups().map(headerGroup => (
-              <tr key={headerGroup.id} className="bg-muted/50">
+              <tr key={headerGroup.id} className="border-b bg-muted/50">
                 {headerGroup.headers.map(header => (
                   <th key={header.id} className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                    {flexRender(header.column.columnDef.header, header.getContext())}
                   </th>
                 ))}
               </tr>
             ))}
           </thead>
-          <tbody className="divide-y divide-border/40">
+          <tbody>
             {table.getRowModel().rows.map(row => (
-              <tr key={row.id} className="hover:bg-muted/50 transition-colors">
+              <tr key={row.id} className="border-b hover:bg-muted/50 transition-colors">
                 {row.getVisibleCells().map(cell => (
-                  <td key={cell.id} className="px-6 py-4 text-sm">
+                  <td key={cell.id} className="px-6 py-4">
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
                 ))}
