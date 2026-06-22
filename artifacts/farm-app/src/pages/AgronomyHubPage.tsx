@@ -169,7 +169,7 @@ export function AgronomyHubPage() {
           </div>
           <h1 className="text-3xl font-black tracking-tight md:text-4xl">Pusat Aktivitas</h1>
           <p className="max-w-2xl text-sm text-muted-foreground">
-            Gabungan perawatan, inspeksi, dan operasional harian.
+            
           </p>
         </div>
 
