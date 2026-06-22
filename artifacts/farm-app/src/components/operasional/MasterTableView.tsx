@@ -1,7 +1,7 @@
 // src/components/operasional/MasterTableView.tsx
 import { useMemo } from "react";
 import { useReactTable, getCoreRowModel, getSortedRowModel, flexRender, type ColumnDef } from "@tanstack/react-table";
-import { Eye, Trash2, Calendar, Clock } from "lucide-react";
+import { Eye, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -45,7 +45,7 @@ export function MasterTableView({
         const item = row.original;
         return (
           <div className="flex items-center gap-3 group">
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <EditableCell
                 value={item.title}
                 onSave={(val) => {
@@ -59,7 +59,7 @@ export function MasterTableView({
               variant="ghost" 
               size="sm" 
               onClick={() => onItemClick(item)}
-              className="opacity-0 group-hover:opacity-100 transition-opacity"
+              className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8"
             >
               <Eye className="h-4 w-4" />
             </Button>
@@ -70,7 +70,7 @@ export function MasterTableView({
     {
       id: "area",
       header: "Area",
-      cell: ({ row }) => <span className="font-medium">{row.original.area || "—"}</span>,
+      cell: ({ row }) => <span className="font-medium text-sm">{row.original.area || "—"}</span>,
     },
     {
       id: "status",
@@ -85,16 +85,15 @@ export function MasterTableView({
       ),
     },
     {
-      id: "waktu",
-      header: "Waktu",
+      id: "waktuMulai",
+      header: "Mulai",
       cell: ({ row }) => {
         const item = row.original;
-        return (
+        return item.rawDate ? (
           <div className="text-sm text-muted-foreground">
-            <div>{item.rawDate ? new Date(item.rawDate).toLocaleDateString('id-ID') : '—'}</div>
-            <div className="text-xs">{item.time}</div>
+            {new Date(item.rawDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
           </div>
-        );
+        ) : "—";
       },
     },
     {
@@ -113,33 +112,23 @@ export function MasterTableView({
       ),
     },
     {
-      id: "catatan",
-      header: "Catatan",
-      cell: ({ row }) => (
-        <EditableCell
-          value={row.original.notes}
-          type="textarea"
-          placeholder="Tambah catatan..."
-          onSave={(val) => {
-            const field = row.original.module === "inspeksi" ? "keterangan" : "catatan";
-            updateMutation.mutate({ id: row.original.id, module: row.original.module, payload: { [field]: val } });
-          }}
-        />
-      ),
+      id: "pekerja",
+      header: "Tim Pekerja",
+      cell: ({ row }) => <span className="text-sm text-muted-foreground">{row.original.workers?.join(", ") || "—"}</span>,
     },
     {
       id: "actions",
       header: "",
       cell: ({ row }) => (
-        <Button variant="ghost" size="sm" onClick={() => onDeleteClick?.(row.original.id)}>
-          <Trash2 className="h-4 w-4 text-destructive" />
+        <Button variant="ghost" size="sm" onClick={() => onDeleteClick?.(row.original.id)} className="text-destructive hover:text-destructive">
+          <Trash2 className="h-4 w-4" />
         </Button>
       ),
     },
   ], [updateMutation, onItemClick, onDeleteClick]);
 
   const table = useReactTable({
-    data: items.filter(item => item.module === "perawatan"), // Filter hanya Perawatan dulu
+    data: items.filter(item => item.module === "perawatan"), // Sementara fokus Perawatan
     columns,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -147,11 +136,12 @@ export function MasterTableView({
 
   return (
     <div className="rounded-3xl border border-border/60 bg-card shadow-sm overflow-hidden">
-      <div className="px-6 py-4 border-b bg-muted/30 flex justify-between">
+      <div className="px-6 py-4 border-b bg-muted/30 flex justify-between items-center">
         <div>
-          <p className="font-black">Perawatan Table</p>
-          <p className="text-xs text-muted-foreground">Inline editing • Mirip Notion</p>
+          <p className="font-black tracking-tight">Tabel Perawatan</p>
+          <p className="text-xs text-muted-foreground">Klik teks untuk edit • Klik icon mata untuk detail</p>
         </div>
+        <Badge variant="outline">Perawatan Module</Badge>
       </div>
 
       <div className="overflow-x-auto">
@@ -168,23 +158,15 @@ export function MasterTableView({
             ))}
           </thead>
           <tbody>
-            {table.getRowModel().rows.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="text-center py-10 text-muted-foreground">
-                  Belum ada data perawatan
-                </td>
+            {table.getRowModel().rows.map(row => (
+              <tr key={row.id} className="border-b hover:bg-muted/50 transition-colors">
+                {row.getVisibleCells().map(cell => (
+                  <td key={cell.id} className="px-6 py-4">
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
+                ))}
               </tr>
-            ) : (
-              table.getRowModel().rows.map(row => (
-                <tr key={row.id} className="border-b hover:bg-muted/50 transition-colors">
-                  {row.getVisibleCells().map(cell => (
-                    <td key={cell.id} className="px-6 py-4">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
-                </tr>
-              ))
-            )}
+            ))}
           </tbody>
         </table>
       </div>
