@@ -226,8 +226,9 @@ export function MasterTableView({
     getSortedRowModel: getSortedRowModel(),
   });
 
-  return (
-    <div className="rounded-3xl border border-border/60 bg-card shadow-sm overflow-hidden text-left">
+    return (
+    // 1. Tambahkan "w-full max-w-full" di sini biar elemen ini gak menjebol batas layar HP
+    <div className="w-full max-w-full rounded-3xl border border-border/60 bg-card shadow-sm overflow-hidden text-left">
       <div className="px-6 py-4 border-b bg-muted/30 flex justify-between items-center">
         <div>
           <p className="font-black tracking-tight">Tabel Monitor Aktivitas</p>
@@ -236,8 +237,10 @@ export function MasterTableView({
         <Badge variant="outline" className="capitalize">Mode Tabel Aktif</Badge>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
+      {/* 2. Pastikan div pembungkus tabel punya "w-full overflow-x-auto" */}
+      <div className="w-full overflow-x-auto">
+        {/* 3. Tambahkan "min-w-[800px]" (atau 900px) biar tabelnya tetep panjang di HP dan memicu scroll horizontal */}
+        <table className="w-full min-w-[800px] border-collapse">
           <thead>
             {table.getHeaderGroups().map(headerGroup => (
               <tr key={headerGroup.id} className="border-b bg-muted/50">
