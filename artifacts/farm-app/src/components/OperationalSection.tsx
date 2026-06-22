@@ -149,47 +149,8 @@ return (
               key={`${activity.title}-${index}`}
               className="
                 relative
-                pl-6
               "
             >
-
-              {index !==
-                visibleFeed.length - 1 && (
-
-                <span
-                  className="
-                    absolute
-                    left-[0.68rem]
-                    top-10
-                    h-[calc(100%-1rem)]
-                    w-px
-                    bg-border
-                  "
-                />
-
-              )}
-
-              <span
-                /* AUDIT WARNA: Mengubah background amber statis menjadi token secondary */
-                className={`
-                  absolute
-                  left-0
-                  top-4
-                  flex
-                  h-5
-                  w-5
-                  items-center
-                  justify-center
-                  rounded-full
-                  border-4
-                  border-background
-                  ${
-                    isEmerald
-                      ? "bg-primary"
-                      : "bg-secondary"
-                  }
-                `}
-              />
 
               <div
                 className="
