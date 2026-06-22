@@ -18,7 +18,8 @@ export const perawatanTable = pgTable("perawatan", {
   waktuMulai: timestamp("waktu_mulai").notNull(),
   waktuSelesai: timestamp("waktu_selesai"),
   durasiKerja: integer("durasi_kerja").default(0).notNull(),
-  tagCategoryId: uuid("tag_category_id").references(() => kategoriTable.id, { onDelete: "cascade" }).notNull(),
+  tagCategory: text("tag_category").notNull(), // 💡 Biarkan tetap ada untuk amankan data lama
+  tagCategoryId: uuid("tag_category_id").references(() => kategoriTable.id, { onDelete: "cascade" }), // 💡 Buat opsional dulu (tanpa .notNull())
   status: text("status").default("Belum dikerjakan").notNull(),
   pekerjaIds: jsonb("pekerja_ids").default([]).notNull(),
   catatan: text("catatan"),
@@ -63,7 +64,8 @@ export const operasionalTable = pgTable("operasional", {
   waktuMulai: timestamp("waktu_mulai").notNull(),
   waktuSelesai: timestamp("waktu_selesai"),
   durasiKerja: integer("durasi_kerja").default(0).notNull(),
-  kategoriId: uuid("kategori_id").references(() => kategoriTable.id, { onDelete: "cascade" }).notNull(),
+  kategori: text("kategori").notNull(), // 💡 Biarkan tetap ada untuk amankan data lama
+  kategoriId: uuid("kategori_id").references(() => kategoriTable.id, { onDelete: "cascade" }), // 💡 Buat opsional dulu (tanpa .notNull())
   prioritas: text("prioritas").default("Medium").notNull(),
   jenisTenagaKerja: text("jenis_tenaga_kerja").notNull(),
   pekerjaIds: jsonb("pekerja_ids").default([]).notNull(),
