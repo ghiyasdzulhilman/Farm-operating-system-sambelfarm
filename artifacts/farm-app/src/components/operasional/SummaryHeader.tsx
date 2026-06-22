@@ -29,10 +29,12 @@ function SummaryCard({ title, value, detail, icon: Icon, tint }: any) {
           <p className="mt-2 text-2xl font-black tracking-tight">{value}</p>
           <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
         </div>
-        <div className={cn("rounded-2xl p-3", tint)}>
+        {/* INI BAGIAN YANG DIUBAH BRO 👇 */}
+        <div className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-full", tint)}>
           <Icon className="h-5 w-5" />
         </div>
       </div>
     </div>
   );
 }
+
