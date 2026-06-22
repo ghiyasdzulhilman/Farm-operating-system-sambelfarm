@@ -6,7 +6,8 @@ import {
   areasTable, 
   perawatanTable, 
   perawatanProdukTable,
-  pekerjaTable
+  pekerjaTable,
+  kategoriTable
 } from "@workspace/db";
 
 const router: IRouter = Router();
@@ -73,8 +74,16 @@ router.get("/notion/perawatan-dropdown-options", async (req, res): Promise<void>
       name: p.nama,
     }));
 
-    // 3. Kirim data asli ke frontend (Bukan array kosong lagi)
-    res.json({ areas: formattedAreas, petugas: formattedPetugas });
+        // 3. Tarik data kategori spesifik untuk modul perawatan
+    const dbKategori = await db.select().from(kategoriTable).where(eq(kategoriTable.module, "perawatan"));
+    const formattedKategori = dbKategori.map((k) => ({
+      id: k.id,
+      name: k.name,
+      module: k.module
+    }));
+
+    // 4. Kirim data asli ke frontend
+    res.json({ areas: formattedAreas, petugas: formattedPetugas, kategori: formattedKategori });
   } catch (err) {
 // --- BATAS BAWAH PERBAIKAN --
     res.status(500).json({ error: "Gagal mengambil opsi dropdown dari database." });
@@ -146,7 +155,7 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
         waktuMulai: tanggalMulaiStr ? new Date(tanggalMulaiStr) : new Date(),
         waktuSelesai: tanggalSelesaiStr ? new Date(tanggalSelesaiStr) : null,
         durasiKerja: Number(durasiKerjaNum ?? 0),
-        tagCategory: tagCategoryStr || "Nutrisi",
+        tagCategoryId: tagCategoryStr || null, // 💡 Pakai ID Kategori
         status: statusStr || "Belum dikerjakan",
         pekerjaIds: pekerjaIdsArray || [], 
         catatan: catatanStr || null,
@@ -202,13 +211,15 @@ router.get("/notion/all-perawatan", async (req, res): Promise<void> => {
         waktuMulai: perawatanTable.waktuMulai,
         waktuSelesai: perawatanTable.waktuSelesai,
         durasiKerja: perawatanTable.durasiKerja,
-        tagCategory: perawatanTable.tagCategory,
+        tagCategoryId: perawatanTable.tagCategoryId, 
+        tagCategoryName: kategoriTable.name, 
         status: perawatanTable.status,
         pekerjaIds: perawatanTable.pekerjaIds,
         catatan: perawatanTable.catatan
       })
       .from(perawatanTable)
-      .leftJoin(areasTable, eq(perawatanTable.areaId, areasTable.id));
+      .leftJoin(areasTable, eq(perawatanTable.areaId, areasTable.id))
+      .leftJoin(kategoriTable, eq(perawatanTable.tagCategoryId, kategoriTable.id)); 
 
     // 2. Ambil semua detail produk racikan dari tabel anak
     const semuaProduk = await db.select().from(perawatanProdukTable);
