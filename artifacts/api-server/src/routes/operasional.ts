@@ -218,6 +218,14 @@ router.patch("/notion/edit-activity/:id", async (req, res): Promise<void> => {
       Object.entries(updateData).filter(([_, v]) => v !== undefined)
     );
 
+    // 🔴 KONVERSI STRING KE DATE: Wajib agar Drizzle PostgreSQL tidak error
+    if (cleanPayload.waktuMulai) {
+      cleanPayload.waktuMulai = new Date(cleanPayload.waktuMulai as string);
+    }
+    if (cleanPayload.waktuSelesai) {
+      cleanPayload.waktuSelesai = new Date(cleanPayload.waktuSelesai as string);
+    }
+
     if (Object.keys(cleanPayload).length === 0) {
        res.status(400).json({ error: "Tidak ada data yang dikirim untuk diupdate." });
        return;
@@ -356,5 +364,37 @@ router.delete("/notion/pekerja/:id", async (req, res): Promise<void> => {
     res.status(500).json({ error: "Gagal menghapus pekerja." });
   }
 });
+
+// ==========================================
+// 8. ENDPOINT DELETE ACTIVITY ROW (BARIS TABEL)
+// ==========================================
+router.delete("/notion/activity/:module/:id", async (req, res): Promise<void> => {
+  const { userId } = getAuth(req);
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+  const { id, module } = req.params;
+
+  try {
+    let result;
+    if (module === "operasional") {
+      result = await db.delete(operasionalTable).where(eq(operasionalTable.id, id)).returning();
+    } else if (module === "perawatan") {
+      result = await db.delete(perawatanTable).where(eq(perawatanTable.id, id)).returning();
+    } else if (module === "inspeksi") {
+      result = await db.delete(inspeksiTable).where(eq(inspeksiTable.id, id)).returning();
+    } else {
+      res.status(400).json({ error: "Modul tidak valid." }); return;
+    }
+
+    if (!result || result.length === 0) {
+      res.status(404).json({ error: "Data tidak ditemukan." }); return;
+    }
+
+    res.json({ success: true, message: "Baris data berhasil dihapus" });
+  } catch (err) {
+    res.status(500).json({ error: "Gagal menghapus baris data" });
+  }
+});
+
 
 export default router;
