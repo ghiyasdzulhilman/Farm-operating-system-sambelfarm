@@ -106,7 +106,9 @@ export const EditableCell: React.FC<EditableCellProps> = ({
                       onClick={(e) => { 
                         e.preventDefault(); 
                         e.stopPropagation(); 
-                        if(confirm(`Hapus opsi "${label}" secara permanen?`)) onDeleteOption(val); 
+                        if(confirm(`🚨 PERINGATAN!\n\nMenghapus "${label}" akan MENGHANCURKAN SELURUH DATA riwayat operasional, panen, dan pengeluaran yang terhubung dengan data ini secara permanen.\n\nApakah Anda YAKIN ingin menghapus?`)) {
+                          onDeleteOption(val); 
+                        }
                       }}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -177,8 +179,11 @@ export const EditableCell: React.FC<EditableCellProps> = ({
                       onClick={(e) => { 
                         e.preventDefault(); 
                         e.stopPropagation(); 
-                        if(confirm(`Hapus opsi "${lbl}" secara permanen?`)) onDeleteOption(val); 
+                        if(confirm(`🚨 PERINGATAN!\n\nMenghapus "${lbl}" akan MENGHANCURKAN SELURUH DATA riwayat operasional, panen, dan pengeluaran yang terhubung dengan data ini secara permanen.\n\nApakah Anda YAKIN ingin menghapus?`)) {
+                          onDeleteOption(val); 
+                        }
                       }}
+
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
