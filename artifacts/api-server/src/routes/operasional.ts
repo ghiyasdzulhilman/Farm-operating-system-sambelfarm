@@ -7,7 +7,8 @@ import {
   operasionalTable,
   pekerjaTable,
   perawatanTable,
-  inspeksiTable
+  inspeksiTable,
+  kategoriTable
 } from "@workspace/db";
 
 const router: IRouter = Router();
@@ -53,25 +54,25 @@ router.get("/notion/operasional-dropdown-options", async (req, res): Promise<voi
 
   try {
     const areas = await db.select().from(areasTable);
-    
-    const formattedAreas = areas.map(a => ({
-      id: a.id,
-      name: a.name
-    }));
+    const formattedAreas = areas.map(a => ({ id: a.id, name: a.name }));
 
-    // Ambil data pekerja aktif langsung dari Supabase
     const dbPekerja = await db.select().from(pekerjaTable);
-    
-    // Mapping properti 'nama' dari DB menjadi 'name' untuk Frontend
-    const formattedPetugas = dbPekerja.map((p) => ({
-      id: p.id,
-      name: p.nama,
+    const formattedPetugas = dbPekerja.map((p) => ({ id: p.id, name: p.nama }));
+
+    // Tarik data kategori dinamis
+    const dbKategori = await db.select().from(kategoriTable);
+    const formattedKategori = dbKategori.map((k) => ({
+      id: k.id,
+      name: k.name,
+      module: k.module
     }));
 
-    // Kirim data asli ke frontend
-    res.json({ areas: formattedAreas, petugas: formattedPetugas });
+    res.json({ 
+      areas: formattedAreas, 
+      petugas: formattedPetugas, 
+      kategori: formattedKategori 
+    });
   } catch (err) {
-
     res.status(500).json({ error: "Gagal mengambil opsi dropdown dari database." }); 
   }
 });
@@ -393,6 +394,49 @@ router.delete("/notion/activity/:module/:id", async (req, res): Promise<void> =>
     res.json({ success: true, message: "Baris data berhasil dihapus" });
   } catch (err) {
     res.status(500).json({ error: "Gagal menghapus baris data" });
+  }
+});
+
+// ==========================================
+// 9. ENDPOINT ADD & DELETE KATEGORI
+// ==========================================
+router.post("/notion/kategori", async (req, res): Promise<void> => {
+  const { userId } = getAuth(req);
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+  const { name, module } = req.body;
+  if (!name || typeof name !== "string" || name.trim() === "") {
+    res.status(400).json({ error: "Nama kategori wajib diisi." }); return;
+  }
+  if (!module || (module !== "operasional" && module !== "perawatan")) {
+    res.status(400).json({ error: "Module tidak valid." }); return;
+  }
+
+  try {
+    const [newKategori] = await db.insert(kategoriTable)
+      .values({ name: name.trim(), module })
+      .returning();
+    res.status(201).json({ success: true, data: newKategori });
+  } catch (err) {
+    res.status(500).json({ error: "Gagal menambah kategori." });
+  }
+});
+
+router.delete("/notion/kategori/:id", async (req, res): Promise<void> => {
+  const { userId } = getAuth(req);
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+  const { id } = req.params;
+  try {
+    const [deletedKategori] = await db.delete(kategoriTable)
+      .where(eq(kategoriTable.id, id))
+      .returning();
+    if (!deletedKategori) {
+      res.status(404).json({ error: "Kategori tidak ditemukan." }); return;
+    }
+    res.json({ success: true, message: "Berhasil dihapus", data: deletedKategori });
+  } catch (err) {
+    res.status(500).json({ error: "Gagal menghapus kategori." });
   }
 });
 
