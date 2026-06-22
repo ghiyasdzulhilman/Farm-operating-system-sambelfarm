@@ -36,6 +36,10 @@ export function MasterTableView({
     return (dropdownOptions?.petugas || []).map((p: any) => ({ label: p.name, value: p.id }));
   }, [dropdownOptions]);
 
+  const kategoriOptions = useMemo(() => {
+    return (dropdownOptions?.kategori || []).map((k: any) => ({ label: k.name, value: k.id, module: k.module }));
+  }, [dropdownOptions]);
+
   // 2. MUTASI DATA (Update, Tambah Master, Hapus Master)
   const updateMutation = useMutation({
     mutationFn: async ({ id, module, payload }: { id: string; module: string; payload: any }) => {
@@ -80,6 +84,25 @@ export function MasterTableView({
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] })
   });
+
+  // Mutasi Kategori (Langsung tembak ID)
+  const addKategoriMutation = useMutation({
+    mutationFn: async ({ name, module }: { name: string; module: string }) => {
+      const res = await fetch('/api/notion/kategori', { method: 'POST', body: JSON.stringify({ name, module }), headers: { 'Content-Type': 'application/json' } });
+      if (!res.ok) throw new Error("Gagal menambah kategori");
+      return res.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["operasional-options-list"] })
+  });
+  const deleteKategoriMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/notion/kategori/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error("Gagal menghapus kategori");
+      return res.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["operasional-options-list"] })
+  });
+
 
   // 3. Helper Pengatur Waktu & Tanggal
   const updateDateTime = (item: RichAgronomyItem, field: 'waktuMulai' | 'waktuSelesai', dateStr?: string, timeStr?: string) => {
@@ -231,6 +254,7 @@ export function MasterTableView({
         );
       },
     },
+    
     {
       id: "tagCategory",
       header: "Kategori",
@@ -247,28 +271,34 @@ export function MasterTableView({
           );
         }
 
-        const optionsMap: Record<string, string[]> = {
-          perawatan: ["Biologis / POC", "Fungisida", "Insektisida", "Olah Tanah", "Lainnya"],
-          operasional: ["Penyemprotan", "Panen", "Sanitasi", "Maintenance", "Lainnya"]
-        };
-        const currentOptions = optionsMap[item.module] || ["Lainnya"];
+        // 💡 Filter opsi kategori berdasarkan modul (operasional/perawatan)
+        const currentOptions = kategoriOptions.filter((k: any) => k.module === item.module);
+        
+        // 💡 Ambil ID Kategori dari data yang dikirim backend
+        const currentKategoriId = item.module === "perawatan" 
+          ? (item.tagCategoryId || item.metaEkstra?.tagCategoryId) 
+          : (item.kategoriId || item.metaEkstra?.kategoriId);
 
         return (
           <div className="min-w-[120px]">
             <EditableCell
-              value={item.category}
+              value={currentKategoriId} // Menggunakan UUID
               type="select"
               options={currentOptions}
+              placeholder="Pilih Kategori..."
               onSave={(val) => {
-                const field = item.module === "perawatan" ? "tagCategory" : "kategori";
+                // Tembak kolom foreign key yang baru
+                const field = item.module === "perawatan" ? "tagCategoryId" : "kategoriId";
                 updateMutation.mutate({ id: item.id, module: item.module, payload: { [field]: val } });
               }}
-              // Untuk Kategori, kita bisa biarkan kosong dulu mutasinya, atau handle secara lokal
+              onAddOption={(newLabel) => addKategoriMutation.mutate({ name: newLabel, module: item.module })}
+              onDeleteOption={(id) => deleteKategoriMutation.mutate(id)}
             />
           </div>
         );
       },
     },
+
     {
       id: "pekerja",
       header: "Tim Pekerja",
@@ -324,7 +354,7 @@ export function MasterTableView({
         </Button>
       ),
     },
-  ], [updateMutation, addAreaMutation, deleteAreaMutation, addPekerjaMutation, deletePekerjaMutation, onItemClick, onDeleteClick, areaOptions, workerOptions]);
+  ], [updateMutation, addAreaMutation, deleteAreaMutation, addPekerjaMutation, deletePekerjaMutation, addKategoriMutation, deleteKategoriMutation, onItemClick, onDeleteClick, areaOptions, workerOptions, kategoriOptions]);
 
   const table = useReactTable({
     data: items,
