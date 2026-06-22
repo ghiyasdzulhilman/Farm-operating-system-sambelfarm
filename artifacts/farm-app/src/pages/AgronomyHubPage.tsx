@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import type { AgronomyItem } from "@/types/operasional";
-import { EditableCell } from "./EditableCell";
+import { EditableCell } from "@/components/operasional/EditableCell";
 
 type RichAgronomyItem = AgronomyItem & { metaEkstra?: Record<string, any> };
 
