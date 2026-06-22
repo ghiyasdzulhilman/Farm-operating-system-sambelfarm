@@ -575,6 +575,22 @@ export function DashboardPage() {
               />
             </motion.div>
           </section>
+
+          <section ref={insightRef} className="scroll-mt-[74px]">
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-100px" }}
+              variants={scrollReveal}
+            >
+              <InsightSection
+                displayData={displayData}
+                localBusinessStatus={localBusinessStatus}
+                localRecommendation={localRecommendation}
+                formatCurrency={formatCurrency}
+              />
+            </motion.div>
+          </section>
         </div>
 
       </main>
