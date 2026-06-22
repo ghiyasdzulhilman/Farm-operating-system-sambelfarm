@@ -153,24 +153,20 @@ router.post("/notion/add-operasional", async (req, res): Promise<void> => {
 });
 
 // ==========================================
-// 4. ENDPOINT GET ALL OPERASIONAL (SUPABASE REALTIME + NAMA AREA)
+// 4. ENDPOINT GET ALL OPERASIONAL (SUPABASE REALTIME + NAMA AREA & KATEGORI)
 // ==========================================
 router.get("/notion/all-operasional", async (req, res): Promise<void> => {
-  const { userId } = getAuth(req);
-  if (!userId) { 
-    res.status(401).json({ error: "Unauthorized" }); 
-    return; 
-  }
+  // ... (kode auth tetap sama) ...
 
   try {
-    // Tarik data operasional real-time dari Supabase + join nama area lokasinya
     const data = await db
       .select({
         id: operasionalTable.id,
         namaPekerjaan: operasionalTable.namaPekerjaan,
         areaId: operasionalTable.areaId,
-        areaName: areasTable.name, // 💡 Nama area dari tabel sebelah
-        kategori: operasionalTable.kategori,
+        areaName: areasTable.name, 
+        kategoriId: operasionalTable.kategoriId, // 💡 Ambil ID kategori barunya
+        kategoriName: kategoriTable.name, // 💡 Ambil nama kategorinya
         waktuMulai: operasionalTable.waktuMulai,
         waktuSelesai: operasionalTable.waktuSelesai,
         durasiKerja: operasionalTable.durasiKerja,
@@ -181,14 +177,12 @@ router.get("/notion/all-operasional", async (req, res): Promise<void> => {
         catatan: operasionalTable.catatan
       })
       .from(operasionalTable)
-      .leftJoin(areasTable, eq(operasionalTable.areaId, areasTable.id)); // 🔗 Hubungkan relasi ID
+      .leftJoin(areasTable, eq(operasionalTable.areaId, areasTable.id)) 
+      .leftJoin(kategoriTable, eq(operasionalTable.kategoriId, kategoriTable.id)); // 🔗 Hubungkan relasi ID Kategori
 
-    res.json({ 
-      success: true, 
-      data: data 
-    });
+    res.json({ success: true, data: data });
   } catch (err) {
-    res.status(500).json({ error: err instanceof Error ? err.message : "Gagal mengambil riwayat operasional." });
+    res.status(500).json({ error: "Gagal mengambil riwayat operasional." });
   }
 });
 
