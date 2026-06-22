@@ -1,7 +1,6 @@
 // src/components/operasional/EditableCell.tsx
 import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +34,8 @@ export const EditableCell: React.FC<EditableCellProps> = ({
   const [localValue, setLocalValue] = useState(initialValue);
   const [isAdding, setIsAdding] = useState(false);
   const [newOptionText, setNewOptionText] = useState("");
+  // 💡 Tambahkan state ini untuk kontrol open/close manual Popover Single Select
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     setLocalValue(initialValue);
@@ -66,7 +67,6 @@ export const EditableCell: React.FC<EditableCellProps> = ({
           <div className={cn("cursor-pointer min-h-[32px] flex flex-wrap gap-1 p-1 hover:bg-muted/50 rounded items-center w-full", disabled && "opacity-50 cursor-not-allowed hover:bg-transparent", className)}>
             {selectedValues.length === 0 && <span className="text-muted-foreground text-sm pl-1">{placeholder}</span>}
             {selectedValues.map((val: string) => {
-              // Cari label yang pas jika val adalah ID
               const optMatch = options.find(o => typeof o === 'object' && o.value === val);
               const displayLabel = optMatch ? optMatch.label : val;
               return (
@@ -102,8 +102,12 @@ export const EditableCell: React.FC<EditableCellProps> = ({
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      className="h-6 w-6 opacity-0 group-hover:opacity-100 text-destructive"
-                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDeleteOption(val); }}
+                      className="h-6 w-6 opacity-0 group-hover:opacity-100 text-destructive z-10 relative"
+                      onClick={(e) => { 
+                        e.preventDefault(); 
+                        e.stopPropagation(); 
+                        if(confirm(`Hapus opsi "${label}" secara permanen?`)) onDeleteOption(val); 
+                      }}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
@@ -118,14 +122,7 @@ export const EditableCell: React.FC<EditableCellProps> = ({
             <div className="mt-2 pt-2 border-t">
               {isAdding ? (
                 <div className="flex items-center gap-1">
-                  <Input 
-                    autoFocus
-                    placeholder="Nama baru..." 
-                    value={newOptionText} 
-                    onChange={(e) => setNewOptionText(e.target.value)}
-                    className="h-7 text-xs"
-                    onKeyDown={(e) => { if (e.key === "Enter") handleAddNew(e as any); }}
-                  />
+                  <Input autoFocus placeholder="Nama baru..." value={newOptionText} onChange={(e) => setNewOptionText(e.target.value)} className="h-7 text-xs" onKeyDown={(e) => { if (e.key === "Enter") handleAddNew(e as any); }} />
                   <Button size="icon" variant="ghost" className="h-7 w-7 text-green-600" onClick={handleAddNew}><Check className="h-4 w-4"/></Button>
                   <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => setIsAdding(false)}><X className="h-4 w-4"/></Button>
                 </div>
@@ -143,12 +140,11 @@ export const EditableCell: React.FC<EditableCellProps> = ({
 
   // 2. RENDER SINGLE SELECT (Status, Kategori, Area)
   if (type === "select") {
-    // Cari label untuk trigger display
     const selectedOpt = options.find(o => (typeof o === "string" ? o : o.value) === localValue);
     const displayValue = selectedOpt ? (typeof selectedOpt === "string" ? selectedOpt : selectedOpt.label) : "";
 
     return (
-      <Popover>
+      <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild disabled={disabled}>
           <div className={cn("cursor-pointer min-h-[32px] flex items-center px-1 hover:bg-muted/50 rounded w-full text-sm", disabled && "opacity-50 cursor-not-allowed hover:bg-transparent", className)}>
             {displayValue || <span className="text-muted-foreground">{placeholder}</span>}
@@ -163,19 +159,26 @@ export const EditableCell: React.FC<EditableCellProps> = ({
               return (
                 <div 
                   key={val} 
-                  className={cn("flex items-center justify-between p-1.5 hover:bg-muted rounded cursor-pointer group text-sm", isSelected && "bg-muted font-medium")}
-                  onClick={() => {
+                  className={cn("flex items-center justify-between p-1.5 hover:bg-muted rounded cursor-pointer group text-sm relative", isSelected && "bg-muted font-medium")}
+                  onClick={(e) => {
+                    // Cek apakah klik berasal dari tombol tong sampah
+                    if ((e.target as HTMLElement).closest('.delete-btn')) return;
                     setLocalValue(val);
                     onSave(val);
+                    setIsOpen(false); // Tutup popover hanya jika bukan klik hapus
                   }}
                 >
-                  <span className="truncate flex-1">{lbl}</span>
+                  <span className="truncate flex-1 pointer-events-none">{lbl}</span>
                   {onDeleteOption && (
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      className="h-6 w-6 opacity-0 group-hover:opacity-100 text-destructive"
-                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDeleteOption(val); }}
+                      className="delete-btn h-6 w-6 opacity-0 group-hover:opacity-100 text-destructive z-10"
+                      onClick={(e) => { 
+                        e.preventDefault(); 
+                        e.stopPropagation(); 
+                        if(confirm(`Hapus opsi "${lbl}" secara permanen?`)) onDeleteOption(val); 
+                      }}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
@@ -190,14 +193,7 @@ export const EditableCell: React.FC<EditableCellProps> = ({
             <div className="mt-2 pt-2 border-t">
               {isAdding ? (
                 <div className="flex items-center gap-1">
-                  <Input 
-                    autoFocus
-                    placeholder="Nama baru..." 
-                    value={newOptionText} 
-                    onChange={(e) => setNewOptionText(e.target.value)}
-                    className="h-7 text-xs"
-                    onKeyDown={(e) => { if (e.key === "Enter") handleAddNew(e as any); }}
-                  />
+                  <Input autoFocus placeholder="Nama baru..." value={newOptionText} onChange={(e) => setNewOptionText(e.target.value)} className="h-7 text-xs" onKeyDown={(e) => { if (e.key === "Enter") handleAddNew(e as any); }} />
                   <Button size="icon" variant="ghost" className="h-7 w-7 text-green-600" onClick={handleAddNew}><Check className="h-4 w-4"/></Button>
                   <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => setIsAdding(false)}><X className="h-4 w-4"/></Button>
                 </div>
