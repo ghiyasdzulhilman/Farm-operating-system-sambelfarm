@@ -5,7 +5,7 @@ import { z } from "zod";
 import { format } from "date-fns";
 import {
   PlusCircle, Loader2, CalendarIcon, ArrowRight, ArrowLeft,
-  CheckCircle2, Sprout, Plus, Trash2, Edit3, Undo2, MapPinned, FileText, ExternalLink
+  CheckCircle2, Sprout, Plus, Trash2, Edit3, Undo2, MapPinned, FileText, ExternalLink, Check, X
 } from "lucide-react";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
@@ -56,7 +56,11 @@ const perawatanSchema = z.object({
 
 type PerawatanFormValues = z.infer<typeof perawatanSchema>;
 
-interface DropdownOptions { areas: Array<{ id: string; name: string }>; petugas: Array<{ id: string; name: string }>; }
+interface DropdownOptions { 
+  areas: Array<{ id: string; name: string }>; 
+  petugas: Array<{ id: string; name: string }>; 
+  kategori: Array<{ id: string; name: string; module: string }>; 
+}
 
 const PERAWATAN_OVERRIDE_FIELDS = [
   { broadcastKey: "tanggalBroadcast", perAreaKey: "tanggalPerArea" },
@@ -104,6 +108,20 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
       const res = await fetch("/api/notion/perawatan-dropdown-options");
       if (!res.ok) throw new Error("Gagal mengambil dropdown"); return res.json();
     }, enabled: open,
+  });
+
+  // --- STATE TAMBAH MASTER DATA ---
+  const [isAddingArea, setIsAddingArea] = useState(false); const [newAreaName, setNewAreaName] = useState("");
+  const [isAddingPekerja, setIsAddingPekerja] = useState(false); const [newPekerjaName, setNewPekerjaName] = useState("");
+  const [isAddingKategori, setIsAddingKategori] = useState(false); const [newKategoriName, setNewKategoriName] = useState("");
+
+  const addMasterMutation = useMutation({
+    mutationFn: async ({ type, payload }: { type: 'areas' | 'pekerja' | 'kategori', payload: any }) => {
+      const res = await fetch(`/api/notion/${type}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      if (!res.ok) throw new Error(`Gagal tambah ${type}`); return res.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["perawatan-dropdown-options"] }),
+    onError: (err) => toast({ variant: "destructive", title: "Gagal", description: err.message })
   });
 
   const form = useForm<PerawatanFormValues>({ resolver: zodResolver(perawatanSchema), defaultValues: EMPTY_VALUES, shouldUnregister: false });
@@ -260,7 +278,21 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
                                 </button>
                               );
                             })}
+                            
+                            {/* TOMBOL TAMBAH AREA BARU */}
+                            {isAddingArea ? (
+                              <div className="flex items-center gap-1 bg-muted/50 rounded-full pl-3 pr-1 py-1 border border-border">
+                                <input autoFocus className="bg-transparent text-xs outline-none w-24 font-medium" placeholder="Nama area..." value={newAreaName} onChange={(e) => setNewAreaName(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter') { e.preventDefault(); addMasterMutation.mutate({ type: 'areas', payload: { name: newAreaName }}); setIsAddingArea(false); setNewAreaName(""); } }} />
+                                <Button type="button" size="icon" variant="ghost" className="h-6 w-6 text-green-600 rounded-full" onClick={() => { addMasterMutation.mutate({ type: 'areas', payload: { name: newAreaName }}); setIsAddingArea(false); setNewAreaName(""); }}><Check className="h-3 w-3"/></Button>
+                                <Button type="button" size="icon" variant="ghost" className="h-6 w-6 text-destructive rounded-full" onClick={() => setIsAddingArea(false)}><X className="h-3 w-3"/></Button>
+                              </div>
+                            ) : (
+                              <button type="button" onClick={() => setIsAddingArea(true)} className="px-3 py-2 rounded-full text-xs font-semibold border border-dashed border-primary/50 text-primary hover:bg-primary/5 transition-all flex items-center gap-1">
+                                <Plus className="h-3 w-3" /> Tambah
+                              </button>
+                            )}
                           </div>
+
                         </div>
                       </motion.div>
                     )}
@@ -314,7 +346,7 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
                         {/* CARD 3. Pekerja */}
                         <div className="bg-card p-4 rounded-2xl border border-border shadow-sm space-y-3">
                           <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">3. Tim Pekerja</p>
-                          <div className="flex flex-wrap gap-1.5 max-h-[120px] overflow-y-auto pr-1">
+                          <div className="flex flex-wrap gap-1.5 max-h-[120px] overflow-y-auto pr-1 items-center">
                             {dropdownOptions?.petugas?.map((item) => {
                               const isSelected = form.watch("petugasBroadcast").includes(item.id);
                               return (
@@ -322,17 +354,48 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
                                 const cur = form.getValues("petugasBroadcast"); form.setValue("petugasBroadcast", isSelected ? cur.filter(id => id !== item.id) : [...cur, item.id]);
                               }} className={`px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all border ${isSelected ? "bg-primary text-primary-foreground border-primary shadow-sm scale-105" : "bg-background text-muted-foreground border-border hover:bg-muted/80 shadow-sm"}`}>{item.name}</button>
                             )})}
+
+                            {/* TOMBOL TAMBAH PEKERJA BARU */}
+                            {isAddingPekerja ? (
+                              <div className="flex items-center gap-1 bg-muted/50 rounded-full pl-2 pr-1 py-0.5 border border-border">
+                                <input autoFocus className="bg-transparent text-[11px] outline-none w-20 font-medium" placeholder="Nama..." value={newPekerjaName} onChange={(e) => setNewPekerjaName(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter') { e.preventDefault(); addMasterMutation.mutate({ type: 'pekerja', payload: { nama: newPekerjaName }}); setIsAddingPekerja(false); setNewPekerjaName(""); } }} />
+                                <Button type="button" size="icon" variant="ghost" className="h-5 w-5 text-green-600 rounded-full" onClick={() => { addMasterMutation.mutate({ type: 'pekerja', payload: { nama: newPekerjaName }}); setIsAddingPekerja(false); setNewPekerjaName(""); }}><Check className="h-3 w-3"/></Button>
+                                <Button type="button" size="icon" variant="ghost" className="h-5 w-5 text-destructive rounded-full" onClick={() => setIsAddingPekerja(false)}><X className="h-3 w-3"/></Button>
+                              </div>
+                            ) : (
+                              <button type="button" onClick={() => setIsAddingPekerja(true)} className="px-2 py-1.5 rounded-full text-[11px] font-semibold border border-dashed border-primary/50 text-primary hover:bg-primary/5 transition-all flex items-center gap-1">
+                                <Plus className="h-3 w-3" /> Baru
+                              </button>
+                            )}
                           </div>
                         </div>
 
                         {/* CARD 4. Tags, Status & Catatan */}
                         <div className="bg-card p-4 rounded-2xl border border-border shadow-sm space-y-3">
                            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">4. Atribut & Catatan</p>
-                           <div className="grid grid-cols-2 gap-3">
-                              <Select onValueChange={(val) => form.setValue("tagsBroadcast", val)} value={form.watch("tagsBroadcast") || ""}>
-                                <SelectTrigger className="h-10 rounded-xl bg-background border-input text-xs font-medium"><SelectValue placeholder="Pilih tag..." /></SelectTrigger>
-                                <SelectContent className="rounded-xl"><SelectItem value="Pengocoran">Pengocoran</SelectItem><SelectItem value="Penyemprotan">Penyemprotan</SelectItem><SelectItem value="Pemupukan Dasar">Pemupukan Dasar</SelectItem><SelectItem value="Selingan">Selingan</SelectItem><SelectItem value="Lainnya">Lainnya</SelectItem></SelectContent>
-                              </Select>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="space-y-1.5">
+                                <Select onValueChange={(val) => form.setValue("tagsBroadcast", val)} value={form.watch("tagsBroadcast") || ""}>
+                                  <SelectTrigger className="h-10 rounded-xl bg-background border-input text-xs font-medium"><SelectValue placeholder="Pilih Kategori..." /></SelectTrigger>
+                                  <SelectContent className="rounded-xl">
+                                    {dropdownOptions?.kategori?.map((kat) => (
+                                      <SelectItem key={kat.id} value={kat.id}>{kat.name}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                {/* INPUT TAMBAH KATEGORI DI BAWAH DROPDOWN */}
+                                {isAddingKategori ? (
+                                  <div className="flex items-center gap-1 mt-1 bg-muted/50 rounded-lg p-1 border border-border">
+                                    <input autoFocus className="bg-transparent text-[11px] px-1 outline-none w-full font-medium" placeholder="Kategori baru..." value={newKategoriName} onChange={(e) => setNewKategoriName(e.target.value)} />
+                                    <Button type="button" size="icon" variant="ghost" className="h-6 w-6 text-green-600 rounded-md shrink-0" onClick={() => { addMasterMutation.mutate({ type: 'kategori', payload: { name: newKategoriName, module: 'perawatan' }}); setIsAddingKategori(false); setNewKategoriName(""); }}><Check className="h-3 w-3"/></Button>
+                                    <Button type="button" size="icon" variant="ghost" className="h-6 w-6 text-destructive rounded-md shrink-0" onClick={() => setIsAddingKategori(false)}><X className="h-3 w-3"/></Button>
+                                  </div>
+                                ) : (
+                                  <button type="button" onClick={() => setIsAddingKategori(true)} className="text-[10px] font-bold text-primary flex items-center hover:underline pl-1 pt-0.5"><Plus className="h-3 w-3 mr-0.5"/> Tambah Kategori</button>
+                                )}
+                              </div>
+                              
+                              {/* STATUS TETAP DI SINI */}
                               <Select onValueChange={(val) => form.setValue("statusBroadcast", val)} value={form.watch("statusBroadcast") || ""}>
                                 <SelectTrigger className="h-10 rounded-xl bg-background border-input text-xs font-medium"><SelectValue placeholder="Status..." /></SelectTrigger>
                                 <SelectContent className="rounded-xl"><SelectItem value="Rencana">Rencana</SelectItem><SelectItem value="Proses">Sedang Berlangsung</SelectItem><SelectItem value="Selesai">Selesai</SelectItem></SelectContent>
