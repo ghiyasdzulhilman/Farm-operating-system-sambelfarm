@@ -424,17 +424,6 @@ export function DashboardPage() {
           <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/20 blur-[80px]" />
           
           <div className="relative z-10">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="mb-1 text-xs font-bold text-white/60">Business pulse</p>
-                <h2 className="text-2xl font-black text-white md:text-3xl transition-colors duration-500">
-                  {localBusinessStatus}
-                </h2>
-              </div>
-              <div className="rounded-2xl bg-white/10 p-3 backdrop-blur-md">
-                <Bot className="h-6 w-6 text-white" />
-              </div>
-            </div>
 
             <div className="mt-5 md:mt-6">
               <div className="grid grid-cols-2 gap-3 text-sm">
