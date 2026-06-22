@@ -1,303 +1,177 @@
-import { useMemo, useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  Leaf, Plus, FileText, Loader2, TrendingUp,
-  MoreHorizontal, Sprout, Wrench, ChevronRight, Layers,
-} from "lucide-react";
+// src/components/operasional/MasterTableView.tsx
+import { useMemo } from "react";
+import { useReactTable, getCoreRowModel, getSortedRowModel, flexRender, type ColumnDef } from "@tanstack/react-table";
+import { Eye, Trash2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-
-import { SummaryHeader } from "@/components/operasional/SummaryHeader";
-import { FilterControls } from "@/components/operasional/FilterControls";
-import { LiveFeedView } from "@/components/operasional/LiveFeedView";
-import { ActivityDetailSheet } from "@/components/operasional/ActivityDetailSheet";
-import { MasterTableView } from "@/components/operasional/MasterTableView";
-import type { AgronomyItem, ModuleKey, ViewKey } from "@/types/operasional";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import type { AgronomyItem } from "@/types/operasional";
+import { EditableCell } from "./EditableCell";
 
-type FeedModeKey = "time" | "area";
+type RichAgronomyItem = AgronomyItem & { metaEkstra?: Record<string, any> };
 
-export function AgronomyHubPage() {
+export function MasterTableView({ 
+  items, 
+  onItemClick, 
+  onDeleteClick 
+}: { 
+  items: RichAgronomyItem[]; 
+  onItemClick: (item: RichAgronomyItem) => void;
+  onDeleteClick?: (id: string) => void;
+}) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const [activeView, setActiveView] = useState<ViewKey>("feed");
-  const [feedMode, setFeedMode] = useState<FeedModeKey>("time");
-  const [activeModule, setActiveModule] = useState<ModuleKey>("all");
-  const [activeFilter, setActiveFilter] = useState("Hari ini");
-  const [selectedItem, setSelectedItem] = useState<AgronomyItem | null>(null);
-
-  // =====================================================================
-  // 1. FETCH DATA (LANGSUNG DARI 3 ENDPOINT SUPABASE + MASTER PEKERJA)
-  // =====================================================================
-  const { data: unifiedFeedData, isLoading } = useQuery({
-    queryKey: ["agronomy-feed-supabase"],
-    queryFn: async () => {
-      const [resOp, resPer, resIns, resOptions] = await Promise.all([
-        fetch("/api/notion/all-operasional").then((res) => res.json()),
-        fetch("/api/notion/all-perawatan").then((res) => res.json()),
-        fetch("/api/notion/all-inspeksi").then((res) => res.json()),
-        fetch("/api/notion/operasional-dropdown-options").then((res) => res.json()),
-      ]);
-
-      const workerMap: Record<string, string> = {};
-      resOptions?.petugas?.forEach((p: any) => {
-        workerMap[p.id] = p.name;
-      });
-
-      const formatItem = (item: any, module: ModuleKey, icon: string, titleKey: string): AgronomyItem => {
-        const rawDate = item.waktuMulai || new Date().toISOString();
-        const cleanDate = rawDate.replace(/(Z|\+00:00)$/, '');
-        const itemDate = new Date(cleanDate);
-
-        const isToday = itemDate.toDateString() === new Date().toDateString();
-        const isYesterday = itemDate.toDateString() === new Date(Date.now() - 86400000).toDateString();
-
-        const rawWorkerIds = Array.isArray(item.pekerjaIds) ? item.pekerjaIds : [];
-        const resolvedWorkers = rawWorkerIds
-          .map((id: string) => workerMap[id] || null)
-          .filter(Boolean);
-
-        const catatanRacikan = module === "perawatan" && Array.isArray(item.logProduk) && item.logProduk.length > 0
-          ? `Bahan & Dosis:\n${item.logProduk.map((p: any) => `- ${p.produk} (${p.dosis})`).join("\n")}${item.catatan ? `\n\nCatatan Tambahan:\n${item.catatan}` : ""}`
-          : (item.catatan || item.keterangan || "Tidak ada catatan.");
-
-        return {
-          id: item.id,
-          module: module,
-          icon: icon,
-          title: item[titleKey] || "Tanpa Judul",
-          time: itemDate.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
-          rawDate: item.waktuMulai || new Date().toISOString(),
-          status: item.status || "Belum dikerjakan",
-          areaId: item.areaId,
-          area: item.areaName || "Area Master",
-          workers: resolvedWorkers.length ? resolvedWorkers : ["Tim Lapangan"], 
-          duration: `${item.durasiKerja || 0} jam`,
-          priority: item.prioritas || "Medium",
-          category: item.kategori || item.tagCategory || (module === "inspeksi" ? "Diagnosis" : "Umum"),
-          notes: catatanRacikan,
-          dateLabel: isToday ? "Hari ini" : isYesterday ? "Kemarin" : "Riwayat Lama",
-          timeLabel: "Disinkronkan",
-          attachments: [],
-          history: [{ time: "Supabase Live", text: "Data ditarik langsung dari server lokal." }],
-          metaEkstra: { ...item },
-        } as unknown as AgronomyItem;
-      };
-
-      const ops = (resOp.data || []).map((i: any) => formatItem(i, "operasional", "wrench", "namaPekerjaan"));
-      const per = (resPer.data || []).map((i: any) => formatItem(i, "perawatan", "sprout", "kegiatan"));
-      const ins = (resIns.data || []).map((i: any) => formatItem(i, "inspeksi", "leaf", "kegiatan"));
-
-      return [...ops, ...per, ...ins].sort(
-        (a, b) => new Date(b.rawDate).getTime() - new Date(a.rawDate).getTime()
-      );
-    },
-    refetchInterval: 60000,
-  });
-
-  const feedData: AgronomyItem[] = unifiedFeedData || [];
-  const meta = { stagingCount: 0, lastSynced: new Date().toISOString() };
-
-  // 💡 AUTO-REFRESH DETAIL SHEET (Penting buat efek Notion)
-  // Kalau ada data berubah di background, sheet detail yang lagi kebuka langsung kedip update otomatis
-  useEffect(() => {
-    if (selectedItem && unifiedFeedData) {
-      const freshItem = unifiedFeedData.find((i: any) => i.id === selectedItem.id);
-      if (freshItem && JSON.stringify(freshItem) !== JSON.stringify(selectedItem)) {
-        setSelectedItem(freshItem);
-      }
-    }
-  }, [unifiedFeedData, selectedItem]);
-
-  // =====================================================================
-  // 2. MUTATION: UNIVERSAL DYNAMIC UPDATE (Siap nerima data apa aja)
-  // =====================================================================
-  const updateStatusMutation = useMutation({
-    mutationFn: async ({ id, module, ...updateData }: { id: string; module: string; [key: string]: any }) => {
-      // Tembak langsung ke endpoint universal yang udah lu siapin di operasional.ts
-      const response = await fetch(`/api/notion/edit-activity/${id}`, {
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, module, payload }: { id: string; module: string; payload: any }) => {
+      const res = await fetch(`/api/notion/edit-activity/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ module, ...updateData }),
+        body: JSON.stringify({ module, ...payload }),
       });
-      if (!response.ok) throw new Error("Gagal menyimpan perubahan");
-      return response.json();
+      if (!res.ok) throw new Error("Gagal menyimpan perubahan");
+      return res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] });
-      // Toast kita hilangkan sebagian biar persis Notion: save di background secara diam-diam tanpa berisik
-    },
-    onError: (err) => {
-      toast({ variant: "destructive", title: "Gagal Menyimpan", description: err instanceof Error ? err.message : "Kesalahan jaringan." });
-    }
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] }),
+    onError: (err: any) => toast({ variant: "destructive", title: "Gagal Simpan", description: err.message }),
   });
 
-  // =====================================================================
-  // 3. FILTER LOGIC
-  // =====================================================================
-  const filteredItems = useMemo(() => {
-    return feedData.filter((item) => {
-      const matchModule = activeModule === "all" ? true : item.module === activeModule;
-
-      let matchFilter = true;
-      if (activeFilter === "Hari ini") matchFilter = item.dateLabel === "Hari ini";
-      else if (activeFilter === "Kemarin") matchFilter = item.dateLabel === "Kemarin";
-      else if (activeFilter === "Selesai") matchFilter = item.status === "Selesai";
-      else if (activeFilter === "Dalam proses") matchFilter = item.status === "Dalam proses";
-      else if (activeFilter === "Belum dikerjakan") matchFilter = item.status === "Belum dikerjakan";
-
-      return matchModule && matchFilter;
-    });
-  }, [feedData, activeModule, activeFilter]);
-
-  if (isLoading) {
-    return (
-      <div className="flex h-[60vh] w-full flex-col items-center justify-center gap-4 text-muted-foreground">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-sm font-bold uppercase tracking-widest">Memuat Database Kebun...</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6 space-y-6 text-left">
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground shadow-sm">
-            <Leaf className="h-3.5 w-3.5 text-primary" />
-            Agronomy Hub
-          </div>
-          <h1 className="text-3xl font-black tracking-tight md:text-4xl">Pusat Aktivitas</h1>
-          <p className="max-w-2xl text-sm text-muted-foreground">
-            Gabungan perawatan, inspeksi, dan operasional harian.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <Button className="h-11 rounded-xl bg-primary px-4 font-bold text-primary-foreground shadow-sm">
-            <Plus className="mr-2 h-4 w-4" /> Log Aktivitas
+  const columns = useMemo<ColumnDef<RichAgronomyItem>[]>(() => [
+    {
+      accessorKey: "title",
+      header: "Aktivitas",
+      cell: ({ row }) => (
+        <EditableCell
+          value={row.original.title}
+          onSave={(val) => {
+            const field = row.original.module === "operasional" ? "namaPekerjaan" : "kegiatan";
+            updateMutation.mutate({ id: row.original.id, module: row.original.module, payload: { [field]: val } });
+          }}
+          className="font-semibold"
+        />
+      ),
+    },
+    {
+      accessorKey: "area",
+      header: "Area",
+      cell: ({ row }) => <span className="font-medium">{row.original.area || "—"}</span>,
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }) => (
+        <EditableCell
+          value={row.original.status}
+          type="select"
+          options={["Belum dikerjakan", "Dalam proses", "Selesai"]}
+          onSave={(val) => updateMutation.mutate({ id: row.original.id, module: row.original.module, payload: { status: val } })}
+        />
+      ),
+    },
+    {
+      accessorKey: "duration",
+      header: "Durasi",
+      cell: ({ row }) => `${row.original.duration || 0} jam`,
+    },
+    // Kolom khusus Inspeksi
+    {
+      id: "phTanah",
+      header: "pH Tanah",
+      cell: ({ row }) => row.original.module === "inspeksi" ? (
+        <EditableCell
+          value={row.original.metaEkstra?.phTanah}
+          type="number"
+          onSave={(val) => updateMutation.mutate({ id: row.original.id, module: "inspeksi", payload: { phTanah: val } })}
+        />
+      ) : "—",
+    },
+    {
+      id: "tingkatSerangan",
+      header: "Serangan (%)",
+      cell: ({ row }) => row.original.module === "inspeksi" ? (
+        <EditableCell
+          value={row.original.metaEkstra?.tingkatSerangan}
+          type="number"
+          onSave={(val) => updateMutation.mutate({ id: row.original.id, module: "inspeksi", payload: { tingkatSerangan: val } })}
+        />
+      ) : "—",
+    },
+    {
+      accessorKey: "notes",
+      header: "Catatan",
+      cell: ({ row }) => (
+        <EditableCell
+          value={row.original.notes}
+          type="textarea"
+          onSave={(val) => {
+            const field = row.original.module === "inspeksi" ? "keterangan" : "catatan";
+            updateMutation.mutate({ id: row.original.id, module: row.original.module, payload: { [field]: val } });
+          }}
+        />
+      ),
+    },
+    {
+      id: "actions",
+      header: "Aksi",
+      cell: ({ row }) => (
+        <div className="flex gap-1">
+          <Button variant="ghost" size="sm" onClick={() => onItemClick(row.original)}>
+            <Eye className="h-4 w-4" />
           </Button>
-          <Button variant="outline" className="h-11 rounded-xl px-4 font-bold">
-            <FileText className="mr-2 h-4 w-4" /> Riwayat
-          </Button>
-        </div>
-      </div>
-
-      <SummaryHeader feedData={feedData} meta={meta} />
-
-      <FilterControls
-        feedData={feedData}
-        activeView={activeView}
-        setActiveView={setActiveView}
-        activeModule={activeModule}
-        setActiveModule={setActiveModule}
-        activeFilter={activeFilter}
-        setActiveFilter={setActiveFilter}
-      />
-
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1.4fr_0.9fr]">
-        <div className="space-y-6">
-          {activeView === "feed" && (
-            <div className="flex items-center justify-between rounded-2xl border border-border/60 bg-muted/20 px-4 py-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Mode Tampilan:</span>
-              <div className="flex gap-1">
-                <Button variant={feedMode === "time" ? "secondary" : "ghost"} size="sm" className="h-8 rounded-xl text-xs font-bold" onClick={() => setFeedMode("time")}><TrendingUp className="mr-2 h-3.5 w-3.5" /> Kronologis</Button>
-                <Button variant={feedMode === "area" ? "secondary" : "ghost"} size="sm" className="h-8 rounded-xl text-xs font-bold" onClick={() => setFeedMode("area")}><Layers className="mr-2 h-3.5 w-3.5" /> Pivot Area</Button>
-              </div>
-            </div>
-          )}
-
-          {activeView === "feed" && (
-            <LiveFeedView 
-              items={filteredItems} 
-              onItemClick={setSelectedItem} 
-              // 💡 WAJIB ngirim 'module' biar backend tau tabel mana yang ditembak
-              onStatusChange={(id, status) => {
-                const target = filteredItems.find(i => i.id === id);
-                if (target) updateStatusMutation.mutate({ id, status, module: target.module });
-              }} 
-            />
-          )}
-
-          {activeView === "table" && (
-            <MasterTableView 
-              items={filteredItems} 
-              onItemClick={setSelectedItem} 
-              // 💡 WAJIB ngirim 'module'
-              onStatusChange={(id, status) => {
-                const target = filteredItems.find(i => i.id === id);
-                if (target) updateStatusMutation.mutate({ id, status, module: target.module });
-              }} 
-            />
+          {onDeleteClick && (
+            <Button variant="ghost" size="sm" onClick={() => onDeleteClick(row.original.id)}>
+              <Trash2 className="h-4 w-4 text-destructive" />
+            </Button>
           )}
         </div>
+      ),
+    },
+  ], [updateMutation, onItemClick, onDeleteClick]);
 
-        <aside className="space-y-4">
-          <div className="rounded-3xl border border-border/60 bg-card p-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Snapshot</p>
-                <h3 className="mt-1 text-lg font-black tracking-tight">Ringkasan Cepat</h3>
-              </div>
-              <div className="rounded-2xl bg-primary/10 p-3 text-primary"><TrendingUp className="h-5 w-5" /></div>
-            </div>
-            <div className="mt-4 space-y-3">
-              <InfoRow label="Total Aktivitas" value={`${feedData.length}`} />
-              <InfoRow label="Aktivitas Tertunda" value={`${feedData.filter((i) => i.status === "Belum dikerjakan").length}`} />
-              <InfoRow label="Data Terakhir Load" value={new Date(meta.lastSynced).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} />
-            </div>
-          </div>
+  const table = useReactTable({
+    data: items,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+  });
 
-          <div className="rounded-3xl border border-border/60 bg-card p-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Shortcut</p>
-                <h3 className="mt-1 text-lg font-black tracking-tight">Aksi Cepat</h3>
-              </div>
-              <div className="rounded-2xl bg-muted p-3 text-muted-foreground"><MoreHorizontal className="h-5 w-5" /></div>
-            </div>
-            <div className="mt-4 grid gap-2">
-              <ShortcutButton icon={Sprout} label="Tambah Perawatan" />
-              <ShortcutButton icon={Leaf} label="Tambah Inspeksi" />
-              <ShortcutButton icon={Wrench} label="Tambah Operasional" />
-            </div>
-          </div>
-        </aside>
+  return (
+    <div className="rounded-3xl border border-border/60 bg-card shadow-sm overflow-hidden">
+      <div className="px-6 py-4 border-b bg-muted/30 flex justify-between items-center">
+        <div>
+          <p className="font-black">Master Agronomy Table</p>
+          <p className="text-xs text-muted-foreground">Inline editing • Real-time Supabase</p>
+        </div>
+        <Badge variant="outline">3 Modul Terintegrasi</Badge>
       </div>
 
-      <ActivityDetailSheet 
-        item={selectedItem} 
-        onClose={() => setSelectedItem(null)} 
-        // 💡 Di sini kita juga bisa passing payload dinamis tambahan (selain status) ke mutasi yang sama!
-        onStatusChange={(id, payload) => {
-          if (selectedItem) {
-            // Kalau payload bentuknya string, berarti itu status. Kalau objek, berarti update data lain.
-            const updateData = typeof payload === "string" ? { status: payload } : payload;
-            updateStatusMutation.mutate({ id, module: selectedItem.module, ...updateData });
-          }
-        }} 
-      />
-    </div>
-  );
-}
-
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between rounded-2xl bg-muted/30 px-4 py-3">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="text-sm font-bold">{value}</span>
-    </div>
-  );
-}
-
-function ShortcutButton({ icon: Icon, label }: { icon: any; label: string }) {
-  return (
-    <button className="flex items-center justify-between rounded-2xl border border-border/60 bg-card px-4 py-3 text-left shadow-sm transition-all hover:bg-muted/20 w-full">
-      <div className="flex items-center gap-3">
-        <div className="rounded-2xl bg-primary/10 p-2 text-primary"><Icon className="h-4 w-4" /></div>
-        <span className="text-sm font-semibold">{label}</span>
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            {table.getHeaderGroups().map(headerGroup => (
+              <tr key={headerGroup.id} className="border-b bg-muted/50">
+                {headerGroup.headers.map(header => (
+                  <th key={header.id} className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    {flexRender(header.column.columnDef.header, header.getContext())}
+                  </th>
+                ))}
+              </tr>
+            ))}
+          </thead>
+          <tbody>
+            {table.getRowModel().rows.map(row => (
+              <tr key={row.id} className="border-b hover:bg-muted/50 transition-colors">
+                {row.getVisibleCells().map(cell => (
+                  <td key={cell.id} className="px-6 py-4">
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-      <ChevronRight className="h-4 w-4 text-muted-foreground" />
-    </button>
+    </div>
   );
 }
