@@ -1,7 +1,7 @@
 // src/components/operasional/MasterTableView.tsx
 import { useMemo } from "react";
 import { useReactTable, getCoreRowModel, getSortedRowModel, flexRender, type ColumnDef } from "@tanstack/react-table";
-import { Eye, Trash2 } from "lucide-react";
+import { Eye, Trash2, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -23,23 +23,21 @@ export function MasterTableView({
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // 1. Ambil opsi master (Area & Petugas) langsung dari API internal backend kamu
+  // 1. Fetch Opsi Master (Area & Pekerja)
   const { data: dropdownOptions } = useQuery({
     queryKey: ["operasional-options-list"],
     queryFn: async () => fetch("/api/notion/operasional-dropdown-options").then(res => res.json())
   });
 
-  // Susun opsi area untuk dropdown EditableCell [{ label: "Blok A", value: "uuid" }]
   const areaOptions = useMemo(() => {
     return (dropdownOptions?.areas || []).map((a: any) => ({ label: a.name, value: a.id }));
   }, [dropdownOptions]);
 
-  // Susun opsi pekerja berupa array nama string untuk multi-select
   const workerNames = useMemo<string[]>(() => {
     return (dropdownOptions?.petugas || []).map((p: any) => p.name) || [];
   }, [dropdownOptions]);
 
-  // 2. Mutation Universal untuk edit data via API PATCH kamu
+  // 2. Mutation PATCH Data (Dinamis sesuai module)
   const updateMutation = useMutation({
     mutationFn: async ({ id, module, payload }: { id: string; module: string; payload: any }) => {
       const res = await fetch(`/api/notion/edit-activity/${id}`, {
@@ -54,10 +52,11 @@ export function MasterTableView({
     onError: (err: any) => toast({ variant: "destructive", title: "Gagal Simpan", description: err.message }),
   });
 
+  // 3. Definisi Kolom Dinamis
   const columns = useMemo<ColumnDef<RichAgronomyItem>[]>(() => [
     {
       id: "aktivitas",
-      header: "Aktivitas",
+      header: "Kegiatan / Pekerjaan",
       cell: ({ row }) => {
         const item = row.original;
         return (
@@ -66,7 +65,7 @@ export function MasterTableView({
               <EditableCell
                 value={item.title}
                 onSave={(val) => {
-                  // Dinamis menetapkan camelCase field Drizzle ORM
+                  // 💡 PEMETAAN DINAMIS: operasional -> namaPekerjaan | perawatan/inspeksi -> kegiatan
                   const field = item.module === "operasional" ? "namaPekerjaan" : "kegiatan";
                   updateMutation.mutate({ id: item.id, module: item.module, payload: { [field]: val } });
                 }}
@@ -79,7 +78,7 @@ export function MasterTableView({
               onClick={() => onItemClick(item)}
               className="opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7 p-0"
             >
-              <Eye className="h-4 w-4" />
+              <Eye className="h-4 w-4 text-muted-foreground hover:text-primary" />
             </Button>
           </div>
         );
@@ -115,7 +114,7 @@ export function MasterTableView({
     },
     {
       id: "waktuMulai",
-      header: "Mulai",
+      header: "Waktu Mulai",
       cell: ({ row }) => {
         const item = row.original;
         const dateValue = item.rawDate ? new Date(item.rawDate).toISOString().slice(0, 16) : "";
@@ -125,7 +124,6 @@ export function MasterTableView({
             type="datetime-local"
             onSave={(val) => {
               if (val) {
-                // Kirim format ISO String murni yang disukai Postgres Timestamp
                 updateMutation.mutate({ id: item.id, module: item.module, payload: { waktuMulai: new Date(val).toISOString() } });
               }
             }}
@@ -135,7 +133,7 @@ export function MasterTableView({
     },
     {
       id: "durasi",
-      header: "Durasi",
+      header: "Durasi (Jam)",
       cell: ({ row }) => {
         const item = row.original;
         const rawHours = typeof item.duration === "string" ? parseInt(item.duration) || 0 : item.duration;
@@ -153,9 +151,19 @@ export function MasterTableView({
       header: "Kategori",
       cell: ({ row }) => {
         const item = row.original;
+        
+        // 💡 PEMETAAN DINAMIS: Inspeksi di-lock karena tidak punya kolom kategori di database
+        if (item.module === "inspeksi") {
+          return (
+            <div className="flex items-center gap-1.5 px-2 py-1.5 text-xs text-muted-foreground bg-muted/30 rounded-md w-fit">
+              <Lock className="h-3 w-3" />
+              <span>{item.category || "Diagnosis"}</span>
+            </div>
+          );
+        }
+
         const optionsMap: Record<string, string[]> = {
           perawatan: ["Biologis / POC", "Fungisida", "Insektisida", "Olah Tanah"],
-          inspeksi: ["Diagnosis", "Rutin"],
           operasional: ["Penyemprotan", "Panen", "Sanitasi", "Maintenance", "Lainnya"]
         };
         const currentOptions = optionsMap[item.module] || ["Lainnya"];
@@ -166,7 +174,7 @@ export function MasterTableView({
             type="select"
             options={currentOptions}
             onSave={(val) => {
-              // Menyesuaikan penamaan field camelCase database Drizzle per tabel modul
+              // 💡 PEMETAAN DINAMIS: perawatan -> tagCategory | operasional -> kategori
               const field = item.module === "perawatan" ? "tagCategory" : "kategori";
               updateMutation.mutate({ id: item.id, module: item.module, payload: { [field]: val } });
             }}
@@ -188,7 +196,7 @@ export function MasterTableView({
             options={workerNames} 
             placeholder="Pilih Pekerja"
             onSave={(nextNames: string[]) => {
-              // Memetakan balik array nama dari UI menjadi array UUID asli sebelum dikirim ke Drizzle
+              // Reverse mapping: Nama Pekerja -> Array of UUID
               const nextIds = nextNames.map(name => {
                 const matched = dropdownOptions?.petugas?.find((p: any) => p.name === name);
                 return matched ? matched.id : null;
