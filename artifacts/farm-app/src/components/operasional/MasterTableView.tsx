@@ -121,7 +121,7 @@ export function MasterTableView({
               variant="ghost" 
               size="sm" 
               onClick={() => onItemClick(item)}
-              className="opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7 p-0"
+              className="text-muted-foreground hover:text-primary transition-opacity h-7 w-7 p-0"
             >
               <Eye className="h-4 w-4 text-muted-foreground hover:text-primary" />
             </Button>
