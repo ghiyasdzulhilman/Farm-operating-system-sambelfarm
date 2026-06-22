@@ -1,20 +1,20 @@
-import { CalendarDays, CheckCircle2, Clock3, TimerReset } from "lucide-react";
+import { CalendarDays, CheckCircle2, Clock3, ListTodo } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AgronomyItem } from "@/types/operasional";
 
 export function SummaryHeader({ feedData, meta }: { feedData: AgronomyItem[], meta: any }) {
-  // Hitung otomatis dari data backend
+  // Hitung otomatis dari data feed berdasarkan status aslinya
   const todayCount = feedData.filter((i) => i.dateLabel === "Hari ini").length;
   const doneCount = feedData.filter((i) => i.status === "Selesai").length;
-  const progressCount = feedData.filter((i) => i.status === "Dalam proses" && !i.isPendingStaging).length;
-  const pendingCount = meta?.stagingCount || 0;
+  const progressCount = feedData.filter((i) => i.status === "Dalam proses").length;
+  const todoCount = feedData.filter((i) => i.status === "Belum dikerjakan").length;
 
   return (
     <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
       <SummaryCard title="Aktivitas" value={todayCount} detail="hari ini" icon={CalendarDays} tint="bg-emerald-500/10 text-emerald-600" />
       <SummaryCard title="Selesai" value={doneCount} detail="sudah ditutup" icon={CheckCircle2} tint="bg-sky-500/10 text-sky-600" />
       <SummaryCard title="Proses" value={progressCount} detail="sedang jalan" icon={Clock3} tint="bg-amber-500/10 text-amber-600" />
-      <SummaryCard title="Pending" value={pendingCount} detail="antrean awan" icon={TimerReset} tint="bg-fuchsia-500/10 text-fuchsia-600" />
+      <SummaryCard title="Tertunda" value={todoCount} detail="belum dikerjakan" icon={ListTodo} tint="bg-slate-500/10 text-slate-600" />
     </div>
   );
 }
