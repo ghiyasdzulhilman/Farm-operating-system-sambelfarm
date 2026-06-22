@@ -261,5 +261,100 @@ router.patch("/notion/edit-activity/:id", async (req, res): Promise<void> => {
   }
 });
 
+// ==========================================
+// 6. ENDPOINT ADD & DELETE MASTER AREA
+// ==========================================
+router.post("/notion/areas", async (req, res): Promise<void> => {
+  const { userId } = getAuth(req);
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+  const { name } = req.body;
+  if (!name || typeof name !== "string" || name.trim() === "") {
+    res.status(400).json({ error: "Nama area wajib diisi." }); return;
+  }
+
+  try {
+    const [newArea] = await db.insert(areasTable)
+      .values({ name: name.trim() })
+      .returning();
+      
+    res.status(201).json({ success: true, data: newArea });
+  } catch (err) {
+    res.status(500).json({ error: "Gagal menambah area baru." });
+  }
+});
+
+router.delete("/notion/areas/:id", async (req, res): Promise<void> => {
+  const { userId } = getAuth(req);
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+  const { id } = req.params;
+  if (!id) { res.status(400).json({ error: "ID area wajib disertakan." }); return; }
+
+  try {
+    // Ingat: Karena efek cascade di schema, ini akan menghapus riwayat operasional terkait juga
+    const [deletedArea] = await db.delete(areasTable)
+      .where(eq(areasTable.id, id))
+      .returning();
+
+    if (!deletedArea) {
+      res.status(404).json({ error: "Area tidak ditemukan." }); return;
+    }
+    
+    res.json({ success: true, message: "Area dan riwayat terkait berhasil dihapus.", data: deletedArea });
+  } catch (err) {
+    res.status(500).json({ error: "Gagal menghapus area." });
+  }
+});
+
+// ==========================================
+// 7. ENDPOINT ADD & DELETE MASTER PEKERJA
+// ==========================================
+router.post("/notion/pekerja", async (req, res): Promise<void> => {
+  const { userId } = getAuth(req);
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+  const { nama, kontak, role, jenisTenagaKerja } = req.body;
+  if (!nama || typeof nama !== "string" || nama.trim() === "") {
+    res.status(400).json({ error: "Nama pekerja wajib diisi." }); return;
+  }
+
+  try {
+    const [newPekerja] = await db.insert(pekerjaTable)
+      .values({ 
+        nama: nama.trim(),
+        kontak: kontak || null,
+        role: role || "Karyawan Kebun",
+        jenisTenagaKerja: jenisTenagaKerja || "Internal"
+      })
+      .returning();
+      
+    res.status(201).json({ success: true, data: newPekerja });
+  } catch (err) {
+    res.status(500).json({ error: "Gagal menambah pekerja baru." });
+  }
+});
+
+router.delete("/notion/pekerja/:id", async (req, res): Promise<void> => {
+  const { userId } = getAuth(req);
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+  const { id } = req.params;
+  if (!id) { res.status(400).json({ error: "ID pekerja wajib disertakan." }); return; }
+
+  try {
+    const [deletedPekerja] = await db.delete(pekerjaTable)
+      .where(eq(pekerjaTable.id, id))
+      .returning();
+
+    if (!deletedPekerja) {
+      res.status(404).json({ error: "Pekerja tidak ditemukan." }); return;
+    }
+    
+    res.json({ success: true, message: "Pekerja berhasil dihapus.", data: deletedPekerja });
+  } catch (err) {
+    res.status(500).json({ error: "Gagal menghapus pekerja." });
+  }
+});
 
 export default router;
