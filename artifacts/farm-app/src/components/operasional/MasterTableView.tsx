@@ -8,7 +8,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import type { AgronomyItem } from "@/types/operasional";
 import { EditableCell } from "./EditableCell";
-import { supabase } from "@/lib/supabase"; // Sesuaikan lokasi inisialisasi Supabase client kamu
 
 type RichAgronomyItem = AgronomyItem & { metaEkstra?: Record<string, any> };
 
@@ -24,25 +23,23 @@ export function MasterTableView({
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Fetch daftar master area langsung dari Supabase untuk opsi pemetaan dropdown
-  const { data: areaOptions = [] } = useQuery({
-    queryKey: ["master-areas-list"],
-    queryFn: async () => {
-      const { data } = await supabase.from("areas").select("id, name");
-      return (data || []).map(a => ({ label: a.name, value: a.id }));
-    }
-  });
-
-  // Fetch data referensi daftar petugas dari endpoint dropdown yang sudah ada di aplikasi
-  const { data: rawOptions } = useQuery({
+  // 1. Ambil opsi master (Area & Petugas) langsung dari API internal backend kamu
+  const { data: dropdownOptions } = useQuery({
     queryKey: ["operasional-options-list"],
     queryFn: async () => fetch("/api/notion/operasional-dropdown-options").then(res => res.json())
   });
 
-  const workerNames = useMemo<string[]>(() => {
-    return rawOptions?.petugas?.map((p: any) => p.name) || [];
-  }, [rawOptions]);
+  // Susun opsi area untuk dropdown EditableCell [{ label: "Blok A", value: "uuid" }]
+  const areaOptions = useMemo(() => {
+    return (dropdownOptions?.areas || []).map((a: any) => ({ label: a.name, value: a.id }));
+  }, [dropdownOptions]);
 
+  // Susun opsi pekerja berupa array nama string untuk multi-select
+  const workerNames = useMemo<string[]>(() => {
+    return (dropdownOptions?.petugas || []).map((p: any) => p.name) || [];
+  }, [dropdownOptions]);
+
+  // 2. Mutation Universal untuk edit data via API PATCH kamu
   const updateMutation = useMutation({
     mutationFn: async ({ id, module, payload }: { id: string; module: string; payload: any }) => {
       const res = await fetch(`/api/notion/edit-activity/${id}`, {
@@ -50,7 +47,7 @@ export function MasterTableView({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ module, ...payload }),
       });
-      if (!res.ok) throw new Error("Gagal menyimpan data");
+      if (!res.ok) throw new Error("Gagal menyimpan perubahan");
       return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] }),
@@ -69,7 +66,7 @@ export function MasterTableView({
               <EditableCell
                 value={item.title}
                 onSave={(val) => {
-                  // Penamaan field disesuaikan secara dinamis berdasarkan jenis modulnya
+                  // Dinamis menetapkan camelCase field Drizzle ORM
                   const field = item.module === "operasional" ? "namaPekerjaan" : "kegiatan";
                   updateMutation.mutate({ id: item.id, module: item.module, payload: { [field]: val } });
                 }}
@@ -121,7 +118,6 @@ export function MasterTableView({
       header: "Mulai",
       cell: ({ row }) => {
         const item = row.original;
-        // Parsing format tanggal dari database agar pas saat dibaca komponen datetime-local input
         const dateValue = item.rawDate ? new Date(item.rawDate).toISOString().slice(0, 16) : "";
         return (
           <EditableCell
@@ -129,6 +125,7 @@ export function MasterTableView({
             type="datetime-local"
             onSave={(val) => {
               if (val) {
+                // Kirim format ISO String murni yang disukai Postgres Timestamp
                 updateMutation.mutate({ id: item.id, module: item.module, payload: { waktuMulai: new Date(val).toISOString() } });
               }
             }}
@@ -141,7 +138,6 @@ export function MasterTableView({
       header: "Durasi",
       cell: ({ row }) => {
         const item = row.original;
-        // Ekstrak angka murni durasi kerja (menghilangkan suffix teks ' jam')
         const rawHours = typeof item.duration === "string" ? parseInt(item.duration) || 0 : item.duration;
         return (
           <EditableCell
@@ -160,9 +156,9 @@ export function MasterTableView({
         const optionsMap: Record<string, string[]> = {
           perawatan: ["Biologis / POC", "Fungisida", "Insektisida", "Olah Tanah"],
           inspeksi: ["Diagnosis", "Rutin"],
-          operasional: ["Infrastruktur", "Sanitasi", "Panen", "Umum"]
+          operasional: ["Penyemprotan", "Panen", "Sanitasi", "Maintenance", "Lainnya"]
         };
-        const currentOptions = optionsMap[item.module] || ["Umum"];
+        const currentOptions = optionsMap[item.module] || ["Lainnya"];
 
         return (
           <EditableCell
@@ -170,6 +166,7 @@ export function MasterTableView({
             type="select"
             options={currentOptions}
             onSave={(val) => {
+              // Menyesuaikan penamaan field camelCase database Drizzle per tabel modul
               const field = item.module === "perawatan" ? "tagCategory" : "kategori";
               updateMutation.mutate({ id: item.id, module: item.module, payload: { [field]: val } });
             }}
@@ -182,12 +179,7 @@ export function MasterTableView({
       header: "Tim Pekerja",
       cell: ({ row }) => {
         const item = row.original;
-        // Mapping string nama pekerja kembali ke format id agar diproses tepat oleh multi-select dropdown
         const currentWorkerNames = Array.isArray(item.workers) ? item.workers : [];
-        const currentWorkerIds = currentWorkerNames.map(name => {
-          const matched = rawOptions?.petugas?.find((p: any) => p.name === name);
-          return matched ? matched.id : null;
-        }).filter(Boolean);
 
         return (
           <EditableCell
@@ -196,9 +188,9 @@ export function MasterTableView({
             options={workerNames} 
             placeholder="Pilih Pekerja"
             onSave={(nextNames: string[]) => {
-              // Konversi balik dari nama pilihan UI ke array UUID untuk dikirim ke API
+              // Memetakan balik array nama dari UI menjadi array UUID asli sebelum dikirim ke Drizzle
               const nextIds = nextNames.map(name => {
-                const matched = rawOptions?.petugas?.find((p: any) => p.name === name);
+                const matched = dropdownOptions?.petugas?.find((p: any) => p.name === name);
                 return matched ? matched.id : null;
               }).filter(Boolean);
 
@@ -217,10 +209,10 @@ export function MasterTableView({
         </Button>
       ),
     },
-  ], [updateMutation, onItemClick, onDeleteClick, areaOptions, workerNames, rawOptions]);
+  ], [updateMutation, onItemClick, onDeleteClick, areaOptions, workerNames, dropdownOptions]);
 
   const table = useReactTable({
-    data: items, // Biarkan halaman penampung utama yang mengontrol penyaringan data items
+    data: items,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
