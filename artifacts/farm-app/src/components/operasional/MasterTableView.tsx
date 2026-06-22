@@ -229,13 +229,6 @@ export function MasterTableView({
     return (
     // 1. Tambahkan "w-full max-w-full" di sini biar elemen ini gak menjebol batas layar HP
     <div className="w-full max-w-full rounded-3xl border border-border/60 bg-card shadow-sm overflow-hidden text-left">
-      <div className="px-6 py-4 border-b bg-muted/30 flex justify-between items-center">
-        <div>
-          <p className="font-black tracking-tight">Tabel Monitor Aktivitas</p>
-          <p className="text-xs text-muted-foreground">Klik teks untuk edit secara instan ala Notion • Perubahan otomatis tersinkronisasi</p>
-        </div>
-        <Badge variant="outline" className="capitalize">Mode Tabel Aktif</Badge>
-      </div>
 
       {/* 2. Pastikan div pembungkus tabel punya "w-full overflow-x-auto" */}
       <div className="w-full overflow-x-auto">
