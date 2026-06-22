@@ -197,7 +197,7 @@ return (
                         ${
                           isEmerald
                             ? "bg-primary/10 text-primary"
-                            : "bg-secondary/10 text-secondary"
+                            : "bg-secondary/10 text-primary"
                         }
                       `}
                     >
