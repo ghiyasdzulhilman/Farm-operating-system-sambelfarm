@@ -197,16 +197,7 @@ export function AgronomyHubPage() {
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1.4fr_0.9fr]">
         <div className="space-y-6 min-w-0">
-          {activeView === "feed" && (
-            <div className="flex items-center justify-between rounded-2xl border border-border/60 bg-muted/20 px-4 py-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Mode Tampilan:</span>
-              <div className="flex gap-1">
-                <Button variant={feedMode === "time" ? "secondary" : "ghost"} size="sm" className="h-8 rounded-xl text-xs font-bold" onClick={() => setFeedMode("time")}><TrendingUp className="mr-2 h-3.5 w-3.5" /> Kronologis</Button>
-                <Button variant={feedMode === "area" ? "secondary" : "ghost"} size="sm" className="h-8 rounded-xl text-xs font-bold" onClick={() => setFeedMode("area")}><Layers className="mr-2 h-3.5 w-3.5" /> Pivot Area</Button>
-              </div>
-            </div>
-          )}
-
+          
           {activeView === "feed" && (
             <LiveFeedView 
               items={filteredItems} 
