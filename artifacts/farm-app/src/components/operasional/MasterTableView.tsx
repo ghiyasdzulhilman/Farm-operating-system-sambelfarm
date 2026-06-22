@@ -51,23 +51,23 @@ export function MasterTableView({
     onError: (err: any) => toast({ variant: "destructive", title: "Gagal Simpan", description: err.message }),
   });
 
-  // Mutasi Area (Contoh endpoint, nanti kita buat backend-nya)
+    // Mutasi Area
   const addAreaMutation = useMutation({
-    mutationFn: async (name: string) => fetch('/api/notion/add-area', { method: 'POST', body: JSON.stringify({ name }), headers: { 'Content-Type': 'application/json' } }),
+    mutationFn: async (name: string) => fetch('/api/notion/areas', { method: 'POST', body: JSON.stringify({ name }), headers: { 'Content-Type': 'application/json' } }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["operasional-options-list"] })
   });
   const deleteAreaMutation = useMutation({
-    mutationFn: async (id: string) => fetch(`/api/notion/delete-area/${id}`, { method: 'DELETE' }),
+    mutationFn: async (id: string) => fetch(`/api/notion/areas/${id}`, { method: 'DELETE' }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["operasional-options-list"] })
   });
 
-  // Mutasi Pekerja (Contoh endpoint, nanti kita buat backend-nya)
+  // Mutasi Pekerja
   const addPekerjaMutation = useMutation({
-    mutationFn: async (nama: string) => fetch('/api/notion/add-pekerja', { method: 'POST', body: JSON.stringify({ nama }), headers: { 'Content-Type': 'application/json' } }),
+    mutationFn: async (nama: string) => fetch('/api/notion/pekerja', { method: 'POST', body: JSON.stringify({ nama }), headers: { 'Content-Type': 'application/json' } }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["operasional-options-list"] })
   });
   const deletePekerjaMutation = useMutation({
-    mutationFn: async (id: string) => fetch(`/api/notion/delete-pekerja/${id}`, { method: 'DELETE' }),
+    mutationFn: async (id: string) => fetch(`/api/notion/pekerja/${id}`, { method: 'DELETE' }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["operasional-options-list"] })
   });
 
