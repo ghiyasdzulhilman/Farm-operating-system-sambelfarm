@@ -102,7 +102,7 @@ export const EditableCell: React.FC<EditableCellProps> = ({
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      className="h-6 w-6 opacity-0 group-hover:opacity-100 text-destructive z-10 relative"
+                      className="h-6 w-6 text-destructive/70 hover:text-destructive z-10 relative"
                       onClick={(e) => { 
                         e.preventDefault(); 
                         e.stopPropagation(); 
@@ -173,7 +173,7 @@ export const EditableCell: React.FC<EditableCellProps> = ({
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      className="delete-btn h-6 w-6 opacity-0 group-hover:opacity-100 text-destructive z-10"
+                      className="delete-btn h-6 w-6 text-destructive/70 hover:text-destructive z-10"
                       onClick={(e) => { 
                         e.preventDefault(); 
                         e.stopPropagation(); 
