@@ -18,7 +18,7 @@ export const perawatanTable = pgTable("perawatan", {
   waktuMulai: timestamp("waktu_mulai").notNull(),
   waktuSelesai: timestamp("waktu_selesai"),
   durasiKerja: integer("durasi_kerja").default(0).notNull(),
-  tagCategory: text("tag_category").notNull(),
+  tagCategoryId: uuid("tag_category_id").references(() => kategoriTable.id, { onDelete: "cascade" }).notNull(),
   status: text("status").default("Belum dikerjakan").notNull(),
   pekerjaIds: jsonb("pekerja_ids").default([]).notNull(),
   catatan: text("catatan"),
@@ -63,7 +63,7 @@ export const operasionalTable = pgTable("operasional", {
   waktuMulai: timestamp("waktu_mulai").notNull(),
   waktuSelesai: timestamp("waktu_selesai"),
   durasiKerja: integer("durasi_kerja").default(0).notNull(),
-  kategori: text("kategori").notNull(),
+  kategoriId: uuid("kategori_id").references(() => kategoriTable.id, { onDelete: "cascade" }).notNull(),
   prioritas: text("prioritas").default("Medium").notNull(),
   jenisTenagaKerja: text("jenis_tenaga_kerja").notNull(),
   pekerjaIds: jsonb("pekerja_ids").default([]).notNull(),
@@ -80,5 +80,12 @@ export const pekerjaTable = pgTable("pekerja", {
   jenisTenagaKerja: text("jenis_tenaga_kerja").default("Internal").notNull(), // Internal (Bulanan/Harian) vs Eksternal (Borongan)
   status: text("status").default("Aktif").notNull(), // Aktif, Resign, Cuti
   mulaiBekerja: date("mulai_bekerja"), // Tanggal pertama gabung
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const kategoriTable = pgTable("kategori_master", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  module: text("module").notNull(), // 'operasional' atau 'perawatan' biar bisa difilter
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
