@@ -120,33 +120,24 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
         ? body.tanggalBroadcast 
         : body.tanggalPerArea?.[currentAreaId] || body.tanggalBroadcast;
         
-      const tanggalSelesaiStr = body.modeTanggal === "broadcast" 
-        ? body.tanggalSelesaiBroadcast 
-        : body.tanggalSelesaiPerArea?.[currentAreaId] || body.tanggalSelesaiBroadcast;
+    // 💡 LOGIKA BARU: Prioritaskan data spesifik per-area jika ada, abaikan pengecekan mode yang rawan bug.
+      const tanggalMulaiStr = body.tanggalPerArea?.[currentAreaId] || body.tanggalBroadcast;
+      const tanggalSelesaiStr = body.tanggalSelesaiPerArea?.[currentAreaId] || body.tanggalSelesaiBroadcast;
+      const durasiKerjaNum = body.durasiKerjaPerArea?.[currentAreaId] ?? body.durasiKerjaBroadcast;
+      
+      const pekerjaIdsArray = (body.petugasPerArea?.[currentAreaId] && body.petugasPerArea[currentAreaId].length > 0) 
+        ? body.petugasPerArea[currentAreaId] 
+        : body.petugasBroadcast;
         
-      const durasiKerjaNum = body.modeTanggal === "broadcast" 
-        ? body.durasiKerjaBroadcast 
-        : body.durasiKerjaPerArea?.[currentAreaId] || body.durasiKerjaBroadcast;
-
-      const pekerjaIdsArray = body.modePekerja === "broadcast" 
-        ? body.petugasBroadcast 
-        : body.petugasPerArea?.[currentAreaId] || body.petugasBroadcast;
-
-      const tagCategoryStr = body.modeTags === "broadcast" 
-        ? body.tagsBroadcast 
-        : body.tagsPerArea?.[currentAreaId] || body.tagsBroadcast;
-
-      const statusStr = body.modeStatus === "broadcast" 
-        ? body.statusBroadcast 
-        : body.statusPerArea?.[currentAreaId] || body.statusBroadcast;
-
-      const catatanStr = body.modeCatatan === "broadcast" 
-        ? body.catatanBroadcast 
-        : body.catatanPerArea?.[currentAreaId] || body.catatanBroadcast;
-
-      const produkArray = body.modeProduk === "broadcast" 
-        ? body.logProduk 
-        : body.produkPerArea?.[currentAreaId] || body.logProduk;
+      const tagCategoryStr = body.tagsPerArea?.[currentAreaId] || body.tagsBroadcast;
+      
+      const statusStr = body.statusPerArea?.[currentAreaId] || body.statusBroadcast;
+      
+      const catatanStr = body.catatanPerArea?.[currentAreaId] || body.catatanBroadcast;
+      
+      const produkArray = (body.produkPerArea?.[currentAreaId] && body.produkPerArea[currentAreaId].length > 0) 
+        ? body.produkPerArea[currentAreaId] 
+        : body.logProduk;
 
       // 1. Simpan Data Induk
       const [insertedPerawatan] = await db.insert(perawatanTable).values({
