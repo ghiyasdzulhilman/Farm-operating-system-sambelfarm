@@ -164,16 +164,25 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
     if (isStepValid) setStep((prev) => prev + 1);
   };
 
-  function onSubmit(values: PerawatanFormValues) {
-    savePerawatan.mutate(
-      buildAreaOverridePayload({
-        values,
-        areaIds: values.labaRugiIds,
-        overriddenAreas,
-        modeKeys: PERAWATAN_MODE_KEYS,
-        fields: PERAWATAN_OVERRIDE_FIELDS,
-      }),
-    );
+    function onSubmit(values: PerawatanFormValues) {
+    const basePayload = buildAreaOverridePayload({
+      values,
+      areaIds: values.labaRugiIds,
+      overriddenAreas,
+      modeKeys: PERAWATAN_MODE_KEYS,
+      fields: PERAWATAN_OVERRIDE_FIELDS,
+    });
+
+    // 💡 BUGFIX: Paksa semua "mode" menjadi "spesifik" jika ada area yang di-override.
+    // Ini mencegah backend salah membaca data broadcast saat user melakukan "Ubah Khusus".
+    const hasOverrides = Object.keys(overriddenAreas).length > 0;
+    if (hasOverrides) {
+      PERAWATAN_MODE_KEYS.forEach((key) => {
+        (basePayload as any)[key] = "spesifik";
+      });
+    }
+
+    savePerawatan.mutate(basePayload);
   }
 
   const handleEnableOverride = (areaId: string) => {
@@ -497,8 +506,14 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
 {/* Kategori & Status Spesifik */}
 <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/50">
   
-  {/* 1. KATEGORI DINAMIS (Ambil dari DB) */}
-  <Select onValueChange={(val) => form.setValue(`tagsPerArea.${areaId}`, val)} value={form.watch(`tagsPerArea.${areaId}`) || ""}>
+    {/* 1. KATEGORI DINAMIS (Ambil dari DB) */}
+  <Select 
+    onValueChange={(val) => {
+      const current = form.getValues("tagsPerArea") || {};
+      form.setValue("tagsPerArea", { ...current, [areaId]: val });
+    }} 
+    value={form.watch(`tagsPerArea.${areaId}`) || ""}
+  >
     <SelectTrigger className="h-8 text-[10px] bg-background border-input">
       <SelectValue placeholder="Pilih Kategori" />
     </SelectTrigger>
@@ -510,7 +525,13 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
   </Select>
 
   {/* 2. STATUS HARDCODE (Teks disamakan dengan Drizzle) */}
-  <Select onValueChange={(val) => form.setValue(`statusPerArea.${areaId}`, val)} value={form.watch(`statusPerArea.${areaId}`) || ""}>
+  <Select 
+    onValueChange={(val) => {
+      const current = form.getValues("statusPerArea") || {};
+      form.setValue("statusPerArea", { ...current, [areaId]: val });
+    }} 
+    value={form.watch(`statusPerArea.${areaId}`) || ""}
+  >
     <SelectTrigger className="h-8 text-[10px] bg-background border-input">
       <SelectValue placeholder="Status" />
     </SelectTrigger>
