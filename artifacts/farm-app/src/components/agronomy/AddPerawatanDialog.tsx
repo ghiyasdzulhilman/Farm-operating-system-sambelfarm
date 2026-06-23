@@ -44,7 +44,7 @@ const perawatanSchema = z.object({
   tagsBroadcast: z.string().optional(), tagsPerArea: z.record(z.string()).default({}),
 
   modeStatus: z.enum(["broadcast", "spesifik"]).default("broadcast"),
-  statusBroadcast: z.string().default("Rencana"), statusPerArea: z.record(z.string()).default({}),
+  statusBroadcast: z.string().default("Belum dikerjakan"),
 
   modeCatatan: z.enum(["broadcast", "spesifik"]).default("broadcast"),
   catatanBroadcast: z.string().optional(), catatanPerArea: z.record(z.string()).optional(),
@@ -80,7 +80,7 @@ const EMPTY_VALUES: PerawatanFormValues = {
   modeTanggal: "broadcast", tanggalBroadcast: format(new Date(), "yyyy-MM-dd'T'HH:mm"), tanggalSelesaiBroadcast: "", durasiKerjaBroadcast: 0, tanggalPerArea: {}, tanggalSelesaiPerArea: {}, durasiKerjaPerArea: {},
   modePekerja: "broadcast", petugasBroadcast: [], petugasPerArea: {},
   modeTags: "broadcast", tagsBroadcast: "", tagsPerArea: {},
-  modeStatus: "broadcast", statusBroadcast: "Rencana", statusPerArea: {},
+  modeStatus: "broadcast", statusBroadcast: "Belum dikerjakan", statusPerArea: {},
   modeCatatan: "broadcast", catatanBroadcast: "", catatanPerArea: {},
   modeProduk: "broadcast", logProduk: [], produkPerArea: {},
 };
@@ -398,7 +398,11 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
                               {/* STATUS TETAP DI SINI */}
                               <Select onValueChange={(val) => form.setValue("statusBroadcast", val)} value={form.watch("statusBroadcast") || ""}>
                                 <SelectTrigger className="h-10 rounded-xl bg-background border-input text-xs font-medium"><SelectValue placeholder="Status..." /></SelectTrigger>
-                                <SelectContent className="rounded-xl"><SelectItem value="Rencana">Rencana</SelectItem><SelectItem value="Proses">Sedang Berlangsung</SelectItem><SelectItem value="Selesai">Selesai</SelectItem></SelectContent>
+<SelectContent>
+  <SelectItem value="Belum dikerjakan">Belum dikerjakan</SelectItem>
+  <SelectItem value="Dalam proses">Dalam proses</SelectItem>
+  <SelectItem value="Selesai">Selesai</SelectItem>
+</SelectContent>
                               </Select>
                            </div>
                            <Textarea placeholder="Catatan opsional..." className="min-h-[80px] rounded-xl bg-background border-input text-xs mt-1 p-2.5" {...form.register("catatanBroadcast")} />
@@ -490,11 +494,35 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
                                     ))}
                                   </div>
 
-                                  {/* Status & Catatan Spesifik */}
-                                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/50">
-                                    <Select onValueChange={(val) => form.setValue(`tagsPerArea.${areaId}`, val)} value={form.watch(`tagsPerArea.${areaId}`) || ""}><SelectTrigger className="h-8 text-[10px] bg-background border-input"><SelectValue placeholder="Tag" /></SelectTrigger><SelectContent><SelectItem value="Pengocoran">Pengocoran</SelectItem><SelectItem value="Penyemprotan">Penyemprotan</SelectItem><SelectItem value="Lainnya">Lainnya</SelectItem></SelectContent></Select>
-                                    <Select onValueChange={(val) => form.setValue(`statusPerArea.${areaId}`, val)} value={form.watch(`statusPerArea.${areaId}`) || ""}><SelectTrigger className="h-8 text-[10px] bg-background border-input"><SelectValue placeholder="Status" /></SelectTrigger><SelectContent><SelectItem value="Rencana">Rencana</SelectItem><SelectItem value="Proses">Sedang Berlangsung</SelectItem><SelectItem value="Selesai">Selesai</SelectItem></SelectContent></Select>
-                                  </div>
+{/* Kategori & Status Spesifik */}
+<div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/50">
+  
+  {/* 1. KATEGORI DINAMIS (Ambil dari DB) */}
+  <Select onValueChange={(val) => form.setValue(`tagsPerArea.${areaId}`, val)} value={form.watch(`tagsPerArea.${areaId}`) || ""}>
+    <SelectTrigger className="h-8 text-[10px] bg-background border-input">
+      <SelectValue placeholder="Pilih Kategori" />
+    </SelectTrigger>
+    <SelectContent>
+      {dropdownOptions?.kategori?.map((kat) => (
+        <SelectItem key={kat.id} value={kat.id}>{kat.name}</SelectItem>
+      ))}
+    </SelectContent>
+  </Select>
+
+  {/* 2. STATUS HARDCODE (Teks disamakan dengan Drizzle) */}
+  <Select onValueChange={(val) => form.setValue(`statusPerArea.${areaId}`, val)} value={form.watch(`statusPerArea.${areaId}`) || ""}>
+    <SelectTrigger className="h-8 text-[10px] bg-background border-input">
+      <SelectValue placeholder="Status" />
+    </SelectTrigger>
+    <SelectContent>
+      <SelectItem value="Belum dikerjakan">Belum dikerjakan</SelectItem>
+      <SelectItem value="Dalam proses">Dalam proses</SelectItem>
+      <SelectItem value="Selesai">Selesai</SelectItem>
+    </SelectContent>
+  </Select>
+  
+</div>
+
                                   <Textarea placeholder="Catatan khusus area ini..." className="min-h-[50px] text-[10px] bg-background border-input rounded-lg p-2" {...form.register(`catatanPerArea.${areaId}` as any)} />
                                 </div>
                               )}
