@@ -167,7 +167,7 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
     function onSubmit(values: PerawatanFormValues) {
     const hasOverrides = Object.keys(overriddenAreas).length > 0;
 
-    // 1. Rakit data seperti biasa
+    // 1. Biarkan helper merakit kerangka dasarnya
     const basePayload = buildAreaOverridePayload({
       values,
       areaIds: values.labaRugiIds,
@@ -176,24 +176,29 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
       fields: PERAWATAN_OVERRIDE_FIELDS,
     });
 
-    // 2. PAKSA MUTLAK MODE SPESIFIK JIKA ADA AREA YANG DI-OVERRIDE
+    // 2. BYPASS HELPER: Timpa paksa menggunakan data asli dari Form!
     if (hasOverrides) {
+      // Paksa semua mode jadi spesifik
       basePayload.modeStatus = "spesifik";
       basePayload.modeTags = "spesifik";
       basePayload.modeTanggal = "spesifik";
       basePayload.modePekerja = "spesifik";
       basePayload.modeCatatan = "spesifik";
       basePayload.modeProduk = "spesifik";
+
+      // 💡 INI KUNCINYA: Selamatkan data dari kepunahan helper!
+      // Kita ambil langsung dari 'values' asli bawaan React Hook Form
+      basePayload.statusPerArea = values.statusPerArea;
+      basePayload.tagsPerArea = values.tagsPerArea;
+      basePayload.tanggalPerArea = values.tanggalPerArea;
+      basePayload.tanggalSelesaiPerArea = values.tanggalSelesaiPerArea;
+      basePayload.durasiKerjaPerArea = values.durasiKerjaPerArea;
+      basePayload.petugasPerArea = values.petugasPerArea;
+      basePayload.catatanPerArea = values.catatanPerArea;
+      basePayload.produkPerArea = values.produkPerArea;
     }
 
-    // 3. PASANG CCTV POP-UP (Buat ngetes di HP lu)
-    alert(
-      "🔍 CEK PAYLOAD SEBELUM TERKIRIM:\n\n" +
-      "Mode Status: " + basePayload.modeStatus + "\n" +
-      "Data Status: " + JSON.stringify(basePayload.statusPerArea)
-    );
-
-    // 4. Kirim ke backend
+    // 3. Langsung tembak ke Backend
     savePerawatan.mutate(basePayload);
   }
 
