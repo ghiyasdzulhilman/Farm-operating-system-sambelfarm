@@ -164,16 +164,32 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
     if (isStepValid) setStep((prev) => prev + 1);
   };
 
-  function onSubmit(values: PerawatanFormValues) {
-    savePerawatan.mutate(
-      buildAreaOverridePayload({
-        values,
-        areaIds: values.labaRugiIds,
-        overriddenAreas,
-        modeKeys: PERAWATAN_MODE_KEYS,
-        fields: PERAWATAN_OVERRIDE_FIELDS,
-      }),
-    );
+    function onSubmit(values: PerawatanFormValues) {
+    // 1. Cek apakah ada area yang pakai fitur "Ubah Khusus"
+    const hasOverrides = Object.keys(overriddenAreas).length > 0;
+    
+    // 2. Jika ada, paksa SEMUA mode menjadi "spesifik" SEBELUM diproses helper
+    if (hasOverrides) {
+      PERAWATAN_MODE_KEYS.forEach(key => {
+        values[key] = "spesifik";
+      });
+    }
+
+    const basePayload = buildAreaOverridePayload({
+      values,
+      areaIds: values.labaRugiIds,
+      overriddenAreas,
+      modeKeys: PERAWATAN_MODE_KEYS,
+      fields: PERAWATAN_OVERRIDE_FIELDS,
+    });
+
+    // 3. Jaring pengaman ekstra: pastikan payload akhir benar-benar mode spesifik
+    if (hasOverrides) {
+      basePayload.modeStatus = "spesifik";
+      basePayload.modeTags = "spesifik";
+    }
+
+    savePerawatan.mutate(basePayload);
   }
 
   const handleEnableOverride = (areaId: string) => {
