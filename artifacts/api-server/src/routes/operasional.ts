@@ -60,7 +60,7 @@ router.get("/notion/operasional-dropdown-options", async (req, res): Promise<voi
     const formattedPetugas = dbPekerja.map((p) => ({ id: p.id, name: p.nama }));
 
     // Tarik data kategori dinamis
-    const dbKategori = await db.select().from(kategoriTable);
+    const dbKategori = await db.select().from(kategoriTable).where(eq(kategoriTable.module, "operasional"));
     const formattedKategori = dbKategori.map((k) => ({
       id: k.id,
       name: k.name,
