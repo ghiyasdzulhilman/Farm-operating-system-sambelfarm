@@ -116,37 +116,39 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
     const recordsCreated: any[] = [];
 
     for (const currentAreaId of areaIds) {
-      const tanggalMulaiStr = body.modeTanggal === "broadcast" 
-        ? body.tanggalBroadcast 
-        : body.tanggalPerArea?.[currentAreaId] || body.tanggalBroadcast;
+      // 💡 PERBAIKAN: Jaring pengaman nilai null/undefined dan prioritas baca mode spesifik
+      const tanggalMulaiStr = (body.modeTanggal === "spesifik" && body.tanggalPerArea?.[currentAreaId]) 
+        ? body.tanggalPerArea[currentAreaId] 
+        : body.tanggalBroadcast;
         
-      const tanggalSelesaiStr = body.modeTanggal === "broadcast" 
-        ? body.tanggalSelesaiBroadcast 
-        : body.tanggalSelesaiPerArea?.[currentAreaId] || body.tanggalSelesaiBroadcast;
+      const tanggalSelesaiStr = (body.modeTanggal === "spesifik" && body.tanggalSelesaiPerArea?.[currentAreaId]) 
+        ? body.tanggalSelesaiPerArea[currentAreaId] 
+        : body.tanggalSelesaiBroadcast;
         
-      const durasiKerjaNum = body.modeTanggal === "broadcast" 
-        ? body.durasiKerjaBroadcast 
-        : body.durasiKerjaPerArea?.[currentAreaId] || body.durasiKerjaBroadcast;
+      // Pakai Nullish Coalescing (??) agar nilai 0 tidak dianggap false
+      const durasiKerjaNum = (body.modeTanggal === "spesifik" && body.durasiKerjaPerArea?.[currentAreaId] !== undefined) 
+        ? body.durasiKerjaPerArea[currentAreaId] 
+        : (body.durasiKerjaBroadcast ?? 0);
 
-      const pekerjaIdsArray = body.modePekerja === "broadcast" 
-        ? body.petugasBroadcast 
-        : body.petugasPerArea?.[currentAreaId] || body.petugasBroadcast;
+      const pekerjaIdsArray = (body.modePekerja === "spesifik" && body.petugasPerArea?.[currentAreaId] && body.petugasPerArea[currentAreaId].length > 0) 
+        ? body.petugasPerArea[currentAreaId] 
+        : (body.petugasBroadcast || []);
 
-      const tagCategoryStr = body.modeTags === "broadcast" 
-        ? body.tagsBroadcast 
-        : body.tagsPerArea?.[currentAreaId] || body.tagsBroadcast;
+      const tagCategoryStr = (body.modeTags === "spesifik" && body.tagsPerArea?.[currentAreaId]) 
+        ? body.tagsPerArea[currentAreaId] 
+        : body.tagsBroadcast;
 
-      const statusStr = body.modeStatus === "broadcast" 
-        ? body.statusBroadcast 
-        : body.statusPerArea?.[currentAreaId] || body.statusBroadcast;
+      const statusStr = (body.modeStatus === "spesifik" && body.statusPerArea?.[currentAreaId]) 
+        ? body.statusPerArea[currentAreaId] 
+        : (body.statusBroadcast || "Belum dikerjakan");
 
-      const catatanStr = body.modeCatatan === "broadcast" 
-        ? body.catatanBroadcast 
-        : body.catatanPerArea?.[currentAreaId] || body.catatanBroadcast;
+      const catatanStr = (body.modeCatatan === "spesifik" && body.catatanPerArea?.[currentAreaId]) 
+        ? body.catatanPerArea[currentAreaId] 
+        : body.catatanBroadcast;
 
-      const produkArray = body.modeProduk === "broadcast" 
-        ? body.logProduk 
-        : body.produkPerArea?.[currentAreaId] || body.logProduk;
+      const produkArray = (body.modeProduk === "spesifik" && body.produkPerArea?.[currentAreaId] && body.produkPerArea[currentAreaId].length > 0) 
+        ? body.produkPerArea[currentAreaId] 
+        : (body.logProduk || []);
 
       // 1. Simpan Data Induk
       const [insertedPerawatan] = await db.insert(perawatanTable).values({
