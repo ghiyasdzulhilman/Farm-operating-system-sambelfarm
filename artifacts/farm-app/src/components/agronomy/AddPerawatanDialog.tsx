@@ -45,6 +45,7 @@ const perawatanSchema = z.object({
 
   modeStatus: z.enum(["broadcast", "spesifik"]).default("broadcast"),
   statusBroadcast: z.string().default("Belum dikerjakan"),
+  statusPerArea: z.record(z.string()).default({}),
 
   modeCatatan: z.enum(["broadcast", "spesifik"]).default("broadcast"),
   catatanBroadcast: z.string().optional(), catatanPerArea: z.record(z.string()).optional(),
