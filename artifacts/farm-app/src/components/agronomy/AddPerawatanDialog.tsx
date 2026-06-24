@@ -165,16 +165,9 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
   };
 
     function onSubmit(values: PerawatanFormValues) {
-    // 1. Cek apakah ada area yang pakai fitur "Ubah Khusus"
     const hasOverrides = Object.keys(overriddenAreas).length > 0;
-    
-    // 2. Jika ada, paksa SEMUA mode menjadi "spesifik" SEBELUM diproses helper
-    if (hasOverrides) {
-      PERAWATAN_MODE_KEYS.forEach(key => {
-        values[key] = "spesifik";
-      });
-    }
 
+    // 1. Rakit data seperti biasa
     const basePayload = buildAreaOverridePayload({
       values,
       areaIds: values.labaRugiIds,
@@ -183,12 +176,24 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
       fields: PERAWATAN_OVERRIDE_FIELDS,
     });
 
-    // 3. Jaring pengaman ekstra: pastikan payload akhir benar-benar mode spesifik
+    // 2. PAKSA MUTLAK MODE SPESIFIK JIKA ADA AREA YANG DI-OVERRIDE
     if (hasOverrides) {
       basePayload.modeStatus = "spesifik";
       basePayload.modeTags = "spesifik";
+      basePayload.modeTanggal = "spesifik";
+      basePayload.modePekerja = "spesifik";
+      basePayload.modeCatatan = "spesifik";
+      basePayload.modeProduk = "spesifik";
     }
 
+    // 3. PASANG CCTV POP-UP (Buat ngetes di HP lu)
+    alert(
+      "🔍 CEK PAYLOAD SEBELUM TERKIRIM:\n\n" +
+      "Mode Status: " + basePayload.modeStatus + "\n" +
+      "Data Status: " + JSON.stringify(basePayload.statusPerArea)
+    );
+
+    // 4. Kirim ke backend
     savePerawatan.mutate(basePayload);
   }
 
