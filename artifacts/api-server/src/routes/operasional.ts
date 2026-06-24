@@ -100,24 +100,24 @@ router.post("/notion/add-operasional", async (req, res): Promise<void> => {
     const recordsCreated: any[] = [];
 
     for (const currentAreaId of areaIds) {
-      // 1. Ekstrak Kategori
-      const kategoriStr = body.modeKategori === "broadcast" ? (body.kategoriBroadcast || "") : (body.kategoriPerArea?.[currentAreaId] || body.kategoriBroadcast || "");
-
-      // 2. Ekstrak Waktu & Durasi
-      const waktuMulaiStr = body.modeWaktu === "broadcast" ? body.waktuMulaiBroadcast : (body.waktuMulaiPerArea?.[currentAreaId] || body.waktuMulaiBroadcast);
-      const waktuSelesaiStr = body.modeWaktu === "broadcast" ? body.waktuSelesaiBroadcast : (body.waktuSelesaiPerArea?.[currentAreaId] || body.waktuSelesaiBroadcast);
-      const durasiNum = body.modeWaktu === "broadcast" ? body.durasiKerjaBroadcast : body.durasiKerjaPerArea?.[currentAreaId];
       
-      // 3. Ekstrak Pekerja
-      const pekerjaArray = body.modePekerja === "broadcast" ? (body.pekerjaBroadcast || []) : (body.pekerjaPerArea?.[currentAreaId] || []);
+      // 💡 LOGIKA BARU ANTI-JEBOL: Ambil data spesifik jika ada, jika kosong otomatis jatuh ke data broadcast.
+      const kategoriStr = body.kategoriPerArea?.[currentAreaId] || body.kategoriBroadcast;
       
-      // 4. Ekstrak Atribut (Status, Prioritas, Jenis Pekerja)
-      const statusStr = body.modeAtribut === "broadcast" ? body.statusBroadcast : (body.statusPerArea?.[currentAreaId] || body.statusBroadcast);
-      const prioritasStr = body.modeAtribut === "broadcast" ? body.prioritasBroadcast : (body.prioritasPerArea?.[currentAreaId] || body.prioritasBroadcast);
-      const jenisStr = body.modeAtribut === "broadcast" ? body.jenisTenagaKerjaBroadcast : (body.jenisTenagaKerjaPerArea?.[currentAreaId] || body.jenisTenagaKerjaBroadcast);
-
-      // 5. Ekstrak Catatan
-      const catatanStr = body.modeCatatan === "broadcast" ? (body.catatanBroadcast || "") : (body.catatanPerArea?.[currentAreaId] || "");
+      const waktuMulaiStr = body.waktuMulaiPerArea?.[currentAreaId] || body.waktuMulaiBroadcast;
+      const waktuSelesaiStr = body.waktuSelesaiPerArea?.[currentAreaId] || body.waktuSelesaiBroadcast;
+      const durasiNum = body.durasiKerjaPerArea?.[currentAreaId] ?? body.durasiKerjaBroadcast;
+      
+      // Khusus Array Pekerja: Cek apakah ada isinya, kalau tidak ada, pakai broadcast
+      const pekerjaArray = (body.pekerjaPerArea?.[currentAreaId] && body.pekerjaPerArea[currentAreaId].length > 0) 
+        ? body.pekerjaPerArea[currentAreaId] 
+        : (body.pekerjaBroadcast || []);
+        
+      const statusStr = body.statusPerArea?.[currentAreaId] || body.statusBroadcast;
+      const prioritasStr = body.prioritasPerArea?.[currentAreaId] || body.prioritasBroadcast;
+      const jenisStr = body.jenisTenagaKerjaPerArea?.[currentAreaId] || body.jenisTenagaKerjaBroadcast;
+      
+      const catatanStr = body.catatanPerArea?.[currentAreaId] || body.catatanBroadcast;
 
       // Simpan Data Induk Operasional
       const [insertedOperasional] = await db.insert(operasionalTable).values({
