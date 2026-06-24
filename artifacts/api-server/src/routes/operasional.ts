@@ -123,8 +123,7 @@ router.post("/notion/add-operasional", async (req, res): Promise<void> => {
       const [insertedOperasional] = await db.insert(operasionalTable).values({
         namaPekerjaan: namaPekerjaan,
         areaId: currentAreaId,
-        kategori: kategoriStr || "Umum",
-        waktuMulai: waktuMulaiStr ? new Date(waktuMulaiStr) : new Date(),
+        kategoriId: kategoriStr || null, 
         waktuSelesai: waktuSelesaiStr ? new Date(waktuSelesaiStr) : null,
         durasiKerja: Number(durasiNum ?? 0),
         pekerjaIds: pekerjaArray || [],
