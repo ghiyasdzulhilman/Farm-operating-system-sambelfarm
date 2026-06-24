@@ -164,30 +164,16 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
     if (isStepValid) setStep((prev) => prev + 1);
   };
 
-    function onSubmit(values: PerawatanFormValues) {
-    // 💡 BUGFIX 1: Paksa nilai form menjadi spesifik SEBELUM di-parsing oleh helper
-    const hasOverrides = Object.keys(overriddenAreas).length > 0;
-    if (hasOverrides) {
-      PERAWATAN_MODE_KEYS.forEach(key => {
-        values[key] = "spesifik";
-      });
-    }
-
-    const basePayload = buildAreaOverridePayload({
-      values,
-      areaIds: values.labaRugiIds,
-      overriddenAreas,
-      modeKeys: PERAWATAN_MODE_KEYS,
-      fields: PERAWATAN_OVERRIDE_FIELDS,
-    });
-
-    // 💡 BUGFIX 2: Jaring pengaman terakhir untuk memastikan backend menerima instruksi yang benar
-    if (hasOverrides) {
-      basePayload.modeStatus = "spesifik";
-      basePayload.modeTags = "spesifik";
-    }
-
-    savePerawatan.mutate(basePayload);
+  function onSubmit(values: PerawatanFormValues) {
+    savePerawatan.mutate(
+      buildAreaOverridePayload({
+        values,
+        areaIds: values.labaRugiIds,
+        overriddenAreas,
+        modeKeys: PERAWATAN_MODE_KEYS,
+        fields: PERAWATAN_OVERRIDE_FIELDS,
+      }),
+    );
   }
 
   const handleEnableOverride = (areaId: string) => {
@@ -512,10 +498,7 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
 <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/50">
   
   {/* 1. KATEGORI DINAMIS (Ambil dari DB) */}
-  <Select 
-    onValueChange={(val) => form.setValue(`tagsPerArea.${areaId}`, val, { shouldDirty: true, shouldValidate: true })} 
-    value={form.watch(`tagsPerArea.${areaId}`) || ""}
-  >
+  <Select onValueChange={(val) => form.setValue(`tagsPerArea.${areaId}`, val)} value={form.watch(`tagsPerArea.${areaId}`) || ""}>
     <SelectTrigger className="h-8 text-[10px] bg-background border-input">
       <SelectValue placeholder="Pilih Kategori" />
     </SelectTrigger>
@@ -527,10 +510,7 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
   </Select>
 
   {/* 2. STATUS HARDCODE (Teks disamakan dengan Drizzle) */}
-  <Select 
-    onValueChange={(val) => form.setValue(`statusPerArea.${areaId}`, val, { shouldDirty: true, shouldValidate: true })} 
-    value={form.watch(`statusPerArea.${areaId}`) || ""}
-  >
+  <Select onValueChange={(val) => form.setValue(`statusPerArea.${areaId}`, val)} value={form.watch(`statusPerArea.${areaId}`) || ""}>
     <SelectTrigger className="h-8 text-[10px] bg-background border-input">
       <SelectValue placeholder="Status" />
     </SelectTrigger>

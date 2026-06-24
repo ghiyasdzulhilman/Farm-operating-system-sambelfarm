@@ -116,23 +116,37 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
     const recordsCreated: any[] = [];
 
     for (const currentAreaId of areaIds) {
-      // 💡 LOGIKA ANTI-JEBOL & TypeScript Safe
-      const tanggalMulaiStr = body.tanggalPerArea?.[currentAreaId] || body.tanggalBroadcast;
-      const tanggalSelesaiStr = body.tanggalSelesaiPerArea?.[currentAreaId] || body.tanggalSelesaiBroadcast;
-      const durasiKerjaNum = body.durasiKerjaPerArea?.[currentAreaId] ?? body.durasiKerjaBroadcast;
+      const tanggalMulaiStr = body.modeTanggal === "broadcast" 
+        ? body.tanggalBroadcast 
+        : body.tanggalPerArea?.[currentAreaId] || body.tanggalBroadcast;
+        
+      const tanggalSelesaiStr = body.modeTanggal === "broadcast" 
+        ? body.tanggalSelesaiBroadcast 
+        : body.tanggalSelesaiPerArea?.[currentAreaId] || body.tanggalSelesaiBroadcast;
+        
+      const durasiKerjaNum = body.modeTanggal === "broadcast" 
+        ? body.durasiKerjaBroadcast 
+        : body.durasiKerjaPerArea?.[currentAreaId] || body.durasiKerjaBroadcast;
 
-      // Cek aman untuk Array (Pekerja & Produk) agar TypeScript tidak error
-      const pekerjaIdsArray = (body.petugasPerArea && body.petugasPerArea[currentAreaId] && body.petugasPerArea[currentAreaId].length > 0) 
-        ? body.petugasPerArea[currentAreaId] 
-        : (body.petugasBroadcast || []);
+      const pekerjaIdsArray = body.modePekerja === "broadcast" 
+        ? body.petugasBroadcast 
+        : body.petugasPerArea?.[currentAreaId] || body.petugasBroadcast;
 
-      const tagCategoryStr = body.tagsPerArea?.[currentAreaId] || body.tagsBroadcast;
-      const statusStr = body.statusPerArea?.[currentAreaId] || body.statusBroadcast;
-      const catatanStr = body.catatanPerArea?.[currentAreaId] || body.catatanBroadcast;
+      const tagCategoryStr = body.modeTags === "broadcast" 
+        ? body.tagsBroadcast 
+        : body.tagsPerArea?.[currentAreaId] || body.tagsBroadcast;
 
-      const produkArray = (body.produkPerArea && body.produkPerArea[currentAreaId] && body.produkPerArea[currentAreaId].length > 0) 
-        ? body.produkPerArea[currentAreaId] 
-        : (body.logProduk || []);
+      const statusStr = body.modeStatus === "broadcast" 
+        ? body.statusBroadcast 
+        : body.statusPerArea?.[currentAreaId] || body.statusBroadcast;
+
+      const catatanStr = body.modeCatatan === "broadcast" 
+        ? body.catatanBroadcast 
+        : body.catatanPerArea?.[currentAreaId] || body.catatanBroadcast;
+
+      const produkArray = body.modeProduk === "broadcast" 
+        ? body.logProduk 
+        : body.produkPerArea?.[currentAreaId] || body.logProduk;
 
       // 1. Simpan Data Induk
       const [insertedPerawatan] = await db.insert(perawatanTable).values({
@@ -141,9 +155,9 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
         waktuMulai: tanggalMulaiStr ? new Date(tanggalMulaiStr) : new Date(),
         waktuSelesai: tanggalSelesaiStr ? new Date(tanggalSelesaiStr) : null,
         durasiKerja: Number(durasiKerjaNum ?? 0),
-        tagCategoryId: tagCategoryStr || null, 
+        tagCategoryId: tagCategoryStr || null, // 💡 Pakai ID Kategori
         status: statusStr || "Belum dikerjakan",
-        pekerjaIds: pekerjaIdsArray, 
+        pekerjaIds: pekerjaIdsArray || [], 
         catatan: catatanStr || null,
       }).returning();
 
@@ -175,7 +189,6 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
     res.status(500).json({ error: err instanceof Error ? err.message : "Internal Server Error" });
   }
 });
-
 
 // ==========================================
 // 3. ENDPOINT GET ALL PERAWATAN (SUPABASE REALTIME + NAMA AREA + DETAIL PRODUK)
