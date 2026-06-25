@@ -22,10 +22,18 @@ export function MasterTableView({
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // 1. Fetch Opsi Master (Area & Pekerja)
+    // 1. Fetch Opsi Master (Area & Pekerja)
+  // GANTI JADI INI:
   const { data: dropdownOptions } = useQuery({
     queryKey: ["operasional-options-list"],
-    queryFn: async () => fetch("/api/notion/operasional-dropdown-options").then(res => res.json())
+    queryFn: async () => {
+      // Kita panggil dua endpoint terpisah agar tabel punya data lengkap
+      const [dropdownRes, kategoriRes] = await Promise.all([
+        fetch("/api/notion/operasional-dropdown-options").then(res => res.json()),
+        fetch("/api/notion/all-kategori").then(res => res.json())
+      ]);
+      return { ...dropdownRes, allKategori: kategoriRes };
+    }
   });
 
   const areaOptions = useMemo(() => {
@@ -36,8 +44,13 @@ export function MasterTableView({
     return (dropdownOptions?.petugas || []).map((p: any) => ({ label: p.name, value: p.id }));
   }, [dropdownOptions]);
 
-  const kategoriOptions = useMemo(() => {
-    return (dropdownOptions?.kategori || []).map((k: any) => ({ label: k.name, value: k.id, module: k.module }));
+    const kategoriOptions = useMemo(() => {
+    // Gunakan 'allKategori' yang baru kita tarik
+    return (dropdownOptions?.allKategori || []).map((k: any) => ({ 
+      label: k.name, 
+      value: k.id, 
+      module: k.module 
+    }));
   }, [dropdownOptions]);
 
   // 2. MUTASI DATA (Update, Tambah Master, Hapus Master)
