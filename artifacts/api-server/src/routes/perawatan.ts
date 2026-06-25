@@ -7,7 +7,8 @@ import {
   perawatanTable, 
   perawatanProdukTable,
   pekerjaTable,
-  kategoriTable
+  kategoriTable,
+  siklusTanamTable
 } from "@workspace/db";
 
 const router: IRouter = Router();
@@ -203,7 +204,7 @@ router.get("/notion/all-perawatan", async (req, res): Promise<void> => {
   }
 
   try {
-    // 1. Ambil data induk perawatan + nama area
+        // 1. Ambil data induk perawatan + nama area
     const indukData = await db
       .select({
         id: perawatanTable.id,
@@ -217,11 +218,17 @@ router.get("/notion/all-perawatan", async (req, res): Promise<void> => {
         tagCategoryName: kategoriTable.name, 
         status: perawatanTable.status,
         pekerjaIds: perawatanTable.pekerjaIds,
-        catatan: perawatanTable.catatan
+        catatan: perawatanTable.catatan,
+        tanggalPindahTanam: siklusTanamTable.tanggalPindahTanam // 💡 Ekstrak tanggal tanam untuk dikirim ke frontend
       })
       .from(perawatanTable)
       .leftJoin(areasTable, eq(perawatanTable.areaId, areasTable.id))
-      .leftJoin(kategoriTable, eq(perawatanTable.tagCategoryId, kategoriTable.id)); 
+      .leftJoin(kategoriTable, eq(perawatanTable.tagCategoryId, kategoriTable.id))
+      // 💡 JOIN KE SIKLUS TANAM: Tarik data siklus yang areanya cocok DAN statusnya Aktif
+      .leftJoin(siklusTanamTable, and(
+        eq(perawatanTable.areaId, siklusTanamTable.areaId),
+        eq(siklusTanamTable.status, "Aktif")
+      ));
 
     // 2. Ambil semua detail produk racikan dari tabel anak
     const semuaProduk = await db.select().from(perawatanProdukTable);
