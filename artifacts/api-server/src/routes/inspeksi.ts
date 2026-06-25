@@ -248,4 +248,35 @@ router.get("/notion/all-inspeksi", async (req, res): Promise<void> => {
   }
 });
 
+// ==========================================
+// 5. ENDPOINT TAMBAH MASTER HAMA/PENYAKIT BARU
+// ==========================================
+router.post("/notion/kendala-master", async (req, res): Promise<void> => {
+  const { userId } = getAuth(req);
+  if (!userId) { 
+    res.status(401).json({ error: "Unauthorized" }); 
+    return; 
+  }
+
+  try {
+    const { nama, jenis } = req.body;
+    
+    if (!nama || !jenis) {
+      res.status(400).json({ error: "Nama dan jenis wajib diisi" });
+      return;
+    }
+
+    // Insert ke tabel master
+    const [newKendala] = await db.insert(kendalaMasterTable).values({
+      nama: nama.trim(),
+      jenis: jenis.toLowerCase() // pastikan masuk ke DB sebagai 'hama' atau 'penyakit'
+    }).returning();
+
+    res.status(201).json({ success: true, data: newKendala });
+  } catch (err) {
+    // Tangkap error misal namanya udah ada (unique constraint)
+    res.status(500).json({ error: "Gagal menyimpan data master baru. Mungkin nama sudah ada?" });
+  }
+});
+
 export default router;
