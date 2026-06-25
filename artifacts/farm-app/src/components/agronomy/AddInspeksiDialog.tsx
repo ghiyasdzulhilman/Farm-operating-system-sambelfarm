@@ -7,7 +7,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, ArrowRight, CheckCircle2, Search, Trash2,
-  ExternalLink, Loader2, MapPinned, Briefcase, PlusCircle, Edit3, Undo2
+  ExternalLink, Loader2, MapPinned, Briefcase, PlusCircle, Edit3, Undo2,
+  Check, X, Plus 
 } from "lucide-react";
 
 import { getGetDashboardSummaryQueryKey } from "@workspace/api-client-react";
@@ -166,7 +167,7 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: dropdownOptions, isLoading: isLoadingOptions } = useQuery<DropdownOptions>({
+    const { data: dropdownOptions, isLoading: isLoadingOptions } = useQuery<DropdownOptions>({
     queryKey: ["inspeksi-dropdown-options"], queryFn: async () => {
       const res = await fetch("/api/notion/inspeksi-dropdown-options");
       if (!res.ok) throw new Error("Gagal mengambil data dropdown");
@@ -174,7 +175,23 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
     }, enabled: open,
   });
 
+  // 👇 MULAI KODE BARU: STATE & MUTASI TAMBAH MASTER 👇
+  const [isAddingArea, setIsAddingArea] = useState(false); const [newAreaName, setNewAreaName] = useState("");
+  const [isAddingPekerja, setIsAddingPekerja] = useState(false); const [newPekerjaName, setNewPekerjaName] = useState("");
+
+  const addMasterMutation = useMutation({
+    mutationFn: async ({ type, payload }: { type: 'areas' | 'pekerja', payload: any }) => {
+      const res = await fetch(`/api/notion/${type}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      if (!res.ok) throw new Error(`Gagal tambah ${type}`); return res.json();
+    },
+    // Pastikan queryKey sinkron dengan query di atas
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["inspeksi-dropdown-options"] }),
+    onError: (err) => toast({ variant: "destructive", title: "Gagal", description: err.message })
+  });
+  // 👆 SELESAI KODE BARU 👆
+
   const form = useForm<InspeksiFormValues>({ resolver: zodResolver(inspeksiSchema), defaultValues: EMPTY_VALUES, shouldUnregister: false });
+
   const selectedAreaIds = useWatch({ control: form.control, name: "areaIds" }) ?? [];
 
   const calculateDuration = (start?: string, end?: string) => {
@@ -323,7 +340,7 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
                           <div className="flex flex-wrap gap-2 pt-1">
                             {dropdownOptions?.areas?.map((item) => {
                               const isSelected = selectedAreaIds.includes(item.id);
-                              return (
+                                 return (
                                 <button key={item.id} type="button" onClick={() => {
                                   const cur = form.getValues("areaIds"); form.setValue("areaIds", isSelected ? cur.filter(id => id !== item.id) : [...cur, item.id], { shouldValidate: true });
                                 }} className={`px-4 py-2 rounded-full text-xs font-semibold transition-all border ${isSelected ? "bg-primary text-primary-foreground border-primary shadow-md scale-[1.01]" : "bg-card text-muted-foreground border-border hover:bg-muted/80 shadow-sm"}`}>
@@ -331,6 +348,21 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
                                 </button>
                               );
                             })}
+                            
+                            {/* 👇 MULAI UI TAMBAH AREA BARU 👇 */}
+                            {isAddingArea ? (
+                              <div className="flex items-center gap-1 bg-muted/50 rounded-full pl-3 pr-1 py-1 border border-border">
+                                <input autoFocus className="bg-transparent text-xs outline-none w-24 font-medium" placeholder="Nama area..." value={newAreaName} onChange={(e) => setNewAreaName(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter') { e.preventDefault(); addMasterMutation.mutate({ type: 'areas', payload: { name: newAreaName }}); setIsAddingArea(false); setNewAreaName(""); } }} />
+                                <Button type="button" size="icon" variant="ghost" className="h-6 w-6 text-green-600 rounded-full" onClick={() => { addMasterMutation.mutate({ type: 'areas', payload: { name: newAreaName }}); setIsAddingArea(false); setNewAreaName(""); }}><Check className="h-3 w-3"/></Button>
+                                <Button type="button" size="icon" variant="ghost" className="h-6 w-6 text-destructive rounded-full" onClick={() => setIsAddingArea(false)}><X className="h-3 w-3"/></Button>
+                              </div>
+                            ) : (
+                              <button type="button" onClick={() => setIsAddingArea(true)} className="px-3 py-2 rounded-full text-xs font-semibold border border-dashed border-primary/50 text-primary hover:bg-primary/5 transition-all flex items-center gap-1">
+                                <Plus className="h-3 w-3" /> Tambah
+                              </button>
+                            )}
+                            {/* 👆 SELESAI UI TAMBAH AREA BARU 👆 */}
+
                           </div>
                         </div>
                       </motion.div>
@@ -400,7 +432,7 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
                         {/* Pekerja, Status, Catatan Tambahan */}
                         <div className="bg-card p-4 rounded-2xl border border-border shadow-sm space-y-4">
                           <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">4. Tim & Status Penyelesaian</p>
-                          <div className="flex flex-wrap gap-2 max-h-[100px] overflow-y-auto pr-1">
+                          <div className="flex flex-wrap gap-2 max-h-[100px] overflow-y-auto pr-1 items-center">
                             {dropdownOptions?.petugas?.map((item) => {
                               const isSelected = form.watch("pekerjaBroadcast").includes(item.id);
                               return (
@@ -408,7 +440,23 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
                                 const cur = form.getValues("pekerjaBroadcast"); form.setValue("pekerjaBroadcast", isSelected ? cur.filter(id => id !== item.id) : [...cur, item.id]);
                               }} className={`px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all border ${isSelected ? "bg-primary text-primary-foreground border-primary shadow-sm scale-105" : "bg-background text-muted-foreground border-border hover:bg-muted/80 shadow-sm"}`}>{item.name}</button>
                             )})}
+                            
+                            {/* 👇 MULAI UI TAMBAH PEKERJA BARU 👇 */}
+                            {isAddingPekerja ? (
+                              <div className="flex items-center gap-1 bg-muted/50 rounded-full pl-2 pr-1 py-0.5 border border-border">
+                                <input autoFocus className="bg-transparent text-[11px] outline-none w-20 font-medium" placeholder="Nama..." value={newPekerjaName} onChange={(e) => setNewPekerjaName(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter') { e.preventDefault(); addMasterMutation.mutate({ type: 'pekerja', payload: { nama: newPekerjaName }}); setIsAddingPekerja(false); setNewPekerjaName(""); } }} />
+                                <Button type="button" size="icon" variant="ghost" className="h-5 w-5 text-green-600 rounded-full" onClick={() => { addMasterMutation.mutate({ type: 'pekerja', payload: { nama: newPekerjaName }}); setIsAddingPekerja(false); setNewPekerjaName(""); }}><Check className="h-3 w-3"/></Button>
+                                <Button type="button" size="icon" variant="ghost" className="h-5 w-5 text-destructive rounded-full" onClick={() => setIsAddingPekerja(false)}><X className="h-3 w-3"/></Button>
+                              </div>
+                            ) : (
+                              <button type="button" onClick={() => setIsAddingPekerja(true)} className="px-2 py-1.5 rounded-full text-[11px] font-semibold border border-dashed border-primary/50 text-primary hover:bg-primary/5 transition-all flex items-center gap-1">
+                                <Plus className="h-3 w-3" /> Baru
+                              </button>
+                            )}
+                            {/* 👆 SELESAI UI TAMBAH PEKERJA BARU 👆 */}
+                            
                           </div>
+
                           <Select onValueChange={(val) => form.setValue("statusBroadcast", val)} value={form.watch("statusBroadcast")}>
                             <SelectTrigger className="h-11 rounded-xl bg-background border-input text-xs font-bold"><SelectValue placeholder="Pilih status..." /></SelectTrigger>
                             <SelectContent className="rounded-xl"><SelectItem value="Baru ditemukan">Baru ditemukan</SelectItem><SelectItem value="Sedang ditangani">Sedang ditangani</SelectItem><SelectItem value="Sudah ditangani">Sudah ditangani</SelectItem></SelectContent>
