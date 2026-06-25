@@ -378,11 +378,11 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
                       </motion.div>
                     )}
 
-                    {/* ================= STEP 2: DATA MASTER INSPEKSI ================= */}
+           {/* ================= STEP 2: DATA MASTER INSPEKSI ================= */}
                     {step === 2 && (
                       <motion.div key="step2" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-4 pt-1">
 
-                        {/* Waktu & Durasi */}
+                        {/* 1. Waktu & Durasi */}
                         <div className="bg-card p-4 rounded-2xl border border-border shadow-sm space-y-3">
                           <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">1. Waktu & Durasi</p>
                            <div className="flex flex-col gap-3">
@@ -404,40 +404,47 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
                           </div>
                         </div>
 
-                        {/* Temuan Hama / Penyakit */}
+                        {/* 2. Temuan Hama / Penyakit */}
                         <div className="bg-card p-4 rounded-2xl border border-border shadow-sm space-y-3">
                           <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">2. Catatan Temuan Lapangan</p>
                           <Select onValueChange={(val) => handleToggleHamaBroadcast(val)}>
                             <SelectTrigger className="w-full h-11 rounded-xl bg-background border-input font-bold text-xs"><SelectValue placeholder="+ Tambah Hama / Penyakit" /></SelectTrigger>
-                            <SelectContent className="max-h-60 rounded-xl">{PRESET_HAMA_PENYAKIT.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
+                            <SelectContent className="max-h-60 rounded-xl">
+                              {/* Baca data master dari DB */}
+                              {dropdownOptions?.kendalaMaster?.map((k) => (
+                                <SelectItem key={k.id} value={k.id}>
+                                  {k.name} ({k.jenis === 'hama' ? 'Hama' : 'Penyakit'})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
                           </Select>
 
-  {form.watch("kendalaBroadcast").length === 0 && <p className="text-xs text-muted-foreground/60 italic p-3 text-center border border-dashed border-border rounded-xl mt-2">Belum ada temuan.</p>}
+                          {form.watch("kendalaBroadcast").length === 0 && <p className="text-xs text-muted-foreground/60 italic p-3 text-center border border-dashed border-border rounded-xl mt-2">Belum ada temuan.</p>}
 
-  <div className="space-y-2 mt-2">
-  <AnimatePresence>
-    {form.watch("kendalaBroadcast").map((item) => {
-      // 1. Cari data master dari DB berdasarkan ID-nya di sini 👇
-      const kendalaData = dropdownOptions?.kendalaMaster?.find(k => k.id === item);
-      const isPenyakit = kendalaData?.jenis === "penyakit";
+                          <div className="space-y-2 mt-2">
+                            <AnimatePresence>
+                              {form.watch("kendalaBroadcast").map((item) => {
+                                // Cari nama & jenis untuk Badge
+                                const kendalaData = dropdownOptions?.kendalaMaster?.find(k => k.id === item);
+                                const isPenyakit = kendalaData?.jenis === "penyakit";
 
-      return (
-        <motion.div key={item} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="bg-muted/40 p-3 rounded-xl border border-border overflow-hidden">
-          <div className="flex justify-between items-center mb-2">
-            {/* 2. Badge sekarang baca name & jenis dari DB 🚀 */}
-            <Badge className={`${isPenyakit ? "bg-purple-500/10 text-purple-600 border-purple-200" : "bg-destructive/10 text-destructive border-destructive/20"}`} variant="outline">
-              {kendalaData?.name || "Memuat..."}
-            </Badge>
-            <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10 rounded-md" onClick={() => handleToggleHamaBroadcast(item)}><Trash2 className="h-3.5 w-3.5" /></Button>
-          </div>
-          <Input placeholder={`Deskripsi khusus...`} className="h-10 text-xs bg-background border-input rounded-lg" value={form.watch(`temuanBroadcast.${item}`) || ""} onChange={(e) => form.setValue(`temuanBroadcast.${item}`, e.target.value)} />
-        </motion.div>
-      );
-    })}
-  </AnimatePresence>
-</div>
+                                return (
+                                  <motion.div key={item} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="bg-muted/40 p-3 rounded-xl border border-border overflow-hidden">
+                                    <div className="flex justify-between items-center mb-2">
+                                      <Badge className={`${isPenyakit ? "bg-purple-500/10 text-purple-600 border-purple-200" : "bg-destructive/10 text-destructive border-destructive/20"}`} variant="outline">
+                                        {kendalaData?.name || "Memuat..."}
+                                      </Badge>
+                                      <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10 rounded-md" onClick={() => handleToggleHamaBroadcast(item)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                                    </div>
+                                    <Input placeholder={`Deskripsi khusus...`} className="h-10 text-xs bg-background border-input rounded-lg" value={form.watch(`temuanBroadcast.${item}`) || ""} onChange={(e) => form.setValue(`temuanBroadcast.${item}`, e.target.value)} />
+                                  </motion.div>
+                                );
+                              })}
+                            </AnimatePresence>
+                          </div>
+                        </div>
 
-                        {/* Angka Terukur */}
+                        {/* 3. Angka Terukur */}
                         <div className="bg-card p-4 rounded-2xl border border-border shadow-sm space-y-3">
                            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">3. Parameter Terukur (Opsional)</p>
                            <div className="grid grid-cols-3 gap-3">
@@ -447,18 +454,17 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
                            </div>
                         </div>
 
-                      {/* Pekerja, Status, Catatan Tambahan */}
+                        {/* 4. Pekerja, Status, Catatan Tambahan */}
                         <div className="bg-card p-4 rounded-2xl border border-border shadow-sm space-y-4">
                           <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">4. Tim & Status Penyelesaian</p>
                           <div className="flex flex-wrap gap-2 max-h-[100px] overflow-y-auto pr-1 items-center">
                             {dropdownOptions?.petugas?.map((item) => {
                               const isSelected = form.watch("pekerjaBroadcast").includes(item.id);
                               return (
-                                <button key={item.id} type="button" onClick={() => {
-                                  const cur = form.getValues("pekerjaBroadcast"); form.setValue("pekerjaBroadcast", isSelected ? cur.filter(id => id !== item.id) : [...cur, item.id]);
-                                }} className={`px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all border ${isSelected ? "bg-primary text-primary-foreground border-primary shadow-sm scale-105" : "bg-background text-muted-foreground border-border hover:bg-muted/80 shadow-sm"}`}>{item.name}</button>
-                              )
-                            })}
+                              <button key={item.id} type="button" onClick={() => {
+                                const cur = form.getValues("pekerjaBroadcast"); form.setValue("pekerjaBroadcast", isSelected ? cur.filter(id => id !== item.id) : [...cur, item.id]);
+                              }} className={`px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all border ${isSelected ? "bg-primary text-primary-foreground border-primary shadow-sm scale-105" : "bg-background text-muted-foreground border-border hover:bg-muted/80 shadow-sm"}`}>{item.name}</button>
+                            )})}
                             
                             {/* UI TAMBAH PEKERJA BARU */}
                             {isAddingPekerja ? (
@@ -478,8 +484,6 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
                             <SelectTrigger className="h-11 rounded-xl bg-background border-input text-xs font-bold"><SelectValue placeholder="Pilih status..." /></SelectTrigger>
                             <SelectContent className="rounded-xl"><SelectItem value="Baru ditemukan">Baru ditemukan</SelectItem><SelectItem value="Sedang ditangani">Sedang ditangani</SelectItem><SelectItem value="Sudah ditangani">Sudah ditangani</SelectItem></SelectContent>
                           </Select>
-                          
-                          {/* Sisi krusial baris 482-485 lu di sini bro 👇 */}
                           <Textarea placeholder="Catatan cuaca atau operasional opsional..." className="min-h-[80px] rounded-xl bg-background border-input focus-visible:ring-primary/20 text-xs p-3" value={form.watch("keteranganBroadcast") || ""} onChange={(e) => form.setValue("keteranganBroadcast", e.target.value)} />
                         </div>
                       </motion.div>
