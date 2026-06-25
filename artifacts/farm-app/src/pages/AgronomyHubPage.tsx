@@ -11,6 +11,7 @@ import { FilterControls } from "@/components/operasional/FilterControls";
 import { LiveFeedView } from "@/components/operasional/LiveFeedView";
 import { ActivityDetailSheet } from "@/components/operasional/ActivityDetailSheet";
 import { MasterTableView } from "@/components/operasional/MasterTableView";
+import { MasterHubPage } from "@/components/MasterHubPage"; // 👈 TAMBAHKAN INI
 import type { AgronomyItem, ModuleKey, ViewKey } from "@/types/operasional";
 import { useToast } from "@/hooks/use-toast";
 
@@ -25,6 +26,7 @@ export function AgronomyHubPage() {
   const [activeModule, setActiveModule] = useState<ModuleKey>("all");
   const [activeFilter, setActiveFilter] = useState("Hari ini");
   const [selectedItem, setSelectedItem] = useState<AgronomyItem | null>(null);
+  const [showMasterHub, setShowMasterHub] = useState(false);
 
   // =====================================================================
   // 1. FETCH DATA (LANGSUNG DARI 3 ENDPOINT SUPABASE + MASTER PEKERJA)
@@ -177,7 +179,11 @@ export function AgronomyHubPage() {
           <Button className="h-11 rounded-xl bg-primary px-4 font-bold text-primary-foreground shadow-sm">
             <Plus className="mr-2 h-4 w-4" /> Log Aktivitas
           </Button>
-          <Button variant="outline" className="h-11 rounded-xl px-4 font-bold">
+            <Button 
+            variant="outline" 
+            className="h-11 rounded-xl px-4 font-bold"
+            onClick={() => setShowMasterHub(true)} 
+          >
             <FileText className="mr-2 h-4 w-4" /> Riwayat
           </Button>
         </div>
@@ -256,18 +262,24 @@ export function AgronomyHubPage() {
         </aside>
       </div>
 
-      <ActivityDetailSheet 
+       <ActivityDetailSheet 
         item={selectedItem} 
         onClose={() => setSelectedItem(null)} 
-        // 💡 Di sini kita juga bisa passing payload dinamis tambahan (selain status) ke mutasi yang sama!
         onStatusChange={(id, payload) => {
           if (selectedItem) {
-            // Kalau payload bentuknya string, berarti itu status. Kalau objek, berarti update data lain.
             const updateData = typeof payload === "string" ? { status: payload } : payload;
             updateStatusMutation.mutate({ id, module: selectedItem.module, ...updateData });
           }
         }} 
       />
+
+      {/* 💡 OVERLAY MASTER HUB (MUNCUL KALAU TOMBOL RIWAYAT DIKLIK) */}
+      {showMasterHub && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-background/95 backdrop-blur-sm">
+          <MasterHubPage onClose={() => setShowMasterHub(false)} />
+        </div>
+      )}
+
     </div>
   );
 }
