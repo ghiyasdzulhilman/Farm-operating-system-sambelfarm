@@ -7,7 +7,8 @@ import {
   inspeksiTable, 
   inspeksiTemuanTable,
   pekerjaTable,
-  kendalaMasterTable
+  kendalaMasterTable,
+  siklusTanamTable
 } from "@workspace/db";
 
 const router: IRouter = Router();
@@ -184,7 +185,7 @@ router.get("/notion/all-inspeksi", async (req, res): Promise<void> => {
   }
 
   try {
-    // 1. Ambil data induk inspeksi
+        // 1. Ambil data induk inspeksi
     const indukData = await db
       .select({
         id: inspeksiTable.id,
@@ -199,10 +200,16 @@ router.get("/notion/all-inspeksi", async (req, res): Promise<void> => {
         radius: inspeksiTable.radius,
         status: inspeksiTable.status,
         pekerjaIds: inspeksiTable.pekerjaIds,
-        keterangan: inspeksiTable.keterangan
+        keterangan: inspeksiTable.keterangan,
+        tanggalPindahTanam: siklusTanamTable.tanggalPindahTanam // 💡 Ekstrak tanggal tanam untuk dikirim ke frontend
       })
       .from(inspeksiTable)
-      .leftJoin(areasTable, eq(inspeksiTable.areaId, areasTable.id));
+      .leftJoin(areasTable, eq(inspeksiTable.areaId, areasTable.id))
+      // 💡 HUBUNGKAN RELASI: Ambil siklus tanam yang areanya sama DAN statusnya masih Aktif
+      .leftJoin(siklusTanamTable, and(
+        eq(inspeksiTable.areaId, siklusTanamTable.areaId),
+        eq(siklusTanamTable.status, "Aktif")
+      ));
 
     // 2. Ambil semua data temuan dan JOIN ke master kendala untuk dapet nama & jenis
     const semuaTemuan = await db
