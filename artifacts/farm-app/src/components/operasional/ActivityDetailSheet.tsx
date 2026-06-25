@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   CalendarDays,
   ChevronDown,
+  ArrowRight,
   Bug,
   Activity,
   TrendingUp,
@@ -153,33 +154,25 @@ export function ActivityDetailSheet({
 
   return (
     <Sheet open={!!item} onOpenChange={(open) => !open && onClose()}>
+      
       <SheetContent
         side="right"
-        className="w-full border-l border-border/60 bg-background p-0 sm:max-w-[520px]"
+        className="w-full border-l border-border/60 bg-background p-0 sm:max-w-[520px] [&>button]:hidden"
       >
         <div className="flex h-full flex-col">
           
-          {/* HEADER DENGAN INTERAKTIF STATUS */}
-          {/* 💡 Tambahkan pr-14 di sini untuk Safe Zone jempol ke tombol X */}
-          <SheetHeader className="border-b border-border/60 pl-5 py-4 pr-14">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <SheetTitle className="text-left text-lg font-black tracking-tight">
-                  Detail Aktivitas
-                </SheetTitle>
-                <p className="text-left text-xs text-muted-foreground">
-                  Tap teks untuk edit data
-                </p>
-              </div>
-
+          {/* HEADER PREMIUM DENGAN STATUS & TOMBOL KEMBALI */}
+          <SheetHeader className="border-b border-border/60 px-4 py-3">
+            <div className="flex items-center justify-between gap-3 w-full">
+              
+              {/* DROPDOWN STATUS AMAN DI KIRI */}
               <div className="relative inline-block shrink-0">
                 <select
                   value={item.status}
                   onChange={(e) => onStatusChange?.(item.id, e.target.value)}
                   disabled={item.isPendingStaging}
                   className={cn(
-                    // 💡 Ubah py-1.5 jadi py-2 biar tombol statusnya lebih tebal dan nyaman diklik
-                    "appearance-none rounded-full pl-4 pr-9 py-2 text-[11px] font-bold uppercase tracking-wider outline-none cursor-pointer border transition-all shadow-sm",
+                    "appearance-none rounded-full pl-4 pr-10 py-2.5 text-[11px] font-bold uppercase tracking-wider outline-none cursor-pointer border transition-all shadow-sm",
                     item.status === "Selesai"
                       ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20"
                       : item.status === "Dalam proses"
@@ -192,8 +185,22 @@ export function ActivityDetailSheet({
                   <option value="Dalam proses">Dalam proses</option>
                   <option value="Selesai">Selesai</option>
                 </select>
-                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none opacity-60" />
+                <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none opacity-60" />
               </div>
+
+              {/* TOMBOL KEMBALI BESAR & NYAMAN DI KANAN (JEMPOL KANAN) */}
+              <button 
+                onClick={onClose}
+                className="flex items-center gap-2 py-1.5 pl-4 pr-1.5 rounded-full bg-secondary/50 hover:bg-secondary border border-border/50 transition-all group"
+              >
+                <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground group-hover:text-foreground transition-colors">
+                  Kembali
+                </span>
+                <div className="bg-background rounded-full p-1.5 shadow-sm group-hover:scale-105 transition-transform border border-border/50 text-foreground">
+                  <ArrowRight className="h-4 w-4" />
+                </div>
+              </button>
+
             </div>
           </SheetHeader>
 
