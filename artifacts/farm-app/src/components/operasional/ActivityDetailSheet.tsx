@@ -61,13 +61,34 @@ export function ActivityDetailSheet({
     }
   };
 
-    // 💡 Fungsi pintar untuk memotong teks "⚠️ Detail Kendala:" agar tidak ganda saat diedit
+  // 💡 Fungsi pintar untuk mengambil murni catatan ketikan user (Support Inspeksi & Perawatan)
   const getCleanCatatan = () => {
     const raw = item.notes || "";
-    return raw.split("\n\n⚠️ Detail Kendala:\n")[0];
+    
+    // Cegah duplikasi di modul perawatan
+    if (item.module === "perawatan" && raw.includes("\n\nCatatan Tambahan:\n")) {
+      const parts = raw.split("\n\nCatatan Tambahan:\n");
+      return parts[parts.length - 1]; // Ambil yang paling akhir buat ngakalin data lu yang udah terlanjur numpuk
+    }
+    
+    // Cegah duplikasi di modul inspeksi
+    if (item.module === "inspeksi" && raw.includes("\n\n⚠️ Detail Kendala:\n")) {
+      return raw.split("\n\n⚠️ Detail Kendala:\n")[0];
+    }
+    
+    return raw;
   };
 
-  // 💡 Fungsi baru untuk mengekstrak khusus detail kendalanya saja
+  // 💡 Ekstrak khusus Bahan & Dosis (Read-Only) untuk Perawatan
+  const getDetailPerawatan = () => {
+    const raw = item.notes || "";
+    if (item.module === "perawatan" && raw.includes("\n\nCatatan Tambahan:\n")) {
+      return raw.split("\n\nCatatan Tambahan:\n")[0]; // Ambil bagian atasnya saja
+    }
+    return "";
+  };
+
+  // 💡 Ekstrak khusus detail kendala (Read-Only) untuk Inspeksi
   const getDetailKendala = () => {
     const raw = item.notes || "";
     const parts = raw.split("\n\n⚠️ Detail Kendala:\n");
@@ -331,9 +352,9 @@ export function ActivityDetailSheet({
                       >
                         <div className="flex items-center gap-2 text-muted-foreground mb-1"><Activity className="h-4 w-4 text-primary" /><span className="text-xs font-bold uppercase">Kategori</span></div>
                         {activeField === "tagCategory" ? (
-                          <input autoFocus type="text" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("tagCategory")} onKeyDown={(e) => e.key === "Enter" && handleInlineSave("tagCategory")} className="w-full bg-transparent text-sm font-black outline-none border-b border-primary/30 p-0" />
+                          <input autoFocus type="text" placeholder="Ketik kategori..." value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("tagCategory")} onKeyDown={(e) => e.key === "Enter" && handleInlineSave("tagCategory")} className="w-full bg-transparent text-sm font-black outline-none border-b border-primary/30 p-0" />
                         ) : (
-                          <p className="text-sm font-black">{item.metaEkstra.tagCategory || "Nutrisi"}</p>
+                          <p className="text-sm font-black">{item.metaEkstra.tagCategory || "Belum diatur"}</p>
                         )}
                       </div>
 
@@ -355,8 +376,15 @@ export function ActivityDetailSheet({
                   Catatan / Detail
                 </h3>
               </div>
+
+              {/* Kotak Read-Only Khusus Rincian Bahan & Dosis (PERAWATAN) */}
+              {getDetailPerawatan() && (
+                <div className="mb-3 rounded-2xl border border-primary/20 bg-primary/5 p-4 text-sm text-primary shadow-sm">
+                  <div className="whitespace-pre-wrap font-medium leading-relaxed">{getDetailPerawatan()}</div>
+                </div>
+              )}
               
-              {/* Kotak Catatan Utama (Bisa Di-edit) */}
+              {/* Kotak Catatan Utama (Bisa Di-edit untuk semua modul) */}
               <div 
                 onClick={() => { if(activeField !== "catatan") { setActiveField("catatan"); setLocalValue(getCleanCatatan()); } }}
                 className="rounded-3xl border border-border/60 bg-muted/20 p-4 text-sm leading-6 text-foreground min-h-[80px] cursor-pointer hover:bg-muted/40 transition-colors"
@@ -375,7 +403,7 @@ export function ActivityDetailSheet({
                 )}
               </div>
 
-              {/* Kotak Read-Only Khusus Rincian Temuan Kendala */}
+              {/* Kotak Read-Only Khusus Rincian Temuan Kendala (INSPEKSI) */}
               {getDetailKendala() && (
                 <div className="mt-3 rounded-2xl border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive shadow-sm">
                   <span className="font-bold mb-2 block uppercase tracking-wider text-xs">⚠️ Rincian Temuan Lapangan:</span>
