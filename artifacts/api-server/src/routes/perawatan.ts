@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { getAuth } from "@clerk/express";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { 
   db, 
   areasTable, 
