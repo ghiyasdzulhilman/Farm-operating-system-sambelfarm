@@ -85,9 +85,9 @@ router.get("/notion/perawatan-dropdown-options", async (req, res): Promise<void>
 
     // 4. Kirim data asli ke frontend
     res.json({ areas: formattedAreas, petugas: formattedPetugas, kategori: formattedKategori });
-  } catch (err) {
-// --- BATAS BAWAH PERBAIKAN --
-    res.status(500).json({ error: "Gagal mengambil opsi dropdown dari database." });
+ 
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Gagal mengambil opsi dropdown dari database." });
   }
 });
 
@@ -252,9 +252,11 @@ router.get("/notion/all-perawatan", async (req, res): Promise<void> => {
       success: true, 
       data: dataMatang 
     });
-  } catch (err) {
-    res.status(500).json({ error: err instanceof Error ? err.message : "Gagal mengambil riwayat perawatan." });
+  
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Gagal mengambil riwayat perawatan." });
   }
+
 });
 
 export default router;
