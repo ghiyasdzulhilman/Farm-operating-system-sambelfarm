@@ -363,18 +363,28 @@ export function MasterTableView({
         );
       },
     },
-    {
+        {
       id: "status",
       header: "Status",
-      cell: ({ row }) => (
-        <EditableCell
-          value={row.original.status}
-          type="select"
-          options={["Belum dikerjakan", "Dalam proses", "Selesai"]}
-          onSave={(val) => updateMutation.mutate({ id: row.original.id, module: row.original.module, payload: { status: val } })}
-        />
-      ),
+      cell: ({ row }) => {
+        const item = row.original;
+        
+        // 💡 Bikin dinamis: pisahkan opsi status berdasarkan modul
+        const statusOptions = item.module?.toLowerCase() === "inspeksi"
+          ? ["Baru ditemukan", "Sedang ditangani", "Sudah ditangani"]
+          : ["Belum dikerjakan", "Dalam proses", "Selesai"];
+
+        return (
+          <EditableCell
+            value={item.status}
+            type="select"
+            options={statusOptions}
+            onSave={(val) => updateMutation.mutate({ id: item.id, module: item.module, payload: { status: val } })}
+          />
+        );
+      },
     },
+
         {
       id: "actions",
       header: "",
