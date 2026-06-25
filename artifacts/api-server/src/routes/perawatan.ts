@@ -210,9 +210,7 @@ router.get("/notion/all-perawatan", async (req, res): Promise<void> => {
         id: perawatanTable.id,
         kegiatan: perawatanTable.kegiatan,
         areaId: perawatanTable.areaId,
-        areaName: siklusTanamTable.namaSiklus ? 
-                   `${areasTable.name} - ${siklusTanamTable.namaSiklus}` : 
-                     areasTable.name,
+        areaName: areasTable.name,
         waktuMulai: perawatanTable.waktuMulai,
         waktuSelesai: perawatanTable.waktuSelesai,
         durasiKerja: perawatanTable.durasiKerja,
