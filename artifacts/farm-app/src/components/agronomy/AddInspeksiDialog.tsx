@@ -447,19 +447,20 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
                            </div>
                         </div>
 
-                        {/* Pekerja, Status, Catatan Tambahan */}
+                      {/* Pekerja, Status, Catatan Tambahan */}
                         <div className="bg-card p-4 rounded-2xl border border-border shadow-sm space-y-4">
                           <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">4. Tim & Status Penyelesaian</p>
                           <div className="flex flex-wrap gap-2 max-h-[100px] overflow-y-auto pr-1 items-center">
                             {dropdownOptions?.petugas?.map((item) => {
                               const isSelected = form.watch("pekerjaBroadcast").includes(item.id);
                               return (
-                              <button key={item.id} type="button" onClick={() => {
-                                const cur = form.getValues("pekerjaBroadcast"); form.setValue("pekerjaBroadcast", isSelected ? cur.filter(id => id !== item.id) : [...cur, item.id]);
-                              }} className={`px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all border ${isSelected ? "bg-primary text-primary-foreground border-primary shadow-sm scale-105" : "bg-background text-muted-foreground border-border hover:bg-muted/80 shadow-sm"}`}>{item.name}</button>
-                            )})}
+                                <button key={item.id} type="button" onClick={() => {
+                                  const cur = form.getValues("pekerjaBroadcast"); form.setValue("pekerjaBroadcast", isSelected ? cur.filter(id => id !== item.id) : [...cur, item.id]);
+                                }} className={`px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all border ${isSelected ? "bg-primary text-primary-foreground border-primary shadow-sm scale-105" : "bg-background text-muted-foreground border-border hover:bg-muted/80 shadow-sm"}`}>{item.name}</button>
+                              )
+                            })}
                             
-                            {/* 👇 MULAI UI TAMBAH PEKERJA BARU 👇 */}
+                            {/* UI TAMBAH PEKERJA BARU */}
                             {isAddingPekerja ? (
                               <div className="flex items-center gap-1 bg-muted/50 rounded-full pl-2 pr-1 py-0.5 border border-border">
                                 <input autoFocus className="bg-transparent text-[11px] outline-none w-20 font-medium" placeholder="Nama..." value={newPekerjaName} onChange={(e) => setNewPekerjaName(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter') { e.preventDefault(); addMasterMutation.mutate({ type: 'pekerja', payload: { nama: newPekerjaName }}); setIsAddingPekerja(false); setNewPekerjaName(""); } }} />
@@ -471,14 +472,14 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
                                 <Plus className="h-3 w-3" /> Baru
                               </button>
                             )}
-                            {/* 👆 SELESAI UI TAMBAH PEKERJA BARU 👆 */}
-                            
                           </div>
 
                           <Select onValueChange={(val) => form.setValue("statusBroadcast", val)} value={form.watch("statusBroadcast")}>
                             <SelectTrigger className="h-11 rounded-xl bg-background border-input text-xs font-bold"><SelectValue placeholder="Pilih status..." /></SelectTrigger>
                             <SelectContent className="rounded-xl"><SelectItem value="Baru ditemukan">Baru ditemukan</SelectItem><SelectItem value="Sedang ditangani">Sedang ditangani</SelectItem><SelectItem value="Sudah ditangani">Sudah ditangani</SelectItem></SelectContent>
                           </Select>
+                          
+                          {/* Sisi krusial baris 482-485 lu di sini bro 👇 */}
                           <Textarea placeholder="Catatan cuaca atau operasional opsional..." className="min-h-[80px] rounded-xl bg-background border-input focus-visible:ring-primary/20 text-xs p-3" value={form.watch("keteranganBroadcast") || ""} onChange={(e) => form.setValue("keteranganBroadcast", e.target.value)} />
                         </div>
                       </motion.div>
