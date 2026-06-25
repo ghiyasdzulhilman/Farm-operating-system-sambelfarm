@@ -403,16 +403,30 @@ export function MasterTableView({
         </Button>
       ),
     },
-  ], [updateMutation, addAreaMutation, deleteAreaMutation, addPekerjaMutation, deletePekerjaMutation, addKategoriMutation, deleteKategoriMutation, onItemClick, onDeleteClick, areaOptions, workerOptions, kategoriOptions]);
+
+    ], [updateMutation, addAreaMutation, deleteAreaMutation, addPekerjaMutation, deletePekerjaMutation, addKategoriMutation, deleteKategoriMutation, onItemClick, onDeleteClick, areaOptions, workerOptions, kategoriOptions]);
+
+  // 💡 SORTING DATA DARI YANG TERBARU KE TERLAMA (DESCENDING)
+  const sortedItems = useMemo(() => {
+    return [...items].sort((a, b) => {
+      // Ambil waktu dari waktuMulai (atau fallback ke 0 kalau kosong)
+      const timeA = new Date(a.metaEkstra?.waktuMulai || a.rawDate || 0).getTime();
+      const timeB = new Date(b.metaEkstra?.waktuMulai || b.rawDate || 0).getTime();
+      
+      // Urutkan menurun: B dikurangi A
+      return timeB - timeA;
+    });
+  }, [items]);
 
   const table = useReactTable({
-    data: items,
+    data: sortedItems, // 👈 Ganti dari 'items' menjadi 'sortedItems'
     columns,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
   });
 
   return (
+
     <div className="w-full max-w-full rounded-3xl border border-border/60 bg-card shadow-sm overflow-hidden text-left">
       <div className="w-full overflow-x-auto">
         <table className="w-full min-w-[900px] border-collapse">
