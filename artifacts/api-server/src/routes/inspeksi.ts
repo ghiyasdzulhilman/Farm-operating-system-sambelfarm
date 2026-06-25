@@ -89,8 +89,6 @@ router.get("/notion/inspeksi-dropdown-options", async (req, res): Promise<void> 
 
 // --- BATAS BAWAH PERBAIKAN INSPEKSI ---
 
-});
-
 // ==========================================
 // 3. ENDPOINT SAVE DATA INSPEKSI
 // ==========================================
