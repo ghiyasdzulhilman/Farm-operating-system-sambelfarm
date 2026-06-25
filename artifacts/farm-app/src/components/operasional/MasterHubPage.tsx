@@ -33,10 +33,12 @@ export function MasterHubPage({ onClose }: { onClose?: () => void }) {
     queryFn: async () => fetch("/api/notion/operasional-dropdown-options").then(res => res.json()),
   });
 
-  return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6">
+    return (
+    // 💡 Tambahin pb-32 (padding-bottom super tebal) biar gampang digeser sampai mentok bawah
+    <div className="mx-auto w-full max-w-7xl px-4 py-6 pb-32 md:px-6">
       
       {/* HEADER */}
+
       <div className="mb-8 flex items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black tracking-tight md:text-4xl">Master Data</h1>
