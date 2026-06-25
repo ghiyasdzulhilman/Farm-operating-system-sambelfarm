@@ -6,7 +6,8 @@ import {
   areasTable, 
   inspeksiTable, 
   inspeksiTemuanTable,
-  pekerjaTable
+  pekerjaTable,
+  kendalaMasterTable
 } from "@workspace/db";
 
 const router: IRouter = Router();
@@ -65,17 +66,27 @@ router.get("/notion/inspeksi-dropdown-options", async (req, res): Promise<void> 
     // 1. Ambil data pekerja aktif langsung dari Supabase
     const dbPekerja = await db.select().from(pekerjaTable);
     
-    // 2. Mapping properti 'nama' dari DB menjadi 'name' untuk Frontend
+        // 2. Mapping properti 'nama' dari DB menjadi 'name' untuk Frontend
     const formattedPetugas = dbPekerja.map((p) => ({
       id: p.id,
       name: p.nama,
     }));
 
-    // 3. Kirim data asli ke frontend
-    res.json({ areas: formattedAreas, petugas: formattedPetugas });
-  } catch (err) { 
-    res.status(500).json({ error: "Gagal mengambil opsi dropdown dari database." }); 
-  }
+    // 3. Ambil data master hama & penyakit
+    const dbKendala = await db.select().from(kendalaMasterTable);
+    const formattedKendala = dbKendala.map((k) => ({
+      id: k.id,
+      name: k.nama,
+      jenis: k.jenis // 'hama' atau 'penyakit'
+    }));
+
+    // 4. Kirim data asli ke frontend
+    res.json({ 
+      areas: formattedAreas, 
+      petugas: formattedPetugas, 
+      kendalaMaster: formattedKendala // 👈 Data master tambahan
+    });
+
 // --- BATAS BAWAH PERBAIKAN INSPEKSI ---
 
 });
@@ -139,19 +150,11 @@ router.post("/notion/add-inspeksi", async (req, res): Promise<void> => {
 
       // Simpan Detail Temuan Hama/Penyakit (Jika Ada)
       if (temuanArray && temuanArray.length > 0) {
-        
-        const dataTemuan = temuanArray.map((t) => {
-          // Logika sederhana untuk menentukan jenis kendala berdasarkan nama
-          const namaLower = t.nama.toLowerCase();
-          const jenisKendala = (namaLower.includes("kutu") || namaLower.includes("thrips") || namaLower.includes("ulat") || namaLower.includes("tungau") || namaLower.includes("lalat")) ? "Hama" : "Penyakit";
-
-          return {
-            inspeksiId: insertedInspeksi.id,
-            jenisKendala: jenisKendala,
-            namaKendala: t.nama,
-            catatanKhusus: t.catatan || null,
-          };
-        });
+        const dataTemuan = temuanArray.map((t) => ({
+          inspeksiId: insertedInspeksi.id,
+          kendalaMasterId: t.kendalaMasterId, // 👈 Langsung pakai ID yang dikirim frontend
+          catatanKhusus: t.catatan || null,
+        }));
 
         await db.insert(inspeksiTemuanTable).values(dataTemuan);
       }
@@ -205,16 +208,24 @@ router.get("/notion/all-inspeksi", async (req, res): Promise<void> => {
       .from(inspeksiTable)
       .leftJoin(areasTable, eq(inspeksiTable.areaId, areasTable.id));
 
-    // 2. Ambil semua data temuan hama/penyakit dari tabel anak
-    const semuaTemuan = await db.select().from(inspeksiTemuanTable);
+    // 2. Ambil semua data temuan dan JOIN ke master kendala untuk dapet nama & jenis
+    const semuaTemuan = await db
+      .select({
+        inspeksiId: inspeksiTemuanTable.inspeksiId,
+        catatanKhusus: inspeksiTemuanTable.catatanKhusus,
+        namaKendala: kendalaMasterTable.nama,
+        jenisKendala: kendalaMasterTable.jenis,
+      })
+      .from(inspeksiTemuanTable)
+      .leftJoin(kendalaMasterTable, eq(inspeksiTemuanTable.kendalaMasterId, kendalaMasterTable.id));
 
     // 3. Petakan temuan masuk ke induk inspeksi masing-masing
     const dataMatang = indukData.map((inspeksi) => {
       const temuanKhusus = semuaTemuan.filter((t) => t.inspeksiId === inspeksi.id);
 
-      // Pisahkan nama hama dan penyakit ke dalam array string untuk dibaca UI lama lu
-      const daftarHama = temuanKhusus.filter((t) => t.jenisKendala === "Hama").map((t) => t.namaKendala);
-      const daftarPenyakit = temuanKhusus.filter((t) => t.jenisKendala === "Penyakit").map((t) => t.namaKendala);
+      // Pastikan disesuaikan valuenya dengan jenis dari DB lu (lowercase atau uppercase)
+      const daftarHama = temuanKhusus.filter((t) => t.jenisKendala?.toLowerCase() === "hama").map((t) => t.namaKendala);
+      const daftarPenyakit = temuanKhusus.filter((t) => t.jenisKendala?.toLowerCase() === "penyakit").map((t) => t.namaKendala);
       
       // Kumpulkan catatan detail temuan lapangan (sebagai pengganti children block Notion)
       const catatanTemuan = temuanKhusus
