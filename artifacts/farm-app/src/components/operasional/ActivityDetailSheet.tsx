@@ -165,7 +165,7 @@ export function ActivityDetailSheet({
           <SheetHeader className="border-b border-border/60 px-4 py-3">
             <div className="flex items-center justify-between gap-3 w-full">
               
-              {/* DROPDOWN STATUS AMAN DI KIRI */}
+             {/* DROPDOWN STATUS DINAMIS DI KIRI */}
               <div className="relative inline-block shrink-0">
                 <select
                   value={item.status}
@@ -173,17 +173,29 @@ export function ActivityDetailSheet({
                   disabled={item.isPendingStaging}
                   className={cn(
                     "appearance-none rounded-full pl-4 pr-10 py-2.5 text-[11px] font-bold uppercase tracking-wider outline-none cursor-pointer border transition-all shadow-sm",
-                    item.status === "Selesai"
+                    // 💡 Fix: Tambahkan warna untuk status Inspeksi
+                    (item.status === "Selesai" || item.status === "Sudah ditangani")
                       ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20"
-                      : item.status === "Dalam proses"
+                      : (item.status === "Dalam proses" || item.status === "Sedang ditangani")
                         ? "border-amber-500/20 bg-amber-500/10 text-amber-700 hover:bg-amber-500/20"
                         : "border-muted-foreground/20 bg-muted/20 text-muted-foreground hover:bg-muted/40",
                     item.isPendingStaging && "opacity-50 cursor-not-allowed",
                   )}
                 >
-                  <option value="Belum dikerjakan">Belum dikerjakan</option>
-                  <option value="Dalam proses">Dalam proses</option>
-                  <option value="Selesai">Selesai</option>
+                  {/* 💡 Fix: Opsi disesuaikan dengan jenis modul */}
+                  {item.module === "inspeksi" ? (
+                    <>
+                      <option value="Baru ditemukan">Baru ditemukan</option>
+                      <option value="Sedang ditangani">Sedang ditangani</option>
+                      <option value="Sudah ditangani">Sudah ditangani</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="Belum dikerjakan">Belum dikerjakan</option>
+                      <option value="Dalam proses">Dalam proses</option>
+                      <option value="Selesai">Selesai</option>
+                    </>
+                  )}
                 </select>
                 <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none opacity-60" />
               </div>
