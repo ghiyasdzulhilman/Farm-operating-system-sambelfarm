@@ -383,8 +383,10 @@ export function AddOperasionalDialog({ onSuccess }: { onSuccess?: () => void }) 
                             <Select onValueChange={(val) => form.setValue("kategoriBroadcast", val)} value={form.watch("kategoriBroadcast") || ""}>
                               <SelectTrigger className="h-11 rounded-xl bg-background border-input text-xs font-medium"><SelectValue placeholder="Pilih Kategori..." /></SelectTrigger>
                               <SelectContent className="rounded-xl">
-                                {dropdownOptions?.kategori?.map((kat) => (
-                                  <SelectItem key={kat.id} value={kat.id}>{kat.name}</SelectItem>
+                                {dropdownOptions?.kategori
+                                  ?.filter((kat) => kat.module === "operasional")
+                                  .map((kat) => (
+                                    <SelectItem key={kat.id} value={kat.id}>{kat.name}</SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
@@ -488,9 +490,11 @@ export function AddOperasionalDialog({ onSuccess }: { onSuccess?: () => void }) 
                                   <div className="space-y-2 pt-2 border-t border-border/50">
                                     <Select onValueChange={(val) => form.setValue(`kategoriPerArea.${areaId}`, val)} value={form.watch(`kategoriPerArea.${areaId}`) || ""}>
                                       <SelectTrigger className="h-8 text-[10px]"><SelectValue placeholder="Kategori" /></SelectTrigger>
-                                      <SelectContent>
-                                        {dropdownOptions?.kategori?.map((kat) => (
-                                          <SelectItem key={kat.id} value={kat.id}>{kat.name}</SelectItem>
+                                       <SelectContent>
+                                        {dropdownOptions?.kategori
+                                          ?.filter((kat) => kat.module === "operasional")
+                                          .map((kat) => (
+                                            <SelectItem key={kat.id} value={kat.id}>{kat.name}</SelectItem>
                                         ))}
                                       </SelectContent>
                                     </Select>
