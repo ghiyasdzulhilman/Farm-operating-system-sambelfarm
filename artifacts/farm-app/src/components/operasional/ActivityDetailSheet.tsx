@@ -165,24 +165,24 @@ export function ActivityDetailSheet({
           <SheetHeader className="border-b border-border/60 px-4 py-3">
             <div className="flex items-center justify-between gap-3 w-full">
               
-             {/* DROPDOWN STATUS DINAMIS DI KIRI */}
-              <div className="relative inline-block shrink-0">
+             {/* DROPDOWN STATUS - FIX HITBOX */}
+              <div className="relative z-50 shrink-0">
                 <select
                   value={item.status}
                   onChange={(e) => onStatusChange?.(item.id, e.target.value)}
                   disabled={item.isPendingStaging}
                   className={cn(
                     "appearance-none rounded-full pl-4 pr-10 py-2.5 text-[11px] font-bold uppercase tracking-wider outline-none cursor-pointer border transition-all shadow-sm",
-                    // 💡 Fix: Tambahkan warna untuk status Inspeksi
+                    // Menggunakan posisi relatif dan pointer-events-auto yang tegas
+                    "pointer-events-auto relative",
                     (item.status === "Selesai" || item.status === "Sudah ditangani")
-                      ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20"
+                      ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700"
                       : (item.status === "Dalam proses" || item.status === "Sedang ditangani")
-                        ? "border-amber-500/20 bg-amber-500/10 text-amber-700 hover:bg-amber-500/20"
-                        : "border-muted-foreground/20 bg-muted/20 text-muted-foreground hover:bg-muted/40",
+                        ? "border-amber-500/20 bg-amber-500/10 text-amber-700"
+                        : "border-muted-foreground/20 bg-muted/20 text-muted-foreground",
                     item.isPendingStaging && "opacity-50 cursor-not-allowed",
                   )}
                 >
-                  {/* 💡 Fix: Opsi disesuaikan dengan jenis modul */}
                   {item.module === "inspeksi" ? (
                     <>
                       <option value="Baru ditemukan">Baru ditemukan</option>
@@ -197,7 +197,10 @@ export function ActivityDetailSheet({
                     </>
                   )}
                 </select>
-                <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none opacity-60" />
+                {/* Ikon panah kita pasang pointer-events-none supaya klik selalu tembus ke select */}
+                <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <ChevronDown className="h-4 w-4 opacity-60" />
+                </div>
               </div>
 
               {/* TOMBOL KEMBALI BESAR & NYAMAN DI KANAN (JEMPOL KANAN) */}
