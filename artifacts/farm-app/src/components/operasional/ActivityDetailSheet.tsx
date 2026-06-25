@@ -152,21 +152,32 @@ export function ActivityDetailSheet({
     }
   };
 
-  // 💡 JAHIT KODE KALKULATOR HST DI SINI BRO 🚀
+    // 💡 HELPER PINTAR KALKULASI HST 🚀
   const calculateHST = () => {
+    // Cari tanggal tanam, baik itu di dalam metaEkstra maupun di luar object
     const tglTanamStr = item.metaEkstra?.tanggalPindahTanam || (item as any).tanggalPindahTanam;
-    if (!tglTanamStr) return "-";
+    
+    // Kalau benar-benar tidak ada data tanggal tanam, jangan tampilkan apa-apa
+    if (!tglTanamStr) return null;
 
     try {
       const tglTanam = new Date(tglTanamStr);
+      // Gunakan tanggal aktivitas asli. Jika tidak ada, gunakan waktu sekarang.
       const tglAktivitas = new Date(item.rawDate || new Date());
       
+      // Validasi kalau tanggalnya nggak valid (misal "Invalid Date" di JS)
+      if (isNaN(tglTanam.getTime()) || isNaN(tglAktivitas.getTime())) return null;
+
+      // Hitung selisih waktu dalam milidetik, lalu ubah ke hari
       const diffTime = tglAktivitas.getTime() - tglTanam.getTime();
       const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
       
-      return diffDays >= 0 ? diffDays : "-";
+      // Jika hasil minus (belum waktunya ditanam), beri label pra-tanam
+      if (diffDays < 0) return "Pra-tanam";
+      
+      return `${diffDays} HST`;
     } catch {
-      return "-";
+      return null;
     }
   };
 
@@ -253,11 +264,17 @@ export function ActivityDetailSheet({
                         </span>
                       </>
                     )}
-                    {/* 💡 HST PINDAH KE SINI, DIBATASI GARIS LURUS | */}
-                    <span className="text-border/40 font-light">|</span>
-                    <span className="text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded flex items-center gap-1 font-bold">
-                    🌱 {calculateHST()} HST
-                    </span>
+
+                   {/* 💡 HST PINDAH KE SINI, HANYA MUNCUL JIKA ADA DATANYA */}
+                    {calculateHST() && (
+                      <>
+                        <span className="text-border/40 font-light">|</span>
+                        <span className="text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded flex items-center gap-1 font-bold tracking-normal">
+                          🌱 {calculateHST()}
+                        </span>
+                      </>
+                    )}
+
                   </div>
                   
                   {/* 💡 JUDUL: Tap untuk Edit */}
