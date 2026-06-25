@@ -154,7 +154,8 @@ export function MasterTableView({
         );
       },
     },
-            {
+            
+    {
       id: "tanggal",
       header: "Tanggal (Mulai - Selesai)",
       cell: ({ row }) => {
@@ -254,7 +255,7 @@ export function MasterTableView({
         return (
           <div className="flex items-center gap-1 min-w-[80px]">
             <EditableCell
-              value={parseFloat(calcHours.toFixed(2))} // Nampilin maksimal 2 desimal biar akurat
+              value={parseFloat(calcHours.toFixed(2))}
               type="number"
               disabled={true} 
               className="w-14 text-right bg-muted/20 font-medium"
@@ -265,17 +266,7 @@ export function MasterTableView({
         );
       },
     },
-
-              type="number"
-              disabled={true} 
-              className="w-12 text-right bg-muted/20 font-medium"
-              onSave={() => {}} // Disabled, tidak perlu disave manual
-            />
-            <span className="text-xs text-muted-foreground">Jam</span>
-          </div>
-        );
-      },
-    },
+              
     {
       id: "area",
       header: "Area",
