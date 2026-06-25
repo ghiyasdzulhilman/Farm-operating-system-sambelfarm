@@ -179,8 +179,13 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
   });
 
   // 👇 MULAI KODE BARU: STATE & MUTASI TAMBAH MASTER 👇
-  const [isAddingArea, setIsAddingArea] = useState(false); const [newAreaName, setNewAreaName] = useState("");
+    const [isAddingArea, setIsAddingArea] = useState(false); const [newAreaName, setNewAreaName] = useState("");
   const [isAddingPekerja, setIsAddingPekerja] = useState(false); const [newPekerjaName, setNewPekerjaName] = useState("");
+  
+  // 👇 TAMBAHIN 3 BARIS INI BRO 👇
+  const [isAddingKendala, setIsAddingKendala] = useState(false); 
+  const [newKendalaName, setNewKendalaName] = useState("");
+  const [newKendalaJenis, setNewKendalaJenis] = useState<"hama" | "penyakit">("hama");
 
   const addMasterMutation = useMutation({
     mutationFn: async ({ type, payload }: { type: 'areas' | 'pekerja', payload: any }) => {
@@ -404,20 +409,41 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
                           </div>
                         </div>
 
-                        {/* 2. Temuan Hama / Penyakit */}
+                      {/* 2. Temuan Hama / Penyakit */}
                         <div className="bg-card p-4 rounded-2xl border border-border shadow-sm space-y-3">
                           <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">2. Catatan Temuan Lapangan</p>
                           <Select onValueChange={(val) => handleToggleHamaBroadcast(val)}>
                             <SelectTrigger className="w-full h-11 rounded-xl bg-background border-input font-bold text-xs"><SelectValue placeholder="+ Tambah Hama / Penyakit" /></SelectTrigger>
                             <SelectContent className="max-h-60 rounded-xl">
-                              {/* Baca data master dari DB */}
                               {dropdownOptions?.kendalaMaster?.map((k) => (
-                                <SelectItem key={k.id} value={k.id}>
-                                  {k.name} ({k.jenis === 'hama' ? 'Hama' : 'Penyakit'})
-                                </SelectItem>
+                                <SelectItem key={k.id} value={k.id}>{k.name} ({k.jenis === 'hama' ? 'Hama' : 'Penyakit'})</SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
+
+                          {/* 👇 UI TAMBAH HAMA/PENYAKIT BARU DIMULAI DARI SINI 👇 */}
+                          {isAddingKendala ? (
+                            <div className="flex items-center gap-2 bg-muted/30 p-2 rounded-xl border border-border mt-2 animate-in fade-in zoom-in-95">
+                              <Input autoFocus className="h-8 text-xs bg-background" placeholder="Nama hama/penyakit..." value={newKendalaName} onChange={(e) => setNewKendalaName(e.target.value)} />
+                              <Select value={newKendalaJenis} onValueChange={(val: "hama" | "penyakit") => setNewKendalaJenis(val)}>
+                                <SelectTrigger className="h-8 w-[100px] text-xs"><SelectValue /></SelectTrigger>
+                                <SelectContent><SelectItem value="hama">Hama</SelectItem><SelectItem value="penyakit">Penyakit</SelectItem></SelectContent>
+                              </Select>
+                              <Button type="button" size="icon" variant="ghost" className="h-8 w-8 text-green-600 bg-green-500/10 hover:bg-green-500/20 rounded-md" 
+                                onClick={() => { 
+                                  if(newKendalaName) {
+                                    addMasterMutation.mutate({ type: 'kendala-master', payload: { nama: newKendalaName, jenis: newKendalaJenis }}); 
+                                    setIsAddingKendala(false); setNewKendalaName(""); 
+                                  }
+                                }}><Check className="h-4 w-4"/></Button>
+                              <Button type="button" size="icon" variant="ghost" className="h-8 w-8 text-destructive bg-destructive/10 hover:bg-destructive/20 rounded-md" onClick={() => setIsAddingKendala(false)}><X className="h-4 w-4"/></Button>
+                            </div>
+                          ) : (
+                            <Button type="button" variant="outline" className="w-full h-8 mt-2 text-xs border-dashed text-primary/70 border-primary/30 hover:bg-primary/5 hover:text-primary" onClick={() => setIsAddingKendala(true)}>
+                              <Plus className="h-3 w-3 mr-1" /> Buat Master Hama/Penyakit Baru
+                            </Button>
+                          )}
+                          {/* 👆 BATAS BAWAH UI TAMBAH HAMA/PENYAKIT BARU 👆 */}
 
                           {form.watch("kendalaBroadcast").length === 0 && <p className="text-xs text-muted-foreground/60 italic p-3 text-center border border-dashed border-border rounded-xl mt-2">Belum ada temuan.</p>}
 
