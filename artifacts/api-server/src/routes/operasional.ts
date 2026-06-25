@@ -442,5 +442,65 @@ router.delete("/notion/kategori/:id", async (req, res): Promise<void> => {
   }
 });
 
+// ==========================================
+// 10. ENDPOINT MANAGEMENT SIKLUS TANAM
+// ==========================================
+
+// A. Ambil semua siklus tanam aktif beserta nama areanya
+router.get("/notion/siklus-tanam", async (req, res): Promise<void> => {
+  const { userId } = getAuth(req);
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+  try {
+    const data = await db
+      .select({
+        id: siklusTanamTable.id,
+        areaId: siklusTanamTable.areaId,
+        areaName: areasTable.name,
+        namaSiklus: siklusTanamTable.namaSiklus,
+        tanggalPindahTanam: siklusTanamTable.tanggalPindahTanam,
+        status: siklusTanamTable.status,
+      })
+      .from(siklusTanamTable)
+      .leftJoin(areasTable, eq(siklusTanamTable.areaId, areasTable.id));
+
+    res.json({ success: true, data });
+  } catch (err) {
+    res.status(500).json({ error: "Gagal mengambil data siklus tanam." });
+  }
+});
+
+// B. Tambah/Daftarkan Siklus Tanam Baru (Pindah Tanam)
+router.post("/notion/siklus-tanam", async (req, res): Promise<void> => {
+  const { userId } = getAuth(req);
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+  const { areaId, namaSiklus, tanggalPindahTanam } = req.body;
+  if (!areaId || !namaSiklus || !tanggalPindahTanam) {
+    res.status(400).json({ error: "Area, Nama Siklus, dan Tanggal Pindah Tanam wajib diisi." });
+    return;
+  }
+
+  try {
+    // Opsional: Otomatis ubah siklus lama di area yang sama menjadi "Selesai" jika ada siklus baru aktif
+    await db.update(siklusTanamTable)
+      .set({ status: "Selesai/Panen" })
+      .where(and(eq(siklusTanamTable.areaId, areaId), eq(siklusTanamTable.status, "Aktif")));
+
+    const [newSiklus] = await db.insert(siklusTanamTable)
+      .values({
+        areaId,
+        namaSiklus,
+        tanggalPindahTanam: tanggalPindahTanam, // Format YYYY-MM-DD dari frontend
+        status: "Aktif"
+      })
+      .returning();
+
+    res.status(201).json({ success: true, data: newSiklus });
+  } catch (err) {
+    res.status(500).json({ error: "Gagal menambahkan siklus tanam baru." });
+  }
+});
+
 
 export default router;
