@@ -211,9 +211,15 @@ export function ActivityDetailSheet({
                         </span>
                       </>
                     )}
+                    {/* 💡 HST PINDAH KE SINI, DIBATASI GARIS LURUS | */}
+                    <span className="text-border/40 font-light">|</span>
+                    <span className="text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded flex items-center gap-1">
+                      🌱 45 HST
+                    </span>
                   </div>
                   
                   {/* 💡 JUDUL: Tap untuk Edit */}
+
                   {activeField === "title" ? (
                     <input
                       autoFocus
@@ -242,12 +248,11 @@ export function ActivityDetailSheet({
              {/* 💡 JAJARAN BADGE INTERAKTIF BARU (FIX LEBAR DINAMIS) */}
               <div className="mt-4 flex flex-wrap gap-2 items-center">
                 
-                {/* 1. Badge Area (Editable) */}
+               {/* 1. Badge Area (Editable) */}
                 <div className="relative inline-flex shadow-sm max-w-full">
                   <select
                     value={item.areaId || ""}
                     onChange={(e) => onStatusChange?.(item.id, { areaId: e.target.value })}
-                    // 💡 Tambah max-w-[130px] dan truncate disini
                     className="appearance-none max-w-[130px] sm:max-w-[160px] truncate bg-primary text-primary-foreground border border-primary hover:bg-primary/90 rounded-full pl-3 pr-7 py-1 text-[11px] font-bold uppercase tracking-wider outline-none cursor-pointer transition-colors z-10"
                   >
                     <option value="" disabled>PILIH AREA</option>
@@ -258,13 +263,9 @@ export function ActivityDetailSheet({
                   <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-primary-foreground pointer-events-none z-10" />
                 </div>
 
-                {/* 2. Badge HST (Hardcode Sementara) */}
-                <Badge variant="secondary" className="rounded-full shadow-sm bg-emerald-500/10 text-emerald-700 border-emerald-500/20 shrink-0">
-                  🌱 45 HST
-                </Badge>
-
-              {/* 3. Badge Kategori (Editable) */}
+                {/* 2. Badge Kategori (Editable) */}
                 <div className="relative inline-flex shadow-sm max-w-full">
+
                   <select
                     value={item.module === "perawatan" ? (item.tagCategoryId || item.metaEkstra?.tagCategoryId || "") : (item.kategoriId || item.metaEkstra?.kategoriId || "")}
                     onChange={(e) => {
