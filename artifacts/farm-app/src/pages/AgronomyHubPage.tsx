@@ -11,7 +11,7 @@ import { FilterControls } from "@/components/operasional/FilterControls";
 import { LiveFeedView } from "@/components/operasional/LiveFeedView";
 import { ActivityDetailSheet } from "@/components/operasional/ActivityDetailSheet";
 import { MasterTableView } from "@/components/operasional/MasterTableView";
-import { MasterHubPage } from "@/components/MasterHubPage"; // 👈 TAMBAHKAN INI
+import { MasterHubPage } from "@/components/operasional/MasterHubPage"; 
 import type { AgronomyItem, ModuleKey, ViewKey } from "@/types/operasional";
 import { useToast } from "@/hooks/use-toast";
 
