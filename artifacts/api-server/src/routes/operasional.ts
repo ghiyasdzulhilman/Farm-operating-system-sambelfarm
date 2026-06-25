@@ -8,7 +8,8 @@ import {
   pekerjaTable,
   perawatanTable,
   inspeksiTable,
-  kategoriTable
+  kategoriTable,
+  siklusTanamTable
 } from "@workspace/db";
 
 const router: IRouter = Router();
@@ -160,14 +161,14 @@ router.get("/notion/all-operasional", async (req, res): Promise<void> => {
   // ... (kode auth tetap sama) ...
 
   try {
-    const data = await db
+        const data = await db
       .select({
         id: operasionalTable.id,
         namaPekerjaan: operasionalTable.namaPekerjaan,
         areaId: operasionalTable.areaId,
         areaName: areasTable.name, 
-        kategoriId: operasionalTable.kategoriId, // 💡 Ambil ID kategori barunya
-        kategoriName: kategoriTable.name, // 💡 Ambil nama kategorinya
+        kategoriId: operasionalTable.kategoriId, 
+        kategoriName: kategoriTable.name, 
         waktuMulai: operasionalTable.waktuMulai,
         waktuSelesai: operasionalTable.waktuSelesai,
         durasiKerja: operasionalTable.durasiKerja,
@@ -175,11 +176,17 @@ router.get("/notion/all-operasional", async (req, res): Promise<void> => {
         status: operasionalTable.status,
         prioritas: operasionalTable.prioritas,
         jenisTenagaKerja: operasionalTable.jenisTenagaKerja,
-        catatan: operasionalTable.catatan
+        catatan: operasionalTable.catatan,
+        tanggalPindahTanam: siklusTanamTable.tanggalPindahTanam // 💡 Ekstrak tanggal tanam
       })
       .from(operasionalTable)
       .leftJoin(areasTable, eq(operasionalTable.areaId, areasTable.id)) 
-      .leftJoin(kategoriTable, eq(operasionalTable.kategoriId, kategoriTable.id)); // 🔗 Hubungkan relasi ID Kategori
+      .leftJoin(kategoriTable, eq(operasionalTable.kategoriId, kategoriTable.id))
+      // 💡 JOIN KE SIKLUS TANAM: Cek area yang sama DAN statusnya masih Aktif
+      .leftJoin(siklusTanamTable, and(
+        eq(operasionalTable.areaId, siklusTanamTable.areaId),
+        eq(siklusTanamTable.status, "Aktif")
+      ));
 
     res.json({ success: true, data: data });
   } catch (err) {
