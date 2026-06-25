@@ -68,7 +68,7 @@ const inspeksiSchema = z.object({
   pekerjaPerArea: z.record(z.array(z.string())).default({}),
 
   modeAtribut: z.enum(["broadcast", "spesifik"]).default("broadcast"),
-  statusBroadcast: z.string().default("Baru di temukan"),
+  statusBroadcast: z.string().default("Baru ditemukan"),
   statusPerArea: z.record(z.string()).default({}),
 
   modeCatatan: z.enum(["broadcast", "spesifik"]).default("broadcast"),
@@ -102,7 +102,7 @@ const EMPTY_VALUES: InspeksiFormValues = {
   modeKendala: "broadcast", kendalaBroadcast: [], kendalaPerArea: {}, temuanBroadcast: {}, temuanPerArea: {},
   modeAngka: "broadcast", phTanahBroadcast: "", tingkatSeranganBroadcast: "", radiusBroadcast: "", phTanahPerArea: {}, tingkatSeranganPerArea: {}, radiusPerArea: {},
   modePekerja: "broadcast", pekerjaBroadcast: [], pekerjaPerArea: {},
-  modeAtribut: "broadcast", statusBroadcast: "Baru di temukan", statusPerArea: {},
+  modeAtribut: "broadcast", statusBroadcast: "Baru ditemukan", statusPerArea: {},
   modeCatatan: "broadcast", keteranganBroadcast: "", keteranganPerArea: {},
 };
 
@@ -411,7 +411,7 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
                           </div>
                           <Select onValueChange={(val) => form.setValue("statusBroadcast", val)} value={form.watch("statusBroadcast")}>
                             <SelectTrigger className="h-11 rounded-xl bg-background border-input text-xs font-bold"><SelectValue placeholder="Pilih status..." /></SelectTrigger>
-                            <SelectContent className="rounded-xl"><SelectItem value="Baru di temukan">Baru di temukan</SelectItem><SelectItem value="Sedang ditangani">Sedang ditangani</SelectItem><SelectItem value="Sudah ditangani">Sudah ditangani</SelectItem></SelectContent>
+                            <SelectContent className="rounded-xl"><SelectItem value="Baru ditemukan">Baru ditemukan</SelectItem><SelectItem value="Sedang ditangani">Sedang ditangani</SelectItem><SelectItem value="Sudah ditangani">Sudah ditangani</SelectItem></SelectContent>
                           </Select>
                           <Textarea placeholder="Catatan cuaca atau operasional opsional..." className="min-h-[80px] rounded-xl bg-background border-input focus-visible:ring-primary/20 text-xs p-3" value={form.watch("keteranganBroadcast") || ""} onChange={(e) => form.setValue("keteranganBroadcast", e.target.value)} />
                         </div>
@@ -497,7 +497,7 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
 
                                   {/* Status & Catatan Spesifik */}
                                   <div className="pt-2 border-t border-border/50 space-y-2">
-                                    <Select onValueChange={(val) => form.setValue(`statusPerArea.${areaId}`, val)} value={form.watch(`statusPerArea.${areaId}`) || ""}><SelectTrigger className="h-8 text-[10px]"><SelectValue placeholder="Status" /></SelectTrigger><SelectContent><SelectItem value="Baru di temukan">Baru di temukan</SelectItem><SelectItem value="Sedang ditangani">Sedang ditangani</SelectItem><SelectItem value="Sudah ditangani">Sudah ditangani</SelectItem></SelectContent></Select>
+                                    <Select onValueChange={(val) => form.setValue(`statusPerArea.${areaId}`, val)} value={form.watch(`statusPerArea.${areaId}`) || ""}><SelectTrigger className="h-8 text-[10px]"><SelectValue placeholder="Status" /></SelectTrigger><SelectContent><SelectItem value="Baru ditemukan">Baru ditemukan</SelectItem><SelectItem value="Sedang ditangani">Sedang ditangani</SelectItem><SelectItem value="Sudah ditangani">Sudah ditangani</SelectItem></SelectContent></Select>
                                     <Textarea placeholder="Catatan khusus area ini..." className="min-h-[50px] text-[10px] bg-background border-input rounded-lg p-2" value={form.watch(`keteranganPerArea.${areaId}`) || ""} onChange={(e) => form.setValue(`keteranganPerArea.${areaId}`, e.target.value)} />
                                   </div>
                                 </div>
