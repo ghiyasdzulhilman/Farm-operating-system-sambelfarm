@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { getAuth } from "@clerk/express";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { 
   db, 
   areasTable, 
@@ -83,10 +83,11 @@ router.get("/notion/inspeksi-dropdown-options", async (req, res): Promise<void> 
       kendalaMaster: formattedKendala
     });
     
-  } catch (err) { 
-    res.status(500).json({ error: "Gagal mengambil opsi dropdown dari database." }); 
+    } catch (err: any) { 
+    res.status(500).json({ error: err.message || "Gagal mengambil opsi dropdown dari database." }); 
   }
 });
+
 
 // ==========================================
 // 3. ENDPOINT SAVE DATA INSPEKSI
@@ -246,12 +247,12 @@ router.get("/notion/all-inspeksi", async (req, res): Promise<void> => {
       };
     });
 
-    res.json({ 
+        res.json({ 
       success: true, 
       data: dataMatang 
     });
-  } catch (err) {
-    res.status(500).json({ error: err instanceof Error ? err.message : "Gagal mengambil riwayat inspeksi." });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Gagal mengambil riwayat inspeksi." });
   }
 });
 
@@ -279,10 +280,9 @@ router.post("/notion/kendala-master", async (req, res): Promise<void> => {
       jenis: jenis.toLowerCase() // pastikan masuk ke DB sebagai 'hama' atau 'penyakit'
     }).returning();
 
-    res.status(201).json({ success: true, data: newKendala });
-  } catch (err) {
-    // Tangkap error misal namanya udah ada (unique constraint)
-    res.status(500).json({ error: "Gagal menyimpan data master baru. Mungkin nama sudah ada?" });
+        res.status(201).json({ success: true, data: newKendala });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Gagal menyimpan data master baru. Mungkin nama sudah ada?" });
   }
 });
 
