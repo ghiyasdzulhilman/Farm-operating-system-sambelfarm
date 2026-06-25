@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Leaf, Users, Database, Trash2, Plus, Loader2, ChevronRight, X } from "lucide-react";
+import { Leaf, Users, Database, Trash2, Plus, Loader2, ChevronRight, X, CalendarDays } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -10,10 +10,11 @@ import { cn } from "@/lib/utils";
 // ---------------------------------------------------------------------------
 // 📂 1. DICTIONARY DOMAIN MASTER
 // ---------------------------------------------------------------------------
-type MasterDomain = "area" | "pekerja" | "kategori";
+type MasterDomain = "area" | "pekerja" | "kategori" | "siklus";
 
 const MASTER_DOMAINS = [
   { id: "area" as MasterDomain, label: "Area & Blok", icon: Leaf, desc: "Kelola daftar area kebun" },
+  { id: "siklus" as MasterDomain, label: "Siklus Tanam", icon: CalendarDays, desc: "Atur tanggal pindah tanam" }, // 👈 TAB BARU
   { id: "pekerja" as MasterDomain, label: "Tim Pekerja", icon: Users, desc: "Daftar karyawan & tenaga kerja" },
   { id: "kategori" as MasterDomain, label: "Kategori Aktivitas", icon: Database, desc: "Label aktivitas per modul" },
 ];
@@ -83,7 +84,8 @@ export function MasterHubPage({ onClose }: { onClose?: () => void }) {
             <AnimatePresence mode="wait">
               <motion.div key={activeDomain} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
                 
-                {activeDomain === "area" && <AreaManager data={masterData?.areas || []} />}
+               {activeDomain === "area" && <AreaManager data={masterData?.areas || []} />}
+                {activeDomain === "siklus" && <SiklusTanamManager dataArea={masterData?.areas || []} />}
                 {activeDomain === "pekerja" && <PekerjaManager data={masterData?.petugas || []} />}
                 {activeDomain === "kategori" && <KategoriManager data={masterData?.kategori || []} />}
 
@@ -220,6 +222,93 @@ function KategoriManager({ data }: { data: any[] }) {
             </Button>
           </div>
         ))}
+      </div>
+    </Card>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 📦 4. KOMPONEN PENGELOLA SIKLUS TANAM (HST)
+// ---------------------------------------------------------------------------
+function SiklusTanamManager({ dataArea }: { dataArea: any[] }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  const [areaId, setAreaId] = useState("");
+  const [namaSiklus, setNamaSiklus] = useState("");
+  const [tglTanam, setTglTanam] = useState("");
+
+  // Tarik data siklus yang sedang aktif dari backend
+  const { data: listSiklus, isLoading } = useQuery({
+    queryKey: ["siklus-tanam-list"],
+    queryFn: async () => fetch("/api/notion/siklus-tanam").then(r => r.json()),
+  });
+
+  const activeSiklus = listSiklus?.data || [];
+
+  const addMutation = useMutation({
+    mutationFn: async () => fetch("/api/notion/siklus-tanam", { 
+      method: "POST", 
+      headers: { "Content-Type": "application/json" }, 
+      body: JSON.stringify({ areaId, namaSiklus, tanggalPindahTanam: tglTanam }) 
+    }).then(r => r.json()),
+    onSuccess: () => { 
+      queryClient.invalidateQueries({ queryKey: ["siklus-tanam-list"] }); 
+      queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] }); // Refresh feed biar HST langsung berubah
+      setAreaId(""); setNamaSiklus(""); setTglTanam("");
+      toast({ title: "Siklus Dimulai", description: "Siklus tanam baru berhasil didaftarkan." }); 
+    },
+  });
+
+  return (
+    <Card className={glassCard}>
+      <h3 className="text-lg font-black mb-1">Manajemen Siklus Tanam</h3>
+      <p className="text-xs text-muted-foreground mb-4">Mendaftarkan siklus baru akan otomatis menyelesaikan (mengarsipkan) siklus lama di area yang sama.</p>
+      
+      {/* Form Tambah Siklus */}
+      <div className="flex flex-col gap-3 mb-6 rounded-2xl bg-muted/10 p-4 border border-border/50">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <select value={areaId} onChange={e => setAreaId(e.target.value)} className="rounded-xl border border-border/60 bg-muted/30 px-3 py-2 text-sm outline-none font-bold">
+            <option value="" disabled>Pilih Area / Blok</option>
+            {dataArea.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </select>
+          <input type="text" placeholder="Nama Tanaman (cth: Tomat Kloter A)" value={namaSiklus} onChange={e => setNamaSiklus(e.target.value)} className="rounded-xl border border-border/60 bg-muted/30 px-4 py-2 text-sm outline-none focus:border-primary/50" />
+        </div>
+        <div className="flex flex-col sm:flex-row gap-3 items-center">
+          <div className="w-full sm:w-auto flex items-center gap-2 flex-1 rounded-xl border border-border/60 bg-muted/30 px-4 py-1.5 focus-within:border-primary/50">
+            <span className="text-xs font-bold text-muted-foreground whitespace-nowrap">TGL TANAM:</span>
+            <input type="date" value={tglTanam} onChange={e => setTglTanam(e.target.value)} className="bg-transparent text-sm font-bold outline-none cursor-pointer w-full" />
+          </div>
+          <Button 
+            onClick={() => { if(areaId && namaSiklus && tglTanam) addMutation.mutate(); else toast({variant: "destructive", title:"Gagal", description:"Isi semua kolom dulu."}) }} 
+            disabled={addMutation.isPending} 
+            className="rounded-xl font-bold w-full sm:w-auto shrink-0"
+          >
+            {addMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Mulai Siklus"}
+          </Button>
+        </div>
+      </div>
+
+      {/* Daftar Siklus Aktif */}
+      <div className="space-y-2">
+        <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">Siklus Sedang Berjalan</h4>
+        {isLoading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground mx-auto" /> : 
+          activeSiklus.map((item: any) => (
+            <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between rounded-xl border border-primary/20 bg-primary/5 p-3 gap-2">
+              <div>
+                <span className="text-sm font-black block text-primary">{item.namaSiklus}</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                  <Leaf className="h-3 w-3" /> Area: {item.areaName}
+                </span>
+              </div>
+              <div className="text-left sm:text-right">
+                <span className="text-xs font-bold block">Ditanam: {new Date(item.tanggalPindahTanam).toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'})}</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 rounded-full inline-block mt-1">Status: {item.status}</span>
+              </div>
+            </div>
+          ))
+        }
+        {activeSiklus.length === 0 && !isLoading && <p className="text-center text-xs text-muted-foreground py-4">Belum ada siklus aktif.</p>}
       </div>
     </Card>
   );
