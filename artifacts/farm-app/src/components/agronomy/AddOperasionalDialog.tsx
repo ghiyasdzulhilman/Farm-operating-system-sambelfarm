@@ -198,7 +198,7 @@ export function AddOperasionalDialog({ onSuccess }: { onSuccess?: () => void }) 
     if (isStepValid) setStep((prev) => prev + 1);
   };
 
-  // 👇 MANIPULATOR PAYLOAD (BYPASS HELPER UNTUK OVERRIDE) 👇
+    // 👇 MANIPULATOR PAYLOAD (SUDAH DIPERBAIKI) 👇
   function onSubmit(values: OperasionalFormValues) {
     const hasOverrides = Object.keys(overriddenAreas).length > 0;
     
@@ -218,15 +218,33 @@ export function AddOperasionalDialog({ onSuccess }: { onSuccess?: () => void }) 
       basePayload.modeAtribut = "spesifik";
       basePayload.modeCatatan = "spesifik";
 
-      basePayload.kategoriPerArea = values.kategoriPerArea;
-      basePayload.waktuMulaiPerArea = values.waktuMulaiPerArea;
-      basePayload.waktuSelesaiPerArea = values.waktuSelesaiPerArea;
-      basePayload.durasiKerjaPerArea = values.durasiKerjaPerArea;
-      basePayload.pekerjaPerArea = values.pekerjaPerArea;
-      basePayload.statusPerArea = values.statusPerArea;
-      basePayload.prioritasPerArea = values.prioritasPerArea;
-      basePayload.jenisTenagaKerjaPerArea = values.jenisTenagaKerjaPerArea;
-      basePayload.catatanPerArea = values.catatanPerArea;
+      // 💡 Inisialisasi ulang agar tidak undefined
+      basePayload.kategoriPerArea = {};
+      basePayload.waktuMulaiPerArea = {};
+      basePayload.waktuSelesaiPerArea = {};
+      basePayload.durasiKerjaPerArea = {};
+      basePayload.pekerjaPerArea = {};
+      basePayload.statusPerArea = {};
+      basePayload.prioritasPerArea = {};
+      basePayload.jenisTenagaKerjaPerArea = {};
+      basePayload.catatanPerArea = {};
+
+      // 💡 Looping semua area. 
+      // Jika area di-override, ambil data dari spesifik. 
+      // Jika TIDAK, isi dengan data dari Broadcast.
+      values.areaIds.forEach((areaId) => {
+        const isOvr = overriddenAreas[areaId];
+
+        basePayload.kategoriPerArea[areaId] = isOvr ? values.kategoriPerArea[areaId] : values.kategoriBroadcast;
+        basePayload.waktuMulaiPerArea[areaId] = isOvr ? values.waktuMulaiPerArea[areaId] : values.waktuMulaiBroadcast;
+        basePayload.waktuSelesaiPerArea[areaId] = isOvr ? values.waktuSelesaiPerArea[areaId] : values.waktuSelesaiBroadcast;
+        basePayload.durasiKerjaPerArea[areaId] = isOvr ? values.durasiKerjaPerArea[areaId] : values.durasiKerjaBroadcast;
+        basePayload.pekerjaPerArea[areaId] = isOvr ? (values.pekerjaPerArea[areaId] || []) : values.pekerjaBroadcast;
+        basePayload.statusPerArea[areaId] = isOvr ? values.statusPerArea[areaId] : values.statusBroadcast;
+        basePayload.prioritasPerArea[areaId] = isOvr ? values.prioritasPerArea[areaId] : values.prioritasBroadcast;
+        basePayload.jenisTenagaKerjaPerArea[areaId] = isOvr ? values.jenisTenagaKerjaPerArea[areaId] : values.jenisTenagaKerjaBroadcast;
+        basePayload.catatanPerArea[areaId] = isOvr ? values.catatanPerArea[areaId] : values.catatanBroadcast;
+      });
     }
 
     saveOperasional.mutate(basePayload);
