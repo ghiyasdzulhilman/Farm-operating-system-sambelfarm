@@ -154,7 +154,7 @@ export function MasterTableView({
         );
       },
     },
-        {
+            {
       id: "tanggal",
       header: "Tanggal (Mulai - Selesai)",
       cell: ({ row }) => {
@@ -190,8 +190,7 @@ export function MasterTableView({
         );
       },
     },
-
-        {
+    {
       id: "waktu",
       header: "Waktu (Mulai - Akhir)",
       cell: ({ row }) => {
@@ -233,36 +232,7 @@ export function MasterTableView({
         );
       },
     },
-
-        return (
-          <div className="flex items-center gap-1 min-w-[140px]">
-            <EditableCell
-              value={startTime}
-              type="time"
-              placeholder="00:00"
-              className="w-16 text-center px-0"
-              onSave={(val) => { if (val) updateDateTime(item, 'waktuMulai', undefined, val); }}
-            />
-            <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
-            <EditableCell
-              value={endTime}
-              type="time"
-              placeholder="Selesai"
-              className="w-16 text-center px-0"
-              onSave={(val) => {
-                if (val) {
-                  // Jika belum ada waktu selesai, samakan tanggalnya dengan waktu mulai
-                  const baseDateStr = startRaw ? startRaw.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
-                  updateDateTime(item, 'waktuSelesai', baseDateStr, val);
-                }
-              }}
-            />
-          </div>
-        );
-      },
-    },
     {
-      {
       id: "durasi",
       header: "Durasi",
       cell: ({ row }) => {
@@ -284,7 +254,7 @@ export function MasterTableView({
         return (
           <div className="flex items-center gap-1 min-w-[80px]">
             <EditableCell
-              value={parseFloat(calcHours.toFixed(2))} // 💡 Nampilin maksimal 2 desimal biar akurat
+              value={parseFloat(calcHours.toFixed(2))} // Nampilin maksimal 2 desimal biar akurat
               type="number"
               disabled={true} 
               className="w-14 text-right bg-muted/20 font-medium"
@@ -295,6 +265,7 @@ export function MasterTableView({
         );
       },
     },
+
               type="number"
               disabled={true} 
               className="w-12 text-right bg-muted/20 font-medium"
