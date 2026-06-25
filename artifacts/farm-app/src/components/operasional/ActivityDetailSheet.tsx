@@ -152,15 +152,16 @@ export function ActivityDetailSheet({
     }
   };
 
-  return (
+    return (
     <Sheet open={!!item} onOpenChange={(open) => !open && onClose()}>
       
       <SheetContent
         side="right"
         className="w-full border-l border-border/60 bg-background p-0 sm:max-w-[520px] [&>button]:hidden"
+        onOpenAutoFocus={(e) => e.preventDefault()} 
       >
         <div className="flex h-full flex-col">
-          
+
           {/* HEADER PREMIUM DENGAN STATUS & TOMBOL KEMBALI */}
           <SheetHeader className="border-b border-border/60 px-4 py-3">
             <div className="flex items-center justify-between gap-3 w-full">
