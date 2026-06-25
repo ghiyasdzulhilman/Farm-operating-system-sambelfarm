@@ -14,6 +14,7 @@ export type AgronomyItem = {
   area: string;
   time: string;
   dateLabel: string;
+  tanggalPindahTanam?: string | null;
   status: "Selesai" | "Dalam proses" | "Belum dikerjakan";
   priority: "High" | "Medium" | "Low";
   duration: string;
