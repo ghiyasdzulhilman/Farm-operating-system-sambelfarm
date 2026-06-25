@@ -158,25 +158,28 @@ export function ActivityDetailSheet({
         className="w-full border-l border-border/60 bg-background p-0 sm:max-w-[520px]"
       >
         <div className="flex h-full flex-col">
+          
           {/* HEADER DENGAN INTERAKTIF STATUS */}
-          <SheetHeader className="border-b border-border/60 px-5 py-4">
+          {/* 💡 Tambahkan pr-14 di sini untuk Safe Zone jempol ke tombol X */}
+          <SheetHeader className="border-b border-border/60 pl-5 py-4 pr-14">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <SheetTitle className="text-left text-lg font-black tracking-tight">
                   Detail Aktivitas
                 </SheetTitle>
                 <p className="text-left text-xs text-muted-foreground">
-                  Tap teks untuk mengedit data secara langsung
+                  Tap teks untuk edit data
                 </p>
               </div>
 
-              <div className="relative inline-block">
+              <div className="relative inline-block shrink-0">
                 <select
                   value={item.status}
                   onChange={(e) => onStatusChange?.(item.id, e.target.value)}
                   disabled={item.isPendingStaging}
                   className={cn(
-                    "appearance-none rounded-full px-3 py-1.5 pr-8 text-[11px] font-bold uppercase tracking-wider outline-none cursor-pointer border transition-all shadow-sm",
+                    // 💡 Ubah py-1.5 jadi py-2 biar tombol statusnya lebih tebal dan nyaman diklik
+                    "appearance-none rounded-full pl-4 pr-9 py-2 text-[11px] font-bold uppercase tracking-wider outline-none cursor-pointer border transition-all shadow-sm",
                     item.status === "Selesai"
                       ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20"
                       : item.status === "Dalam proses"
