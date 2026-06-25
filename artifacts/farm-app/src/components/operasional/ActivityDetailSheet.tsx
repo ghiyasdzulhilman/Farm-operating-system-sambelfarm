@@ -233,54 +233,58 @@ export function ActivityDetailSheet({
                     </h2>
                   )}
 
-                                  </div>
+                </div>
                 <div className="rounded-3xl bg-background/80 backdrop-blur-sm p-3 shadow-sm border border-border/40 shrink-0">
                   <CalendarDays className="h-5 w-5 text-primary" />
                 </div>
               </div>
               
-              {/* 💡 JAJARAN BADGE INTERAKTIF BARU */}
+             {/* 💡 JAJARAN BADGE INTERAKTIF BARU (FIX LEBAR DINAMIS) */}
               <div className="mt-4 flex flex-wrap gap-2 items-center">
                 
                 {/* 1. Badge Area (Editable) */}
-                <div className="relative inline-flex shadow-sm">
+                <div className="relative inline-flex shadow-sm max-w-full">
                   <select
                     value={item.areaId || ""}
                     onChange={(e) => onStatusChange?.(item.id, { areaId: e.target.value })}
-                    className="appearance-none bg-primary text-primary-foreground border border-primary hover:bg-primary/90 rounded-full px-3 py-1 pr-7 text-[11px] font-bold uppercase tracking-wider outline-none cursor-pointer transition-colors z-10"
+                    // 💡 Tambah max-w-[130px] dan truncate disini
+                    className="appearance-none max-w-[130px] sm:max-w-[160px] truncate bg-primary text-primary-foreground border border-primary hover:bg-primary/90 rounded-full pl-3 pr-7 py-1 text-[11px] font-bold uppercase tracking-wider outline-none cursor-pointer transition-colors z-10"
                   >
                     <option value="" disabled>PILIH AREA</option>
                     {dropdownOptions?.areas?.map((a: any) => (
                       <option key={a.id} value={a.id}>{a.name}</option>
                     ))}
                   </select>
-                  <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-primary-foreground pointer-events-none z-10" />
+                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-primary-foreground pointer-events-none z-10" />
                 </div>
 
                 {/* 2. Badge HST (Hardcode Sementara) */}
-                <Badge variant="secondary" className="rounded-full shadow-sm bg-emerald-500/10 text-emerald-700 border-emerald-500/20">
+                <Badge variant="secondary" className="rounded-full shadow-sm bg-emerald-500/10 text-emerald-700 border-emerald-500/20 shrink-0">
                   🌱 45 HST
                 </Badge>
 
-                {/* 3. Badge Kategori (Editable) */}
-                <div className="relative inline-flex shadow-sm">
+              {/* 3. Badge Kategori (Editable) */}
+                <div className="relative inline-flex shadow-sm max-w-full">
                   <select
                     value={item.module === "perawatan" ? (item.tagCategoryId || item.metaEkstra?.tagCategoryId || "") : (item.kategoriId || item.metaEkstra?.kategoriId || "")}
                     onChange={(e) => {
                       const field = item.module === "perawatan" ? "tagCategoryId" : "kategoriId";
                       onStatusChange?.(item.id, { [field]: e.target.value });
                     }}
-                    className="appearance-none bg-secondary text-secondary-foreground border border-border hover:bg-secondary/80 rounded-full px-3 py-1 pr-7 text-[11px] font-bold uppercase tracking-wider outline-none cursor-pointer transition-colors z-10"
+                    // 👇 SEKARANG SAMA-SAMA PAKAI BG-PRIMARY 🚀 👇
+                    className="appearance-none max-w-[140px] sm:max-w-[170px] truncate bg-primary text-primary-foreground border border-primary hover:bg-primary/90 rounded-full pl-3 pr-7 py-1 text-[11px] font-bold uppercase tracking-wider outline-none cursor-pointer transition-colors z-10"
                   >
+
                     <option value="" disabled>PILIH KATEGORI</option>
                     {dropdownOptions?.kategori?.filter((k: any) => k.module === item.module).map((k: any) => (
                       <option key={k.id} value={k.id}>{k.name}</option>
                     ))}
                   </select>
-                  <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none z-10" />
+              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-primary-foreground pointer-events-none z-10" />
                 </div>
                 
               </div>
+
             </div>
 
             {/* SEGMEN SPESIFIKASI & JADWAL LAPANGAN (DINAMIS PER MODUL) */}
