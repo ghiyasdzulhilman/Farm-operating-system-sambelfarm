@@ -146,13 +146,31 @@ export function ActivityDetailSheet({
     if (field === "tagCategory") payload.tagCategory = valStr;
     if (field === "catatan") payload[item.module === "inspeksi" ? "keterangan" : "catatan"] = valStr;
 
-    // Kirim payload ke halaman utama buat di-eksekusi mutasinya (pastikan gak kosong)
+        // Kirim payload ke halaman utama buat di-eksekusi mutasinya (pastikan gak kosong)
     if (Object.keys(payload).length > 0) {
       onStatusChange?.(item.id, payload);
     }
   };
 
-    return (
+  // 💡 JAHIT KODE KALKULATOR HST DI SINI BRO 🚀
+  const calculateHST = () => {
+    const tglTanamStr = item.metaEkstra?.tanggalPindahTanam || (item as any).tanggalPindahTanam;
+    if (!tglTanamStr) return "-";
+
+    try {
+      const tglTanam = new Date(tglTanamStr);
+      const tglAktivitas = new Date(item.rawDate || new Date());
+      
+      const diffTime = tglAktivitas.getTime() - tglTanam.getTime();
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      
+      return diffDays >= 0 ? diffDays : "-";
+    } catch {
+      return "-";
+    }
+  };
+
+  return (
     <Sheet open={!!item} onOpenChange={(open) => !open && onClose()}>
       
       <SheetContent
@@ -237,8 +255,8 @@ export function ActivityDetailSheet({
                     )}
                     {/* 💡 HST PINDAH KE SINI, DIBATASI GARIS LURUS | */}
                     <span className="text-border/40 font-light">|</span>
-                    <span className="text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded flex items-center gap-1">
-                      🌱 45 HST
+                    <span className="text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded flex items-center gap-1 font-bold">
+                    🌱 {calculateHST()} HST
                     </span>
                   </div>
                   
