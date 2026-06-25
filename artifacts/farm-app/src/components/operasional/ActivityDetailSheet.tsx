@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { AgronomyItem } from "@/types/operasional";
 import { format } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
 
 interface ActivityDetailSheetProps {
   item: AgronomyItem | null;
@@ -38,6 +39,13 @@ export function ActivityDetailSheet({
   // 💡 State untuk mendeteksi elemen mana yang lagi di-tap (inline edit)
   const [activeField, setActiveField] = useState<string | null>(null);
   const [localValue, setLocalValue] = useState<string>("");
+
+  // 💡 Fetch Opsi Kategori langsung dari backend
+  const { data: dropdownOptions } = useQuery({
+    queryKey: ["operasional-options-list"],
+    queryFn: async () => fetch("/api/notion/operasional-dropdown-options").then(res => res.json()),
+    enabled: !!item // Hanya nge-fetch kalau sheet-nya lagi kebuka
+  });
 
   if (!item) return null;
 
@@ -343,19 +351,26 @@ export function ActivityDetailSheet({
                     </div>
                   )}
 
-                  {/* 3. MODUL PERAWATAN */}
+                 {/* 3. MODUL PERAWATAN */}
                   {item.module === "perawatan" && (
                     <div className="col-span-2 grid gap-3 sm:grid-cols-2">
-                      <div 
-                        onClick={() => { if(activeField !== "tagCategory") { setActiveField("tagCategory"); setLocalValue(item.metaEkstra.tagCategory || ""); } }}
-                        className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm cursor-pointer hover:bg-muted/40 transition-colors"
-                      >
-                        <div className="flex items-center gap-2 text-muted-foreground mb-1"><Activity className="h-4 w-4 text-primary" /><span className="text-xs font-bold uppercase">Kategori</span></div>
-                        {activeField === "tagCategory" ? (
-                          <input autoFocus type="text" placeholder="Ketik kategori..." value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("tagCategory")} onKeyDown={(e) => e.key === "Enter" && handleInlineSave("tagCategory")} className="w-full bg-transparent text-sm font-black outline-none border-b border-primary/30 p-0" />
-                        ) : (
-                          <p className="text-sm font-black">{item.metaEkstra.tagCategory || "Belum diatur"}</p>
-                        )}
+                      <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm relative">
+                        <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                          <Activity className="h-4 w-4 text-primary" />
+                          <span className="text-xs font-bold uppercase">Kategori</span>
+                        </div>
+                        <select 
+                          // Prioritaskan ID dari item induk, fallback ke metaEkstra
+                          value={item.tagCategoryId || item.metaEkstra?.tagCategoryId || ""}
+                          onChange={(e) => onStatusChange?.(item.id, { tagCategoryId: e.target.value })}
+                          className="w-full bg-transparent text-sm font-black outline-none cursor-pointer appearance-none relative z-10"
+                        >
+                          <option value="" disabled>Pilih Kategori...</option>
+                          {dropdownOptions?.kategori?.filter((k: any) => k.module === "perawatan").map((k: any) => (
+                            <option key={k.id} value={k.id}>{k.name}</option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-3 top-[60%] -translate-y-1/2 h-3.5 w-3.5 pointer-events-none opacity-50 z-0" />
                       </div>
 
                       <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
