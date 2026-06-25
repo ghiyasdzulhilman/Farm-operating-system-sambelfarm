@@ -54,25 +54,20 @@ router.get("/notion/inspeksi-dropdown-options", async (req, res): Promise<void> 
     return; 
   }
 
-  // --- BATAS ATAS PERBAIKAN INSPEKSI ---
   try {
     const areas = await db.select().from(areasTable);
-    
     const formattedAreas = areas.map(a => ({
       id: a.id,
       name: a.name
     }));
 
-    // 1. Ambil data pekerja aktif langsung dari Supabase
     const dbPekerja = await db.select().from(pekerjaTable);
-    
-        // 2. Mapping properti 'nama' dari DB menjadi 'name' untuk Frontend
     const formattedPetugas = dbPekerja.map((p) => ({
       id: p.id,
       name: p.nama,
     }));
 
-    // 3. Ambil data master hama & penyakit
+    // Ambil data master hama & penyakit
     const dbKendala = await db.select().from(kendalaMasterTable);
     const formattedKendala = dbKendala.map((k) => ({
       id: k.id,
@@ -80,14 +75,17 @@ router.get("/notion/inspeksi-dropdown-options", async (req, res): Promise<void> 
       jenis: k.jenis // 'hama' atau 'penyakit'
     }));
 
-    // 4. Kirim data asli ke frontend
+    // Kirim data ke frontend
     res.json({ 
       areas: formattedAreas, 
       petugas: formattedPetugas, 
-      kendalaMaster: formattedKendala // 👈 Data master tambahan
+      kendalaMaster: formattedKendala
     });
-
-// --- BATAS BAWAH PERBAIKAN INSPEKSI ---
+    
+  } catch (err) { 
+    res.status(500).json({ error: "Gagal mengambil opsi dropdown dari database." }); 
+  }
+});
 
 // ==========================================
 // 3. ENDPOINT SAVE DATA INSPEKSI
