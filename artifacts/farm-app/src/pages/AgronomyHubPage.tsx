@@ -72,9 +72,7 @@ export function AgronomyHubPage() {
           rawDate: item.waktuMulai || new Date().toISOString(),
           status: item.status || "Belum dikerjakan",
           areaId: item.areaId,
-          area: item.tanggalPindahTanam 
-  ? `${item.areaName} - ${item.namaSiklus}` 
-  : item.areaName,
+          area: item.areaName || "Area Master",
           workers: resolvedWorkers.length ? resolvedWorkers : ["Tim Lapangan"], 
           duration: `${item.durasiKerja || 0} jam`,
           priority: item.prioritas || "Medium",
