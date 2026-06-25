@@ -165,15 +165,15 @@ export function ActivityDetailSheet({
           <SheetHeader className="border-b border-border/60 px-4 py-3">
             <div className="flex items-center justify-between gap-3 w-full">
               
-             {/* DROPDOWN STATUS DINAMIS DI KIRI */}
+            {/* DROPDOWN STATUS DINAMIS DI KIRI */}
               <div className="relative inline-block shrink-0">
                 <select
                   value={item.status}
                   onChange={(e) => onStatusChange?.(item.id, e.target.value)}
                   disabled={item.isPendingStaging}
                   className={cn(
-                    "appearance-none rounded-full pl-4 pr-10 py-2.5 text-[11px] font-bold uppercase tracking-wider outline-none cursor-pointer border transition-all shadow-sm",
-                    // 💡 Fix: Tambahkan warna untuk status Inspeksi
+                    // 💡 BUGFIX: Tambahkan 'relative z-10' di sini agar elemen terangkat dari tumpukan layer transparan
+                    "relative z-10 appearance-none rounded-full pl-4 pr-10 py-2.5 text-[11px] font-bold uppercase tracking-wider outline-none cursor-pointer border transition-all shadow-sm",
                     (item.status === "Selesai" || item.status === "Sudah ditangani")
                       ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20"
                       : (item.status === "Dalam proses" || item.status === "Sedang ditangani")
@@ -197,7 +197,8 @@ export function ActivityDetailSheet({
                     </>
                   )}
                 </select>
-                <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none opacity-60" />
+                {/* 💡 BUGFIX: Tambahkan 'z-10' juga pada icon panah agar tidak terkubur di bawah select */}
+                <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none opacity-60 z-10" />
               </div>
 
               {/* TOMBOL KEMBALI BESAR & NYAMAN DI KANAN (JEMPOL KANAN) */}
