@@ -61,10 +61,17 @@ export function ActivityDetailSheet({
     }
   };
 
-  // 💡 Fungsi pintar untuk memotong teks "⚠️ Detail Kendala:" agar tidak ganda saat diedit
+    // 💡 Fungsi pintar untuk memotong teks "⚠️ Detail Kendala:" agar tidak ganda saat diedit
   const getCleanCatatan = () => {
     const raw = item.notes || "";
-    return raw.split("\n\n⚠️ Detail Kendala:")[0];
+    return raw.split("\n\n⚠️ Detail Kendala:\n")[0];
+  };
+
+  // 💡 Fungsi baru untuk mengekstrak khusus detail kendalanya saja
+  const getDetailKendala = () => {
+    const raw = item.notes || "";
+    const parts = raw.split("\n\n⚠️ Detail Kendala:\n");
+    return parts.length > 1 ? parts[1] : "";
   };
 
   // 💡 Fungsi penembak data otomatis ala Notion (dipanggil saat klik di luar input / onBlur)
@@ -72,16 +79,20 @@ export function ActivityDetailSheet({
     setActiveField(null); // Tutup form input-nya
 
     const payload: any = {};
-    if (field === "title") payload[item.module === "operasional" ? "namaPekerjaan" : "kegiatan"] = localValue;
-    if (field === "phTanah") payload.phTanah = localValue ? Number(localValue) : null;
-    if (field === "tingkatSerangan") payload.tingkatSerangan = localValue ? Number(localValue) : null;
-    if (field === "radius") payload.radius = localValue ? Number(localValue) : null;
-    if (field === "jenisTenagaKerja") payload.jenisTenagaKerja = localValue;
-    if (field === "tagCategory") payload.tagCategory = localValue;
-    if (field === "catatan") payload[item.module === "inspeksi" ? "keterangan" : "catatan"] = localValue;
+    const valStr = localValue.trim();
 
-    // Kirim payload ke halaman utama buat di-eksekusi mutasinya
-    onStatusChange?.(item.id, payload);
+    if (field === "title") payload[item.module === "operasional" ? "namaPekerjaan" : "kegiatan"] = valStr;
+    if (field === "phTanah") payload.phTanah = valStr !== "" ? parseFloat(valStr) : null;
+    if (field === "tingkatSerangan") payload.tingkatSerangan = valStr !== "" ? parseFloat(valStr) : null;
+    if (field === "radius") payload.radius = valStr !== "" ? parseFloat(valStr) : null;
+    if (field === "jenisTenagaKerja") payload.jenisTenagaKerja = valStr;
+    if (field === "tagCategory") payload.tagCategory = valStr;
+    if (field === "catatan") payload[item.module === "inspeksi" ? "keterangan" : "catatan"] = valStr;
+
+    // Kirim payload ke halaman utama buat di-eksekusi mutasinya (pastikan gak kosong)
+    if (Object.keys(payload).length > 0) {
+      onStatusChange?.(item.id, payload);
+    }
   };
 
   return (
@@ -259,17 +270,18 @@ export function ActivityDetailSheet({
                           <Bug className="h-4 w-4" />
                           <span className="text-xs font-bold uppercase">Daftar Temuan Kendala</span>
                         </div>
-                        <div className="flex flex-wrap gap-1">
-                          {item.metaEkstra.hama?.map((h: string) => (
+                          <div className="flex flex-wrap gap-1">
+                          {(Array.isArray(item.metaEkstra.hama) ? item.metaEkstra.hama : []).map((h: string) => (
                             <Badge key={h} variant="destructive" className="text-[10px] rounded-sm py-0 bg-red-500/80">{h}</Badge>
                           ))}
-                          {item.metaEkstra.penyakit?.map((p: string) => (
+                          {(Array.isArray(item.metaEkstra.penyakit) ? item.metaEkstra.penyakit : []).map((p: string) => (
                             <Badge key={p} variant="destructive" className="text-[10px] rounded-sm py-0 bg-orange-500/80">{p}</Badge>
                           ))}
-                          {!item.metaEkstra.hama?.length && !item.metaEkstra.penyakit?.length && (
+                          {(!item.metaEkstra.hama?.length && !item.metaEkstra.penyakit?.length) && (
                             <span className="text-xs font-medium text-emerald-600">Tanaman Aman Terkendali</span>
                           )}
                         </div>
+
                       </div>
                     </>
                   )}
@@ -335,7 +347,7 @@ export function ActivityDetailSheet({
               </section>
             )}
 
-            {/* SEGMEN CATATAN INLINE EDIT */}
+          {/* SEGMEN CATATAN INLINE EDIT */}
             <section className="mt-6 space-y-3">
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-primary" />
@@ -343,6 +355,8 @@ export function ActivityDetailSheet({
                   Catatan / Detail
                 </h3>
               </div>
+              
+              {/* Kotak Catatan Utama (Bisa Di-edit) */}
               <div 
                 onClick={() => { if(activeField !== "catatan") { setActiveField("catatan"); setLocalValue(getCleanCatatan()); } }}
                 className="rounded-3xl border border-border/60 bg-muted/20 p-4 text-sm leading-6 text-foreground min-h-[80px] cursor-pointer hover:bg-muted/40 transition-colors"
@@ -360,6 +374,14 @@ export function ActivityDetailSheet({
                   <div className="whitespace-pre-wrap">{getCleanCatatan() || "Ketik catatan disini..."}</div>
                 )}
               </div>
+
+              {/* Kotak Read-Only Khusus Rincian Temuan Kendala */}
+              {getDetailKendala() && (
+                <div className="mt-3 rounded-2xl border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive shadow-sm">
+                  <span className="font-bold mb-2 block uppercase tracking-wider text-xs">⚠️ Rincian Temuan Lapangan:</span>
+                  <div className="whitespace-pre-wrap leading-relaxed">{getDetailKendala()}</div>
+                </div>
+              )}
             </section>
 
             {/* SEGMEN PEKERJA */}
