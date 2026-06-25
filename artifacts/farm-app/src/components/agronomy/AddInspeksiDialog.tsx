@@ -30,11 +30,6 @@ import {
   sanitizeNestedRecordByAllowedKeys,
 } from "@/lib/areaOverrideForm";
 
-// --- DAFTAR HAMA & PENYAKIT BAWAAN ---
-const DAFTAR_HAMA = ["Thrips", "Kutu Kebul", "Aphids", "Tungau", "Ulat", "Lalat Buah"];
-const DAFTAR_PENYAKIT = ["Antraknosa / Patek", "Bercak Daun", "Layu Fusarium", "Layu Bakteri", "Virus Kuning / Bule"];
-const PRESET_HAMA_PENYAKIT = [...DAFTAR_HAMA, ...DAFTAR_PENYAKIT];
-
 // ==========================================
 // ZOD SCHEMA
 // ==========================================
@@ -79,7 +74,11 @@ const inspeksiSchema = z.object({
 
 type InspeksiFormValues = z.infer<typeof inspeksiSchema>;
 
-interface DropdownOptions { areas: Array<{ id: string; name: string }>; petugas: Array<{ id: string; name: string }>; }
+interface DropdownOptions { 
+  areas: Array<{ id: string; name: string }>; 
+  petugas: Array<{ id: string; name: string }>; 
+  kendalaMaster: Array<{ id: string; name: string; jenis: 'hama' | 'penyakit' }>; 
+}
 
 const INSPEKSI_OVERRIDE_FIELDS = [
   { broadcastKey: "waktuMulaiBroadcast", perAreaKey: "waktuMulaiPerArea" },
@@ -114,22 +113,23 @@ function sanitizeTemuanBroadcast(kendalaBroadcast: string[], temuanBroadcast: Re
   }, {});
 }
 
-function sanitizeInspeksiPayload(payload: InspeksiFormValues) {
+function sanitizeInspeksiPayload(payload: InspeksiFormValues, masterKendalaList: DropdownOptions['kendalaMaster'] = []) {
   const temuanBroadcast = sanitizeTemuanBroadcast(payload.kendalaBroadcast, payload.temuanBroadcast);
   const temuanPerArea = sanitizeNestedRecordByAllowedKeys(payload.temuanPerArea, payload.kendalaPerArea);
-  const hamaBroadcast = payload.kendalaBroadcast.filter(k => DAFTAR_HAMA.includes(k));
-  const penyakitBroadcast = payload.kendalaBroadcast.filter(k => DAFTAR_PENYAKIT.includes(k));
-  const formatTemuanBroadcast = Object.entries(temuanBroadcast).map(([nama, catatan]) => ({ nama, catatan }));
+  
+  // Format data temuan untuk backend baru (menggunakan kendalaMasterId)
+  const formatTemuanBroadcast = Object.entries(temuanBroadcast).map(([id, catatan]) => ({ 
+    kendalaMasterId: id, 
+    catatan 
+  }));
 
-  const hamaPerArea: Record<string, string[]> = {};
-  const penyakitPerArea: Record<string, string[]> = {};
-  const formatTemuanPerArea: Record<string, Array<{nama: string; catatan: string}>> = {};
+  const formatTemuanPerArea: Record<string, Array<{kendalaMasterId: string; catatan: string}>> = {};
 
   payload.areaIds.forEach(id => {
-    const k = payload.kendalaPerArea[id] || [];
-    hamaPerArea[id] = k.filter(item => DAFTAR_HAMA.includes(item));
-    penyakitPerArea[id] = k.filter(item => DAFTAR_PENYAKIT.includes(item));
-    formatTemuanPerArea[id] = Object.entries(temuanPerArea[id] || {}).map(([nama, catatan]) => ({ nama, catatan }));
+    formatTemuanPerArea[id] = Object.entries(temuanPerArea[id] || {}).map(([kendalaMasterId, catatan]) => ({ 
+      kendalaMasterId, 
+      catatan 
+    }));
   });
 
   const parseAngka = (val?: string) => val ? Number(val) : undefined;
@@ -138,6 +138,7 @@ function sanitizeInspeksiPayload(payload: InspeksiFormValues) {
   const tsPerArea: Record<string, number> = {};
   const radPerArea: Record<string, number> = {};
   const phPerArea: Record<string, number> = {};
+  
   payload.areaIds.forEach(id => {
     const ts = parseSerangan(payload.tingkatSeranganPerArea[id]); if (ts !== undefined) tsPerArea[id] = ts;
     const rd = parseAngka(payload.radiusPerArea[id]); if (rd !== undefined) radPerArea[id] = rd;
@@ -149,10 +150,12 @@ function sanitizeInspeksiPayload(payload: InspeksiFormValues) {
     durasiKerjaPerArea: payload.modeWaktu === "broadcast"
       ? buildBroadcastPerAreaRecord(payload.areaIds, payload.durasiKerjaBroadcast)
       : payload.durasiKerjaPerArea,
-    hamaBroadcast, penyakitBroadcast, hamaPerArea, penyakitPerArea,
-    temuanBroadcast: formatTemuanBroadcast, temuanPerArea: formatTemuanPerArea,
+    // Kita udah gak butuh misahin hamaBroadcast/penyakitBroadcast manual karena backend udah handle via JOIN
+    temuanBroadcast: formatTemuanBroadcast, 
+    temuanPerArea: formatTemuanPerArea,
     tingkatSeranganBroadcast: parseSerangan(payload.tingkatSeranganBroadcast),
-    radiusBroadcast: parseAngka(payload.radiusBroadcast), phTanahBroadcast: parseAngka(payload.phTanahBroadcast),
+    radiusBroadcast: parseAngka(payload.radiusBroadcast), 
+    phTanahBroadcast: parseAngka(payload.phTanahBroadcast),
     tingkatSeranganPerArea: tsPerArea, radiusPerArea: radPerArea, phTanahPerArea: phPerArea,
     petugasBroadcast: payload.pekerjaBroadcast, petugasPerArea: payload.pekerjaPerArea,
   };
@@ -202,11 +205,18 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
 
   const saveInspeksi = useMutation({
     mutationFn: async (payload: InspeksiFormValues) => {
-      const cleanPayload = sanitizeInspeksiPayload(payload);
-      const response = await fetch("/api/notion/add-inspeksi", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cleanPayload) });
+      // Masukkan dropdownOptions?.kendalaMaster sebagai argumen kedua di sini 👇
+      const cleanPayload = sanitizeInspeksiPayload(payload, dropdownOptions?.kendalaMaster);
+      
+      const response = await fetch("/api/notion/add-inspeksi", { 
+        method: "POST", 
+        headers: { "Content-Type": "application/json" }, 
+        body: JSON.stringify(cleanPayload) 
+      });
       if (!response.ok) { const errText = await response.text(); throw new Error(errText || "Gagal menyimpan inspeksi"); }
       return response.json();
     },
+
     onSuccess: async (responseData) => {
       await queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey(), refetchType: "all" });
       const results = responseData?.data || [];
@@ -402,22 +412,30 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
                             <SelectContent className="max-h-60 rounded-xl">{PRESET_HAMA_PENYAKIT.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
                           </Select>
 
-                          {form.watch("kendalaBroadcast").length === 0 && <p className="text-xs text-muted-foreground/60 italic p-3 text-center border border-dashed border-border rounded-xl mt-2">Belum ada temuan.</p>}
+  {form.watch("kendalaBroadcast").length === 0 && <p className="text-xs text-muted-foreground/60 italic p-3 text-center border border-dashed border-border rounded-xl mt-2">Belum ada temuan.</p>}
 
-                          <div className="space-y-2 mt-2">
-                            <AnimatePresence>
-                              {form.watch("kendalaBroadcast").map((item) => (
-                                <motion.div key={item} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="bg-muted/40 p-3 rounded-xl border border-border overflow-hidden">
-                                  <div className="flex justify-between items-center mb-2">
-                                    <Badge className={`${DAFTAR_PENYAKIT.includes(item) ? "bg-purple-500/10 text-purple-600 border-purple-200" : "bg-destructive/10 text-destructive border-destructive/20"}`} variant="outline">{item}</Badge>
-                                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10 rounded-md" onClick={() => handleToggleHamaBroadcast(item)}><Trash2 className="h-3.5 w-3.5" /></Button>
-                                  </div>
-                                  <Input placeholder={`Deskripsi khusus ${item}...`} className="h-10 text-xs bg-background border-input rounded-lg" value={form.watch(`temuanBroadcast.${item}`) || ""} onChange={(e) => form.setValue(`temuanBroadcast.${item}`, e.target.value)} />
-                                </motion.div>
-                              ))}
-                            </AnimatePresence>
-                          </div>
-                        </div>
+  <div className="space-y-2 mt-2">
+  <AnimatePresence>
+    {form.watch("kendalaBroadcast").map((item) => {
+      // 1. Cari data master dari DB berdasarkan ID-nya di sini 👇
+      const kendalaData = dropdownOptions?.kendalaMaster?.find(k => k.id === item);
+      const isPenyakit = kendalaData?.jenis === "penyakit";
+
+      return (
+        <motion.div key={item} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="bg-muted/40 p-3 rounded-xl border border-border overflow-hidden">
+          <div className="flex justify-between items-center mb-2">
+            {/* 2. Badge sekarang baca name & jenis dari DB 🚀 */}
+            <Badge className={`${isPenyakit ? "bg-purple-500/10 text-purple-600 border-purple-200" : "bg-destructive/10 text-destructive border-destructive/20"}`} variant="outline">
+              {kendalaData?.name || "Memuat..."}
+            </Badge>
+            <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10 rounded-md" onClick={() => handleToggleHamaBroadcast(item)}><Trash2 className="h-3.5 w-3.5" /></Button>
+          </div>
+          <Input placeholder={`Deskripsi khusus...`} className="h-10 text-xs bg-background border-input rounded-lg" value={form.watch(`temuanBroadcast.${item}`) || ""} onChange={(e) => form.setValue(`temuanBroadcast.${item}`, e.target.value)} />
+        </motion.div>
+      );
+    })}
+  </AnimatePresence>
+</div>
 
                         {/* Angka Terukur */}
                         <div className="bg-card p-4 rounded-2xl border border-border shadow-sm space-y-3">
@@ -511,14 +529,31 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
                                   <div className="space-y-2 pt-2 border-t border-border/50">
                                     <Select onValueChange={(val) => handleToggleHamaSpesifik(areaId, val)}>
                                       <SelectTrigger className="w-full h-8 rounded-lg bg-background border-input font-bold text-[10px]"><SelectValue placeholder="+ Tambah Temuan Khusus Area Ini" /></SelectTrigger>
-                                      <SelectContent className="max-h-60 rounded-xl">{PRESET_HAMA_PENYAKIT.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
-                                    </Select>
-                                    {form.watch(`kendalaPerArea.${areaId}`)?.map((item) => (
-                                      <div key={item} className="bg-muted/30 p-2 rounded-lg border border-border/50 mt-2">
-                                        <div className="flex justify-between items-center mb-1.5"><span className="text-[10px] font-bold">{item}</span><Button type="button" variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleToggleHamaSpesifik(areaId, item)}><Trash2 className="h-3 w-3 text-destructive" /></Button></div>
-                                        <Input placeholder={`Catatan ${item}...`} className="h-7 text-[10px] bg-background border-input" value={form.watch(`temuanPerArea.${areaId}.${item}`) || ""} onChange={(e) => form.setValue(`temuanPerArea.${areaId}.${item}`, e.target.value)} />
-                                      </div>
-                                    ))}
+  <SelectContent className="max-h-60 rounded-xl">
+  {dropdownOptions?.kendalaMaster?.map(k => (
+    <SelectItem key={k.id} value={k.id}>
+      {k.name} ({k.jenis === 'hama' ? 'Hama' : 'Penyakit'})
+    </SelectItem>
+  ))}
+</SelectContent>
+
+  </Select>
+  {form.watch(`kendalaPerArea.${areaId}`)?.map((item) => {
+  // 1. Cari data master dari DB berdasarkan ID-nya di sini juga 👇
+  const kendalaData = dropdownOptions?.kendalaMaster?.find(k => k.id === item);
+
+  return (
+    <div key={item} className="bg-muted/30 p-2 rounded-lg border border-border/50 mt-2">
+      <div className="flex justify-between items-center mb-1.5">
+        {/* 2. Tampilkan nama asli dari DB master */}
+        <span className="text-[10px] font-bold">{kendalaData?.name || "Memuat..."}</span>
+        <Button type="button" variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleToggleHamaSpesifik(areaId, item)}><Trash2 className="h-3 w-3 text-destructive" /></Button>
+      </div>
+      <Input placeholder={`Catatan...`} className="h-7 text-[10px] bg-background border-input" value={form.watch(`temuanPerArea.${areaId}.${item}`) || ""} onChange={(e) => form.setValue(`temuanPerArea.${areaId}.${item}`, e.target.value)} />
+    </div>
+  );
+})}
+
                                   </div>
 
                                   {/* Parameter Spesifik */}
