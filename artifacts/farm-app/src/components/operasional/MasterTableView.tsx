@@ -191,7 +191,7 @@ export function MasterTableView({
         );
       },
     },
-    {
+        {
       id: "waktu",
       header: "Waktu (Mulai - Akhir)",
       cell: ({ row }) => {
@@ -221,11 +221,18 @@ export function MasterTableView({
               className="w-16 text-center px-0"
               onSave={(val) => {
                 if (val) {
-                  // Jika belum ada waktu selesai, samakan tanggalnya dengan waktu mulai di zona WIB
-                  const baseDateStr = startRaw 
-                    ? new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(startRaw)
-                    : new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
-                  updateDateTime(item, 'waktuSelesai', baseDateStr, val);
+                  // 💡 PERBAIKAN LOGIKA: 
+                  // Jika endRaw (tanggal selesai) BELUM ada, baru numpang ke tanggal mulai.
+                  // Jika endRaw SUDAH ada, kirim undefined agar tanggal aslinya dipertahankan.
+                  let fallbackDate = undefined;
+                  
+                  if (!endRaw) {
+                    fallbackDate = startRaw 
+                      ? new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(startRaw)
+                      : new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
+                  }
+                  
+                  updateDateTime(item, 'waktuSelesai', fallbackDate, val);
                 }
               }}
             />
@@ -233,6 +240,7 @@ export function MasterTableView({
         );
       },
     },
+
     {
       id: "durasi",
       header: "Durasi",
