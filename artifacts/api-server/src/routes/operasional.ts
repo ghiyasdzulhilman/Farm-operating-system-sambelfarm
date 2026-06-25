@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { getAuth } from "@clerk/express";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm"; // 👈 Tambahkan 'and' di sini
 import { 
   db, 
   areasTable, 
@@ -188,9 +188,14 @@ router.get("/notion/all-operasional", async (req, res): Promise<void> => {
         eq(siklusTanamTable.status, "Aktif")
       ));
 
-    res.json({ success: true, data: data });
-  } catch (err) {
-    res.status(500).json({ error: "Gagal mengambil riwayat operasional." });
+        res.json({ success: true, data: data });
+  } catch (err: any) {
+    // 💡 Console error ini wajib ada biar lu tahu kalau Drizzle meledak
+    console.error("[DB ERROR GET ALL OPERASIONAL]:", err);
+    res.status(500).json({ 
+      error: "Gagal mengambil riwayat operasional.",
+      detail: err.message 
+    });
   }
 });
 
