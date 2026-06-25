@@ -104,21 +104,23 @@ export function MasterTableView({
   });
 
 
-  // 3. Helper Pengatur Waktu & Tanggal
+    // 3. Helper Pengatur Waktu & Tanggal (KUNCI DI ZONA WIB)
   const updateDateTime = (item: RichAgronomyItem, field: 'waktuMulai' | 'waktuSelesai', dateStr?: string, timeStr?: string) => {
-    // Ambil basis waktu dari metaEkstra atau sekarang
-    const baseDate = new Date(item.metaEkstra?.[field] || item.rawDate || new Date());
+    const currentVal = item.metaEkstra?.[field] || new Date().toISOString();
+    const tempDate = new Date(currentVal);
     
-    if (dateStr) {
-      const [year, month, day] = dateStr.split('-');
-      baseDate.setFullYear(Number(year), Number(month) - 1, Number(day));
-    }
-    if (timeStr) {
-      const [hours, minutes] = timeStr.split(':');
-      baseDate.setHours(Number(hours), Number(minutes), 0, 0);
-    }
+    // Ambil tanggal & waktu dari DB dalam format string WIB
+    const wibDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(tempDate);
+    const wibTimeStr = tempDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Asia/Jakarta' });
     
-    updateMutation.mutate({ id: item.id, module: item.module, payload: { [field]: baseDate.toISOString() } });
+    // Timpa dengan inputan user jika ada
+    const finalDateStr = dateStr || wibDateStr;
+    const finalTimeStr = timeStr ? `${timeStr}:00` : wibTimeStr;
+    
+    // Gabungin ke ISO 8601 dengan offset paksa WIB (+07:00) supaya DB nggak bingung
+    const isoStringWithWIB = `${finalDateStr}T${finalTimeStr}+07:00`;
+    
+    updateMutation.mutate({ id: item.id, module: item.module, payload: { [field]: new Date(isoStringWithWIB).toISOString() } });
   };
 
   // 4. Definisi Kolom Dinamis
@@ -152,25 +154,44 @@ export function MasterTableView({
         );
       },
     },
-    {
+        {
       id: "tanggal",
-      header: "Tanggal",
+      header: "Tanggal (Mulai - Selesai)",
       cell: ({ row }) => {
         const item = row.original;
-        // Ambil YYYY-MM-DD dari waktuMulai
-        const dateValue = item.metaEkstra?.waktuMulai ? new Date(item.metaEkstra.waktuMulai).toISOString().split('T')[0] : "";
+        const startRaw = item.metaEkstra?.waktuMulai ? new Date(item.metaEkstra.waktuMulai) : null;
+        const endRaw = item.metaEkstra?.waktuSelesai ? new Date(item.metaEkstra.waktuSelesai) : null;
+
+        // Format ke YYYY-MM-DD khusus zona waktu WIB
+        const dateOptions: Intl.DateTimeFormatOptions = { timeZone: 'Asia/Jakarta' };
+        const startDate = startRaw ? new Intl.DateTimeFormat('en-CA', dateOptions).format(startRaw) : "";
+        const endDate = endRaw ? new Intl.DateTimeFormat('en-CA', dateOptions).format(endRaw) : "";
+
         return (
-          <EditableCell
-            value={dateValue}
-            type="date"
-            onSave={(val) => {
-              if (val) updateDateTime(item, 'waktuMulai', val, undefined);
-            }}
-          />
+          <div className="flex items-center gap-1 min-w-[280px]">
+            <EditableCell
+              value={startDate}
+              type="date"
+              className="w-full text-center px-0"
+              onSave={(val) => {
+                if (val) updateDateTime(item, 'waktuMulai', val, undefined);
+              }}
+            />
+            <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+            <EditableCell
+              value={endDate}
+              type="date"
+              className="w-full text-center px-0"
+              onSave={(val) => {
+                if (val) updateDateTime(item, 'waktuSelesai', val, undefined);
+              }}
+            />
+          </div>
         );
       },
     },
-    {
+
+        {
       id: "waktu",
       header: "Waktu (Mulai - Akhir)",
       cell: ({ row }) => {
@@ -178,8 +199,40 @@ export function MasterTableView({
         const startRaw = item.metaEkstra?.waktuMulai ? new Date(item.metaEkstra.waktuMulai) : null;
         const endRaw = item.metaEkstra?.waktuSelesai ? new Date(item.metaEkstra.waktuSelesai) : null;
         
-        const startTime = startRaw ? startRaw.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : "";
-        const endTime = endRaw ? endRaw.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : "";
+        // Memaksa format jam ke WIB (Asia/Jakarta)
+        const timeOptions: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' };
+        const startTime = startRaw ? startRaw.toLocaleTimeString('en-GB', timeOptions) : "";
+        const endTime = endRaw ? endRaw.toLocaleTimeString('en-GB', timeOptions) : "";
+
+        return (
+          <div className="flex items-center gap-1 min-w-[140px]">
+            <EditableCell
+              value={startTime}
+              type="time"
+              placeholder="00:00"
+              className="w-16 text-center px-0"
+              onSave={(val) => { if (val) updateDateTime(item, 'waktuMulai', undefined, val); }}
+            />
+            <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
+            <EditableCell
+              value={endTime}
+              type="time"
+              placeholder="Selesai"
+              className="w-16 text-center px-0"
+              onSave={(val) => {
+                if (val) {
+                  // Jika belum ada waktu selesai, samakan tanggalnya dengan waktu mulai di zona WIB
+                  const baseDateStr = startRaw 
+                    ? new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(startRaw)
+                    : new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
+                  updateDateTime(item, 'waktuSelesai', baseDateStr, val);
+                }
+              }}
+            />
+          </div>
+        );
+      },
+    },
 
         return (
           <div className="flex items-center gap-1 min-w-[140px]">
@@ -209,6 +262,7 @@ export function MasterTableView({
       },
     },
     {
+      {
       id: "durasi",
       header: "Durasi",
       cell: ({ row }) => {
@@ -216,8 +270,13 @@ export function MasterTableView({
         let calcHours = 0;
         
         if (item.metaEkstra?.waktuMulai && item.metaEkstra?.waktuSelesai) {
-          const msDiff = new Date(item.metaEkstra.waktuSelesai).getTime() - new Date(item.metaEkstra.waktuMulai).getTime();
-          calcHours = Math.max(0, msDiff / (1000 * 60 * 60)); // Convert to hours
+          const tStart = new Date(item.metaEkstra.waktuMulai).getTime();
+          const tEnd = new Date(item.metaEkstra.waktuSelesai).getTime();
+          
+          if (!isNaN(tStart) && !isNaN(tEnd)) {
+             const msDiff = tEnd - tStart;
+             calcHours = Math.max(0, msDiff / (1000 * 60 * 60)); // Akurat convert ms ke jam
+          }
         } else if (item.metaEkstra?.durasiKerja) {
           calcHours = item.metaEkstra.durasiKerja;
         }
@@ -225,7 +284,17 @@ export function MasterTableView({
         return (
           <div className="flex items-center gap-1 min-w-[80px]">
             <EditableCell
-              value={parseFloat(calcHours.toFixed(1))}
+              value={parseFloat(calcHours.toFixed(2))} // 💡 Nampilin maksimal 2 desimal biar akurat
+              type="number"
+              disabled={true} 
+              className="w-14 text-right bg-muted/20 font-medium"
+              onSave={() => {}} // Disabled, tidak perlu disave manual
+            />
+            <span className="text-xs text-muted-foreground">Jam</span>
+          </div>
+        );
+      },
+    },
               type="number"
               disabled={true} 
               className="w-12 text-right bg-muted/20 font-medium"
