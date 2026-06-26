@@ -104,11 +104,16 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // 💡 SEBELUMNYA: fetch("/api/notion/perawatan-dropdown-options")
+  // 💡 SESUDAHNYA: fetch("/api/notion/operasional-dropdown-options")
   const { data: dropdownOptions, isLoading: isLoadingOptions } = useQuery<DropdownOptions>({
-    queryKey: ["perawatan-dropdown-options"], queryFn: async () => {
-      const res = await fetch("/api/notion/perawatan-dropdown-options");
-      if (!res.ok) throw new Error("Gagal mengambil dropdown"); return res.json();
-    }, enabled: open,
+    queryKey: ["perawatan-dropdown-options"], 
+    queryFn: async () => {
+      const res = await fetch("/api/notion/operasional-dropdown-options");
+      if (!res.ok) throw new Error("Gagal mengambil data dropdown"); 
+      return res.json();
+    }, 
+    enabled: open,
   });
 
   // --- STATE TAMBAH MASTER DATA ---
