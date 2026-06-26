@@ -164,9 +164,13 @@ export function AddOperasionalDialog({ onSuccess }: { onSuccess?: () => void }) 
       }
       return response.json();
     },
-    onSuccess: async (responseData) => {
+        onSuccess: async (responseData) => {
+      // 💡 Tambahkan ini agar tabel master langsung sinkron & narik data terbaru!
+      await queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] });
+      
       await queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey(), refetchType: "all" });
       const results = responseData?.data || [];
+
       if (results.length > 0) setSubmittedRecords(results);
       form.reset(EMPTY_VALUES); setOverriddenAreas({});
     },
