@@ -77,7 +77,7 @@ export function ActivityDetailSheet({
     try { return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }); } catch { return ""; }
   };
 
-   // 💡 Helper update Waktu & Tanggal (Gaya Master Table yang Berhasil) + Auto Durasi 🚀
+ // 💡 Helper update Waktu & Tanggal (Refactored & Schema-Safe) 🚀
   const handleDateTimeSave = (field: 'waktuMulai' | 'waktuSelesai', type: 'date' | 'time', value: string) => {
     if (!value) return;
     
@@ -90,13 +90,9 @@ export function ActivityDetailSheet({
 
     // Timpa dengan inputan user
     const finalDateStr = type === 'date' ? value : wibDateStr;
-    let finalTimeStr = wibTimeStr;
-    if (type === 'time') {
-      // Input type="time" HTML mengirim format "HH:mm" (tanpa detik), jadi kita tambahkan ":00"
-      finalTimeStr = value.length === 5 ? `${value}:00` : value; 
-    }
+    const finalTimeStr = type === 'time' ? (value.length === 5 ? `${value}:00` : value) : wibTimeStr;
 
-    // 💡 Rahasianya di sini: Paksa format ke WIB (+07:00) biar backend lu nggak nolak
+    // Paksa format ke WIB (+07:00) 
     const isoStringWithWIB = `${finalDateStr}T${finalTimeStr}+07:00`;
     const updatedDate = new Date(isoStringWithWIB);
 
@@ -111,7 +107,10 @@ export function ActivityDetailSheet({
       if (startIso && endIso) {
         const msDiff = new Date(endIso).getTime() - new Date(startIso).getTime();
         const calcHours = Math.max(0, msDiff / (1000 * 60 * 60));
-        payload.durasiKerja = parseFloat(calcHours.toFixed(1)); 
+        
+        // 💡 BUGFIX UTAMA: Skema database Drizzle lu minta INTEGER (Angka Bulat). 
+        // Kita bulatkan hasilnya agar Postgres tidak menolak data!
+        payload.durasiKerja = Math.round(calcHours); 
       }
 
       onStatusChange?.(item.id, payload);
