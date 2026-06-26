@@ -8,8 +8,11 @@ import {
   perawatanProdukTable,
   pekerjaTable,
   kategoriTable,
-  siklusTanamTable,           // 💡 Tambah ini
-  pekerjaAtributMasterTable   // 💡 Tambah ini
+  siklusTanamTable,           
+  pekerjaAtributMasterTable,  
+  inspeksiTable,           // 👈 INI YANG BIKIN ERROR (Ketinggalan)
+  inspeksiTemuanTable,     // 👈 Pastikan ini ada
+  kendalaMasterTable       // 👈 Pastikan ini juga ada
 } from "@workspace/db";
 
 const router: IRouter = Router();
