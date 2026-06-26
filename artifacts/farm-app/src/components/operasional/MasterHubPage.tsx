@@ -181,6 +181,17 @@ function PekerjaManager({ data, atribut }: { data: any[], atribut?: any }) {
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["master-dropdown-options"] }); toast({ title: "Dihapus", description: "Pekerja berhasil dihapus." }); },
   });
 
+  // 💡 MUTASI BARU: Untuk Inline Edit Badge
+  const editPekerjaMutation = useMutation({
+    mutationFn: async ({ id, payload }: { id: string, payload: any }) => fetch(`/api/notion/pekerja/${id}`, { 
+      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) 
+    }).then(r => r.json()),
+    onSuccess: () => { 
+      queryClient.invalidateQueries({ queryKey: ["master-dropdown-options"] }); 
+      toast({ title: "Tersimpan", description: "Atribut pekerja berhasil diperbarui." }); 
+    },
+  });
+
   // 2. Mutasi Atribut (Tag Master)
   const addTagMutation = useMutation({
     mutationFn: async () => fetch("/api/notion/pekerja-atribut", { 
@@ -248,11 +259,42 @@ function PekerjaManager({ data, atribut }: { data: any[], atribut?: any }) {
             <div key={item.id} className="flex items-center justify-between rounded-xl border border-border/40 bg-muted/10 p-3 hover:bg-muted/30 transition-colors">
               <div>
                 <span className="text-sm font-bold block mb-1">{item.name}</span>
-                <div className="flex flex-wrap gap-1.5">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-primary bg-primary/10 px-1.5 py-0.5 rounded">{getNamaAtribut(item.roleId, opsiRoles)}</span>
-                  <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded">{getNamaAtribut(item.jenisTenagaKerjaId, opsiTenaga)}</span>
-                  <span className="text-[9px] font-black uppercase tracking-widest text-amber-600 bg-amber-500/10 px-1.5 py-0.5 rounded">{getNamaAtribut(item.statusId, opsiStatuses)}</span>
+
+            {/* 💡 BADGE INTERAKTIF: Tampilannya kayak label biasa, tapi kalau diklik jadi dropdown! */}
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  
+            {/* Badge Role */}
+                  <select 
+                    value={item.roleId || ""} 
+                    onChange={(e) => editPekerjaMutation.mutate({ id: item.id, payload: { roleId: e.target.value } })}
+                    className="text-[9px] font-black uppercase tracking-widest text-primary bg-primary/10 px-1.5 py-0.5 rounded outline-none cursor-pointer appearance-none text-center hover:bg-primary/20 transition-colors"
+                  >
+                    <option value="" disabled>-</option>
+                    {opsiRoles.map((r: any) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                  </select>
+
+            {/* Badge Sistem Kerja */}
+                  <select 
+                    value={item.jenisTenagaKerjaId || ""} 
+                    onChange={(e) => editPekerjaMutation.mutate({ id: item.id, payload: { jenisTenagaKerjaId: e.target.value } })}
+                    className="text-[9px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded outline-none cursor-pointer appearance-none text-center hover:bg-emerald-500/20 transition-colors"
+                  >
+                    <option value="" disabled>-</option>
+                    {opsiTenaga.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  </select>
+
+            {/* Badge Status */}
+                  <select 
+                    value={item.statusId || ""} 
+                    onChange={(e) => editPekerjaMutation.mutate({ id: item.id, payload: { statusId: e.target.value } })}
+                    className="text-[9px] font-black uppercase tracking-widest text-amber-600 bg-amber-500/10 px-1.5 py-0.5 rounded outline-none cursor-pointer appearance-none text-center hover:bg-amber-500/20 transition-colors"
+                  >
+                    <option value="" disabled>-</option>
+                    {opsiStatuses.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+
                 </div>
+
               </div>
               <Button variant="ghost" size="icon" onClick={() => delPekerjaMutation.mutate(item.id)} disabled={delPekerjaMutation.isPending} className="h-8 w-8 text-destructive hover:bg-destructive/10 shrink-0">
                 <Trash2 className="h-4 w-4" />
