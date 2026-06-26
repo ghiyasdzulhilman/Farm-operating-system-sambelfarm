@@ -77,40 +77,28 @@ export function ActivityDetailSheet({
     try { return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }); } catch { return ""; }
   };
 
-  // 💡 Helper update Waktu & Tanggal (PLUS AUTO-CALCULATE DURASI)
+    // 💡 Helper update Waktu & Tanggal (Refactored)
   const handleDateTimeSave = (field: 'waktuMulai' | 'waktuSelesai', type: 'date' | 'time', value: string) => {
     if (!value) return;
-    const currentIso = item.metaEkstra?.[field] || new Date().toISOString();
-    const tempDate = new Date(currentIso);
     
-    const wibDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(tempDate);
-    const wibTimeStr = tempDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Asia/Jakarta' });
+    // Ambil referensi waktu yang ada, atau gunakan waktu sekarang/rawDate sebagai fallback
+    const currentIso = item.metaEkstra?.[field] || item.rawDate || new Date().toISOString();
+    const newDate = new Date(currentIso);
 
-    const finalDateStr = type === 'date' ? value : wibDateStr;
-    const finalTimeStr = type === 'time' ? `${value}:00` : wibTimeStr;
-
-    const isoStringWithWIB = `${finalDateStr}T${finalTimeStr}+07:00`;
-    const newDateVal = new Date(isoStringWithWIB).toISOString();
-    
-    // Siapkan payload utama
-    const payloadToSend: any = { [field]: newDateVal };
-
-    // 💡 LOGIKA PINTAR: Hitung durasi baru kalau ada perubahan waktu
-    const checkMulai = field === 'waktuMulai' ? newDateVal : item.metaEkstra?.waktuMulai;
-    const checkSelesai = field === 'waktuSelesai' ? newDateVal : item.metaEkstra?.waktuSelesai;
-    
-    if (checkMulai && checkSelesai) {
-      const diffMs = new Date(checkSelesai).getTime() - new Date(checkMulai).getTime();
-      // Pastikan nggak minus (waktu selesai nggak boleh sebelum waktu mulai)
-      if (diffMs >= 0) {
-        // Konversi milidetik ke jam (pembulatan angka desimal kalau misal kerja 1.5 jam)
-        payloadToSend.durasiKerja = Math.round((diffMs / (1000 * 60 * 60)) * 10) / 10;
-      } else {
-        payloadToSend.durasiKerja = 0;
-      }
+    if (type === 'date') {
+      const [year, month, day] = value.split('-');
+      // Update kalender tanpa mengganggu jam yang sudah ada
+      newDate.setFullYear(Number(year), Number(month) - 1, Number(day));
+    } else if (type === 'time') {
+      const [hours, minutes] = value.split(':');
+      // Update jam tanpa mengganggu kalender yang sudah ada
+      newDate.setHours(Number(hours), Number(minutes), 0, 0);
     }
 
-    onStatusChange?.(item.id, payloadToSend);
+    // Jaring pengaman ekstra: Pastikan tanggal valid sebelum dikirim ke backend
+    if (!isNaN(newDate.getTime())) {
+      onStatusChange?.(item.id, { [field]: newDate.toISOString() });
+    }
   };
 
   if (!item) return null;
@@ -452,15 +440,20 @@ export function ActivityDetailSheet({
                         )}
                       </div>
 
-                    {/* 💡 KOTAK KE-4: Durasi Kerja (READ-ONLY, OTOMATIS) */}
-                      <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
+                      {/* 💡 KOTAK KE-4: Durasi Kerja (Inline Edit Angka Jam) */}
+                      <div 
+                        onClick={() => { if(activeField !== "durasiKerja") { setActiveField("durasiKerja"); setLocalValue(String(item.metaEkstra.durasiKerja || "0")); } }}
+                        className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm cursor-pointer hover:bg-muted/40 transition-colors"
+                      >
                         <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                          <Clock3 className="h-4 w-4 text-amber-500" />
-                          <span className="text-xs font-bold uppercase">Durasi (Auto)</span>
+                          <Clock3 className="h-4 w-4" />
+                          <span className="text-xs font-bold uppercase">Durasi Kerja</span>
                         </div>
-                        <p className="text-lg font-black text-foreground">
-                          {item.metaEkstra.durasiKerja ? `${item.metaEkstra.durasiKerja} Jam` : "0 Jam"}
-                        </p>
+                        {activeField === "durasiKerja" ? (
+                          <input autoFocus type="number" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("durasiKerja")} onKeyDown={(e) => e.key === "Enter" && handleInlineSave("durasiKerja")} className="w-full bg-transparent text-lg font-black text-foreground outline-none border-b border-primary/30 p-0" />
+                        ) : (
+                          <p className="text-lg font-black text-foreground">{item.metaEkstra.durasiKerja ? `${item.metaEkstra.durasiKerja} Jam` : "0 Jam"}</p>
+                        )}
                       </div>
                     </>
                   )}
