@@ -163,6 +163,7 @@ export function ActivityDetailSheet({
     if (field === "jenisTenagaKerja") payload.jenisTenagaKerja = valStr;
     if (field === "tagCategory") payload.tagCategory = valStr;
     if (field === "catatan") payload[item.module === "inspeksi" ? "keterangan" : "catatan"] = valStr;
+    if (field === "durasiKerja") payload.durasiKerja = valStr !== "" ? parseInt(valStr, 10) : 0;
 
         // Kirim payload ke halaman utama buat di-eksekusi mutasinya (pastikan gak kosong)
     if (Object.keys(payload).length > 0) {
@@ -369,144 +370,164 @@ export function ActivityDetailSheet({
 
             </div>
 
-            {/* SEGMEN SPESIFIKASI & JADWAL LAPANGAN (DINAMIS PER MODUL) */}
-            {item.metaEkstra && Object.keys(item.metaEkstra).length > 0 && (
+           {/* SEGMEN SPESIFIKASI LAPANGAN (GRID 2x2 YANG PRESISI) */}
+            {item.metaEkstra && Object.keys(item.metaEkstra).length > 0 && (item.module === "inspeksi" || item.module === "operasional") && (
               <section className="mt-6 space-y-3">
                 <div className="flex items-center gap-2">
-                  <div className={`h-2 w-2 rounded-full ${item.module === "perawatan" ? "bg-amber-500" : "bg-amber-500"}`} />
+                  <div className="h-2 w-2 rounded-full bg-amber-500" />
                   <h3 className="text-sm font-black uppercase tracking-[0.18em] text-muted-foreground">
-                    {item.module === "perawatan" ? "Jadwal Pelaksanaan" : "Spesifikasi Lapangan"}
+                    Spesifikasi Lahan
                   </h3>
                 </div>
 
-                {item.module === "perawatan" ? (
-                  /* 💡 TAMPILAN BARU KHUSUS PERAWATAN: RAMPING & EDITABLE */
-                  <div className="rounded-3xl border border-border/60 bg-card p-4 shadow-sm flex flex-col gap-3">
-                    {/* Baris Tanggal */}
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="text-[10px] font-black tracking-wider text-muted-foreground w-12">TANGGAL</span>
-                      <div className="flex items-center gap-2 flex-1 bg-muted/30 p-1.5 rounded-xl border border-border/50">
-                        <input type="date" value={formatDateValue(item.metaEkstra?.waktuMulai)} onChange={(e) => handleDateTimeSave('waktuMulai', 'date', e.target.value)} className="w-full bg-transparent text-sm font-bold outline-none cursor-pointer text-center" />
-                        <span className="text-muted-foreground/40 font-black">/</span>
-                        <input type="date" value={formatDateValue(item.metaEkstra?.waktuSelesai)} onChange={(e) => handleDateTimeSave('waktuSelesai', 'date', e.target.value)} className="w-full bg-transparent text-sm font-bold outline-none cursor-pointer text-center" />
+                <div className="grid grid-cols-2 gap-3">
+                  {/* 1. KOTAK-KOTAK UNTUK MODUL INSPEKSI */}
+                  {item.module === "inspeksi" && (
+                    <>
+                      {/* pH Tanah */}
+                      <div 
+                        onClick={() => { if(activeField !== "phTanah") { setActiveField("phTanah"); setLocalValue(String(item.metaEkstra.phTanah || "")); } }}
+                        className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm cursor-pointer hover:bg-muted/40 transition-colors"
+                      >
+                        <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                          <Thermometer className="h-4 w-4" />
+                          <span className="text-xs font-bold uppercase">pH Tanah</span>
+                        </div>
+                        {activeField === "phTanah" ? (
+                          <input autoFocus type="number" step="0.1" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("phTanah")} onKeyDown={(e) => e.key === "Enter" && handleInlineSave("phTanah")} className="w-full bg-transparent text-lg font-black text-foreground outline-none border-b border-primary/30 p-0" />
+                        ) : (
+                          <p className="text-lg font-black text-foreground">{item.metaEkstra.phTanah || "-"}</p>
+                        )}
                       </div>
-                    </div>
-                    
-                    <div className="h-px w-full bg-border/40" />
-                    
-                    {/* Baris Waktu */}
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="text-[10px] font-black tracking-wider text-muted-foreground w-12">WAKTU</span>
-                      <div className="flex items-center gap-2 flex-1 bg-muted/30 p-1.5 rounded-xl border border-border/50">
-                        <input type="time" value={formatTimeValue(item.metaEkstra?.waktuMulai)} onChange={(e) => handleDateTimeSave('waktuMulai', 'time', e.target.value)} className="w-full bg-transparent text-sm font-bold outline-none cursor-pointer text-center" />
-                        <span className="text-muted-foreground/40 font-black">-</span>
-                        <input type="time" value={formatTimeValue(item.metaEkstra?.waktuSelesai)} onChange={(e) => handleDateTimeSave('waktuSelesai', 'time', e.target.value)} className="w-full bg-transparent text-sm font-bold outline-none cursor-pointer text-center" />
+
+                      {/* Tingkat Serangan */}
+                      <div 
+                        onClick={() => { if(activeField !== "tingkatSerangan") { setActiveField("tingkatSerangan"); setLocalValue(String(item.metaEkstra.tingkatSerangan || "")); } }}
+                        className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm cursor-pointer hover:bg-muted/40 transition-colors"
+                      >
+                        <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                          <TrendingUp className="h-4 w-4" />
+                          <span className="text-xs font-bold uppercase">Serangan</span>
+                        </div>
+                        {activeField === "tingkatSerangan" ? (
+                          <input autoFocus type="number" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("tingkatSerangan")} onKeyDown={(e) => e.key === "Enter" && handleInlineSave("tingkatSerangan")} className="w-full bg-transparent text-lg font-black text-foreground outline-none border-b border-primary/30 p-0" />
+                        ) : (
+                          <p className="text-lg font-black text-foreground">{item.metaEkstra.tingkatSerangan ? `${item.metaEkstra.tingkatSerangan}%` : "0%"}</p>
+                        )}
                       </div>
+
+                      {/* Radius Terpapar */}
+                      <div 
+                        onClick={() => { if(activeField !== "radius") { setActiveField("radius"); setLocalValue(String(item.metaEkstra.radius || "")); } }}
+                        className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm cursor-pointer hover:bg-muted/40 transition-colors"
+                      >
+                        <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                          <Radar className="h-4 w-4" />
+                          <span className="text-xs font-bold uppercase">Radius</span>
+                        </div>
+                        {activeField === "radius" ? (
+                          <input autoFocus type="number" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("radius")} onKeyDown={(e) => e.key === "Enter" && handleInlineSave("radius")} className="w-full bg-transparent text-lg font-black text-foreground outline-none border-b border-primary/30 p-0" />
+                        ) : (
+                          <p className="text-lg font-black text-foreground">{item.metaEkstra.radius ? `${item.metaEkstra.radius} m` : "-"}</p>
+                        )}
+                      </div>
+
+                      {/* 💡 KOTAK KE-4: Durasi Kerja (Inline Edit Angka Jam) */}
+                      <div 
+                        onClick={() => { if(activeField !== "durasiKerja") { setActiveField("durasiKerja"); setLocalValue(String(item.metaEkstra.durasiKerja || "0")); } }}
+                        className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm cursor-pointer hover:bg-muted/40 transition-colors"
+                      >
+                        <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                          <Clock3 className="h-4 w-4" />
+                          <span className="text-xs font-bold uppercase">Durasi Kerja</span>
+                        </div>
+                        {activeField === "durasiKerja" ? (
+                          <input autoFocus type="number" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("durasiKerja")} onKeyDown={(e) => e.key === "Enter" && handleInlineSave("durasiKerja")} className="w-full bg-transparent text-lg font-black text-foreground outline-none border-b border-primary/30 p-0" />
+                        ) : (
+                          <p className="text-lg font-black text-foreground">{item.metaEkstra.durasiKerja ? `${item.metaEkstra.durasiKerja} Jam` : "0 Jam"}</p>
+                        )}
+                      </div>
+                    </>
+                  )}
+
+                  {/* 2. KOTAK-KOTAK UNTUK MODUL OPERASIONAL */}
+                  {item.module === "operasional" && (
+                    <>
+                      <div 
+                        onClick={() => { if(activeField !== "jenisTenagaKerja") { setActiveField("jenisTenagaKerja"); setLocalValue(item.metaEkstra.jenisTenagaKerja || ""); } }}
+                        className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm cursor-pointer hover:bg-muted/40 transition-colors"
+                      >
+                        <div className="mb-1 flex items-center gap-2 text-muted-foreground"><Briefcase className="h-4 w-4" /><span className="text-xs font-bold uppercase">Jenis Tenaga</span></div>
+                        {activeField === "jenisTenagaKerja" ? (
+                          <input autoFocus type="text" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("jenisTenagaKerja")} onKeyDown={(e) => e.key === "Enter" && handleInlineSave("jenisTenagaKerja")} className="w-full bg-transparent text-sm font-black outline-none border-b border-primary/30 p-0" />
+                        ) : (
+                          <p className="text-sm font-black">{item.metaEkstra.jenisTenagaKerja || "Harian"}</p>
+                        )}
+                      </div>
+
+                      <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
+                        <div className="mb-1 flex items-center gap-2 text-muted-foreground"><Clock3 className="h-4 w-4" /><span className="text-xs font-bold uppercase">Prioritas</span></div>
+                        <select 
+                          value={item.metaEkstra.prioritas || "Medium"}
+                          onChange={(e) => onStatusChange?.(item.id, { prioritas: e.target.value })}
+                          className="w-full bg-transparent text-sm font-black uppercase tracking-wider outline-none cursor-pointer appearance-none"
+                        >
+                          <option value="Tinggi">TINGGI</option>
+                          <option value="Medium">MEDIUM</option>
+                          <option value="Rendah">RENDAH</option>
+                        </select>
+                      </div>
+
+                      <div 
+                        onClick={() => { if(activeField !== "durasiKerja") { setActiveField("durasiKerja"); setLocalValue(String(item.metaEkstra.durasiKerja || "0")); } }}
+                        className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm cursor-pointer hover:bg-muted/40 transition-colors col-span-2"
+                      >
+                        <div className="mb-1 flex items-center gap-2 text-muted-foreground"><Clock3 className="h-4 w-4" /><span className="text-xs font-bold uppercase">Durasi Kerja</span></div>
+                        {activeField === "durasiKerja" ? (
+                          <input autoFocus type="number" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("durasiKerja")} onKeyDown={(e) => e.key === "Enter" && handleInlineSave("durasiKerja")} className="w-full bg-transparent text-sm font-black outline-none border-b border-primary/30 p-0" />
+                        ) : (
+                          <p className="text-sm font-black">{item.metaEkstra.durasiKerja ? `${item.metaEkstra.durasiKerja} Jam` : "0 Jam"}</p>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </section>
+            )}
+
+            {/* 💡 SEGMEN JADWAL PELAKSANAAN (MEMANJANG FULL-WIDTH DI BAWAH GRID UNTUK SEMUA MODUL) */}
+            {item.metaEkstra && Object.keys(item.metaEkstra).length > 0 && (
+              <section className="mt-6 space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-amber-500" />
+                  <h3 className="text-sm font-black uppercase tracking-[0.18em] text-muted-foreground">
+                    Jadwal Pelaksanaan
+                  </h3>
+                </div>
+
+                <div className="rounded-3xl border border-border/60 bg-card p-4 shadow-sm flex flex-col gap-3">
+                  {/* Baris Tanggal Range */}
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-[10px] font-black tracking-wider text-muted-foreground w-12">TANGGAL</span>
+                    <div className="flex items-center gap-2 flex-1 bg-muted/30 p-1.5 rounded-xl border border-border/50">
+                      <input type="date" value={formatDateValue(item.metaEkstra?.waktuMulai)} onChange={(e) => handleDateTimeSave('waktuMulai', 'date', e.target.value)} className="w-full bg-transparent text-xs font-bold outline-none cursor-pointer text-center" />
+                      <span className="text-muted-foreground/40 font-black">/</span>
+                      <input type="date" value={formatDateValue(item.metaEkstra?.waktuSelesai)} onChange={(e) => handleDateTimeSave('waktuSelesai', 'date', e.target.value)} className="w-full bg-transparent text-xs font-bold outline-none cursor-pointer text-center" />
                     </div>
                   </div>
-                ) : (
-                  /* 💡 TAMPILAN LAMA UNTUK INSPEKSI & OPERASIONAL (DATA AMAN SINKRON) */
-                  <div className="grid grid-cols-2 gap-3">
-                    
-                   {/* 1. MODUL INSPEKSI */}
-                    {item.module === "inspeksi" && (
-                      <>
-                        {/* pH Tanah */}
-                        <div 
-                          onClick={() => { if(activeField !== "phTanah") { setActiveField("phTanah"); setLocalValue(String(item.metaEkstra.phTanah || "")); } }}
-                          className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm cursor-pointer hover:bg-muted/40 transition-colors"
-                        >
-                          <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                            <Thermometer className="h-4 w-4" />
-                            <span className="text-xs font-bold uppercase">pH Tanah</span>
-                          </div>
-                          {activeField === "phTanah" ? (
-                            <input autoFocus type="number" step="0.1" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("phTanah")} onKeyDown={(e) => e.key === "Enter" && handleInlineSave("phTanah")} className="w-full bg-transparent text-lg font-black text-foreground outline-none border-b border-primary/30 p-0" />
-                          ) : (
-                            <p className="text-lg font-black text-foreground">{item.metaEkstra.phTanah || "-"}</p>
-                          )}
-                        </div>
-
-                        {/* Tingkat Serangan */}
-                        <div 
-                          onClick={() => { if(activeField !== "tingkatSerangan") { setActiveField("tingkatSerangan"); setLocalValue(String(item.metaEkstra.tingkatSerangan || "")); } }}
-                          className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm cursor-pointer hover:bg-muted/40 transition-colors"
-                        >
-                          <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                            <TrendingUp className="h-4 w-4" />
-                            <span className="text-xs font-bold uppercase">Serangan</span>
-                          </div>
-                          {activeField === "tingkatSerangan" ? (
-                            <input autoFocus type="number" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("tingkatSerangan")} onKeyDown={(e) => e.key === "Enter" && handleInlineSave("tingkatSerangan")} className="w-full bg-transparent text-lg font-black text-foreground outline-none border-b border-primary/30 p-0" />
-                          ) : (
-                            <p className="text-lg font-black text-foreground">{item.metaEkstra.tingkatSerangan ? `${item.metaEkstra.tingkatSerangan}%` : "0%"}</p>
-                          )}
-                        </div>
-
-                        {/* Radius */}
-                        <div 
-                          onClick={() => { if(activeField !== "radius") { setActiveField("radius"); setLocalValue(String(item.metaEkstra.radius || "")); } }}
-                          className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm cursor-pointer hover:bg-muted/40 transition-colors"
-                        >
-                          <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                            <Radar className="h-4 w-4" />
-                            <span className="text-xs font-bold uppercase">Radius</span>
-                          </div>
-                          {activeField === "radius" ? (
-                            <input autoFocus type="number" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("radius")} onKeyDown={(e) => e.key === "Enter" && handleInlineSave("radius")} className="w-full bg-transparent text-lg font-black text-foreground outline-none border-b border-primary/30 p-0" />
-                          ) : (
-                            <p className="text-lg font-black text-foreground">{item.metaEkstra.radius ? `${item.metaEkstra.radius} meter` : "-"}</p>
-                          )}
-                        </div>
-
-                        {/* Jam Kerja */}
-                        <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
-                          <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                            <Clock3 className="h-4 w-4" />
-                            <span className="text-xs font-bold uppercase">Jam Kerja</span>
-                          </div>
-                          <p className="text-sm font-black text-foreground">{formatJamMendalam(item.metaEkstra.waktuMulai)} - {formatJamMendalam(item.metaEkstra.waktuSelesai)}</p>
-                        </div>
-                        {/* ⛔ KOTAK BADGE LAMA UDAH KITA HAPUS DARI SINI */}
-                      </>
-                    )}
-
-                    {/* 2. MODUL OPERASIONAL */}
-                    {item.module === "operasional" && (
-                      <div className="col-span-2 grid gap-3 sm:grid-cols-2">
-                        <div 
-                          onClick={() => { if(activeField !== "jenisTenagaKerja") { setActiveField("jenisTenagaKerja"); setLocalValue(item.metaEkstra.jenisTenagaKerja || ""); } }}
-                          className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm cursor-pointer hover:bg-muted/40 transition-colors"
-                        >
-                          <div className="mb-1 flex items-center gap-2 text-muted-foreground"><Briefcase className="h-4 w-4" /><span className="text-xs font-bold uppercase">Jenis Tenaga</span></div>
-                          {activeField === "jenisTenagaKerja" ? (
-                            <input autoFocus type="text" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("jenisTenagaKerja")} onKeyDown={(e) => e.key === "Enter" && handleInlineSave("jenisTenagaKerja")} className="w-full bg-transparent text-sm font-black outline-none border-b border-primary/30 p-0" />
-                          ) : (
-                            <p className="text-sm font-black">{item.metaEkstra.jenisTenagaKerja || "Harian"}</p>
-                          )}
-                        </div>
-
-                        <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
-                          <div className="mb-1 flex items-center gap-2 text-muted-foreground"><Clock3 className="h-4 w-4" /><span className="text-xs font-bold uppercase">Prioritas Lapangan</span></div>
-                          <select 
-                            value={item.metaEkstra.prioritas || "Medium"}
-                            onChange={(e) => onStatusChange?.(item.id, { prioritas: e.target.value })}
-                            className="w-full bg-transparent text-sm font-black uppercase tracking-wider outline-none cursor-pointer appearance-none"
-                          >
-                            <option value="Tinggi">TINGGI</option>
-                            <option value="Medium">MEDIUM</option>
-                            <option value="Rendah">RENDAH</option>
-                          </select>
-                        </div>
-
-                        <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm sm:col-span-2">
-                          <div className="mb-1 flex items-center gap-2 text-muted-foreground"><Clock3 className="h-4 w-4 text-amber-600" /><span className="text-xs font-bold uppercase">Durasi Operasional</span></div>
-                          <p className="text-sm font-black text-amber-700">{formatJamMendalam(item.metaEkstra.waktuMulai)} - {formatJamMendalam(item.metaEkstra.waktuSelesai)}</p>
-                        </div>
-                      </div>
-                    )}
+                  
+                  <div className="h-px w-full bg-border/40" />
+                  
+                  {/* Baris Waktu/Jam Range */}
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-[10px] font-black tracking-wider text-muted-foreground w-12">WAKTU</span>
+                    <div className="flex items-center gap-2 flex-1 bg-muted/30 p-1.5 rounded-xl border border-border/50">
+                      <input type="time" value={formatTimeValue(item.metaEkstra?.waktuMulai)} onChange={(e) => handleDateTimeSave('waktuMulai', 'time', e.target.value)} className="w-full bg-transparent text-xs font-bold outline-none cursor-pointer text-center" />
+                      <span className="text-muted-foreground/40 font-black">-</span>
+                      <input type="time" value={formatTimeValue(item.metaEkstra?.waktuSelesai)} onChange={(e) => handleDateTimeSave('waktuSelesai', 'time', e.target.value)} className="w-full bg-transparent text-xs font-bold outline-none cursor-pointer text-center" />
+                    </div>
                   </div>
-                )}
+                </div>
               </section>
             )}
  
