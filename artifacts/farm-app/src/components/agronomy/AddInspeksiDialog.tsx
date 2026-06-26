@@ -172,11 +172,13 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
 
     const { data: dropdownOptions, isLoading: isLoadingOptions } = useQuery<DropdownOptions>({
     queryKey: ["inspeksi-dropdown-options"], queryFn: async () => {
-      const res = await fetch("/api/notion/inspeksi-dropdown-options");
+      // 💡 PENGALIHAN UTAMA: Menembak endpoint operasional terpusat
+    const res = await fetch("/api/notion/operasional-dropdown-options");
       if (!res.ok) throw new Error("Gagal mengambil data dropdown");
       return res.json();
     }, enabled: open,
   });
+
 
   // 👇 MULAI KODE BARU: STATE & MUTASI TAMBAH MASTER 👇
     const [isAddingArea, setIsAddingArea] = useState(false); const [newAreaName, setNewAreaName] = useState("");
