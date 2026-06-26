@@ -77,33 +77,41 @@ export function ActivityDetailSheet({
     try { return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }); } catch { return ""; }
   };
 
- // 💡 Helper update Waktu & Tanggal + Auto Calculate Durasi Kerja 🚀
+   // 💡 Helper update Waktu & Tanggal (Gaya Master Table yang Berhasil) + Auto Durasi 🚀
   const handleDateTimeSave = (field: 'waktuMulai' | 'waktuSelesai', type: 'date' | 'time', value: string) => {
     if (!value) return;
     
     const currentIso = item.metaEkstra?.[field] || item.rawDate || new Date().toISOString();
-    const newDate = new Date(currentIso);
+    const tempDate = new Date(currentIso);
+    
+    // Ambil tanggal & waktu dari DB dalam format string WIB
+    const wibDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(tempDate);
+    const wibTimeStr = tempDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Asia/Jakarta' });
 
-    if (type === 'date') {
-      const [year, month, day] = value.split('-');
-      newDate.setFullYear(Number(year), Number(month) - 1, Number(day));
-    } else if (type === 'time') {
-      const [hours, minutes] = value.split(':');
-      newDate.setHours(Number(hours), Number(minutes), 0, 0);
+    // Timpa dengan inputan user
+    const finalDateStr = type === 'date' ? value : wibDateStr;
+    let finalTimeStr = wibTimeStr;
+    if (type === 'time') {
+      // Input type="time" HTML mengirim format "HH:mm" (tanpa detik), jadi kita tambahkan ":00"
+      finalTimeStr = value.length === 5 ? `${value}:00` : value; 
     }
 
-    if (!isNaN(newDate.getTime())) {
-      const updatedIso = newDate.toISOString();
+    // 💡 Rahasianya di sini: Paksa format ke WIB (+07:00) biar backend lu nggak nolak
+    const isoStringWithWIB = `${finalDateStr}T${finalTimeStr}+07:00`;
+    const updatedDate = new Date(isoStringWithWIB);
+
+    if (!isNaN(updatedDate.getTime())) {
+      const updatedIso = updatedDate.toISOString();
       const payload: any = { [field]: updatedIso };
 
-      // UI/UX Logic: Hitung otomatis selisih jam untuk durasi kerja
+      // Kalkulasi selisih jam untuk durasi kerja
       const startIso = field === 'waktuMulai' ? updatedIso : (item.metaEkstra?.waktuMulai || item.rawDate);
       const endIso = field === 'waktuSelesai' ? updatedIso : item.metaEkstra?.waktuSelesai;
 
       if (startIso && endIso) {
         const msDiff = new Date(endIso).getTime() - new Date(startIso).getTime();
-        const calcHours = Math.max(0, msDiff / (1000 * 60 * 60)); // Ubah milidetik ke jam
-        payload.durasiKerja = parseFloat(calcHours.toFixed(1)); // Ambil 1 angka di belakang koma (cth: 2.5 Jam)
+        const calcHours = Math.max(0, msDiff / (1000 * 60 * 60));
+        payload.durasiKerja = parseFloat(calcHours.toFixed(1)); 
       }
 
       onStatusChange?.(item.id, payload);
