@@ -6,7 +6,7 @@ export * from "./schema/stagingData";
 import { pgTable, uuid, text, timestamp, integer, doublePrecision, jsonb, date } from "drizzle-orm/pg-core";
 
 // ==========================================
-// 1. MASTER TABLES (Taruh di atas biar bisa di-refer tabel lain)
+// 1. MASTER TABLES 
 // ==========================================
 
 export const areasTable = pgTable("areas", {
@@ -15,13 +15,23 @@ export const areasTable = pgTable("areas", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const pekerjaAtributMasterTable = pgTable("pekerja_atribut_master", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  namaOption: text("nama_option").notNull(), // Cth: "Mandor", "Harian Lepas", "Cuti"
+  jenisAtribut: text("jenis_atribut").notNull(), // Kunci pembeda: "role" | "jenis_tenaga" | "status"
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const pekerjaTable = pgTable("pekerja", {
   id: uuid("id").defaultRandom().primaryKey(),
   nama: text("nama").notNull(),
   kontak: text("kontak"), 
-  role: text("role").default("Karyawan Kebun").notNull(), 
-  jenisTenagaKerja: text("jenis_tenaga_kerja").default("Internal").notNull(), 
-  status: text("status").default("Aktif").notNull(), 
+  
+  // 💡 Menggunakan Relasi ID Master Atribut
+  roleId: uuid("role_id").references(() => pekerjaAtributMasterTable.id, { onDelete: "set null" }), 
+  jenisTenagaKerjaId: uuid("jenis_tenaga_kerja_id").references(() => pekerjaAtributMasterTable.id, { onDelete: "set null" }), 
+  statusId: uuid("status_id").references(() => pekerjaAtributMasterTable.id, { onDelete: "set null" }), 
+  
   mulaiBekerja: date("mulai_bekerja"), 
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -43,9 +53,9 @@ export const kendalaMasterTable = pgTable("kendala_master", {
 export const siklusTanamTable = pgTable("siklus_tanam", {
   id: uuid("id").defaultRandom().primaryKey(),
   areaId: uuid("area_id").references(() => areasTable.id, { onDelete: "cascade" }).notNull(),
-  namaSiklus: text("nama_siklus").notNull(), // Cth: "Cabai Rawit Kloter A"
+  namaSiklus: text("nama_siklus").notNull(), 
   tanggalPindahTanam: date("tanggal_pindah_tanam").notNull(),
-  status: text("status").default("Aktif").notNull(), // "Aktif" atau "Selesai/Panen"
+  status: text("status").default("Aktif").notNull(), 
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -93,7 +103,6 @@ export const inspeksiTable = pgTable("inspeksi", {
 export const inspeksiTemuanTable = pgTable("inspeksi_temuan", {
   id: uuid("id").defaultRandom().primaryKey(),
   inspeksiId: uuid("inspeksi_id").references(() => inspeksiTable.id, { onDelete: "cascade" }).notNull(),
-  // Sekarang aman diakses karena kendalaMasterTable udah dideklarasikan di atas 🚀
   kendalaMasterId: uuid("kendala_master_id").references(() => kendalaMasterTable.id, { onDelete: "restrict" }).notNull(),
   catatanKhusus: text("catatan_khusus"),
 });
@@ -107,7 +116,10 @@ export const operasionalTable = pgTable("operasional", {
   durasiKerja: integer("durasi_kerja").default(0).notNull(),
   kategoriId: uuid("kategori_id").references(() => kategoriTable.id, { onDelete: "cascade" }), 
   prioritas: text("prioritas").default("Medium").notNull(),
-  jenisTenagaKerja: text("jenis_tenaga_kerja").notNull(),
+  
+  // 💡 UPGRADE UTAMA: Diubah ke Foreign Key biar sinkron dengan master tag option!
+  jenisTenagaKerjaId: uuid("jenis_tenaga_kerja_id").references(() => pekerjaAtributMasterTable.id, { onDelete: "set null" }), 
+  
   pekerjaIds: jsonb("pekerja_ids").default([]).notNull(),
   status: text("status").default("Belum dikerjakan").notNull(),
   catatan: text("catatan"),
