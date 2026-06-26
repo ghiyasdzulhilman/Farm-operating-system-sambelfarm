@@ -47,74 +47,8 @@ interface AddInspeksiBody {
 }
 
 // ==========================================
-// 2. ENDPOINT DROPDOWN OPTIONS
+// 2. ENDPOINT DROPDOWN OPTIONS DIALIHKAN KE OPERASIONAL.TS
 // ==========================================
-router.get("/notion/inspeksi-dropdown-options", async (req, res): Promise<void> => {
-  const { userId } = getAuth(req);
-  if (!userId) { 
-    res.status(401).json({ error: "Unauthorized" }); 
-    return; 
-  }
-
-  try {
-    // 1. Ambil Area + Nama Tanaman aktif
-    const dbAreas = await db
-      .select({
-        id: areasTable.id,
-        name: areasTable.name,
-        namaSiklus: siklusTanamTable.namaSiklus
-      })
-      .from(areasTable)
-      .leftJoin(
-        siklusTanamTable,
-        and(
-          eq(areasTable.id, siklusTanamTable.areaId),
-          eq(siklusTanamTable.status, "Aktif")
-        )
-      );
-
-    const formattedAreas = dbAreas.map(a => ({
-      id: a.id,
-      name: a.namaSiklus ? `${a.name} - ${a.namaSiklus}` : a.name
-    }));
-
-    // 2. Ambil Pekerja + Jenis Tenaga Kerja dari master
-    const tenagaAttr = aliasedTable(pekerjaAtributMasterTable, "tenaga_attr_perawatan");
-    
-    const dbPekerja = await db
-      .select({
-        id: pekerjaTable.id,
-        namaAsli: pekerjaTable.nama,
-        jenisTenagaName: tenagaAttr.namaOption
-      })
-      .from(pekerjaTable)
-      .leftJoin(tenagaAttr, eq(pekerjaTable.jenisTenagaKerjaId, tenagaAttr.id));
-
-    const formattedPetugas = dbPekerja.map((p) => ({
-      id: p.id,
-      name: p.jenisTenagaName ? `${p.namaAsli} - ${p.jenisTenagaName}` : p.namaAsli,
-    }));
-
-    // Ambil data master hama & penyakit
-    const dbKendala = await db.select().from(kendalaMasterTable);
-    const formattedKendala = dbKendala.map((k) => ({
-      id: k.id,
-      name: k.nama,
-      jenis: k.jenis // 'hama' atau 'penyakit'
-    }));
-
-    // Kirim data ke frontend
-    res.json({ 
-      areas: formattedAreas, 
-      petugas: formattedPetugas, 
-      kendalaMaster: formattedKendala
-    });
-    
-    } catch (err: any) { 
-    res.status(500).json({ error: err.message || "Gagal mengambil opsi dropdown dari database." }); 
-  }
-});
-
 
 // ==========================================
 // 3. ENDPOINT SAVE DATA INSPEKSI
@@ -213,13 +147,14 @@ router.get("/notion/all-inspeksi", async (req, res): Promise<void> => {
   }
 
   try {
-        // 1. Ambil data induk inspeksi
+    // 1. Ambil data induk inspeksi (Ditambah namaSiklus)
     const indukData = await db
       .select({
         id: inspeksiTable.id,
         kegiatan: inspeksiTable.kegiatan,
         areaId: inspeksiTable.areaId,
         areaName: areasTable.name,
+        namaSiklus: siklusTanamTable.namaSiklus, // 💡 Tarik nama tanaman
         waktuMulai: inspeksiTable.waktuMulai,
         waktuSelesai: inspeksiTable.waktuSelesai,
         durasiKerja: inspeksiTable.durasiKerja,
@@ -229,17 +164,18 @@ router.get("/notion/all-inspeksi", async (req, res): Promise<void> => {
         status: inspeksiTable.status,
         pekerjaIds: inspeksiTable.pekerjaIds,
         keterangan: inspeksiTable.keterangan,
-        tanggalPindahTanam: siklusTanamTable.tanggalPindahTanam // 💡 Ekstrak tanggal tanam untuk dikirim ke frontend
+        tanggalPindahTanam: siklusTanamTable.tanggalPindahTanam 
       })
       .from(inspeksiTable)
       .leftJoin(areasTable, eq(inspeksiTable.areaId, areasTable.id))
-      // 💡 HUBUNGKAN RELASI: Ambil siklus tanam yang areanya sama DAN statusnya masih Aktif
+      // 💡 HUBUNGKAN RELASI SIKLUS TANAM
       .leftJoin(siklusTanamTable, and(
         eq(inspeksiTable.areaId, siklusTanamTable.areaId),
         eq(siklusTanamTable.status, "Aktif")
       ));
 
     // 2. Ambil semua data temuan dan JOIN ke master kendala untuk dapet nama & jenis
+    // (Pastikan kendalaMasterTable dan inspeksiTemuanTable di-import di atas!)
     const semuaTemuan = await db
       .select({
         inspeksiId: inspeksiTemuanTable.inspeksiId,
@@ -254,11 +190,9 @@ router.get("/notion/all-inspeksi", async (req, res): Promise<void> => {
     const dataMatang = indukData.map((inspeksi) => {
       const temuanKhusus = semuaTemuan.filter((t) => t.inspeksiId === inspeksi.id);
 
-      // Pastikan disesuaikan valuenya dengan jenis dari DB lu (lowercase atau uppercase)
       const daftarHama = temuanKhusus.filter((t) => t.jenisKendala?.toLowerCase() === "hama").map((t) => t.namaKendala);
       const daftarPenyakit = temuanKhusus.filter((t) => t.jenisKendala?.toLowerCase() === "penyakit").map((t) => t.namaKendala);
       
-      // Kumpulkan catatan detail temuan lapangan (sebagai pengganti children block Notion)
       const catatanTemuan = temuanKhusus
         .map((t) => `${t.namaKendala}: ${t.catatanKhusus || "Tanpa catatan khusus"}`)
         .join("\n");
@@ -267,17 +201,13 @@ router.get("/notion/all-inspeksi", async (req, res): Promise<void> => {
         ...inspeksi,
         hama: daftarHama,
         penyakit: daftarPenyakit,
-        // Gabungkan keterangan induk dengan rincian catatan dari tabel anak kendala
         keterangan: inspeksi.keterangan 
           ? `${inspeksi.keterangan}\n\n⚠️ Detail Kendala:\n${catatanTemuan}`
           : catatanTemuan || "Kondisi tanaman terpantau aman terkendali."
       };
     });
 
-        res.json({ 
-      success: true, 
-      data: dataMatang 
-    });
+    res.json({ success: true, data: dataMatang });
   } catch (err: any) {
     res.status(500).json({ error: err.message || "Gagal mengambil riwayat inspeksi." });
   }
