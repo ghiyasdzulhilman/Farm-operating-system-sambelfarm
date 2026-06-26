@@ -55,7 +55,6 @@ const operasionalSchema = z.object({
   modeAtribut: z.enum(["broadcast", "spesifik"]).default("broadcast"),
   statusBroadcast: z.string().default("Belum dikerjakan"),
   prioritasBroadcast: z.string().default("Medium"),
-  jenisTenagaKerjaBroadcast: z.string().optional(),
   statusPerArea: z.record(z.string()).default({}),
   prioritasPerArea: z.record(z.string()).default({}),
   jenisTenagaKerjaPerArea: z.record(z.string()).default({}),
@@ -81,7 +80,6 @@ const OPERASIONAL_OVERRIDE_FIELDS = [
   { broadcastKey: "pekerjaBroadcast", perAreaKey: "pekerjaPerArea" },
   { broadcastKey: "statusBroadcast", perAreaKey: "statusPerArea" },
   { broadcastKey: "prioritasBroadcast", perAreaKey: "prioritasPerArea" },
-  { broadcastKey: "jenisTenagaKerjaBroadcast", perAreaKey: "jenisTenagaKerjaPerArea" },
   { broadcastKey: "catatanBroadcast", perAreaKey: "catatanPerArea" },
 ] as const satisfies Array<{ broadcastKey: keyof OperasionalFormValues; perAreaKey: keyof OperasionalFormValues }>;
 
@@ -92,7 +90,7 @@ const EMPTY_VALUES: OperasionalFormValues = {
   modeKategori: "broadcast", kategoriBroadcast: "", kategoriPerArea: {},
   modeWaktu: "broadcast", waktuMulaiBroadcast: format(new Date(), "yyyy-MM-dd'T'HH:mm"), waktuSelesaiBroadcast: "", durasiKerjaBroadcast: 0, waktuMulaiPerArea: {}, waktuSelesaiPerArea: {}, durasiKerjaPerArea: {},
   modePekerja: "broadcast", pekerjaBroadcast: [], pekerjaPerArea: {},
-  modeAtribut: "broadcast", statusBroadcast: "Belum dikerjakan", prioritasBroadcast: "Medium", jenisTenagaKerjaBroadcast: "", statusPerArea: {}, prioritasPerArea: {}, jenisTenagaKerjaPerArea: {},
+  modeAtribut: "broadcast", statusBroadcast: "Belum dikerjakan", prioritasBroadcast: "Medium", statusPerArea: {}, prioritasPerArea: {},
   modeCatatan: "broadcast", catatanBroadcast: "", catatanPerArea: {},
 };
 
@@ -226,7 +224,6 @@ export function AddOperasionalDialog({ onSuccess }: { onSuccess?: () => void }) 
       basePayload.pekerjaPerArea = {};
       basePayload.statusPerArea = {};
       basePayload.prioritasPerArea = {};
-      basePayload.jenisTenagaKerjaPerArea = {};
       basePayload.catatanPerArea = {};
 
       // 💡 Looping semua area. 
@@ -242,7 +239,6 @@ export function AddOperasionalDialog({ onSuccess }: { onSuccess?: () => void }) 
         basePayload.pekerjaPerArea[areaId] = isOvr ? (values.pekerjaPerArea[areaId] || []) : values.pekerjaBroadcast;
         basePayload.statusPerArea[areaId] = isOvr ? values.statusPerArea[areaId] : values.statusBroadcast;
         basePayload.prioritasPerArea[areaId] = isOvr ? values.prioritasPerArea[areaId] : values.prioritasBroadcast;
-        basePayload.jenisTenagaKerjaPerArea[areaId] = isOvr ? values.jenisTenagaKerjaPerArea[areaId] : values.jenisTenagaKerjaBroadcast;
         basePayload.catatanPerArea[areaId] = isOvr ? values.catatanPerArea[areaId] : values.catatanBroadcast;
       });
     }
@@ -428,7 +424,7 @@ export function AddOperasionalDialog({ onSuccess }: { onSuccess?: () => void }) 
 
                         <div className="bg-card p-4 rounded-2xl border border-border shadow-sm space-y-3">
                            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">3. Atribut & Catatan Lapangan</p>
-                           <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-2 gap-3">
                               <Select onValueChange={(val) => form.setValue("statusBroadcast", val)} value={form.watch("statusBroadcast") || ""}>
                                 <SelectTrigger className="h-11 rounded-xl bg-background border-input text-xs font-medium"><SelectValue placeholder="Status..." /></SelectTrigger>
                                 <SelectContent className="rounded-xl"><SelectItem value="Belum dikerjakan">Belum dikerjakan</SelectItem><SelectItem value="Dalam proses">Dalam proses</SelectItem><SelectItem value="Selesai">Selesai</SelectItem></SelectContent>
@@ -438,11 +434,8 @@ export function AddOperasionalDialog({ onSuccess }: { onSuccess?: () => void }) 
                                 <SelectContent className="rounded-xl"><SelectItem value="Low">Low</SelectItem><SelectItem value="Medium">Medium</SelectItem><SelectItem value="High">High</SelectItem></SelectContent>
                               </Select>
                            </div>
-                           <Select onValueChange={(val) => form.setValue("jenisTenagaKerjaBroadcast", val)} value={form.watch("jenisTenagaKerjaBroadcast") || ""}>
-                              <SelectTrigger className="h-11 rounded-xl bg-background border-input text-xs font-medium"><SelectValue placeholder="Jenis Tenaga Kerja..." /></SelectTrigger>
-                              <SelectContent className="rounded-xl"><SelectItem value="Internal">Internal (Karyawan)</SelectItem><SelectItem value="Eksternal">Eksternal (Borongan)</SelectItem></SelectContent>
-                           </Select>
                            <Textarea placeholder="Catatan opsional..." className="min-h-[90px] rounded-xl bg-background border-input text-xs mt-2 p-3" {...form.register("catatanBroadcast")} />
+
                         </div>
                       </motion.div>
                     )}
@@ -514,12 +507,12 @@ export function AddOperasionalDialog({ onSuccess }: { onSuccess?: () => void }) 
                                     </div>
                                   </div>
 
-                                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/50">
+                                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/50">
                                     <Select onValueChange={(val) => form.setValue(`statusPerArea.${areaId}`, val)} value={form.watch(`statusPerArea.${areaId}`) || ""}><SelectTrigger className="h-8 text-[10px]"><SelectValue placeholder="Status" /></SelectTrigger><SelectContent><SelectItem value="Belum dikerjakan">Belum dikerjakan</SelectItem><SelectItem value="Dalam proses">Dalam proses</SelectItem><SelectItem value="Selesai">Selesai</SelectItem></SelectContent></Select>
                                     <Select onValueChange={(val) => form.setValue(`prioritasPerArea.${areaId}`, val)} value={form.watch(`prioritasPerArea.${areaId}`) || ""}><SelectTrigger className="h-8 text-[10px]"><SelectValue placeholder="Prioritas" /></SelectTrigger><SelectContent><SelectItem value="Low">Low</SelectItem><SelectItem value="Medium">Medium</SelectItem><SelectItem value="High">High</SelectItem></SelectContent></Select>
                                   </div>
-                                  <Select onValueChange={(val) => form.setValue(`jenisTenagaKerjaPerArea.${areaId}`, val)} value={form.watch(`jenisTenagaKerjaPerArea.${areaId}`) || ""}><SelectTrigger className="h-8 text-[10px]"><SelectValue placeholder="Jenis Tenaga Kerja" /></SelectTrigger><SelectContent><SelectItem value="Internal">Internal</SelectItem><SelectItem value="Eksternal">Eksternal</SelectItem></SelectContent></Select>
                                   <Textarea placeholder="Catatan khusus area ini..." className="min-h-[50px] text-[10px] bg-background border-input rounded-lg p-2" {...form.register(`catatanPerArea.${areaId}` as any)} />
+
                                 </div>
                               )}
                             </div>
