@@ -54,11 +54,16 @@ router.get("/notion/operasional-dropdown-options", async (req, res): Promise<voi
   }
 
   try {
-    const areas = await db.select().from(areasTable);
+        const areas = await db.select().from(areasTable);
     const formattedAreas = areas.map(a => ({ id: a.id, name: a.name }));
 
+    // 💡 REVISI: Ambil data pekerja lengkap dengan 'jenisTenagaKerja'
     const dbPekerja = await db.select().from(pekerjaTable);
-    const formattedPetugas = dbPekerja.map((p) => ({ id: p.id, name: p.nama }));
+    const formattedPetugas = dbPekerja.map((p) => ({ 
+      id: p.id, 
+      name: p.nama,
+      jenisTenagaKerja: p.jenisTenagaKerja // 👈 Kunci utamanya di sini!
+    }));
 
     // ✅ KODE BARU: Tarik SEMUA kategori tanpa di-filter
     const dbKategori = await db.select().from(kategoriTable);
