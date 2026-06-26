@@ -1,14 +1,15 @@
 import { Router, type IRouter } from "express";
 import { getAuth } from "@clerk/express";
-import { eq, and } from "drizzle-orm";
+import { eq, and, aliasedTable } from "drizzle-orm"; // 💡 Tambah aliasedTable
 import { 
   db, 
   areasTable, 
-  inspeksiTable, 
-  inspeksiTemuanTable,
+  perawatanTable, 
+  perawatanProdukTable,
   pekerjaTable,
-  kendalaMasterTable,
-  siklusTanamTable
+  kategoriTable,
+  siklusTanamTable,           // 💡 Tambah ini
+  pekerjaAtributMasterTable   // 💡 Tambah ini
 } from "@workspace/db";
 
 const router: IRouter = Router();
@@ -56,16 +57,42 @@ router.get("/notion/inspeksi-dropdown-options", async (req, res): Promise<void> 
   }
 
   try {
-    const areas = await db.select().from(areasTable);
-    const formattedAreas = areas.map(a => ({
+    // 1. Ambil Area + Nama Tanaman aktif
+    const dbAreas = await db
+      .select({
+        id: areasTable.id,
+        name: areasTable.name,
+        namaSiklus: siklusTanamTable.namaSiklus
+      })
+      .from(areasTable)
+      .leftJoin(
+        siklusTanamTable,
+        and(
+          eq(areasTable.id, siklusTanamTable.areaId),
+          eq(siklusTanamTable.status, "Aktif")
+        )
+      );
+
+    const formattedAreas = dbAreas.map(a => ({
       id: a.id,
-      name: a.name
+      name: a.namaSiklus ? `${a.name} - ${a.namaSiklus}` : a.name
     }));
 
-    const dbPekerja = await db.select().from(pekerjaTable);
+    // 2. Ambil Pekerja + Jenis Tenaga Kerja dari master
+    const tenagaAttr = aliasedTable(pekerjaAtributMasterTable, "tenaga_attr_perawatan");
+    
+    const dbPekerja = await db
+      .select({
+        id: pekerjaTable.id,
+        namaAsli: pekerjaTable.nama,
+        jenisTenagaName: tenagaAttr.namaOption
+      })
+      .from(pekerjaTable)
+      .leftJoin(tenagaAttr, eq(pekerjaTable.jenisTenagaKerjaId, tenagaAttr.id));
+
     const formattedPetugas = dbPekerja.map((p) => ({
       id: p.id,
-      name: p.nama,
+      name: p.jenisTenagaName ? `${p.namaAsli} - ${p.jenisTenagaName}` : p.namaAsli,
     }));
 
     // Ambil data master hama & penyakit
