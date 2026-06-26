@@ -10,7 +10,8 @@ import {
   inspeksiTable,
   kategoriTable,
   siklusTanamTable,
-  pekerjaAtributMasterTable
+  pekerjaAtributMasterTable,
+  kendalaMasterTable
 } from "@workspace/db";
 
 const router: IRouter = Router();
@@ -109,6 +110,14 @@ router.get("/notion/operasional-dropdown-options", async (req, res): Promise<voi
     const jenisTenaga = dbAtribut.filter(a => a.jenisAtribut === "jenis_tenaga").map(a => ({ id: a.id, name: a.namaOption }));
     const statuses = dbAtribut.filter(a => a.jenisAtribut === "status").map(a => ({ id: a.id, name: a.namaOption }));
 
+    // 💡 SINKRONISASI INSPEKSI: Tarik master hama & penyakit (Pastikan kendalaMasterTable diimport di atas)
+    const dbKendala = await db.select().from(kendalaMasterTable);
+    const formattedKendala = dbKendala.map((k) => ({
+      id: k.id,
+      name: k.nama,
+      jenis: k.jenis 
+    }));
+
     const formattedKategori = dbKategori.map((k) => ({
       id: k.id,
       name: k.name,
@@ -119,8 +128,10 @@ router.get("/notion/operasional-dropdown-options", async (req, res): Promise<voi
       areas: formattedAreas, 
       petugas: formattedPetugas, 
       kategori: formattedKategori,
-      atributPekerja: { roles, jenisTenaga, statuses } // 👈 Tambahkan ini
+      atributPekerja: { roles, jenisTenaga, statuses },
+      kendalaMaster: formattedKendala // 👈 Jembatan krusial dikirim di sini!
     });
+
   } catch (err) {
     res.status(500).json({ error: "Gagal mengambil opsi dropdown dari database." }); 
   }
