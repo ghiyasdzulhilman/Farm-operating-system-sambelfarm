@@ -511,7 +511,8 @@ export function ActivityDetailSheet({
     {item.metaEkstra.durasiKerja ? `${item.metaEkstra.durasiKerja} Jam` : "0 Jam"}
   </p>
 </div>
-
+</>
+)}
                         <div className="mb-1 flex items-center gap-2 text-muted-foreground"><Clock3 className="h-4 w-4" /><span className="text-xs font-bold uppercase">Durasi Kerja</span></div>
                         {activeField === "durasiKerja" ? (
                           <input autoFocus type="number" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("durasiKerja")} onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }} className="w-full bg-transparent text-sm font-black outline-none border-b border-primary/30 p-0" />
