@@ -408,7 +408,7 @@ export function ActivityDetailSheet({
                   /* 💡 TAMPILAN LAMA UNTUK INSPEKSI & OPERASIONAL (DATA AMAN SINKRON) */
                   <div className="grid grid-cols-2 gap-3">
                     
-                    {/* 1. MODUL INSPEKSI */}
+                   {/* 1. MODUL INSPEKSI */}
                     {item.module === "inspeksi" && (
                       <>
                         {/* pH Tanah */}
@@ -417,13 +417,13 @@ export function ActivityDetailSheet({
                           className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm cursor-pointer hover:bg-muted/40 transition-colors"
                         >
                           <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                            <Thermometer className="h-4 w-4 text-emerald-600" />
+                            <Thermometer className="h-4 w-4" />
                             <span className="text-xs font-bold uppercase">pH Tanah</span>
                           </div>
                           {activeField === "phTanah" ? (
-                            <input autoFocus type="number" step="0.1" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("phTanah")} onKeyDown={(e) => e.key === "Enter" && handleInlineSave("phTanah")} className="w-full bg-transparent text-lg font-black text-emerald-600 outline-none border-b border-emerald-600/30 p-0" />
+                            <input autoFocus type="number" step="0.1" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("phTanah")} onKeyDown={(e) => e.key === "Enter" && handleInlineSave("phTanah")} className="w-full bg-transparent text-lg font-black text-foreground outline-none border-b border-primary/30 p-0" />
                           ) : (
-                            <p className="text-lg font-black text-emerald-600">{item.metaEkstra.phTanah || "-"}</p>
+                            <p className="text-lg font-black text-foreground">{item.metaEkstra.phTanah || "-"}</p>
                           )}
                         </div>
 
@@ -433,13 +433,13 @@ export function ActivityDetailSheet({
                           className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm cursor-pointer hover:bg-muted/40 transition-colors"
                         >
                           <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                            <TrendingUp className="h-4 w-4 text-destructive" />
+                            <TrendingUp className="h-4 w-4" />
                             <span className="text-xs font-bold uppercase">Serangan</span>
                           </div>
                           {activeField === "tingkatSerangan" ? (
-                            <input autoFocus type="number" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("tingkatSerangan")} onKeyDown={(e) => e.key === "Enter" && handleInlineSave("tingkatSerangan")} className="w-full bg-transparent text-lg font-black text-destructive outline-none border-b border-destructive/30 p-0" />
+                            <input autoFocus type="number" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("tingkatSerangan")} onKeyDown={(e) => e.key === "Enter" && handleInlineSave("tingkatSerangan")} className="w-full bg-transparent text-lg font-black text-foreground outline-none border-b border-primary/30 p-0" />
                           ) : (
-                            <p className="text-lg font-black text-destructive">{item.metaEkstra.tingkatSerangan ? `${item.metaEkstra.tingkatSerangan}%` : "0%"}</p>
+                            <p className="text-lg font-black text-foreground">{item.metaEkstra.tingkatSerangan ? `${item.metaEkstra.tingkatSerangan}%` : "0%"}</p>
                           )}
                         </div>
 
@@ -449,42 +449,25 @@ export function ActivityDetailSheet({
                           className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm cursor-pointer hover:bg-muted/40 transition-colors"
                         >
                           <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                            <Radar className="h-4 w-4 text-sky-600" />
+                            <Radar className="h-4 w-4" />
                             <span className="text-xs font-bold uppercase">Radius</span>
                           </div>
                           {activeField === "radius" ? (
-                            <input autoFocus type="number" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("radius")} onKeyDown={(e) => e.key === "Enter" && handleInlineSave("radius")} className="w-full bg-transparent text-lg font-black text-sky-600 outline-none border-b border-sky-600/30 p-0" />
+                            <input autoFocus type="number" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("radius")} onKeyDown={(e) => e.key === "Enter" && handleInlineSave("radius")} className="w-full bg-transparent text-lg font-black text-foreground outline-none border-b border-primary/30 p-0" />
                           ) : (
-                            <p className="text-lg font-black text-sky-600">{item.metaEkstra.radius ? `${item.metaEkstra.radius} meter` : "-"}</p>
+                            <p className="text-lg font-black text-foreground">{item.metaEkstra.radius ? `${item.metaEkstra.radius} meter` : "-"}</p>
                           )}
                         </div>
 
+                        {/* Jam Kerja */}
                         <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
                           <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                            <Clock3 className="h-4 w-4 text-amber-600" />
+                            <Clock3 className="h-4 w-4" />
                             <span className="text-xs font-bold uppercase">Jam Kerja</span>
                           </div>
-                          <p className="text-sm font-black text-amber-700">{formatJamMendalam(item.metaEkstra.waktuMulai)} - {formatJamMendalam(item.metaEkstra.waktuSelesai)}</p>
+                          <p className="text-sm font-black text-foreground">{formatJamMendalam(item.metaEkstra.waktuMulai)} - {formatJamMendalam(item.metaEkstra.waktuSelesai)}</p>
                         </div>
-
-                        {/* ⛔ BADGE KENDALA: Read-Only */}
-                        <div className="col-span-2 rounded-2xl border border-red-500/20 bg-red-500/5 p-3 shadow-sm">
-                          <div className="flex items-center gap-2 text-red-600 mb-2">
-                            <Bug className="h-4 w-4" />
-                            <span className="text-xs font-bold uppercase">Daftar Temuan Kendala</span>
-                          </div>
-                          <div className="flex flex-wrap gap-1">
-                            {(Array.isArray(item.metaEkstra.hama) ? item.metaEkstra.hama : []).map((h: string) => (
-                              <Badge key={h} variant="destructive" className="text-[10px] rounded-sm py-0 bg-red-500/80">{h}</Badge>
-                            ))}
-                            {(Array.isArray(item.metaEkstra.penyakit) ? item.metaEkstra.penyakit : []).map((p: string) => (
-                              <Badge key={p} variant="destructive" className="text-[10px] rounded-sm py-0 bg-orange-500/80">{p}</Badge>
-                            ))}
-                            {(!item.metaEkstra.hama?.length && !item.metaEkstra.penyakit?.length) && (
-                              <span className="text-xs font-medium text-emerald-600">Tanaman Aman Terkendali</span>
-                            )}
-                          </div>
-                        </div>
+                        {/* ⛔ KOTAK BADGE LAMA UDAH KITA HAPUS DARI SINI */}
                       </>
                     )}
 
@@ -527,7 +510,39 @@ export function ActivityDetailSheet({
               </section>
             )}
  
-          {/* SEGMEN CATATAN INLINE EDIT */}
+          {/* 💡 SEGMEN BARU: CATATAN TEMUAN (KHUSUS INSPEKSI) */}
+            {item.module === "inspeksi" && (
+              <section className="mt-6 space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-destructive" />
+                  <h3 className="text-sm font-black uppercase tracking-[0.18em] text-muted-foreground">
+                    Catatan Temuan
+                  </h3>
+                </div>
+
+                <div className="rounded-3xl border border-destructive/20 bg-destructive/5 p-4 shadow-sm">
+                  {/* Bagian Badge Hama & Penyakit */}
+                  <div className="flex flex-wrap gap-1.5 mb-4 pb-4 border-b border-destructive/10">
+                    {(Array.isArray(item.metaEkstra.hama) ? item.metaEkstra.hama : []).map((h: string) => (
+                      <Badge key={h} variant="destructive" className="text-[10px] rounded-md px-2 py-0.5 bg-red-500/80">{h}</Badge>
+                    ))}
+                    {(Array.isArray(item.metaEkstra.penyakit) ? item.metaEkstra.penyakit : []).map((p: string) => (
+                      <Badge key={p} variant="destructive" className="text-[10px] rounded-md px-2 py-0.5 bg-orange-500/80">{p}</Badge>
+                    ))}
+                    {(!item.metaEkstra.hama?.length && !item.metaEkstra.penyakit?.length) && (
+                      <span className="text-xs font-bold text-emerald-600 bg-emerald-500/10 px-2 py-1 rounded-md">Tanaman Aman Terkendali</span>
+                    )}
+                  </div>
+                  
+                  {/* Bagian Detail Text (Thrips: xxx, dsb) */}
+                  <div className="text-sm text-destructive whitespace-pre-wrap leading-relaxed font-medium">
+                    {getDetailKendala() || "Tidak ada rincian spesifik."}
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* SEGMEN CATATAN UMUM (INLINE EDIT) */}
             <section className="mt-6 space-y-3">
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-primary" />
@@ -561,14 +576,6 @@ export function ActivityDetailSheet({
                   <div className="whitespace-pre-wrap">{getCleanCatatan() || "Ketik catatan disini..."}</div>
                 )}
               </div>
-
-              {/* Kotak Read-Only Khusus Rincian Temuan Kendala (INSPEKSI) */}
-              {getDetailKendala() && (
-                <div className="mt-3 rounded-2xl border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive shadow-sm">
-                  <span className="font-bold mb-2 block uppercase tracking-wider text-xs">⚠️ Rincian Temuan Lapangan:</span>
-                  <div className="whitespace-pre-wrap leading-relaxed">{getDetailKendala()}</div>
-                </div>
-              )}
             </section>
 
             {/* SEGMEN PEKERJA */}
