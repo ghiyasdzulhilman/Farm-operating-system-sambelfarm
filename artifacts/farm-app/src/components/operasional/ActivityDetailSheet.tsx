@@ -343,12 +343,13 @@ export function ActivityDetailSheet({
                   <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-primary-foreground pointer-events-none z-10" />
                 </div>
 
-                {/* 2. Badge Kategori (Editable) */}
-                <div className="relative inline-flex shadow-sm max-w-full">
+              {/* 2. Badge Kategori (Sembunyikan khusus untuk Inspeksi karena tidak ada di schema DB) */}
+                {item.module !== "inspeksi" && (
+                  <div className="relative inline-flex shadow-sm max-w-full">
+                    <select
+                      value={item.module === "perawatan" ? (item.tagCategoryId || item.metaEkstra?.tagCategoryId || "") : (item.kategoriId || item.metaEkstra?.kategoriId || "")}
+                      onChange={(e) => {
 
-                  <select
-                    value={item.module === "perawatan" ? (item.tagCategoryId || item.metaEkstra?.tagCategoryId || "") : (item.kategoriId || item.metaEkstra?.kategoriId || "")}
-                    onChange={(e) => {
                       const field = item.module === "perawatan" ? "tagCategoryId" : "kategoriId";
                       onStatusChange?.(item.id, { [field]: e.target.value });
                     }}
@@ -363,7 +364,7 @@ export function ActivityDetailSheet({
                   </select>
               <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-primary-foreground pointer-events-none z-10" />
                 </div>
-                
+                )}
               </div>
 
             </div>
