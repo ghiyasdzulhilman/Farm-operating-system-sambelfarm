@@ -472,36 +472,37 @@ export function ActivityDetailSheet({
                   {/* 2. KOTAK-KOTAK UNTUK MODUL OPERASIONAL */}
                   {item.module === "operasional" && (
                     <>
-                      <div 
-                        onClick={() => { if(activeField !== "jenisTenagaKerja") { setActiveField("jenisTenagaKerja"); setLocalValue(item.metaEkstra.jenisTenagaKerja || ""); } }}
-                        className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm cursor-pointer hover:bg-muted/40 transition-colors"
-                      >
-                        <div className="mb-1 flex items-center gap-2 text-muted-foreground"><Briefcase className="h-4 w-4" /><span className="text-xs font-bold uppercase">Jenis Tenaga</span></div>
-                        {activeField === "jenisTenagaKerja" ? (
-                          <input autoFocus type="text" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("jenisTenagaKerja")} onKeyDown={(e) => e.key === "Enter" && handleInlineSave("jenisTenagaKerja")} className="w-full bg-transparent text-sm font-black outline-none border-b border-primary/30 p-0" />
-                        ) : (
-                          <p className="text-sm font-black">{item.metaEkstra.jenisTenagaKerja || "Harian"}</p>
-                        )}
-                      </div>
-
-                      <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
-                        <div className="mb-1 flex items-center gap-2 text-muted-foreground"><Clock3 className="h-4 w-4" /><span className="text-xs font-bold uppercase">Prioritas</span></div>
+                      {/* CARD 1: Prioritas (Sudah di-fix agar tidak nyangkut) */}
+                      <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm relative">
+                        <div className="mb-1 flex items-center gap-2 text-muted-foreground">
+                          <Clock3 className="h-4 w-4" />
+                          <span className="text-xs font-bold uppercase">Prioritas</span>
+                        </div>
                         <select 
-                          value={item.metaEkstra.prioritas || "Medium"}
+                          value={
+                            ["Tinggi", "Medium", "Rendah"].find(
+                              (p) => p.toLowerCase() === (item.metaEkstra.prioritas || "Medium").toLowerCase()
+                            ) || "Medium"
+                          }
                           onChange={(e) => onStatusChange?.(item.id, { prioritas: e.target.value })}
-                          className="w-full bg-transparent text-sm font-black uppercase tracking-wider outline-none cursor-pointer appearance-none"
+                          className="w-full bg-transparent text-sm font-black uppercase tracking-wider outline-none cursor-pointer appearance-none relative z-10"
                         >
                           <option value="Tinggi">TINGGI</option>
                           <option value="Medium">MEDIUM</option>
                           <option value="Rendah">RENDAH</option>
                         </select>
+                        <ChevronDown className="absolute right-3 top-1/2 mt-2 -translate-y-1/2 h-4 w-4 text-muted-foreground opacity-50 pointer-events-none" />
                       </div>
 
+                      {/* CARD 2: Durasi Kerja (Class col-span-2 dihapus biar berjejer rapi) */}
                       <div 
                         onClick={() => { if(activeField !== "durasiKerja") { setActiveField("durasiKerja"); setLocalValue(String(item.metaEkstra.durasiKerja || "0")); } }}
-                        className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm cursor-pointer hover:bg-muted/40 transition-colors col-span-2"
+                        className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm cursor-pointer hover:bg-muted/40 transition-colors"
                       >
-                        <div className="mb-1 flex items-center gap-2 text-muted-foreground"><Clock3 className="h-4 w-4" /><span className="text-xs font-bold uppercase">Durasi Kerja</span></div>
+                        <div className="mb-1 flex items-center gap-2 text-muted-foreground">
+                          <Clock3 className="h-4 w-4" />
+                          <span className="text-xs font-bold uppercase">Durasi Kerja</span>
+                        </div>
                         {activeField === "durasiKerja" ? (
                           <input autoFocus type="number" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("durasiKerja")} onKeyDown={(e) => e.key === "Enter" && handleInlineSave("durasiKerja")} className="w-full bg-transparent text-sm font-black outline-none border-b border-primary/30 p-0" />
                         ) : (
@@ -510,6 +511,7 @@ export function ActivityDetailSheet({
                       </div>
                     </>
                   )}
+
                 </div>
               </section>
             )}
