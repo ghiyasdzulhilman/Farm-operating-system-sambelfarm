@@ -334,7 +334,7 @@ export function ActivityDetailSheet({
                       value={localValue}
                       onChange={(e) => setLocalValue(e.target.value)}
                       onBlur={() => handleInlineSave("title")}
-                      onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}("title")}
+                      onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
                       className="mt-2 w-full bg-transparent text-2xl font-black tracking-tight text-foreground border-b border-primary/50 outline-none pb-1"
                     />
                   ) : (
@@ -423,7 +423,7 @@ export function ActivityDetailSheet({
                           <span className="text-xs font-bold uppercase">pH Tanah</span>
                         </div>
                         {activeField === "phTanah" ? (
-                          <input autoFocus type="number" step="0.1" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("phTanah")} onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}("phTanah")} className="w-full bg-transparent text-lg font-black text-foreground outline-none border-b border-primary/30 p-0" />
+                          <input autoFocus type="number" step="0.1" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("phTanah")} onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }} className="w-full bg-transparent text-lg font-black text-foreground outline-none border-b border-primary/30 p-0" />
                         ) : (
                           <p className="text-lg font-black text-foreground">{item.metaEkstra.phTanah || "-"}</p>
                         )}
@@ -439,7 +439,7 @@ export function ActivityDetailSheet({
                           <span className="text-xs font-bold uppercase">Serangan</span>
                         </div>
                         {activeField === "tingkatSerangan" ? (
-                          <input autoFocus type="number" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("tingkatSerangan")} onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}("tingkatSerangan")} className="w-full bg-transparent text-lg font-black text-foreground outline-none border-b border-primary/30 p-0" />
+                          <input autoFocus type="number" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("tingkatSerangan")} onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }} className="w-full bg-transparent text-lg font-black text-foreground outline-none border-b border-primary/30 p-0" />
                         ) : (
                           <p className="text-lg font-black text-foreground">{item.metaEkstra.tingkatSerangan ? `${item.metaEkstra.tingkatSerangan}%` : "0%"}</p>
                         )}
@@ -455,7 +455,7 @@ export function ActivityDetailSheet({
                           <span className="text-xs font-bold uppercase">Radius</span>
                         </div>
                         {activeField === "radius" ? (
-                          <input autoFocus type="number" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("radius")} onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}("radius")} className="w-full bg-transparent text-lg font-black text-foreground outline-none border-b border-primary/30 p-0" />
+                          <input autoFocus type="number" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("radius")} onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }} className="w-full bg-transparent text-lg font-black text-foreground outline-none border-b border-primary/30 p-0" />
                         ) : (
                           <p className="text-lg font-black text-foreground">{item.metaEkstra.radius ? `${item.metaEkstra.radius} m` : "-"}</p>
                         )}
@@ -483,7 +483,7 @@ export function ActivityDetailSheet({
                       >
                         <div className="mb-1 flex items-center gap-2 text-muted-foreground"><Briefcase className="h-4 w-4" /><span className="text-xs font-bold uppercase">Jenis Tenaga</span></div>
                         {activeField === "jenisTenagaKerja" ? (
-                          <input autoFocus type="text" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("jenisTenagaKerja")} onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}("jenisTenagaKerja")} className="w-full bg-transparent text-sm font-black outline-none border-b border-primary/30 p-0" />
+                          <input autoFocus type="text" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("jenisTenagaKerja")} onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }} className="w-full bg-transparent text-sm font-black outline-none border-b border-primary/30 p-0" />
                         ) : (
                           <p className="text-sm font-black">{item.metaEkstra.jenisTenagaKerja || "Harian"}</p>
                         )}
@@ -514,7 +514,7 @@ export function ActivityDetailSheet({
 
                         <div className="mb-1 flex items-center gap-2 text-muted-foreground"><Clock3 className="h-4 w-4" /><span className="text-xs font-bold uppercase">Durasi Kerja</span></div>
                         {activeField === "durasiKerja" ? (
-                          <input autoFocus type="number" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("durasiKerja")} onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}("durasiKerja")} className="w-full bg-transparent text-sm font-black outline-none border-b border-primary/30 p-0" />
+                          <input autoFocus type="number" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("durasiKerja")} onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }} className="w-full bg-transparent text-sm font-black outline-none border-b border-primary/30 p-0" />
                         ) : (
                           <p className="text-sm font-black">{item.metaEkstra.durasiKerja ? `${item.metaEkstra.durasiKerja} Jam` : "0 Jam"}</p>
                         )}
