@@ -469,10 +469,10 @@ export function ActivityDetailSheet({
                     </>
                   )}
 
-                  {/* 2. KOTAK-KOTAK UNTUK MODUL OPERASIONAL */}
+               {/* 2. KOTAK-KOTAK UNTUK MODUL OPERASIONAL */}
                   {item.module === "operasional" && (
                     <>
-                      {/* CARD 1: Prioritas (Sudah di-fix agar tidak nyangkut) */}
+                      {/* CARD 1: Prioritas (Value disamakan dengan Form Input: Low, Medium, High) */}
                       <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm relative">
                         <div className="mb-1 flex items-center gap-2 text-muted-foreground">
                           <Clock3 className="h-4 w-4" />
@@ -480,21 +480,21 @@ export function ActivityDetailSheet({
                         </div>
                         <select 
                           value={
-                            ["Tinggi", "Medium", "Rendah"].find(
+                            ["Low", "Medium", "High"].find(
                               (p) => p.toLowerCase() === (item.metaEkstra.prioritas || "Medium").toLowerCase()
                             ) || "Medium"
                           }
                           onChange={(e) => onStatusChange?.(item.id, { prioritas: e.target.value })}
                           className="w-full bg-transparent text-sm font-black uppercase tracking-wider outline-none cursor-pointer appearance-none relative z-10"
                         >
-                          <option value="Tinggi">TINGGI</option>
+                          <option value="High">HIGH</option>
                           <option value="Medium">MEDIUM</option>
-                          <option value="Rendah">RENDAH</option>
+                          <option value="Low">LOW</option>
                         </select>
                         <ChevronDown className="absolute right-3 top-1/2 mt-2 -translate-y-1/2 h-4 w-4 text-muted-foreground opacity-50 pointer-events-none" />
                       </div>
 
-                      {/* CARD 2: Durasi Kerja (Class col-span-2 dihapus biar berjejer rapi) */}
+                      {/* CARD 2: Durasi Kerja (Sejajar berdampingan dengan Prioritas) */}
                       <div 
                         onClick={() => { if(activeField !== "durasiKerja") { setActiveField("durasiKerja"); setLocalValue(String(item.metaEkstra.durasiKerja || "0")); } }}
                         className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm cursor-pointer hover:bg-muted/40 transition-colors"
