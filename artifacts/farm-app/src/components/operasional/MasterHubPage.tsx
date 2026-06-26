@@ -147,7 +147,7 @@ function PekerjaManager({ data }: { data: any[] }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [newName, setNewName] = useState("");
-  const [jenisTenaga, setJenisTenaga] = useState("Internal"); // 💡 State Baru untuk Jenis Tenaga Kerja
+  const [jenisTenaga, setJenisTenaga] = useState("Internal");
 
   const addMutation = useMutation({
     mutationFn: async () => {
@@ -157,7 +157,7 @@ function PekerjaManager({ data }: { data: any[] }) {
         body: JSON.stringify({ 
           nama: newName, 
           role: "Karyawan Kebun", 
-          jenisTenagaKerja: jenisTenaga // 💡 Kirim data dinamis hasil pilihan select
+          jenisTenagaKerja: jenisTenaga 
         }) 
       }).then(r => r.json());
     },
@@ -177,7 +177,6 @@ function PekerjaManager({ data }: { data: any[] }) {
     <Card className={glassCard}>
       <h3 className="text-lg font-black mb-4">Daftar Pekerja</h3>
       
-      {/* 💡 REFACTORED FORM UI: Menggunakan Layout Flex/Grid yang Sinkron */}
       <div className="flex flex-col sm:flex-row gap-2 mb-6">
         <input 
           type="text" 
@@ -188,7 +187,6 @@ function PekerjaManager({ data }: { data: any[] }) {
         />
         
         <div className="flex gap-2">
-          {/* 💡 Dropdown Baru Pemilihan Jenis Tenaga Kerja */}
           <select 
             value={jenisTenaga} 
             onChange={e => setJenisTenaga(e.target.value)} 
@@ -214,7 +212,6 @@ function PekerjaManager({ data }: { data: any[] }) {
           <div key={item.id} className="flex items-center justify-between rounded-xl border border-border/40 bg-muted/10 p-3">
             <div>
               <span className="text-sm font-bold block">{item.name}</span>
-              {/* 💡 Tampilkan Badge Label Jenis Tenaga Kerja di Bawah Nama */}
               <span className="text-[10px] font-black uppercase tracking-widest text-primary">
                 {item.jenisTenagaKerja || "Internal"}
               </span>
@@ -225,20 +222,6 @@ function PekerjaManager({ data }: { data: any[] }) {
           </div>
         ))}
         {data.length === 0 && <p className="text-center text-xs text-muted-foreground py-4">Belum ada data pekerja.</p>}
-      </div>
-    </Card>
-  );
-}
-
-      <div className="space-y-2">
-        {data.map((item) => (
-          <div key={item.id} className="flex items-center justify-between rounded-xl border border-border/40 bg-muted/10 p-3">
-            <span className="text-sm font-bold">{item.name}</span>
-            <Button variant="ghost" size="icon" onClick={() => delMutation.mutate(item.id)} disabled={delMutation.isPending} className="h-8 w-8 text-destructive hover:bg-destructive/10">
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        ))}
       </div>
     </Card>
   );
