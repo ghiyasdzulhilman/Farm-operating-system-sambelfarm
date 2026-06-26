@@ -77,27 +77,36 @@ export function ActivityDetailSheet({
     try { return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }); } catch { return ""; }
   };
 
-    // 💡 Helper update Waktu & Tanggal (Refactored)
+ // 💡 Helper update Waktu & Tanggal + Auto Calculate Durasi Kerja 🚀
   const handleDateTimeSave = (field: 'waktuMulai' | 'waktuSelesai', type: 'date' | 'time', value: string) => {
     if (!value) return;
     
-    // Ambil referensi waktu yang ada, atau gunakan waktu sekarang/rawDate sebagai fallback
     const currentIso = item.metaEkstra?.[field] || item.rawDate || new Date().toISOString();
     const newDate = new Date(currentIso);
 
     if (type === 'date') {
       const [year, month, day] = value.split('-');
-      // Update kalender tanpa mengganggu jam yang sudah ada
       newDate.setFullYear(Number(year), Number(month) - 1, Number(day));
     } else if (type === 'time') {
       const [hours, minutes] = value.split(':');
-      // Update jam tanpa mengganggu kalender yang sudah ada
       newDate.setHours(Number(hours), Number(minutes), 0, 0);
     }
 
-    // Jaring pengaman ekstra: Pastikan tanggal valid sebelum dikirim ke backend
     if (!isNaN(newDate.getTime())) {
-      onStatusChange?.(item.id, { [field]: newDate.toISOString() });
+      const updatedIso = newDate.toISOString();
+      const payload: any = { [field]: updatedIso };
+
+      // UI/UX Logic: Hitung otomatis selisih jam untuk durasi kerja
+      const startIso = field === 'waktuMulai' ? updatedIso : (item.metaEkstra?.waktuMulai || item.rawDate);
+      const endIso = field === 'waktuSelesai' ? updatedIso : item.metaEkstra?.waktuSelesai;
+
+      if (startIso && endIso) {
+        const msDiff = new Date(endIso).getTime() - new Date(startIso).getTime();
+        const calcHours = Math.max(0, msDiff / (1000 * 60 * 60)); // Ubah milidetik ke jam
+        payload.durasiKerja = parseFloat(calcHours.toFixed(1)); // Ambil 1 angka di belakang koma (cth: 2.5 Jam)
+      }
+
+      onStatusChange?.(item.id, payload);
     }
   };
 
@@ -440,20 +449,15 @@ export function ActivityDetailSheet({
                         )}
                       </div>
 
-                      {/* 💡 KOTAK KE-4: Durasi Kerja (Inline Edit Angka Jam) */}
-                      <div 
-                        onClick={() => { if(activeField !== "durasiKerja") { setActiveField("durasiKerja"); setLocalValue(String(item.metaEkstra.durasiKerja || "0")); } }}
-                        className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm cursor-pointer hover:bg-muted/40 transition-colors"
-                      >
-                        <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                          <Clock3 className="h-4 w-4" />
-                          <span className="text-xs font-bold uppercase">Durasi Kerja</span>
+                    {/* 🔒 KOTAK KE-4: Durasi Kerja (Kunci Menjadi Read-Only) */}
+                      <div className="rounded-2xl border border-border/40 bg-muted/40 p-3 shadow-sm select-none">
+                        <div className="flex items-center gap-2 text-muted-foreground/70 mb-1">
+                          <Clock3 className="h-4 w-4 opacity-70" />
+                          <span className="text-xs font-bold uppercase tracking-wider">Durasi Kerja</span>
                         </div>
-                        {activeField === "durasiKerja" ? (
-                          <input autoFocus type="number" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("durasiKerja")} onKeyDown={(e) => e.key === "Enter" && handleInlineSave("durasiKerja")} className="w-full bg-transparent text-lg font-black text-foreground outline-none border-b border-primary/30 p-0" />
-                        ) : (
-                          <p className="text-lg font-black text-foreground">{item.metaEkstra.durasiKerja ? `${item.metaEkstra.durasiKerja} Jam` : "0 Jam"}</p>
-                        )}
+                        <p className="text-lg font-black text-muted-foreground">
+                          {item.metaEkstra.durasiKerja ? `${item.metaEkstra.durasiKerja} Jam` : "0 Jam"}
+                        </p>
                       </div>
                     </>
                   )}
