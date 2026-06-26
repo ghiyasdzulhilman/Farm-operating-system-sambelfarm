@@ -147,10 +147,25 @@ function PekerjaManager({ data }: { data: any[] }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [newName, setNewName] = useState("");
+  const [jenisTenaga, setJenisTenaga] = useState("Internal"); // 💡 State Baru untuk Jenis Tenaga Kerja
 
   const addMutation = useMutation({
-    mutationFn: async (nama: string) => fetch("/api/notion/pekerja", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nama, role: "Karyawan Kebun", jenisTenagaKerja: "Internal" }) }).then(r => r.json()),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["master-dropdown-options"] }); setNewName(""); toast({ title: "Sukses", description: "Pekerja baru ditambahkan." }); },
+    mutationFn: async () => {
+      return fetch("/api/notion/pekerja", { 
+        method: "POST", 
+        headers: { "Content-Type": "application/json" }, 
+        body: JSON.stringify({ 
+          nama: newName, 
+          role: "Karyawan Kebun", 
+          jenisTenagaKerja: jenisTenaga // 💡 Kirim data dinamis hasil pilihan select
+        }) 
+      }).then(r => r.json());
+    },
+    onSuccess: () => { 
+      queryClient.invalidateQueries({ queryKey: ["master-dropdown-options"] }); 
+      setNewName(""); 
+      toast({ title: "Sukses", description: `Pekerja ${newName} berhasil ditambahkan.` }); 
+    },
   });
 
   const delMutation = useMutation({
@@ -161,12 +176,60 @@ function PekerjaManager({ data }: { data: any[] }) {
   return (
     <Card className={glassCard}>
       <h3 className="text-lg font-black mb-4">Daftar Pekerja</h3>
-      <div className="flex gap-2 mb-6">
-        <input type="text" placeholder="Nama pekerja (cth: Supardi)" value={newName} onChange={e => setNewName(e.target.value)} className="flex-1 rounded-xl border border-border/60 bg-muted/30 px-4 py-2 text-sm outline-none focus:border-primary/50" />
-        <Button onClick={() => newName.trim() && addMutation.mutate(newName)} disabled={addMutation.isPending} className="rounded-xl font-bold">
-          {addMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Plus className="h-4 w-4 mr-1"/> Tambah</>}
-        </Button>
+      
+      {/* 💡 REFACTORED FORM UI: Menggunakan Layout Flex/Grid yang Sinkron */}
+      <div className="flex flex-col sm:flex-row gap-2 mb-6">
+        <input 
+          type="text" 
+          placeholder="Nama pekerja (cth: Supardi)" 
+          value={newName} 
+          onChange={e => setNewName(e.target.value)} 
+          className="flex-1 rounded-xl border border-border/60 bg-muted/30 px-4 py-2 text-sm outline-none focus:border-primary/50" 
+        />
+        
+        <div className="flex gap-2">
+          {/* 💡 Dropdown Baru Pemilihan Jenis Tenaga Kerja */}
+          <select 
+            value={jenisTenaga} 
+            onChange={e => setJenisTenaga(e.target.value)} 
+            className="rounded-xl border border-border/60 bg-muted/30 px-3 py-2 text-sm outline-none font-bold uppercase tracking-wider"
+          >
+            <option value="Internal">Internal</option>
+            <option value="Harian">Harian</option>
+            <option value="Borongan">Borongan</option>
+          </select>
+          
+          <Button 
+            onClick={() => newName.trim() && addMutation.mutate()} 
+            disabled={addMutation.isPending} 
+            className="rounded-xl font-bold shrink-0"
+          >
+            {addMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Plus className="h-4 w-4 sm:mr-1"/> <span className="hidden sm:inline">Tambah</span></>}
+          </Button>
+        </div>
       </div>
+
+      <div className="space-y-2">
+        {data.map((item) => (
+          <div key={item.id} className="flex items-center justify-between rounded-xl border border-border/40 bg-muted/10 p-3">
+            <div>
+              <span className="text-sm font-bold block">{item.name}</span>
+              {/* 💡 Tampilkan Badge Label Jenis Tenaga Kerja di Bawah Nama */}
+              <span className="text-[10px] font-black uppercase tracking-widest text-primary">
+                {item.jenisTenagaKerja || "Internal"}
+              </span>
+            </div>
+            <Button variant="ghost" size="icon" onClick={() => delMutation.mutate(item.id)} disabled={delMutation.isPending} className="h-8 w-8 text-destructive hover:bg-destructive/10">
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        ))}
+        {data.length === 0 && <p className="text-center text-xs text-muted-foreground py-4">Belum ada data pekerja.</p>}
+      </div>
+    </Card>
+  );
+}
+
       <div className="space-y-2">
         {data.map((item) => (
           <div key={item.id} className="flex items-center justify-between rounded-xl border border-border/40 bg-muted/10 p-3">
