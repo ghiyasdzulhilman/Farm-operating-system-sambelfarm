@@ -55,8 +55,27 @@ router.get("/notion/operasional-dropdown-options", async (req, res): Promise<voi
   }
 
   try {
-        const areas = await db.select().from(areasTable);
-    const formattedAreas = areas.map(a => ({ id: a.id, name: a.name }));
+    // 💡 REVISI: Join areasTable dengan siklusTanamTable (hanya yang aktif)
+    const dbAreas = await db
+      .select({
+        id: areasTable.id,
+        name: areasTable.name,
+        namaSiklus: siklusTanamTable.namaSiklus, // Tarik nama tanaman
+      })
+      .from(areasTable)
+      .leftJoin(
+        siklusTanamTable,
+        and(
+          eq(areasTable.id, siklusTanamTable.areaId),
+          eq(siklusTanamTable.status, "Aktif")
+        )
+      );
+
+    // 💡 GABUNGKAN STRING DI SINI SEBELUM DIKIRIM
+    const formattedAreas = dbAreas.map(a => ({ 
+      id: a.id, 
+      name: a.namaSiklus ? `${a.name} - ${a.namaSiklus}` : a.name 
+    }));
 
     // 💡 REVISI: Join dengan tabel atribut untuk ngambil teks 'jenisTenagaKerja'
     const tenagaAtribut = aliasedTable(pekerjaAtributMasterTable, "tenaga_attr");
