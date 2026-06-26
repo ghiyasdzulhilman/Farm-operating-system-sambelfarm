@@ -160,7 +160,7 @@ router.post("/notion/add-operasional", async (req, res): Promise<void> => {
         pekerjaIds: pekerjaArray || [],
         status: statusStr || "Belum dikerjakan",
         prioritas: prioritasStr || "Medium",
-        jenisTenagaKerja: jenisStr || "Harian",
+        jenisTenagaKerjaId: jenisStr || null,
         catatan: catatanStr || null,
       }).returning();
 
@@ -186,10 +186,14 @@ router.post("/notion/add-operasional", async (req, res): Promise<void> => {
 // 4. ENDPOINT GET ALL OPERASIONAL (SUPABASE REALTIME + NAMA AREA & KATEGORI)
 // ==========================================
 router.get("/notion/all-operasional", async (req, res): Promise<void> => {
-  // ... (kode auth tetap sama) ...
+  const { userId } = getAuth(req);
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   try {
-        const data = await db
+    // 💡 BUAT ALIAS: Supaya aman kalau nanti lu mau join atribut lain (role/status)
+    const jenisTenagaAttr = aliasedTable(pekerjaAtributMasterTable, "jenis_tenaga_attr");
+
+    const data = await db
       .select({
         id: operasionalTable.id,
         namaPekerjaan: operasionalTable.namaPekerjaan,
@@ -203,27 +207,26 @@ router.get("/notion/all-operasional", async (req, res): Promise<void> => {
         pekerjaIds: operasionalTable.pekerjaIds,
         status: operasionalTable.status,
         prioritas: operasionalTable.prioritas,
-        jenisTenagaKerja: operasionalTable.jenisTenagaKerja,
+        // 💡 AMBIL DATA RELASI BARU
+        jenisTenagaKerjaId: operasionalTable.jenisTenagaKerjaId,
+        jenisTenagaKerjaName: jenisTenagaAttr.namaOption, // 👈 Ini teks yang dibutuhin UI (ex: "Mandor")
         catatan: operasionalTable.catatan,
-        tanggalPindahTanam: siklusTanamTable.tanggalPindahTanam // 💡 Ekstrak tanggal tanam
+        tanggalPindahTanam: siklusTanamTable.tanggalPindahTanam 
       })
       .from(operasionalTable)
       .leftJoin(areasTable, eq(operasionalTable.areaId, areasTable.id)) 
       .leftJoin(kategoriTable, eq(operasionalTable.kategoriId, kategoriTable.id))
-      // 💡 JOIN KE SIKLUS TANAM: Cek area yang sama DAN statusnya masih Aktif
+      // 💡 JOIN KE TABEL MASTER ATRIBUT
+      .leftJoin(jenisTenagaAttr, eq(operasionalTable.jenisTenagaKerjaId, jenisTenagaAttr.id))
       .leftJoin(siklusTanamTable, and(
         eq(operasionalTable.areaId, siklusTanamTable.areaId),
         eq(siklusTanamTable.status, "Aktif")
       ));
 
-        res.json({ success: true, data: data });
+    res.json({ success: true, data: data });
   } catch (err: any) {
-    // 💡 Console error ini wajib ada biar lu tahu kalau Drizzle meledak
     console.error("[DB ERROR GET ALL OPERASIONAL]:", err);
-    res.status(500).json({ 
-      error: "Gagal mengambil riwayat operasional.",
-      detail: err.message 
-    });
+    res.status(500).json({ error: "Gagal mengambil riwayat operasional.", detail: err.message });
   }
 });
 
