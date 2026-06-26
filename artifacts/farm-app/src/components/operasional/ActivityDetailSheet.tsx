@@ -48,24 +48,6 @@ export function ActivityDetailSheet({
     enabled: !!item // Hanya nge-fetch kalau sheet-nya lagi kebuka
   });
 
-  // 💡 KODE BARU 1: Ambil data siklus aktif untuk digabungin ke nama Area
-  const { data: listSiklus } = useQuery({
-    queryKey: ["siklus-tanam-list"],
-    queryFn: async () => fetch("/api/notion/siklus-tanam").then(res => res.json()),
-    enabled: !!item 
-  });
-
-  // 💡 KODE BARU 2: Helper cerdas buat "ngawinin" Area + Tanaman
-  const getAreaDisplayName = (areaId: string, originalName: string) => {
-    if (!listSiklus?.data) return originalName; // Kalau data belum load, balikin nama asli
-    
-    // Cari siklus yang areaId-nya cocok dan statusnya Aktif
-    const activeSiklus = listSiklus.data.find((s: any) => s.areaId === areaId && s.status === "Aktif");
-    
-    // Kalau ketemu, gabungin! Kalau nggak, tampilkan nama area aslinya.
-    return activeSiklus ? `${originalName} - ${activeSiklus.namaSiklus}` : originalName;
-  };
-
   // 💡 Helper format Tanggal & Waktu dari DB
   const formatDateValue = (iso?: string) => {
     if (!iso) return "";
@@ -350,23 +332,23 @@ export function ActivityDetailSheet({
              {/* 💡 JAJARAN BADGE INTERAKTIF BARU (FIX LEBAR DINAMIS) */}
               <div className="mt-4 flex flex-wrap gap-2 items-center">
                 
-              {/* 1. Badge Area (Editable) */}
-                <div className="relative inline-flex shadow-sm max-w-full">
-                  <select
-                    value={item.areaId || ""}
-                    onChange={(e) => onStatusChange?.(item.id, { areaId: e.target.value })}
-                    className="appearance-none max-w-[130px] sm:max-w-[160px] truncate bg-primary text-primary-foreground border border-primary hover:bg-primary/90 rounded-full pl-3 pr-7 py-1 text-[11px] font-bold uppercase tracking-wider outline-none cursor-pointer transition-colors z-10"
-                  >
-                    <option value="" disabled>PILIH AREA</option>
-                    {/* 💡 Gunakan Helper di sini untuk ngubah nama yang tampil */}
-                    {dropdownOptions?.areas?.map((a: any) => (
-                      <option key={a.id} value={a.id}>
-                        {getAreaDisplayName(a.id, a.name)}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-primary-foreground pointer-events-none z-10" />
-                </div>
+{/* 1. Badge Area (Editable) */}
+<div className="relative inline-flex shadow-sm max-w-full">
+  <select
+    value={item.areaId || ""}
+    onChange={(e) => onStatusChange?.(item.id, { areaId: e.target.value })}
+    className="appearance-none max-w-[130px] sm:max-w-[160px] truncate bg-primary text-primary-foreground border border-primary hover:bg-primary/90 rounded-full pl-3 pr-7 py-1 text-[11px] font-bold uppercase tracking-wider outline-none cursor-pointer transition-colors z-10"
+  >
+    <option value="" disabled>PILIH AREA</option>
+    {dropdownOptions?.areas?.map((a: any) => (
+      <option key={a.id} value={a.id}>
+        {/* 💡 CUKUP PANGGIL a.name, KARENA BACKEND UDAH NYIAPIN "Area - Tanaman" */}
+        {a.name} 
+      </option>
+    ))}
+  </select>
+  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-primary-foreground pointer-events-none z-10" />
+</div>
 
               {/* 2. Badge Kategori (Sembunyikan khusus untuk Inspeksi karena tidak ada di schema DB) */}
                 {item.module !== "inspeksi" && (
@@ -378,7 +360,6 @@ export function ActivityDetailSheet({
                       const field = item.module === "perawatan" ? "tagCategoryId" : "kategoriId";
                       onStatusChange?.(item.id, { [field]: e.target.value });
                     }}
-                    // 👇 SEKARANG SAMA-SAMA PAKAI BG-PRIMARY 🚀 👇
                     className="appearance-none max-w-[140px] sm:max-w-[170px] truncate bg-primary text-primary-foreground border border-primary hover:bg-primary/90 rounded-full pl-3 pr-7 py-1 text-[11px] font-bold uppercase tracking-wider outline-none cursor-pointer transition-colors z-10"
                   >
 
