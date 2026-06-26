@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { getAuth } from "@clerk/express";
-import { eq, and } from "drizzle-orm"; // 👈 Tambahkan 'and' di sini
+import { eq, and, aliasedTable } from "drizzle-orm"; // 💡 Tambahkan aliasedTable
 import { 
   db, 
   areasTable, 
@@ -58,11 +58,25 @@ router.get("/notion/operasional-dropdown-options", async (req, res): Promise<voi
         const areas = await db.select().from(areasTable);
     const formattedAreas = areas.map(a => ({ id: a.id, name: a.name }));
 
-    // 💡 REVISI: Ambil data pekerja lengkap dengan 'jenisTenagaKerja'
-    const dbPekerja = await db.select().from(pekerjaTable);
+    // 💡 REVISI: Join dengan tabel atribut untuk ngambil teks 'jenisTenagaKerja'
+    const tenagaAtribut = aliasedTable(pekerjaAtributMasterTable, "tenaga_attr");
+
+    const dbPekerja = await db
+      .select({
+        id: pekerjaTable.id,
+        namaAsli: pekerjaTable.nama,
+        roleId: pekerjaTable.roleId,
+        jenisTenagaKerjaId: pekerjaTable.jenisTenagaKerjaId,
+        statusId: pekerjaTable.statusId,
+        jenisTenagaName: tenagaAtribut.namaOption, // 💡 Tarik teks nama opsinya
+      })
+      .from(pekerjaTable)
+      .leftJoin(tenagaAtribut, eq(pekerjaTable.jenisTenagaKerjaId, tenagaAtribut.id));
+
+    // 💡 GABUNGKAN NAMA DAN JENIS TENAGA KERJA DI SINI
     const formattedPetugas = dbPekerja.map((p) => ({ 
       id: p.id, 
-      name: p.nama,
+      name: p.jenisTenagaName ? `${p.namaAsli} - ${p.jenisTenagaName}` : p.namaAsli,
       roleId: p.roleId,
       jenisTenagaKerjaId: p.jenisTenagaKerjaId,
       statusId: p.statusId
