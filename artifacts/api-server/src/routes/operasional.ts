@@ -9,7 +9,8 @@ import {
   perawatanTable,
   inspeksiTable,
   kategoriTable,
-  siklusTanamTable
+  siklusTanamTable,
+  pekerjaAtributMasterTable
 } from "@workspace/db";
 
 const router: IRouter = Router();
@@ -62,12 +63,19 @@ router.get("/notion/operasional-dropdown-options", async (req, res): Promise<voi
     const formattedPetugas = dbPekerja.map((p) => ({ 
       id: p.id, 
       name: p.nama,
-      jenisTenagaKerja: p.jenisTenagaKerja // 👈 Kunci utamanya di sini!
+      roleId: p.roleId,
+      jenisTenagaKerjaId: p.jenisTenagaKerjaId,
+      statusId: p.statusId
     }));
 
-    // ✅ KODE BARU: Tarik SEMUA kategori tanpa di-filter
     const dbKategori = await db.select().from(kategoriTable);
     
+    // 💡 Fetch Atribut Master (Notion-style tags)
+    const dbAtribut = await db.select().from(pekerjaAtributMasterTable);
+    const roles = dbAtribut.filter(a => a.jenisAtribut === "role").map(a => ({ id: a.id, name: a.namaOption }));
+    const jenisTenaga = dbAtribut.filter(a => a.jenisAtribut === "jenis_tenaga").map(a => ({ id: a.id, name: a.namaOption }));
+    const statuses = dbAtribut.filter(a => a.jenisAtribut === "status").map(a => ({ id: a.id, name: a.namaOption }));
+
     const formattedKategori = dbKategori.map((k) => ({
       id: k.id,
       name: k.name,
@@ -77,7 +85,8 @@ router.get("/notion/operasional-dropdown-options", async (req, res): Promise<voi
     res.json({ 
       areas: formattedAreas, 
       petugas: formattedPetugas, 
-      kategori: formattedKategori 
+      kategori: formattedKategori,
+      atributPekerja: { roles, jenisTenaga, statuses } // 👈 Tambahkan ini
     });
   } catch (err) {
     res.status(500).json({ error: "Gagal mengambil opsi dropdown dari database." }); 
@@ -510,6 +519,33 @@ router.post("/notion/siklus-tanam", async (req, res): Promise<void> => {
   } catch (err) {
     res.status(500).json({ error: "Gagal menambahkan siklus tanam baru." });
   }
+});
+
+// ==========================================
+// 11. ENDPOINT PEKERJA ATRIBUT MASTER (NEW 🚀)
+// ==========================================
+router.post("/notion/pekerja-atribut", async (req, res): Promise<void> => {
+  const { userId } = getAuth(req);
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+  const { namaOption, jenisAtribut } = req.body;
+  try {
+    const [newAtribut] = await db.insert(pekerjaAtributMasterTable)
+      .values({ namaOption: namaOption.trim(), jenisAtribut })
+      .returning();
+    res.status(201).json({ success: true, data: newAtribut });
+  } catch (err) { res.status(500).json({ error: "Gagal menambah atribut." }); }
+});
+
+router.delete("/notion/pekerja-atribut/:id", async (req, res): Promise<void> => {
+  const { userId } = getAuth(req);
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+  const { id } = req.params;
+  try {
+    await db.delete(pekerjaAtributMasterTable).where(eq(pekerjaAtributMasterTable.id, id));
+    res.json({ success: true, message: "Berhasil dihapus" });
+  } catch (err) { res.status(500).json({ error: "Gagal menghapus atribut." }); }
 });
 
 
