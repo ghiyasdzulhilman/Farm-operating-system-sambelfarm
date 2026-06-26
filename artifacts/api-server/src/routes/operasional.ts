@@ -338,13 +338,15 @@ router.delete("/notion/areas/:id", async (req, res): Promise<void> => {
 });
 
 // ==========================================
-// 7. ENDPOINT ADD & DELETE MASTER PEKERJA
+// 7. ENDPOINT ADD, EDIT, & DELETE MASTER PEKERJA
 // ==========================================
 router.post("/notion/pekerja", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
-  const { nama, kontak, role, jenisTenagaKerja } = req.body;
+  // 💡 PERBAIKAN: Tangkap ID Relasi, bukan teks manual lama
+  const { nama, kontak, roleId, jenisTenagaKerjaId, statusId } = req.body;
+  
   if (!nama || typeof nama !== "string" || nama.trim() === "") {
     res.status(400).json({ error: "Nama pekerja wajib diisi." }); return;
   }
@@ -354,14 +356,44 @@ router.post("/notion/pekerja", async (req, res): Promise<void> => {
       .values({ 
         nama: nama.trim(),
         kontak: kontak || null,
-        role: role || "Karyawan Kebun",
-        jenisTenagaKerja: jenisTenagaKerja || "Internal"
+        roleId: roleId || null,
+        jenisTenagaKerjaId: jenisTenagaKerjaId || null,
+        statusId: statusId || null
       })
       .returning();
       
     res.status(201).json({ success: true, data: newPekerja });
   } catch (err) {
     res.status(500).json({ error: "Gagal menambah pekerja baru." });
+  }
+});
+
+// 💡 FITUR BARU: Endpoint Edit Pekerja (PATCH) untuk Inline Editing Badge
+router.patch("/notion/pekerja/:id", async (req, res): Promise<void> => {
+  const { userId } = getAuth(req);
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+  const { id } = req.params;
+  const { roleId, jenisTenagaKerjaId, statusId } = req.body;
+
+  try {
+    // Hanya update kolom yang dikirim dari frontend, buang yang undefined
+    const cleanPayload = Object.fromEntries(
+      Object.entries({ roleId, jenisTenagaKerjaId, statusId }).filter(([_, v]) => v !== undefined)
+    );
+
+    if (Object.keys(cleanPayload).length === 0) {
+      res.status(400).json({ error: "Tidak ada data yang diupdate." }); return;
+    }
+
+    const [updatedPekerja] = await db.update(pekerjaTable)
+      .set(cleanPayload)
+      .where(eq(pekerjaTable.id, id))
+      .returning();
+
+    res.json({ success: true, message: "Data pekerja diperbarui.", data: updatedPekerja });
+  } catch (err) { 
+    res.status(500).json({ error: "Gagal update pekerja." }); 
   }
 });
 
@@ -386,6 +418,7 @@ router.delete("/notion/pekerja/:id", async (req, res): Promise<void> => {
     res.status(500).json({ error: "Gagal menghapus pekerja." });
   }
 });
+
 
 // ==========================================
 // 8. ENDPOINT DELETE ACTIVITY ROW (BARIS TABEL)
