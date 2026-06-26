@@ -48,48 +48,8 @@ interface AddPerawatanBody {
 }
 
 // ==========================================
-// 1. ENDPOINT DROPDOWN OPTIONS
+// 1. ENDPOINT DROPDOWN OPTIONS DIALIHKAN KE OPERASIONAL.TS
 // ==========================================
-router.get("/notion/perawatan-dropdown-options", async (req, res): Promise<void> => {
-  const { userId } = getAuth(req);
-  if (!userId) { 
-    res.status(401).json({ error: "Unauthorized" }); 
-    return; 
-  }
-
-  // --- BATAS ATAS PERBAIKAN ---
-  try {
-    const areas = await db.select().from(areasTable);
-    
-    const formattedAreas = areas.map(a => ({
-      id: a.id,
-      name: a.name
-    }));
-
-    // 1. Ambil data pekerja aktif langsung dari Supabase
-    const dbPekerja = await db.select().from(pekerjaTable);
-    
-    // 2. Mapping properti 'nama' dari DB menjadi 'name' untuk Frontend
-    const formattedPetugas = dbPekerja.map((p) => ({
-      id: p.id,
-      name: p.nama,
-    }));
-
-        // 3. Tarik data kategori spesifik untuk modul perawatan
-    const dbKategori = await db.select().from(kategoriTable).where(eq(kategoriTable.module, "perawatan"));
-    const formattedKategori = dbKategori.map((k) => ({
-      id: k.id,
-      name: k.name,
-      module: k.module
-    }));
-
-    // 4. Kirim data asli ke frontend
-    res.json({ areas: formattedAreas, petugas: formattedPetugas, kategori: formattedKategori });
- 
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || "Gagal mengambil opsi dropdown dari database." });
-  }
-});
 
 // ==========================================
 // 2. ENDPOINT SAVE DATA PERAWATAN KEBUN
@@ -196,6 +156,9 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
 // ==========================================
 // 3. ENDPOINT GET ALL PERAWATAN (SUPABASE REALTIME + NAMA AREA + DETAIL PRODUK)
 // ==========================================
+// ==========================================
+// 3. ENDPOINT GET ALL PERAWATAN (SUPABASE REALTIME + NAMA AREA + DETAIL PRODUK)
+// ==========================================
 router.get("/notion/all-perawatan", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
   if (!userId) { 
@@ -204,13 +167,14 @@ router.get("/notion/all-perawatan", async (req, res): Promise<void> => {
   }
 
   try {
-        // 1. Ambil data induk perawatan + nama area
+    // 1. Ambil data induk perawatan + nama area + NAMA TANAMAN
     const indukData = await db
       .select({
         id: perawatanTable.id,
         kegiatan: perawatanTable.kegiatan,
         areaId: perawatanTable.areaId,
         areaName: areasTable.name,
+        namaSiklus: siklusTanamTable.namaSiklus, // 💡 KUNCI UTAMA: Tarik nama tanaman!
         waktuMulai: perawatanTable.waktuMulai,
         waktuSelesai: perawatanTable.waktuSelesai,
         durasiKerja: perawatanTable.durasiKerja,
@@ -219,18 +183,19 @@ router.get("/notion/all-perawatan", async (req, res): Promise<void> => {
         status: perawatanTable.status,
         pekerjaIds: perawatanTable.pekerjaIds,
         catatan: perawatanTable.catatan,
-        tanggalPindahTanam: siklusTanamTable.tanggalPindahTanam // 💡 Ekstrak tanggal tanam untuk dikirim ke frontend
+        tanggalPindahTanam: siklusTanamTable.tanggalPindahTanam 
       })
       .from(perawatanTable)
       .leftJoin(areasTable, eq(perawatanTable.areaId, areasTable.id))
       .leftJoin(kategoriTable, eq(perawatanTable.tagCategoryId, kategoriTable.id))
-      // 💡 JOIN KE SIKLUS TANAM: Tarik data siklus yang areanya cocok DAN statusnya Aktif
+      // 💡 JOIN KE SIKLUS TANAM
       .leftJoin(siklusTanamTable, and(
         eq(perawatanTable.areaId, siklusTanamTable.areaId),
         eq(siklusTanamTable.status, "Aktif")
       ));
 
     // 2. Ambil semua detail produk racikan dari tabel anak
+    // (Pastikan perawatanProdukTable sudah di-import di atas)
     const semuaProduk = await db.select().from(perawatanProdukTable);
 
     // 3. Gabungkan produk ke masing-masing induk perawatan yang cocok
@@ -244,7 +209,7 @@ router.get("/notion/all-perawatan", async (req, res): Promise<void> => {
 
       return {
         ...perawatan,
-        logProduk: racikanBahan // 💡 Kita namakan logProduk agar struktur payload-nya sama persis dengan form input lu!
+        logProduk: racikanBahan 
       };
     });
 
@@ -256,7 +221,6 @@ router.get("/notion/all-perawatan", async (req, res): Promise<void> => {
   } catch (err: any) {
     res.status(500).json({ error: err.message || "Gagal mengambil riwayat perawatan." });
   }
-
 });
 
 export default router;
