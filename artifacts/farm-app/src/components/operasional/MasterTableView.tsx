@@ -491,16 +491,18 @@ export function MasterTableView({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48 rounded-xl shadow-md">
-            {table.getAllLeafColumns().map(column => (
+          {table.getAllLeafColumns().map(column => (
               <DropdownMenuCheckboxItem
                 key={column.id}
                 checked={column.getIsVisible()}
                 onCheckedChange={(value) => column.toggleVisibility(!!value)}
+                onSelect={(e) => e.preventDefault()} // 💡 INI KUNCINYA BIAR GAK NUTUP
                 className="text-xs font-semibold cursor-pointer"
               >
                 {COLUMN_LABELS[column.id] || column.id}
               </DropdownMenuCheckboxItem>
             ))}
+
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
