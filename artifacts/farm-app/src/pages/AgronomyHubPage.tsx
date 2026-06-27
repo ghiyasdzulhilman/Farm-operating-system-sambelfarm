@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Leaf, Plus, FileText, Loader2, TrendingUp,
   MoreHorizontal, Sprout, Wrench, ChevronRight, Layers,
+  Database,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -196,9 +197,10 @@ export function AgronomyHubPage() {
             className="w-full h-12 rounded-xl bg-primary px-6 font-bold text-primary-foreground shadow-md transition-all active:scale-95 md:w-auto md:hover:scale-[1.02]"
             onClick={() => setShowMasterHub(true)}
           >
-            <Layers className="mr-2 h-5 w-5" /> Master Control Center
+            <Database className="mr-2 h-5 w-5" /> Master Control Center
           </Button>
         </div>
+
       </div>
 
       <SummaryHeader feedData={feedData} meta={meta} />
