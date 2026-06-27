@@ -11,6 +11,7 @@ import { FilterControls } from "@/components/operasional/FilterControls";
 import { LiveFeedView } from "@/components/operasional/LiveFeedView";
 import { ActivityDetailSheet } from "@/components/operasional/ActivityDetailSheet";
 import { MasterTableView } from "@/components/operasional/MasterTableView";
+import { KanbanView } from "@/components/operasional/KanbanView";
 import { MasterHubPage } from "@/components/operasional/MasterHubPage"; 
 import type { AgronomyItem, ModuleKey, ViewKey } from "@/types/operasional";
 import { useToast } from "@/hooks/use-toast";
@@ -21,7 +22,7 @@ export function AgronomyHubPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const [activeView, setActiveView] = useState<ViewKey>("feed");
+  const [activeView, setActiveView] = useState<ViewKey>("kanban");
   const [feedMode, setFeedMode] = useState<FeedModeKey>("time");
   const [activeModule, setActiveModule] = useState<ModuleKey>("all");
   const [activeFilter, setActiveFilter] = useState("Hari ini");
@@ -220,14 +221,25 @@ export function AgronomyHubPage() {
             <MasterTableView 
               items={filteredItems} 
               onItemClick={setSelectedItem} 
-              // 💡 WAJIB ngirim 'module'
               onStatusChange={(id, status) => {
                 const target = filteredItems.find(i => i.id === id);
                 if (target) updateStatusMutation.mutate({ id, status, module: target.module });
               }} 
             />
           )}
-        </div>
+
+          {/* BLOK KANBAN DI SINI */}
+          {activeView === "kanban" && (
+            <KanbanView 
+              items={filteredItems} 
+              onItemClick={setSelectedItem} 
+              onStatusChange={(id, status) => {
+                const target = filteredItems.find(i => i.id === id);
+                if (target) updateStatusMutation.mutate({ id, status, module: target.module });
+              }} 
+              // onDelete={(id, module) => handleHapus(id, module)} // Bisa diaktifkan nanti kalau fungsi hapus udah siap
+            />
+          )}
 
         <aside className="space-y-4">
           <div className="rounded-3xl border border-border/60 bg-card p-4 shadow-sm">
