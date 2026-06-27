@@ -214,7 +214,7 @@ export const EditableCell: React.FC<EditableCellProps> = ({
     );
   }
 
-  // 3. RENDER INPUT STANDAR (Text, Number, Date, Time, Datetime)
+// 3. RENDER INPUT STANDAR (Text, Number, Date, Time, Datetime)
   return (
     <Input
       value={localValue ?? ""}
@@ -223,7 +223,8 @@ export const EditableCell: React.FC<EditableCellProps> = ({
       type={type}
       placeholder={placeholder}
       disabled={disabled}
-      className={cn("w-full border-none bg-transparent hover:bg-muted/50 focus-visible:ring-1 focus-visible:ring-ring shadow-none h-8 px-1 text-sm disabled:opacity-100", className)}
+      className={cn("w-full border-none bg-transparent hover:bg-muted/50 focus-visible:ring-1 focus-visible:ring-primary shadow-none h-8 px-1 text-sm disabled:opacity-100", className)} // 💡 Ganti ring-ring jadi ring-primary
     />
   );
 };
+
