@@ -281,15 +281,17 @@ export function MasterTableView({
       cell: ({ row }) => {
         const item = row.original;
         return (
-          <EditableCell
-            value={item.areaId} 
-            type="select"
-            options={areaOptions}
-            placeholder={item.area}
-            onSave={(val) => updateMutation.mutate({ id: item.id, module: item.module, payload: { areaId: val } })}
-            onAddOption={(newLabel) => addAreaMutation.mutate(newLabel)}
-            onDeleteOption={(id) => deleteAreaMutation.mutate(id)}
-          />
+          <div className="min-w-[160px]"> {/* 💡 Tambah div ini biar kolom Area jadi lega/lebar */}
+            <EditableCell
+              value={item.areaId} 
+              type="select"
+              options={areaOptions}
+              placeholder={item.area}
+              onSave={(val) => updateMutation.mutate({ id: item.id, module: item.module, payload: { areaId: val } })}
+              onAddOption={(newLabel) => addAreaMutation.mutate(newLabel)} // 💡 Fitur tambah area TETAP ADA
+              // ❌ onDeleteOption dicabut biar aman dari hapus master
+            />
+          </div>
         );
       },
     },
@@ -318,8 +320,8 @@ export function MasterTableView({
           ? (item.tagCategoryId || item.metaEkstra?.tagCategoryId) 
           : (item.kategoriId || item.metaEkstra?.kategoriId);
 
-        return (
-          <div className="min-w-[120px]">
+       return (
+          <div className="min-w-[140px]">
             <EditableCell
               value={currentKategoriId} // Menggunakan UUID
               type="select"
@@ -330,11 +332,12 @@ export function MasterTableView({
                 const field = item.module === "perawatan" ? "tagCategoryId" : "kategoriId";
                 updateMutation.mutate({ id: item.id, module: item.module, payload: { [field]: val } });
               }}
-              onAddOption={(newLabel) => addKategoriMutation.mutate({ name: newLabel, module: item.module })}
-              onDeleteOption={(id) => deleteKategoriMutation.mutate(id)}
+              onAddOption={(newLabel) => addKategoriMutation.mutate({ name: newLabel, module: item.module })} // 💡 Fitur tambah kategori TETAP ADA
+              // ❌ onDeleteOption dicabut biar aman dari hapus master
             />
           </div>
         );
+
       },
     },
 
@@ -347,20 +350,22 @@ export function MasterTableView({
         const currentWorkerIds = Array.isArray(item.metaEkstra?.pekerjaIds) ? item.metaEkstra.pekerjaIds : [];
 
         return (
-          <div className="min-w-[150px]">
+          <div className="min-w-[180px]"> {/* 💡 Dilebarin dikit karena ada format "Nama - Jenis" */}
             <EditableCell
               value={currentWorkerIds} 
               type="multi-select"
               options={workerOptions} 
               placeholder="Pilih Pekerja"
               onSave={(nextIds: string[]) => {
+                // 💡 Fungsi ini yang otomatis nge-handle Un-assign kalau lu silang nama pekerja dari baris
                 updateMutation.mutate({ id: item.id, module: item.module, payload: { pekerjaIds: nextIds } });
               }}
-              onAddOption={(newLabel) => addPekerjaMutation.mutate(newLabel)}
-              onDeleteOption={(id) => deletePekerjaMutation.mutate(id)}
+              onAddOption={(newLabel) => addPekerjaMutation.mutate(newLabel)} // 💡 Fitur tambah pekerja TETAP ADA
+              // ❌ onDeleteOption dicabut biar aman dari hapus master
             />
           </div>
         );
+
       },
     },
         {
