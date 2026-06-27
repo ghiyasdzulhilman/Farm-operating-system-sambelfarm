@@ -80,9 +80,9 @@ export function LiveFeedView({
           </div>
 
           <div className="space-y-3 overflow-hidden"> {/* 💡 Tambah overflow-hidden agar tombol geser tidak ngeleber */}
-            {group.items.map((item) => {
+                        {group.items.map((item) => {
               
-              // 💡 FIX 4: LOGIKA WARNA & IKON SESUAI FORM
+              // 💡 FIX 1: LOGIKA WARNA & IKON (Wrench diganti Sprout)
               let iconColorClass = "bg-primary/10 text-primary";
               let RenderIcon = <Sprout className="h-5 w-5" />;
 
@@ -91,7 +91,7 @@ export function LiveFeedView({
                 RenderIcon = <HardHat className="h-5 w-5" />;
               } else if (item.module === "perawatan") {
                 iconColorClass = "bg-blue-500/10 text-blue-600";
-                RenderIcon = <Wrench className="h-5 w-5" />;
+                RenderIcon = <Sprout className="h-5 w-5" />; // 👈 Icon Perawatan sudah jadi Sprout
               } else if (item.module === "inspeksi") {
                 iconColorClass = "bg-destructive/10 text-destructive";
                 RenderIcon = <Bug className="h-5 w-5" />;
@@ -101,25 +101,26 @@ export function LiveFeedView({
               }
 
               return (
-                // 💡 FIX 5: WRAPPER UTAMA UNTUK SWIPE TO DELETE
-                <div key={item.id} className="relative w-full rounded-3xl border border-border/60 bg-destructive overflow-hidden mb-3">
+                // 💡 FIX 2: WRAPPER UTAMA (Warna ngejreng merah diganti bg-secondary)
+                <div key={item.id} className="relative w-full rounded-3xl border border-border/60 bg-secondary overflow-hidden mb-3">
                   
-                  {/* 🔴 TOMBOL HAPUS (Tersembunyi di Lapisan Belakang Kanan) */}
+                  {/* 🔴 TOMBOL HAPUS (Disesuaikan menyatu dengan warna secondary) */}
                   <div className="absolute inset-y-0 right-0 w-[80px] flex items-center justify-center">
                     <button 
                       onClick={() => onDelete?.(item.id, item.module)}
-                      className="flex flex-col items-center justify-center h-full w-full text-white hover:bg-red-600 transition-colors"
+                      className="flex flex-col items-center justify-center h-full w-full text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors"
                     >
                       <Trash2 className="h-5 w-5 mb-1" />
                       <span className="text-[10px] font-bold uppercase tracking-wider">Hapus</span>
                     </button>
                   </div>
 
-                  {/* 🟢 KONTEN CARD UTAMA (Bisa Digeser/Draggable) */}
+                  {/* 🟢 KONTEN CARD UTAMA */}
                   <motion.div 
                     drag="x"
-                    dragConstraints={{ left: -80, right: 0 }} // Batas geser ke kiri sejauh tombol hapus
-                    dragElastic={{ left: 0.1, right: 0 }} // Efek membal ala iOS
+                    dragDirectionLock={true} // 💡 FIX 3: Mengunci gestur agar scroll atas-bawah tidak memicu geser
+                    dragConstraints={{ left: -80, right: 0 }} 
+                    dragElastic={{ left: 0.1, right: 0 }} 
                     className="relative flex items-start gap-3 bg-card p-4 text-left shadow-sm z-10 cursor-grab active:cursor-grabbing w-full rounded-3xl"
                   >
                     
@@ -140,12 +141,12 @@ export function LiveFeedView({
                         {/* INJEKSI RICH DATA */}
                         {item.module === "inspeksi" && item.metaEkstra?.hama?.length > 0 && (
                            <Badge variant="outline" className="rounded-full bg-red-500/10 text-red-700 border-red-500/20 px-2 py-0 text-[10px]">
-                             🚨 Hama
+                              Hama
                            </Badge>
                         )}
                         {item.module === "inspeksi" && item.metaEkstra?.penyakit?.length > 0 && (
                            <Badge variant="outline" className="rounded-full bg-orange-500/10 text-orange-700 border-orange-500/20 px-2 py-0 text-[10px]">
-                             🦠 Penyakit
+                              Penyakit
                            </Badge>
                         )}
                       </div>
@@ -157,7 +158,6 @@ export function LiveFeedView({
                     {/* BAGIAN KANAN: KONTROL & AKSI */}
                     <div className="flex shrink-0 flex-col items-end justify-between gap-3 h-full cursor-auto">
                       
-                      {/* 💡 FIX 6: INLINE STATUS MODIFIER (Dinamis & Berwarna) */}
                       <div className="relative inline-block">
                         <select
                           value={item.status}
@@ -171,7 +171,6 @@ export function LiveFeedView({
                             item.isPendingStaging && "opacity-50 cursor-not-allowed"
                           )}
                         >
-                          {/* Opsi beda untuk modul inspeksi */}
                           {item.module === "inspeksi" ? (
                             <>
                               <option value="Baru ditemukan">Baru</option>
@@ -189,7 +188,6 @@ export function LiveFeedView({
                         <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none opacity-60 z-20" />
                       </div>
 
-                      {/* TOMBOL DETAIL ARROW */}
                       <button 
                         onClick={() => onItemClick(item)} 
                         className="rounded-full bg-muted/40 p-1.5 hover:bg-primary/10 hover:text-primary transition-colors z-20 relative"
@@ -203,6 +201,7 @@ export function LiveFeedView({
                 </div>
               );
             })}
+
           </div>
         </div>
       ))}
