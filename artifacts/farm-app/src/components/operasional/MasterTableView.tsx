@@ -1,5 +1,5 @@
 // src/components/operasional/MasterTableView.tsx
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useReactTable, getCoreRowModel, getSortedRowModel, flexRender, type ColumnDef } from "@tanstack/react-table";
 import { Eye, Trash2, Lock, ArrowRight, Columns3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
