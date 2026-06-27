@@ -177,27 +177,28 @@ export function ActivityDetailSheet({
     }
   };
 
-    // 💡 HELPER PINTAR KALKULASI HST 🚀
+      // 💡 HELPER PINTAR KALKULASI HST (Fixed Timezone Bug) 🚀
   const calculateHST = () => {
-    // Cari tanggal tanam, baik itu di dalam metaEkstra maupun di luar object
+    // Data dari backend kemungkinan besar terbungkus di metaEkstra
     const tglTanamStr = item.metaEkstra?.tanggalPindahTanam || (item as any).tanggalPindahTanam;
     
-    // Kalau benar-benar tidak ada data tanggal tanam, jangan tampilkan apa-apa
     if (!tglTanamStr) return null;
 
     try {
-      const tglTanam = new Date(tglTanamStr);
-      // Gunakan tanggal aktivitas asli. Jika tidak ada, gunakan waktu sekarang.
-      const tglAktivitas = new Date(item.rawDate || new Date());
+      const plantDate = new Date(tglTanamStr);
+      // Paksa jam ke 00:00:00 untuk menormalkan pergantian hari
+      plantDate.setHours(0, 0, 0, 0); 
       
-      // Validasi kalau tanggalnya nggak valid (misal "Invalid Date" di JS)
-      if (isNaN(tglTanam.getTime()) || isNaN(tglAktivitas.getTime())) return null;
+      // Gunakan rawDate untuk melihat HST PADA SAAT kejadian aktivitas tersebut dicatat
+      const activityDate = item.rawDate ? new Date(item.rawDate) : new Date();
+      activityDate.setHours(0, 0, 0, 0); 
 
-      // Hitung selisih waktu dalam milidetik, lalu ubah ke hari
-      const diffTime = tglAktivitas.getTime() - tglTanam.getTime();
-      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      if (isNaN(plantDate.getTime()) || isNaN(activityDate.getTime())) return null;
+
+      // Hitung selisih berdasarkan hari murni (bebas dari efek jam)
+      const diffTime = activityDate.getTime() - plantDate.getTime();
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
       
-      // Jika hasil minus (belum waktunya ditanam), beri label pra-tanam
       if (diffDays < 0) return "Pra-tanam";
       
       return `${diffDays} HST`;
