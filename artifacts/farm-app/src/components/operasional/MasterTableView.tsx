@@ -157,6 +157,151 @@ export function MasterTableView({
       },
     },
             
+   {
+      id: "tagCategory",
+      header: "Kategori",
+      cell: ({ row }) => {
+        const item = row.original;
+        
+        // 💡 Inspeksi di-lock
+        if (item.module === "inspeksi") {
+          return (
+            <div className="flex items-center gap-1.5 px-2 py-1.5 text-xs text-muted-foreground bg-muted/30 rounded-md w-fit">
+              <Lock className="h-3 w-3" />
+              <span>{item.category || ""}</span>
+            </div>
+          );
+        }
+
+        // 💡 Filter opsi kategori berdasarkan modul (operasional/perawatan)
+        const currentOptions = kategoriOptions.filter((k: any) => k.module === item.module);
+        
+        // 💡 Ambil ID Kategori dari data yang dikirim backend
+        const currentKategoriId = item.module === "perawatan" 
+          ? (item.tagCategoryId || item.metaEkstra?.tagCategoryId) 
+          : (item.kategoriId || item.metaEkstra?.kategoriId);
+
+       return (
+          <div className="min-w-[140px]">
+            <EditableCell
+              value={currentKategoriId} // Menggunakan UUID
+              type="select"
+              options={currentOptions}
+              placeholder="Pilih Kategori..."
+              onSave={(val) => {
+                // Tembak kolom foreign key yang baru
+                const field = item.module === "perawatan" ? "tagCategoryId" : "kategoriId";
+                updateMutation.mutate({ id: item.id, module: item.module, payload: { [field]: val } });
+              }}
+              onAddOption={(newLabel) => addKategoriMutation.mutate({ name: newLabel, module: item.module })} // 💡 Fitur tambah kategori TETAP ADA
+              // ❌ onDeleteOption dicabut biar aman dari hapus master
+            />
+          </div>
+        );
+
+      },
+    },
+
+    {
+      id: "area",
+      header: "Area",
+      cell: ({ row }) => {
+        const item = row.original;
+        return (
+          <div className="min-w-[160px]">
+            <EditableCell
+              value={item.areaId} 
+              type="select"
+              options={areaOptions}
+              placeholder={item.area}
+              onSave={(val) => updateMutation.mutate({ id: item.id, module: item.module, payload: { areaId: val } })}
+              // ❌ onAddOption & onDeleteOption resmi dicabut sesuai request lu bro!
+            />
+          </div>
+        );
+      },
+    },
+
+     {
+      id: "hst",
+      header: "HST",
+      cell: ({ row }) => {
+        const item = row.original;
+        
+        // Logika hitung HST ditarik dari tanggal tanam master vs tanggal aktivitas
+        const tglTanamStr = item.metaEkstra?.tanggalPindahTanam;
+        let hstDisplay = "-";
+
+        if (tglTanamStr) {
+          const tglTanam = new Date(tglTanamStr);
+          const tglAktivitas = new Date(item.metaEkstra?.waktuMulai || item.rawDate || new Date());
+          
+          if (!isNaN(tglTanam.getTime()) && !isNaN(tglAktivitas.getTime())) {
+            const diffTime = tglAktivitas.getTime() - tglTanam.getTime();
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            
+            hstDisplay = diffDays < 0 ? "Pra-tanam" : `${diffDays} HST`;
+          }
+        }
+
+        return (
+          <div className="min-w-[80px] px-2 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-500/10 border border-emerald-500/20 rounded-md text-center">
+            {hstDisplay}
+          </div>
+        );
+      },
+    },
+
+   {
+      id: "pekerja",
+      header: "Tim Pekerja",
+      cell: ({ row }) => {
+        const item = row.original;
+        // Ambil array ID Pekerja dari metaEkstra, fallback ke string kosong
+        const currentWorkerIds = Array.isArray(item.metaEkstra?.pekerjaIds) ? item.metaEkstra.pekerjaIds : [];
+
+        return (
+          <div className="min-w-[180px]"> {/* 💡 Dilebarin dikit karena ada format "Nama - Jenis" */}
+            <EditableCell
+              value={currentWorkerIds} 
+              type="multi-select"
+              options={workerOptions} 
+              placeholder="Pilih Pekerja"
+              onSave={(nextIds: string[]) => {
+                // 💡 Fungsi ini yang otomatis nge-handle Un-assign kalau lu silang nama pekerja dari baris
+                updateMutation.mutate({ id: item.id, module: item.module, payload: { pekerjaIds: nextIds } });
+              }}
+              onAddOption={(newLabel) => addPekerjaMutation.mutate(newLabel)} // 💡 Fitur tambah pekerja TETAP ADA
+              // ❌ onDeleteOption dicabut biar aman dari hapus master
+            />
+          </div>
+        );
+
+      },
+    },
+
+   {
+      id: "status",
+      header: "Status",
+      cell: ({ row }) => {
+        const item = row.original;
+        
+        // 💡 Bikin dinamis: pisahkan opsi status berdasarkan modul
+        const statusOptions = item.module?.toLowerCase() === "inspeksi"
+          ? ["Baru ditemukan", "Sedang ditangani", "Sudah ditangani"]
+          : ["Belum dikerjakan", "Dalam proses", "Selesai"];
+
+        return (
+          <EditableCell
+            value={item.status}
+            type="select"
+            options={statusOptions}
+            onSave={(val) => updateMutation.mutate({ id: item.id, module: item.module, payload: { status: val } })}
+          />
+        );
+      },
+    },
+
     {
       id: "tanggal",
       header: "Tanggal (Mulai - Selesai)",
@@ -193,7 +338,8 @@ export function MasterTableView({
         );
       },
     },
-        {
+    
+     {
       id: "waktu",
       header: "Waktu (Mulai - Akhir)",
       cell: ({ row }) => {
@@ -276,153 +422,8 @@ export function MasterTableView({
         );
       },
     },
-              
-        {
-      id: "area",
-      header: "Area",
-      cell: ({ row }) => {
-        const item = row.original;
-        return (
-          <div className="min-w-[160px]">
-            <EditableCell
-              value={item.areaId} 
-              type="select"
-              options={areaOptions}
-              placeholder={item.area}
-              onSave={(val) => updateMutation.mutate({ id: item.id, module: item.module, payload: { areaId: val } })}
-              // ❌ onAddOption & onDeleteOption resmi dicabut sesuai request lu bro!
-            />
-          </div>
-        );
-      },
-    },
-    
+     
     {
-      id: "hst",
-      header: "HST",
-      cell: ({ row }) => {
-        const item = row.original;
-        
-        // Logika hitung HST ditarik dari tanggal tanam master vs tanggal aktivitas
-        const tglTanamStr = item.metaEkstra?.tanggalPindahTanam;
-        let hstDisplay = "-";
-
-        if (tglTanamStr) {
-          const tglTanam = new Date(tglTanamStr);
-          const tglAktivitas = new Date(item.metaEkstra?.waktuMulai || item.rawDate || new Date());
-          
-          if (!isNaN(tglTanam.getTime()) && !isNaN(tglAktivitas.getTime())) {
-            const diffTime = tglAktivitas.getTime() - tglTanam.getTime();
-            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-            
-            hstDisplay = diffDays < 0 ? "Pra-tanam" : `${diffDays} HST`;
-          }
-        }
-
-        return (
-          <div className="min-w-[80px] px-2 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-500/10 border border-emerald-500/20 rounded-md text-center">
-            {hstDisplay}
-          </div>
-        );
-      },
-    },
-
-
-    {
-      id: "tagCategory",
-      header: "Kategori",
-      cell: ({ row }) => {
-        const item = row.original;
-        
-        // 💡 Inspeksi di-lock
-        if (item.module === "inspeksi") {
-          return (
-            <div className="flex items-center gap-1.5 px-2 py-1.5 text-xs text-muted-foreground bg-muted/30 rounded-md w-fit">
-              <Lock className="h-3 w-3" />
-              <span>{item.category || "Diagnosis"}</span>
-            </div>
-          );
-        }
-
-        // 💡 Filter opsi kategori berdasarkan modul (operasional/perawatan)
-        const currentOptions = kategoriOptions.filter((k: any) => k.module === item.module);
-        
-        // 💡 Ambil ID Kategori dari data yang dikirim backend
-        const currentKategoriId = item.module === "perawatan" 
-          ? (item.tagCategoryId || item.metaEkstra?.tagCategoryId) 
-          : (item.kategoriId || item.metaEkstra?.kategoriId);
-
-       return (
-          <div className="min-w-[140px]">
-            <EditableCell
-              value={currentKategoriId} // Menggunakan UUID
-              type="select"
-              options={currentOptions}
-              placeholder="Pilih Kategori..."
-              onSave={(val) => {
-                // Tembak kolom foreign key yang baru
-                const field = item.module === "perawatan" ? "tagCategoryId" : "kategoriId";
-                updateMutation.mutate({ id: item.id, module: item.module, payload: { [field]: val } });
-              }}
-              onAddOption={(newLabel) => addKategoriMutation.mutate({ name: newLabel, module: item.module })} // 💡 Fitur tambah kategori TETAP ADA
-              // ❌ onDeleteOption dicabut biar aman dari hapus master
-            />
-          </div>
-        );
-
-      },
-    },
-
-    {
-      id: "pekerja",
-      header: "Tim Pekerja",
-      cell: ({ row }) => {
-        const item = row.original;
-        // Ambil array ID Pekerja dari metaEkstra, fallback ke string kosong
-        const currentWorkerIds = Array.isArray(item.metaEkstra?.pekerjaIds) ? item.metaEkstra.pekerjaIds : [];
-
-        return (
-          <div className="min-w-[180px]"> {/* 💡 Dilebarin dikit karena ada format "Nama - Jenis" */}
-            <EditableCell
-              value={currentWorkerIds} 
-              type="multi-select"
-              options={workerOptions} 
-              placeholder="Pilih Pekerja"
-              onSave={(nextIds: string[]) => {
-                // 💡 Fungsi ini yang otomatis nge-handle Un-assign kalau lu silang nama pekerja dari baris
-                updateMutation.mutate({ id: item.id, module: item.module, payload: { pekerjaIds: nextIds } });
-              }}
-              onAddOption={(newLabel) => addPekerjaMutation.mutate(newLabel)} // 💡 Fitur tambah pekerja TETAP ADA
-              // ❌ onDeleteOption dicabut biar aman dari hapus master
-            />
-          </div>
-        );
-
-      },
-    },
-        {
-      id: "status",
-      header: "Status",
-      cell: ({ row }) => {
-        const item = row.original;
-        
-        // 💡 Bikin dinamis: pisahkan opsi status berdasarkan modul
-        const statusOptions = item.module?.toLowerCase() === "inspeksi"
-          ? ["Baru ditemukan", "Sedang ditangani", "Sudah ditangani"]
-          : ["Belum dikerjakan", "Dalam proses", "Selesai"];
-
-        return (
-          <EditableCell
-            value={item.status}
-            type="select"
-            options={statusOptions}
-            onSave={(val) => updateMutation.mutate({ id: item.id, module: item.module, payload: { status: val } })}
-          />
-        );
-      },
-    },
-
-        {
       id: "actions",
       header: "",
       cell: ({ row }) => (
@@ -467,14 +468,14 @@ export function MasterTableView({
   // 💡 KAMUS LABEL KOLOM (Selipkan tepat di atas return)
   const COLUMN_LABELS: Record<string, string> = {
     aktivitas: "Kegiatan",
+    tagCategory: "Kategori",
+    area: "Area",
+    hst: "Umur (HST)",
+    pekerja: "Tim Pekerja",
+    status: "Status",
     tanggal: "Tanggal",
     waktu: "Jam Kerja",
     durasi: "Durasi",
-    area: "Area",
-    hst: "Umur (HST)",
-    tagCategory: "Kategori",
-    pekerja: "Tim Pekerja",
-    status: "Status",
     actions: "Hapus",
   };
 
