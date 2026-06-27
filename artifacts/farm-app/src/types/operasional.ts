@@ -5,7 +5,7 @@ export type ModuleKey =
   | "operasional"
   | "finance";
   
-export type ViewKey = "feed" | "modules" | "table";
+export type ViewKey = "feed" | "modules" | "table" | "kanban";
 
 export type AgronomyItem = {
   id: string;
