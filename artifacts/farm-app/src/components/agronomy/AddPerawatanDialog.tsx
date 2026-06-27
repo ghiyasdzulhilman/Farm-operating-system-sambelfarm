@@ -410,11 +410,14 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
                                 <Select onValueChange={(val) => form.setValue("tagsBroadcast", val)} value={form.watch("tagsBroadcast") || ""}>
                                   <SelectTrigger className="h-10 rounded-xl bg-background border-input text-xs font-medium"><SelectValue placeholder="Pilih Kategori..." /></SelectTrigger>
                                   <SelectContent className="rounded-xl">
-                                    {dropdownOptions?.kategori?.map((kat) => (
-                                      <SelectItem key={kat.id} value={kat.id}>{kat.name}</SelectItem>
+                                    {dropdownOptions?.kategori
+                                      ?.filter((kat) => kat.module === "perawatan") // 💡 FILTER DITAMBAHKAN DI SINI
+                                      .map((kat) => (
+                                        <SelectItem key={kat.id} value={kat.id}>{kat.name}</SelectItem>
                                     ))}
                                   </SelectContent>
                                 </Select>
+
                                 {/* INPUT TAMBAH KATEGORI DI BAWAH DROPDOWN */}
                                 {isAddingKategori ? (
                                   <div className="flex items-center gap-1 mt-1 bg-muted/50 rounded-lg p-1 border border-border">
@@ -529,14 +532,16 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
 {/* Kategori & Status Spesifik */}
 <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/50">
   
-  {/* 1. KATEGORI DINAMIS (Ambil dari DB) */}
+    {/* 1. KATEGORI DINAMIS (Ambil dari DB) */}
   <Select onValueChange={(val) => form.setValue(`tagsPerArea.${areaId}`, val)} value={form.watch(`tagsPerArea.${areaId}`) || ""}>
     <SelectTrigger className="h-8 text-[10px] bg-background border-input">
       <SelectValue placeholder="Pilih Kategori" />
     </SelectTrigger>
     <SelectContent>
-      {dropdownOptions?.kategori?.map((kat) => (
-        <SelectItem key={kat.id} value={kat.id}>{kat.name}</SelectItem>
+      {dropdownOptions?.kategori
+        ?.filter((kat) => kat.module === "perawatan") // 💡 FILTER DITAMBAHKAN DI SINI JUGA
+        .map((kat) => (
+          <SelectItem key={kat.id} value={kat.id}>{kat.name}</SelectItem>
       ))}
     </SelectContent>
   </Select>
