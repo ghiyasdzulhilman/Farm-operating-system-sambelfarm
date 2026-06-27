@@ -275,27 +275,57 @@ export function MasterTableView({
       },
     },
               
-    {
+        {
       id: "area",
       header: "Area",
       cell: ({ row }) => {
         const item = row.original;
         return (
-          <div className="min-w-[160px]"> {/* 💡 Tambah div ini biar kolom Area jadi lega/lebar */}
+          <div className="min-w-[160px]">
             <EditableCell
               value={item.areaId} 
               type="select"
               options={areaOptions}
               placeholder={item.area}
               onSave={(val) => updateMutation.mutate({ id: item.id, module: item.module, payload: { areaId: val } })}
-              onAddOption={(newLabel) => addAreaMutation.mutate(newLabel)} // 💡 Fitur tambah area TETAP ADA
-              // ❌ onDeleteOption dicabut biar aman dari hapus master
+              // ❌ onAddOption & onDeleteOption resmi dicabut sesuai request lu bro!
             />
           </div>
         );
       },
     },
     
+    {
+      id: "hst",
+      header: "HST",
+      cell: ({ row }) => {
+        const item = row.original;
+        
+        // Logika hitung HST ditarik dari tanggal tanam master vs tanggal aktivitas
+        const tglTanamStr = item.metaEkstra?.tanggalPindahTanam;
+        let hstDisplay = "-";
+
+        if (tglTanamStr) {
+          const tglTanam = new Date(tglTanamStr);
+          const tglAktivitas = new Date(item.metaEkstra?.waktuMulai || item.rawDate || new Date());
+          
+          if (!isNaN(tglTanam.getTime()) && !isNaN(tglAktivitas.getTime())) {
+            const diffTime = tglAktivitas.getTime() - tglTanam.getTime();
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            
+            hstDisplay = diffDays < 0 ? "Pra-tanam" : `${diffDays} HST`;
+          }
+        }
+
+        return (
+          <div className="min-w-[80px] px-2 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-500/10 border border-emerald-500/20 rounded-md text-center">
+            {hstDisplay}
+          </div>
+        );
+      },
+    },
+
+
     {
       id: "tagCategory",
       header: "Kategori",
