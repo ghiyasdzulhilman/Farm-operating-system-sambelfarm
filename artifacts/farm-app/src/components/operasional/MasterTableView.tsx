@@ -489,10 +489,10 @@ export function MasterTableView({
         {/* 📝 TAMBAHAN TEKS JUDUL DI SINI BRO */}
         <div className="flex flex-col">
           <h2 className="text-xs font-bold uppercase tracking-wider text-foreground">
-            Daftar Kegiatan
+            Table View
           </h2>
           {/* Opsional sub-judul kecil, kalau gak butuh baris <span sub-judul> di bawah ini boleh dihapus */}
-          <span className="text-[10px] text-muted-foreground font-medium">Tabel View</span>
+          <span className="text-[10px] text-muted-foreground font-medium"></span>
         </div>
 
         <DropdownMenu>
