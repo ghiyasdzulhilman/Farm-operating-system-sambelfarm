@@ -177,31 +177,33 @@ export function ActivityDetailSheet({
     }
   };
 
-      // 💡 HELPER PINTAR KALKULASI HST (Fixed Timezone Bug) 🚀
+  // 💡 HELPER PINTAR KALKULASI HST (Fixed Timezone & Day 1 Logic) 🚀
   const calculateHST = () => {
-    // Data dari backend kemungkinan besar terbungkus di metaEkstra
     const tglTanamStr = item.metaEkstra?.tanggalPindahTanam || (item as any).tanggalPindahTanam;
-    
     if (!tglTanamStr) return null;
 
     try {
-      const plantDate = new Date(tglTanamStr);
-      // Paksa jam ke 00:00:00 untuk menormalkan pergantian hari
-      plantDate.setHours(0, 0, 0, 0); 
-      
-      // Gunakan rawDate untuk melihat HST PADA SAAT kejadian aktivitas tersebut dicatat
-      const activityDate = item.rawDate ? new Date(item.rawDate) : new Date();
-      activityDate.setHours(0, 0, 0, 0); 
+      // 1. Ambil YYYY-MM-DD murni dari tanggal tanam (Potong jam dari string DB)
+      const dateOnlyTanam = tglTanamStr.split('T')[0];
+      const plantDate = new Date(`${dateOnlyTanam}T00:00:00`); 
+
+      // 2. Ambil YYYY-MM-DD dari tanggal aktivitas (Pakai format lokal WIB biar nggak mundur 1 hari)
+      const dateAktivitasRaw = new Date(item.rawDate || new Date());
+      const dateOnlyAktivitas = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(dateAktivitasRaw);
+      const activityDate = new Date(`${dateOnlyAktivitas}T00:00:00`);
 
       if (isNaN(plantDate.getTime()) || isNaN(activityDate.getTime())) return null;
 
-      // Hitung selisih berdasarkan hari murni (bebas dari efek jam)
+      // 3. Hitung selisih hari murni
       const diffTime = activityDate.getTime() - plantDate.getTime();
       const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
       
-      if (diffDays < 0) return "Pra-tanam";
+      // 4. Tambah 1 karena hari pindah tanam dihitung sebagai 1 HST
+      const hst = diffDays + 1; 
+
+      if (hst <= 0) return "Pra-tanam";
       
-      return `${diffDays} HST`;
+      return `${hst} HST`;
     } catch {
       return null;
     }
