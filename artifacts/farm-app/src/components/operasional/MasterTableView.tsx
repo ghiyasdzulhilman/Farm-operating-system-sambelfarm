@@ -494,7 +494,7 @@ export function MasterTableView({
           
           <DropdownMenuContent align="end" className="w-48 rounded-2xl p-2 shadow-lg border-border/60">
             <div className="px-2 py-1.5 mb-1 text-[10px] font-bold tracking-wider text-muted-foreground uppercase border-b border-border/50">
-               Tampilkan Kolom
+               Filter Kolom
             </div>
             
             <div className="flex flex-col gap-0.5">
