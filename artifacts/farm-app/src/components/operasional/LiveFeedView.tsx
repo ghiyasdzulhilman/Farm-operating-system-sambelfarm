@@ -1,10 +1,12 @@
 import { useMemo } from "react";
 import { 
-  Sprout, Leaf, Wrench, Banknote, ChevronRight, ChevronDown, MapPin 
+  Sprout, Leaf, Wrench, Banknote, ChevronRight, ChevronDown, MapPin, 
+  HardHat, Bug, Trash2 // 💡 FIX 1: Import Icon baru untuk form & tombol hapus
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { AgronomyItem } from "@/types/operasional";
+import { motion } from "framer-motion"; // 💡 FIX 2: Import Framer Motion untuk efek geser
 
 // Perpanjang tipe bawaan agar mengenali metaEkstra dari backend tanpa error TS
 type RichAgronomyItem = AgronomyItem & {
@@ -14,15 +16,17 @@ type RichAgronomyItem = AgronomyItem & {
 interface LiveFeedViewProps {
   items: RichAgronomyItem[];
   onItemClick: (item: RichAgronomyItem) => void;
-  feedMode?: "time" | "area"; // State mode tampilan dari AgronomyHubPage
-  onStatusChange?: (id: string, status: string) => void; // Hook mutasi status
+  feedMode?: "time" | "area"; 
+  onStatusChange?: (id: string, status: string) => void; 
+  onDelete?: (id: string, module: string) => void; // 💡 FIX 3: Tambah props untuk fungsi hapus
 }
 
 export function LiveFeedView({ 
   items, 
   onItemClick, 
   feedMode = "time", 
-  onStatusChange 
+  onStatusChange,
+  onDelete
 }: LiveFeedViewProps) {
   
   // 🧠 LOGIKA GROUPING DINAMIS (WAKTU vs AREA PIVOT)
@@ -45,7 +49,7 @@ export function LiveFeedView({
     });
 
     return Array.from(areaMap.entries())
-      .sort((a, b) => a[0].localeCompare(b[0])) // Urutkan nama area A-Z
+      .sort((a, b) => a[0].localeCompare(b[0])) 
       .map(([label, groupItems]) => ({
         label,
         icon: <MapPin className="h-4 w-4 mr-2 inline-block text-primary" />,
@@ -75,24 +79,53 @@ export function LiveFeedView({
             </span>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-3 overflow-hidden"> {/* 💡 Tambah overflow-hidden agar tombol geser tidak ngeleber */}
             {group.items.map((item) => {
-              // LOGIKA WARNA IKON
+              
+              // 💡 FIX 4: LOGIKA WARNA & IKON SESUAI FORM
               let iconColorClass = "bg-primary/10 text-primary";
-              if (item.module === "finance") {
+              let RenderIcon = <Sprout className="h-5 w-5" />;
+
+              if (item.module === "operasional") {
+                iconColorClass = "bg-primary/10 text-primary";
+                RenderIcon = <HardHat className="h-5 w-5" />;
+              } else if (item.module === "perawatan") {
+                iconColorClass = "bg-blue-500/10 text-blue-600";
+                RenderIcon = <Wrench className="h-5 w-5" />;
+              } else if (item.module === "inspeksi") {
+                iconColorClass = "bg-destructive/10 text-destructive";
+                RenderIcon = <Bug className="h-5 w-5" />;
+              } else if (item.module === "finance") {
                 iconColorClass = item.category === "Pengeluaran" ? "bg-red-500/10 text-red-600" : "bg-emerald-500/10 text-emerald-600";
+                RenderIcon = <Banknote className="h-5 w-5" />;
               }
 
               return (
-                <div key={item.id} className="group relative w-full rounded-3xl border border-border/60 bg-card p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
-                  <div className="flex items-start gap-3">
+                // 💡 FIX 5: WRAPPER UTAMA UNTUK SWIPE TO DELETE
+                <div key={item.id} className="relative w-full rounded-3xl border border-border/60 bg-destructive overflow-hidden mb-3">
+                  
+                  {/* 🔴 TOMBOL HAPUS (Tersembunyi di Lapisan Belakang Kanan) */}
+                  <div className="absolute inset-y-0 right-0 w-[80px] flex items-center justify-center">
+                    <button 
+                      onClick={() => onDelete?.(item.id, item.module)}
+                      className="flex flex-col items-center justify-center h-full w-full text-white hover:bg-red-600 transition-colors"
+                    >
+                      <Trash2 className="h-5 w-5 mb-1" />
+                      <span className="text-[10px] font-bold uppercase tracking-wider">Hapus</span>
+                    </button>
+                  </div>
+
+                  {/* 🟢 KONTEN CARD UTAMA (Bisa Digeser/Draggable) */}
+                  <motion.div 
+                    drag="x"
+                    dragConstraints={{ left: -80, right: 0 }} // Batas geser ke kiri sejauh tombol hapus
+                    dragElastic={{ left: 0.1, right: 0 }} // Efek membal ala iOS
+                    className="relative flex items-start gap-3 bg-card p-4 text-left shadow-sm z-10 cursor-grab active:cursor-grabbing w-full rounded-3xl"
+                  >
                     
                     {/* BAGIAN KIRI: IKON & INDIKATOR STAGING */}
                     <div className={cn("relative mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl", iconColorClass)}>
-                      {item.icon === "sprout" && <Sprout className="h-5 w-5" />}
-                      {item.icon === "leaf" && <Leaf className="h-5 w-5" />}
-                      {item.icon === "wrench" && <Wrench className="h-5 w-5" />}
-                      {item.icon === "banknote" && <Banknote className="h-5 w-5" />}
+                      {RenderIcon}
                       {item.isPendingStaging && <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-background bg-amber-500 animate-pulse" title="Menunggu Sync" />}
                     </div>
 
@@ -104,7 +137,7 @@ export function LiveFeedView({
                           {item.category}
                         </Badge>
 
-                        {/* 💎 INJEKSI RICH DATA DARI BACKEND */}
+                        {/* INJEKSI RICH DATA */}
                         {item.module === "inspeksi" && item.metaEkstra?.hama?.length > 0 && (
                            <Badge variant="outline" className="rounded-full bg-red-500/10 text-red-700 border-red-500/20 px-2 py-0 text-[10px]">
                              🚨 Hama
@@ -115,11 +148,6 @@ export function LiveFeedView({
                              🦠 Penyakit
                            </Badge>
                         )}
-                        {item.module === "finance" && item.metaEkstra?.nominal && (
-                           <Badge variant="outline" className="rounded-full bg-emerald-500/10 text-emerald-700 border-emerald-500/20 px-2 py-0 text-[10px] font-mono">
-                             Rp {(item.metaEkstra.nominal).toLocaleString('id-ID')}
-                           </Badge>
-                        )}
                       </div>
 
                       <h3 className="mt-2 text-base font-black tracking-tight truncate pr-4">{item.title}</h3>
@@ -127,40 +155,51 @@ export function LiveFeedView({
                     </div>
 
                     {/* BAGIAN KANAN: KONTROL & AKSI */}
-                    <div className="flex shrink-0 flex-col items-end justify-between gap-3 h-full">
+                    <div className="flex shrink-0 flex-col items-end justify-between gap-3 h-full cursor-auto">
                       
-                      {/* INLINE STATUS MODIFIER (Gaya Badge) */}
+                      {/* 💡 FIX 6: INLINE STATUS MODIFIER (Dinamis & Berwarna) */}
                       <div className="relative inline-block">
                         <select
                           value={item.status}
                           onChange={(e) => onStatusChange?.(item.id, e.target.value)}
                           disabled={item.isPendingStaging}
                           className={cn(
-                            "appearance-none rounded-full px-2.5 py-1 pr-6 text-[10px] font-bold uppercase tracking-wider outline-none cursor-pointer border transition-all shadow-sm",
-                            item.status === "Selesai" ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20" :
-                            item.status === "Dalam proses" ? "border-amber-500/20 bg-amber-500/10 text-amber-700 hover:bg-amber-500/20" :
-                            "border-muted-foreground/20 bg-muted/20 text-muted-foreground hover:bg-muted/40",
+                            "appearance-none rounded-full px-2.5 py-1 pr-6 text-[10px] font-bold uppercase tracking-wider outline-none cursor-pointer border transition-all shadow-sm z-20 relative",
+                            (item.status === "Selesai" || item.status === "Sudah ditangani") ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20" :
+                            (item.status === "Dalam proses" || item.status === "Sedang ditangani") ? "border-amber-500/20 bg-amber-500/10 text-amber-700 hover:bg-amber-500/20" :
+                            "border-blue-500/20 bg-blue-500/10 text-blue-700 hover:bg-blue-500/20",
                             item.isPendingStaging && "opacity-50 cursor-not-allowed"
                           )}
                         >
-                          <option value="Belum dikerjakan">Belum</option>
-                          <option value="Dalam proses">Proses</option>
-                          <option value="Selesai">Selesai</option>
+                          {/* Opsi beda untuk modul inspeksi */}
+                          {item.module === "inspeksi" ? (
+                            <>
+                              <option value="Baru ditemukan">Baru</option>
+                              <option value="Sedang ditangani">Proses</option>
+                              <option value="Sudah ditangani">Selesai</option>
+                            </>
+                          ) : (
+                            <>
+                              <option value="Belum dikerjakan">Belum</option>
+                              <option value="Dalam proses">Proses</option>
+                              <option value="Selesai">Selesai</option>
+                            </>
+                          )}
                         </select>
-                        <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none opacity-60" />
+                        <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none opacity-60 z-20" />
                       </div>
 
                       {/* TOMBOL DETAIL ARROW */}
                       <button 
                         onClick={() => onItemClick(item)} 
-                        className="rounded-full bg-muted/40 p-1.5 hover:bg-primary/10 hover:text-primary transition-colors"
+                        className="rounded-full bg-muted/40 p-1.5 hover:bg-primary/10 hover:text-primary transition-colors z-20 relative"
                         title="Lihat Detail"
                       >
-                         <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                         <ChevronRight className="h-4 w-4" />
                       </button>
 
                     </div>
-                  </div>
+                  </motion.div>
                 </div>
               );
             })}
