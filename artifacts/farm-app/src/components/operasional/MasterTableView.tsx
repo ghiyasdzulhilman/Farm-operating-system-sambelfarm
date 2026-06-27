@@ -222,25 +222,37 @@ export function MasterTableView({
       },
     },
 
-     {
+   {
       id: "hst",
       header: "HST",
       cell: ({ row }) => {
         const item = row.original;
-        
-        // Logika hitung HST ditarik dari tanggal tanam master vs tanggal aktivitas
-        const tglTanamStr = item.metaEkstra?.tanggalPindahTanam;
+        const tglTanamStr = item.metaEkstra?.tanggalPindahTanam || (item as any).tanggalPindahTanam;
         let hstDisplay = "-";
 
         if (tglTanamStr) {
-          const tglTanam = new Date(tglTanamStr);
-          const tglAktivitas = new Date(item.metaEkstra?.waktuMulai || item.rawDate || new Date());
-          
-          if (!isNaN(tglTanam.getTime()) && !isNaN(tglAktivitas.getTime())) {
-            const diffTime = tglAktivitas.getTime() - tglTanam.getTime();
-            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-            
-            hstDisplay = diffDays < 0 ? "Pra-tanam" : `${diffDays} HST`;
+          try {
+            // 1. Ambil YYYY-MM-DD murni dari tanggal tanam
+            const dateOnlyTanam = tglTanamStr.split('T')[0];
+            const plantDate = new Date(`${dateOnlyTanam}T00:00:00`);
+
+            // 2. Ambil YYYY-MM-DD dari tanggal aktivitas (Pakai format lokal WIB)
+            const dateAktivitasRaw = new Date(item.metaEkstra?.waktuMulai || item.rawDate || new Date());
+            const dateOnlyAktivitas = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(dateAktivitasRaw);
+            const activityDate = new Date(`${dateOnlyAktivitas}T00:00:00`);
+
+            if (!isNaN(plantDate.getTime()) && !isNaN(activityDate.getTime())) {
+              // 3. Hitung selisih hari murni
+              const diffTime = activityDate.getTime() - plantDate.getTime();
+              const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+              
+              // 4. Tambah 1 karena hari pindah tanam dihitung sebagai 1 HST
+              const hst = diffDays + 1;
+
+              hstDisplay = hst <= 0 ? "Pra-tanam" : `${hst} HST`;
+            }
+          } catch {
+            hstDisplay = "-";
           }
         }
 
