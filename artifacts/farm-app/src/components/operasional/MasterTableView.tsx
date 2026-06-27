@@ -492,18 +492,26 @@ export function MasterTableView({
             </Button>
           </DropdownMenuTrigger>
           
-          <DropdownMenuContent align="end" className="w-48 rounded-xl shadow-md">
-            {table.getAllLeafColumns().map(column => (
-              <DropdownMenuCheckboxItem
-                key={column.id}
-                checked={column.getIsVisible()}
-                onCheckedChange={(value) => column.toggleVisibility(!!value)}
-                onSelect={(e) => e.preventDefault()}
-                className="text-xs font-semibold cursor-pointer data-[state=checked]:text-primary data-[state=checked]:bg-primary/5 focus:bg-primary/10 focus:text-primary transition-colors"
-              >
-                {COLUMN_LABELS[column.id] || column.id}
-              </DropdownMenuCheckboxItem>
-            ))}
+                    <DropdownMenuContent align="end" className="w-48 rounded-2xl p-2 shadow-lg border-border/60">
+            {/* 💡 Tambahan Header Mini Biar Premium */}
+            <div className="px-2 py-1.5 mb-1 text-[10px] font-bold tracking-wider text-muted-foreground uppercase border-b border-border/50">
+               Tampilkan Kolom
+            </div>
+            
+            <div className="flex flex-col gap-0.5">
+              {table.getAllLeafColumns().map(column => (
+                <DropdownMenuCheckboxItem
+                  key={column.id}
+                  checked={column.getIsVisible()}
+                  onCheckedChange={(value) => column.toggleVisibility(!!value)}
+                  onSelect={(e) => e.preventDefault()}
+                  // 💡 Class dibikin jauh lebih bersih, tanpa background nge-blok saat diam
+                  className="text-xs cursor-pointer py-2 px-3 rounded-lg transition-colors focus:bg-primary/10 focus:text-primary data-[state=checked]:text-primary data-[state=checked]:font-bold font-medium"
+                >
+                  {COLUMN_LABELS[column.id] || column.id}
+                </DropdownMenuCheckboxItem>
+              ))}
+            </div>
           </DropdownMenuContent>
 
         </DropdownMenu>
