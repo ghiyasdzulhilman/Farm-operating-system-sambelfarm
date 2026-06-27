@@ -464,8 +464,6 @@ export function MasterTableView({
     getSortedRowModel: getSortedRowModel(),
   });
 
-  return (
-
   // 💡 KAMUS LABEL KOLOM (Selipkan tepat di atas return)
   const COLUMN_LABELS: Record<string, string> = {
     aktivitas: "Kegiatan",
