@@ -34,7 +34,7 @@ export function AgronomyHubPage() {
   // =====================================================================
   const { data: unifiedFeedData, isLoading } = useQuery({
     queryKey: ["agronomy-feed-supabase"],
-    queryFn: async () => {
+        queryFn: async () => {
       const [resOp, resPer, resIns, resOptions] = await Promise.all([
         fetch("/api/notion/all-operasional").then((res) => res.json()),
         fetch("/api/notion/all-perawatan").then((res) => res.json()),
@@ -42,9 +42,16 @@ export function AgronomyHubPage() {
         fetch("/api/notion/operasional-dropdown-options").then((res) => res.json()),
       ]);
 
+      // 1. MAPPING PEKERJA
       const workerMap: Record<string, string> = {};
       resOptions?.petugas?.forEach((p: any) => {
         workerMap[p.id] = p.name;
+      });
+
+      // 💡 2. TAMBAHAN BARU: MAPPING AREA (Otomatis narik "Area - Tanaman" dari backend)
+      const areaMap: Record<string, string> = {};
+      resOptions?.areas?.forEach((a: any) => {
+        areaMap[a.id] = a.name; 
       });
 
       const formatItem = (item: any, module: ModuleKey, icon: string, titleKey: string): AgronomyItem => {
@@ -73,11 +80,21 @@ export function AgronomyHubPage() {
           rawDate: item.waktuMulai || new Date().toISOString(),
           status: item.status || "Belum dikerjakan",
           areaId: item.areaId,
-          area: item.areaName || "Area Master",
+          
+          // 💡 3. FIX AREA: Panggil dari areaMap pakai ID-nya
+          area: areaMap[item.areaId] || item.areaName || "Area Master",
+          
           workers: resolvedWorkers.length ? resolvedWorkers : ["Tim Lapangan"], 
           duration: `${item.durasiKerja || 0} jam`,
           priority: item.prioritas || "Medium",
-          category: item.kategori || item.tagCategory || (module === "inspeksi" ? "Diagnosis" : "Umum"),
+          
+          // 💡 4. FIX KATEGORI: Ganti Umum/Diagnosis jadi nama Modul
+          category: item.kategori || item.tagCategory || (
+            module === "inspeksi" ? "Inspeksi" : 
+            module === "perawatan" ? "Perawatan" : 
+            "Operasional"
+          ),
+          
           notes: catatanRacikan,
           dateLabel: isToday ? "Hari ini" : isYesterday ? "Kemarin" : "Riwayat Lama",
           timeLabel: "Disinkronkan",
@@ -95,6 +112,7 @@ export function AgronomyHubPage() {
         (a, b) => new Date(b.rawDate).getTime() - new Date(a.rawDate).getTime()
       );
     },
+
     refetchInterval: 60000,
   });
 
