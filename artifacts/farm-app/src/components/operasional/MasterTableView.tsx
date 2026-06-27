@@ -1,9 +1,9 @@
 // src/components/operasional/MasterTableView.tsx
 import { useMemo, useState } from "react";
 import { useReactTable, getCoreRowModel, getSortedRowModel, flexRender, type ColumnDef } from "@tanstack/react-table";
-import { Eye, Trash2, Lock, ArrowRight, Columns3 } from "lucide-react";
+import { Eye, Trash2, Lock, ArrowRight, Columns3, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import type { AgronomyItem } from "@/types/operasional";
@@ -492,25 +492,32 @@ export function MasterTableView({
             </Button>
           </DropdownMenuTrigger>
           
-                    <DropdownMenuContent align="end" className="w-48 rounded-2xl p-2 shadow-lg border-border/60">
-            {/* 💡 Tambahan Header Mini Biar Premium */}
+          <DropdownMenuContent align="end" className="w-48 rounded-2xl p-2 shadow-lg border-border/60">
             <div className="px-2 py-1.5 mb-1 text-[10px] font-bold tracking-wider text-muted-foreground uppercase border-b border-border/50">
                Tampilkan Kolom
             </div>
             
             <div className="flex flex-col gap-0.5">
-              {table.getAllLeafColumns().map(column => (
-                <DropdownMenuCheckboxItem
-                  key={column.id}
-                  checked={column.getIsVisible()}
-                  onCheckedChange={(value) => column.toggleVisibility(!!value)}
-                  onSelect={(e) => e.preventDefault()}
-                  // 💡 Class dibikin jauh lebih bersih, tanpa background nge-blok saat diam
-                  className="text-xs cursor-pointer py-2 px-3 rounded-lg transition-colors focus:bg-primary/10 focus:text-primary data-[state=checked]:text-primary data-[state=checked]:font-bold font-medium"
-                >
-                  {COLUMN_LABELS[column.id] || column.id}
-                </DropdownMenuCheckboxItem>
-              ))}
+              {table.getAllLeafColumns().map(column => {
+                const isChecked = column.getIsVisible();
+                return (
+                  <DropdownMenuItem
+                    key={column.id}
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      column.toggleVisibility(!isChecked);
+                    }}
+                    className={`flex items-center justify-between text-xs cursor-pointer py-2 px-3 rounded-lg transition-colors focus:bg-primary/10 ${isChecked ? 'text-primary font-bold' : 'text-foreground font-medium'}`}
+                  >
+                    <span>{COLUMN_LABELS[column.id] || column.id}</span>
+                    
+                    {/* Kotak Checkbox Sukses Pindah Kanan & Membulat Dikit */}
+                    <div className={`flex h-4 w-4 items-center justify-center rounded-[4px] border transition-all ${isChecked ? 'bg-primary border-primary text-primary-foreground' : 'border-muted-foreground/40 bg-background'}`}>
+                      {isChecked && <Check className="h-3 w-3 stroke-[3]" />}
+                    </div>
+                  </DropdownMenuItem>
+                );
+              })}
             </div>
           </DropdownMenuContent>
 
