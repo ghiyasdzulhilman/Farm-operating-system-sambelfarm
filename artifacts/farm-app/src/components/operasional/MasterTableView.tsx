@@ -483,7 +483,18 @@ export function MasterTableView({
     <div className="w-full max-w-full rounded-3xl border border-border/60 bg-card shadow-sm overflow-hidden text-left">
       
       {/* 💡 HEADER FILTER KOLOM PREMIUM */}
-      <div className="flex items-center justify-end px-4 py-2 border-b border-border/50 bg-muted/20">
+      {/* 💡 Note: "justify-end" diganti menjadi "justify-between" agar judul di kiri & tombol di kanan */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-border/50 bg-muted/20">
+        
+        {/* 📝 TAMBAHAN TEKS JUDUL DI SINI BRO */}
+        <div className="flex flex-col">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-foreground">
+            Daftar Kegiatan
+          </h2>
+          {/* Opsional sub-judul kecil, kalau gak butuh baris <span sub-judul> di bawah ini boleh dihapus */}
+          <span className="text-[10px] text-muted-foreground font-medium">Tabel View</span>
+        </div>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm" className="h-8 gap-2 rounded-lg text-[11px] font-bold tracking-wider text-muted-foreground hover:text-primary shadow-sm">
