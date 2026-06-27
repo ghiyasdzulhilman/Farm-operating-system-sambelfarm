@@ -194,18 +194,15 @@ export function AgronomyHubPage() {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Button className="h-11 rounded-xl bg-primary px-4 font-bold text-primary-foreground shadow-sm">
-            <Plus className="mr-2 h-4 w-4" /> Log Aktivitas
-          </Button>
-            <Button 
-            variant="outline" 
-            className="h-11 rounded-xl px-4 font-bold"
-            onClick={() => setShowMasterHub(true)} 
+         <div className="flex flex-wrap items-center gap-2">
+          <Button 
+            className="h-11 rounded-xl bg-primary px-4 font-bold text-primary-foreground shadow-sm transition-all hover:scale-[1.02]"
+            onClick={() => setShowMasterHub(true)}
           >
-            <FileText className="mr-2 h-4 w-4" /> Riwayat
+            <Layers className="mr-2 h-4 w-4" /> Master Control Center
           </Button>
         </div>
+
       </div>
 
       <SummaryHeader feedData={feedData} meta={meta} />
