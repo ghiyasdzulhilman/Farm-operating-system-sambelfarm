@@ -1,11 +1,10 @@
 import { useMemo } from "react";
 import { 
-  Sprout, Banknote, ChevronRight, ChevronDown, MapPin, 
-  HardHat, Bug, Trash2, Clock
+  Sprout, Banknote, ChevronRight, MapPin, 
+  HardHat, Bug, Clock
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AgronomyItem } from "@/types/operasional";
-import { motion } from "framer-motion";
 
 type RichAgronomyItem = AgronomyItem & {
   metaEkstra?: Record<string, any>;
@@ -16,15 +15,13 @@ interface LiveFeedViewProps {
   onItemClick: (item: RichAgronomyItem) => void;
   feedMode?: "time" | "area"; 
   onStatusChange?: (id: string, status: string) => void; 
-  onDelete?: (id: string, module: string) => void; 
 }
 
 export function LiveFeedView({ 
   items, 
   onItemClick, 
   feedMode = "time", 
-  onStatusChange,
-  onDelete
+  onStatusChange
 }: LiveFeedViewProps) {
   
   // 🧠 LOGIKA GROUPING DINAMIS
@@ -63,130 +60,114 @@ export function LiveFeedView({
   }
 
   return (
-    <div className="space-y-8 pb-10">
+    <div className="space-y-6 text-left">
       {groupedFeed.map((group) => (
-        <div key={group.label} className="space-y-1">
-          {/* HEADER GROUP MINIMALIS ALA NOTION */}
-          <div className="flex items-center px-2 mb-2">
-            <h2 className="text-[11px] font-semibold text-muted-foreground/80 flex items-center">
+        <div key={group.label} className="space-y-2.5">
+          {/* GROUP LABEL CLEAN */}
+          <div className="flex items-center px-1">
+            <h2 className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-widest flex items-center">
               {group.icon}
               {group.label}
-              <span className="ml-2 px-1.5 bg-muted/50 rounded-md text-[10px]">{group.items.length}</span>
+              <span className="ml-2 px-1.5 py-0.5 bg-muted rounded-md text-[9px] font-bold tracking-normal">{group.items.length} LOG</span>
             </h2>
           </div>
 
-          <div className="flex flex-col overflow-hidden rounded-xl border border-border/40 bg-background shadow-sm">
-            {group.items.map((item, index) => {
+          {/* LIST WRAPPER */}
+          <div className="grid grid-cols-1 gap-2">
+            {group.items.map((item) => {
               
-              // LOGIKA IKON & WARNA NOTION STYLE
-              let RenderIcon = <Sprout className="h-4 w-4 text-muted-foreground" />;
+              // LOGIKA UTAMA IKON SINKRON FORM
+              let RenderIcon = <Sprout className="h-4 w-4" />;
+              let iconBgClass = "bg-emerald-500/10 text-emerald-600";
               
               if (item.module === "operasional") {
-                RenderIcon = <HardHat className="h-4 w-4 text-blue-500" />;
+                RenderIcon = <HardHat className="h-4 w-4" />;
+                iconBgClass = "bg-blue-500/10 text-blue-600";
               } else if (item.module === "perawatan") {
-                RenderIcon = <Sprout className="h-4 w-4 text-emerald-500" />;
+                RenderIcon = <Sprout className="h-4 w-4" />;
+                iconBgClass = "bg-emerald-500/10 text-emerald-600";
               } else if (item.module === "inspeksi") {
-                RenderIcon = <Bug className="h-4 w-4 text-red-500" />;
+                RenderIcon = <Bug className="h-4 w-4" />;
+                iconBgClass = "bg-red-500/10 text-red-600";
               } else if (item.module === "finance") {
-                RenderIcon = <Banknote className={item.category === "Pengeluaran" ? "h-4 w-4 text-red-500" : "h-4 w-4 text-emerald-500"} />;
+                const isOut = item.category === "Pengeluaran";
+                RenderIcon = <Banknote className="h-4 w-4" />;
+                iconBgClass = isOut ? "bg-red-500/10 text-red-600" : "bg-emerald-500/10 text-emerald-600";
               }
 
-              // STATUS DOT COLOR
+              // LOGIKA STATUS BADGE MINIMALIS
               const isDone = item.status === "Selesai" || item.status === "Sudah ditangani";
               const isProgress = item.status === "Dalam proses" || item.status === "Sedang ditangani";
-              const statusDotColor = isDone ? "bg-emerald-500" : isProgress ? "bg-amber-500" : "bg-blue-500";
+              const statusStyle = isDone ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400" :
+                                  isProgress ? "bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400" :
+                                  "bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400";
 
               return (
-                <div key={item.id} className={cn(
-                  "relative w-full bg-destructive overflow-hidden",
-                  index !== group.items.length - 1 && "border-b border-border/40"
-                )}>
-                  
-                  {/* 🔴 TOMBOL HAPUS DI BELAKANG */}
-                  <div className="absolute inset-y-0 right-0 w-[80px] flex items-center justify-center">
-                    <button 
-                      onClick={() => onDelete?.(item.id, item.module)}
-                      className="flex flex-col items-center justify-center h-full w-full text-white bg-destructive hover:bg-red-600 transition-colors"
-                    >
-                      <Trash2 className="h-4 w-4 mb-1" />
-                    </button>
-                  </div>
-
-                  {/* 🟢 BARIS LIST UTAMA (Bisa Digeser) */}
-                  <motion.div 
-                    drag="x"
-                    dragDirectionLock={true}
-                    dragConstraints={{ left: -80, right: 0 }} 
-                    dragElastic={{ left: 0.1, right: 0 }} 
-                    className="relative flex items-center gap-3 bg-background hover:bg-muted/30 p-3 text-left z-10 cursor-grab active:cursor-grabbing w-full transition-colors"
-                  >
-                    
-                    {/* BAGIAN KIRI: IKON */}
-                    <div className="relative flex shrink-0 items-center justify-center w-8">
+                <div 
+                  key={item.id} 
+                  onClick={() => onItemClick(item)}
+                  className="group flex items-center justify-between p-3.5 bg-background border border-border/40 rounded-2xl shadow-sm transition-all duration-200 hover:bg-muted/20 hover:border-border cursor-pointer"
+                >
+                  {/* SISI KIRI: ICON + TEXT DETAILS */}
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    {/* AVATAR ICON */}
+                    <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-105", iconBgClass)}>
                       {RenderIcon}
-                      {item.isPendingStaging && <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-amber-500 animate-pulse" />}
                     </div>
 
-                    {/* BAGIAN TENGAH: TEKS (KLIKABEL) */}
-                    <div className="min-w-0 flex-1 cursor-pointer py-1" onClick={() => onItemClick(item)}>
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <h3 className="text-sm font-semibold tracking-tight truncate text-foreground">{item.title}</h3>
-                        {/* TAGS (Inspeksi/Finance) */}
-                        {item.module === "inspeksi" && item.metaEkstra?.hama?.length > 0 && (
-                          <span className="text-[9px] font-medium px-1.5 py-0.5 bg-red-500/10 text-red-600 rounded">Hama</span>
-                        )}
-                        {item.module === "inspeksi" && item.metaEkstra?.penyakit?.length > 0 && (
-                          <span className="text-[9px] font-medium px-1.5 py-0.5 bg-orange-500/10 text-orange-600 rounded">Penyakit</span>
-                        )}
-                      </div>
+                    {/* METADATA BLOCK */}
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-sm font-bold tracking-tight text-foreground/90 truncate group-hover:text-primary transition-colors">
+                        {item.title}
+                      </h3>
                       
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground/80 truncate">
-                        <span className="truncate max-w-[120px] sm:max-w-[200px]">{item.area}</span>
+                      {/* SUB-PROPERTIES (HORIZONTAL ALA NOTION COLS) */}
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5 text-[11px] font-medium text-muted-foreground/80">
+                        <span className="bg-muted/60 px-1.5 py-0.2 rounded text-[10px] uppercase font-bold tracking-wider">{item.category}</span>
+                        <span>•</span>
+                        <span className="truncate max-w-[150px]">{item.area}</span>
                         <span>•</span>
                         <span>{item.time}</span>
-                        <span>•</span>
-                        <span className="capitalize">{item.category}</span>
+
+                        {/* CONDITIONAL INJEKSI BADGE HAMA/PENYAKIT */}
+                        {item.module === "inspeksi" && item.metaEkstra?.hama?.length > 0 && (
+                          <span className="text-red-600 bg-red-500/5 px-1 rounded text-[10px]">🚨 Hama</span>
+                        )}
+                        {item.module === "inspeksi" && item.metaEkstra?.penyakit?.length > 0 && (
+                          <span className="text-orange-600 bg-orange-500/5 px-1 rounded text-[10px]">🦠 Penyakit</span>
+                        )}
                       </div>
                     </div>
+                  </div>
 
-                    {/* BAGIAN KANAN: STATUS SELECT & PANAH */}
-                    <div className="flex shrink-0 items-center gap-2 cursor-auto">
-                      
-                      {/* STATUS NOTION STYLE */}
-                      <div className="relative flex items-center bg-muted/30 hover:bg-muted/60 rounded-md px-2 py-1 transition-colors">
-                        <div className={cn("w-2 h-2 rounded-full mr-2", statusDotColor)} />
-                        <select
-                          value={item.status}
-                          onChange={(e) => onStatusChange?.(item.id, e.target.value)}
-                          disabled={item.isPendingStaging}
-                          className="appearance-none bg-transparent text-[11px] font-medium outline-none cursor-pointer pr-4 z-20 text-muted-foreground"
-                        >
-                          {item.module === "inspeksi" ? (
-                            <>
-                              <option value="Baru ditemukan">Baru</option>
-                              <option value="Sedang ditangani">Proses</option>
-                              <option value="Sudah ditangani">Selesai</option>
-                            </>
-                          ) : (
-                            <>
-                              <option value="Belum dikerjakan">Belum</option>
-                              <option value="Dalam proses">Proses</option>
-                              <option value="Selesai">Selesai</option>
-                            </>
-                          )}
-                        </select>
-                        <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none opacity-40 z-20" />
-                      </div>
-
-                      <button 
-                        onClick={() => onItemClick(item)} 
-                        className="p-1 text-muted-foreground hover:text-foreground transition-colors z-20 relative"
+                  {/* SISI KANAN: STATUS CONTROLLER & ARROW */}
+                  <div className="flex items-center gap-2.5 shrink-0 ml-2" onClick={(e) => e.stopPropagation()}>
+                    {/* STATUS SELECTOR BADGE */}
+                    <span className={cn("px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider border border-current/10", statusStyle)}>
+                      <select
+                        value={item.status}
+                        onChange={(e) => onStatusChange?.(item.id, e.target.value)}
+                        className="bg-transparent font-black outline-none cursor-pointer appearance-none pr-0"
                       >
-                         <ChevronRight className="h-4 w-4 opacity-50" />
-                      </button>
+                        {item.module === "inspeksi" ? (
+                          <>
+                            <option value="Baru ditemukan">Baru</option>
+                            <option value="Sedang ditangani">Proses</option>
+                            <option value="Sudah ditangani">Selesai</option>
+                          </>
+                        ) : (
+                          <>
+                            <option value="Belum dikerjakan">Belum</option>
+                            <option value="Dalam proses">Proses</option>
+                            <option value="Selesai">Selesai</option>
+                          </>
+                        )}
+                      </select>
+                    </span>
 
-                    </div>
-                  </motion.div>
+                    {/* MINIMAL ARROW */}
+                    <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground group-hover:translate-x-0.5 transition-all" />
+                  </div>
                 </div>
               );
             })}
