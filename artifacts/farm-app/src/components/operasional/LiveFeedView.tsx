@@ -1,11 +1,11 @@
 import { useMemo } from "react";
 import { 
-  Sprout, Banknote, ChevronRight, ChevronDown, MapPin, 
-  HardHat, Bug, Trash2, Clock
+  Sprout, Banknote, MapPin, 
+  HardHat, Bug, Trash2, Clock, ChevronDown, MoreHorizontal
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AgronomyItem } from "@/types/operasional";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 type RichAgronomyItem = AgronomyItem & {
   metaEkstra?: Record<string, any>;
@@ -14,7 +14,7 @@ type RichAgronomyItem = AgronomyItem & {
 interface LiveFeedViewProps {
   items: RichAgronomyItem[];
   onItemClick: (item: RichAgronomyItem) => void;
-  feedMode?: "time" | "area"; 
+  feedMode?: "time" | "area"; // Akan diabaikan karena Kanban fokus ke Status
   onStatusChange?: (id: string, status: string) => void; 
   onDelete?: (id: string, module: string) => void; 
 }
@@ -22,36 +22,34 @@ interface LiveFeedViewProps {
 export function LiveFeedView({ 
   items, 
   onItemClick, 
-  feedMode = "time", 
   onStatusChange,
   onDelete
 }: LiveFeedViewProps) {
   
-  const groupedFeed = useMemo(() => {
-    if (feedMode === "time") {
-      const labels = ["Hari ini", "Kemarin", "Riwayat Lama"];
-      return labels.map(label => ({
-        label,
-        icon: <Clock className="h-3.5 w-3.5 mr-1.5 inline-block text-muted-foreground" />,
-        items: items.filter(item => item.dateLabel === label)
-      })).filter(group => group.items.length > 0);
-    } 
-    
-    const areaMap = new Map<string, RichAgronomyItem[]>();
-    items.forEach(item => {
-      const areaName = item.area || "Area Tanpa Blok";
-      if (!areaMap.has(areaName)) areaMap.set(areaName, []);
-      areaMap.get(areaName)!.push(item);
-    });
-
-    return Array.from(areaMap.entries())
-      .sort((a, b) => a[0].localeCompare(b[0])) 
-      .map(([label, groupItems]) => ({
-        label,
-        icon: <MapPin className="h-3.5 w-3.5 mr-1.5 inline-block text-muted-foreground" />,
-        items: groupItems
-      }));
-  }, [items, feedMode]);
+  // 🧠 DEFINISI KOLOM KANBAN
+  const columns = [
+    {
+      id: "todo",
+      title: "Belum Dikerjakan",
+      dotColor: "bg-blue-500",
+      bgHeader: "bg-blue-500/10 text-blue-700",
+      validStatuses: ["Belum dikerjakan", "Baru ditemukan"]
+    },
+    {
+      id: "progress",
+      title: "Sedang Berjalan",
+      dotColor: "bg-amber-500",
+      bgHeader: "bg-amber-500/10 text-amber-700",
+      validStatuses: ["Dalam proses", "Sedang ditangani"]
+    },
+    {
+      id: "done",
+      title: "Selesai",
+      dotColor: "bg-emerald-500",
+      bgHeader: "bg-emerald-500/10 text-emerald-700",
+      validStatuses: ["Selesai", "Sudah ditangani"]
+    }
+  ];
 
   if (items.length === 0) {
     return (
@@ -62,107 +60,148 @@ export function LiveFeedView({
   }
 
   return (
-    <div className="space-y-8 pb-10">
-      {groupedFeed.map((group) => (
-        <div key={group.label} className="space-y-1">
-          <div className="flex items-center px-2 mb-2">
-            <h2 className="text-[11px] font-semibold text-muted-foreground/80 flex items-center">
-              {group.icon}
-              {group.label}
-              <span className="ml-2 px-1.5 bg-muted/50 rounded-md text-[10px]">{group.items.length}</span>
-            </h2>
-          </div>
+    // WRAPPER HORIZONTAL SCROLL (Biar di HP bisa digeser ke samping)
+    <div className="flex overflow-x-auto pb-8 pt-2 -mx-4 px-4 gap-4 snap-x snap-mandatory custom-scrollbar">
+      {columns.map((col) => {
+        // Filter item sesuai kolom
+        const columnItems = items.filter(item => col.validStatuses.includes(item.status));
 
-          <div className="flex flex-col border-t border-border/40">
-            {group.items.map((item) => {
-              let RenderIcon = <Sprout className="h-4 w-4 text-muted-foreground" />;
-              let iconColor = "text-muted-foreground";
-              
-              if (item.module === "operasional") {
-                RenderIcon = <HardHat className="h-4 w-4" />;
-                iconColor = "text-blue-500";
-              } else if (item.module === "perawatan") {
-                RenderIcon = <Sprout className="h-4 w-4" />;
-                iconColor = "text-emerald-500";
-              } else if (item.module === "inspeksi") {
-                RenderIcon = <Bug className="h-4 w-4" />;
-                iconColor = "text-red-500";
-              } else if (item.module === "finance") {
-                RenderIcon = <Banknote className="h-4 w-4" />;
-                iconColor = item.category === "Pengeluaran" ? "text-red-500" : "text-emerald-500";
-              }
+        return (
+          // 🌟 CONTAINER KOLOM
+          <div 
+            key={col.id} 
+            className="flex flex-col w-[85vw] max-w-[320px] shrink-0 snap-center bg-muted/30 rounded-[1.5rem] border border-border/40 p-3 h-max"
+          >
+            {/* HEADER KOLOM */}
+            <div className="flex items-center justify-between mb-4 px-2">
+              <div className="flex items-center gap-2">
+                <div className={cn("w-2 h-2 rounded-full", col.dotColor)} />
+                <h2 className="text-sm font-bold text-foreground">{col.title}</h2>
+              </div>
+              <span className={cn("text-[10px] font-black px-2 py-0.5 rounded-full", col.bgHeader)}>
+                {columnItems.length}
+              </span>
+            </div>
 
-              const isDone = item.status === "Selesai" || item.status === "Sudah ditangani";
-              const isProgress = item.status === "Dalam proses" || item.status === "Sedang ditangani";
-              const statusDotColor = isDone ? "bg-emerald-500" : isProgress ? "bg-amber-500" : "bg-blue-500";
+            {/* AREA KARTU (Dengan Animasi Layout Framer Motion) */}
+            <div className="flex flex-col gap-3 min-h-[100px]">
+              <AnimatePresence>
+                {columnItems.map((item) => {
+                  
+                  // LOGIKA IKON
+                  let RenderIcon = <Sprout className="h-3.5 w-3.5" />;
+                  let iconBg = "bg-emerald-500/10 text-emerald-600";
+                  
+                  if (item.module === "operasional") {
+                    RenderIcon = <HardHat className="h-3.5 w-3.5" />;
+                    iconBg = "bg-blue-500/10 text-blue-600";
+                  } else if (item.module === "perawatan") {
+                    RenderIcon = <Sprout className="h-3.5 w-3.5" />;
+                    iconBg = "bg-emerald-500/10 text-emerald-600";
+                  } else if (item.module === "inspeksi") {
+                    RenderIcon = <Bug className="h-3.5 w-3.5" />;
+                    iconBg = "bg-red-500/10 text-red-600";
+                  } else if (item.module === "finance") {
+                    RenderIcon = <Banknote className="h-3.5 w-3.5" />;
+                    iconBg = item.category === "Pengeluaran" ? "bg-red-500/10 text-red-600" : "bg-emerald-500/10 text-emerald-600";
+                  }
 
-              return (
-                <div key={item.id} className="relative w-full overflow-hidden bg-background">
-                  {/* TOMBOL HAPUS */}
-                  <div className="absolute inset-y-0 right-0 w-[80px] flex items-center justify-center bg-secondary">
-                    <button 
-                      onClick={() => onDelete?.(item.id, item.module)}
-                      className="flex flex-col items-center justify-center h-full w-full text-muted-foreground hover:text-destructive transition-colors"
+                  return (
+                    // 🌟 KARTU KANBAN (Bisa Terbang otomatis)
+                    <motion.div
+                      layout // 💡 INI MAGIC-NYA! Biar kartu terbang pas ganti kolom
+                      initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+                      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                      key={item.id}
+                      className="group relative flex flex-col bg-background p-4 rounded-2xl shadow-sm border border-border/50 hover:shadow-md hover:border-primary/30 transition-all cursor-pointer"
+                      onClick={() => onItemClick(item)}
                     >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-
-                  {/* BARIS UTAMA */}
-                  <motion.div 
-                    drag="x"
-                    dragDirectionLock={true}
-                    dragConstraints={{ left: -80, right: 0 }} 
-                    dragElastic={{ left: 0.1, right: 0 }} 
-                    className="relative flex items-center gap-3 bg-background border-b border-border/40 p-3 hover:bg-muted/20 z-10 cursor-grab active:cursor-grabbing transition-colors"
-                  >
-                    <div className={cn("flex shrink-0 items-center justify-center w-8", iconColor)}>
-                      {RenderIcon}
-                    </div>
-
-                    <div className="min-w-0 flex-1 cursor-pointer py-1" onClick={() => onItemClick(item)}>
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <h3 className="text-sm font-semibold text-foreground truncate">{item.title}</h3>
+                      {/* HEADER KARTU */}
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className={cn("flex h-6 w-6 rounded-lg items-center justify-center", iconBg)}>
+                            {RenderIcon}
+                          </div>
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider bg-muted px-1.5 py-0.5 rounded">
+                            {item.category}
+                          </span>
+                        </div>
+                        {item.isPendingStaging && (
+                          <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                        )}
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground/80 truncate">
-                        <span>{item.area}</span>
-                        <span>•</span>
-                        <span>{item.time}</span>
-                      </div>
-                    </div>
 
-                    <div className="flex shrink-0 items-center gap-2 cursor-auto">
-                      <div className="relative flex items-center bg-muted/30 rounded-md px-2 py-1">
-                        <div className={cn("w-2 h-2 rounded-full mr-2", statusDotColor)} />
-                        <select
-                          value={item.status}
-                          onChange={(e) => onStatusChange?.(item.id, e.target.value)}
-                          className="appearance-none bg-transparent text-[11px] font-medium outline-none cursor-pointer pr-4 text-muted-foreground"
-                        >
-                          {item.module === "inspeksi" ? (
-                            <>
-                              <option value="Baru ditemukan">Baru</option>
-                              <option value="Sedang ditangani">Proses</option>
-                              <option value="Sudah ditangani">Selesai</option>
-                            </>
-                          ) : (
-                            <>
-                              <option value="Belum dikerjakan">Belum</option>
-                              <option value="Dalam proses">Proses</option>
-                              <option value="Selesai">Selesai</option>
-                            </>
-                          )}
-                        </select>
-                        <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 h-3 w-3 opacity-40" />
+                      {/* ISI KARTU */}
+                      <h3 className="text-[13px] font-bold text-foreground leading-tight mb-1.5">
+                        {item.title}
+                      </h3>
+                      
+                      <div className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground/80 mb-3">
+                        <MapPin className="h-3 w-3" />
+                        <span className="truncate">{item.area}</span>
                       </div>
-                    </div>
-                  </motion.div>
-                </div>
-              );
-            })}
+
+                      {/* INJEKSI BADGE HAMA (Inspeksi) */}
+                      {item.module === "inspeksi" && (item.metaEkstra?.hama?.length > 0 || item.metaEkstra?.penyakit?.length > 0) && (
+                        <div className="flex gap-1 mb-3">
+                          {item.metaEkstra?.hama?.length > 0 && <span className="text-[9px] font-bold bg-red-500/10 text-red-600 px-1.5 py-0.5 rounded">Hama</span>}
+                          {item.metaEkstra?.penyakit?.length > 0 && <span className="text-[9px] font-bold bg-orange-500/10 text-orange-600 px-1.5 py-0.5 rounded">Penyakit</span>}
+                        </div>
+                      )}
+
+                      {/* FOOTER KARTU (Status & Aksi) */}
+                      <div className="mt-auto pt-3 flex items-center justify-between border-t border-border/40">
+                        <div className="flex items-center gap-1 text-[10px] font-bold text-muted-foreground">
+                          <Clock className="h-3 w-3" />
+                          {item.time}
+                        </div>
+
+                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                          {/* SELECT STATUS MELAYANG */}
+                          <div className="relative flex items-center hover:bg-muted p-1 rounded-md transition-colors cursor-pointer">
+                            <select
+                              value={item.status}
+                              onChange={(e) => onStatusChange?.(item.id, e.target.value)}
+                              className="appearance-none bg-transparent text-[10px] font-bold outline-none cursor-pointer pr-4 text-foreground z-10"
+                            >
+                              {item.module === "inspeksi" ? (
+                                <>
+                                  <option value="Baru ditemukan">Baru</option>
+                                  <option value="Sedang ditangani">Proses</option>
+                                  <option value="Sudah ditangani">Selesai</option>
+                                </>
+                              ) : (
+                                <>
+                                  <option value="Belum dikerjakan">Belum</option>
+                                  <option value="Dalam proses">Proses</option>
+                                  <option value="Selesai">Selesai</option>
+                                </>
+                              )}
+                            </select>
+                            <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 h-3 w-3 opacity-50 pointer-events-none" />
+                          </div>
+
+                          {/* TOMBOL HAPUS MINIMALIS */}
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); onDelete?.(item.id, item.module); }}
+                            className="p-1 text-muted-foreground hover:text-destructive transition-colors rounded-md hover:bg-destructive/10"
+                            title="Hapus"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
