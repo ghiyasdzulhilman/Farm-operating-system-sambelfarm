@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { 
-  Sprout, Banknote, ChevronRight, MapPin, 
-  HardHat, Bug, Clock
+  Sprout, Banknote, ChevronRight, ChevronDown, MapPin, 
+  HardHat, Bug, Clock 
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AgronomyItem } from "@/types/operasional";
