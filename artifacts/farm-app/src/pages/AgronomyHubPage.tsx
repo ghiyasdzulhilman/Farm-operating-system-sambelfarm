@@ -182,27 +182,23 @@ export function AgronomyHubPage() {
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6 space-y-6 text-left">
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div className="space-y-2">
+      <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+        <div className="space-y-3">
           <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground shadow-sm">
             <Leaf className="h-3.5 w-3.5 text-primary" />
             Agronomy Hub
           </div>
           <h1 className="text-3xl font-black tracking-tight md:text-4xl">Pusat Aktivitas</h1>
-          <p className="max-w-2xl text-sm text-muted-foreground">
-            
-          </p>
         </div>
 
-         <div className="flex flex-wrap items-center gap-2">
+        <div className="w-full md:w-auto pt-2 md:pt-0">
           <Button 
-            className="h-11 rounded-xl bg-primary px-4 font-bold text-primary-foreground shadow-sm transition-all hover:scale-[1.02]"
+            className="w-full h-12 rounded-xl bg-primary px-6 font-bold text-primary-foreground shadow-md transition-all active:scale-95 md:w-auto md:hover:scale-[1.02]"
             onClick={() => setShowMasterHub(true)}
           >
-            <Layers className="mr-2 h-4 w-4" /> Master Control Center
+            <Layers className="mr-2 h-5 w-5" /> Master Control Center
           </Button>
         </div>
-
       </div>
 
       <SummaryHeader feedData={feedData} meta={meta} />
