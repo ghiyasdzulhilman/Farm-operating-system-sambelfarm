@@ -10,6 +10,7 @@ interface FilterProps {
 }
 
 const VIEW_OPTIONS: Array<{ key: ViewKey; label: string }> = [
+  { key: "kanban", label: "Kanban" },
   { key: "feed", label: "Feed" },
   { key: "table", label: "Tabel" },
 ];
