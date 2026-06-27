@@ -240,6 +240,7 @@ export function AgronomyHubPage() {
               // onDelete={(id, module) => handleHapus(id, module)} // Bisa diaktifkan nanti kalau fungsi hapus udah siap
             />
           )}
+         </div>
 
         <aside className="space-y-4">
           <div className="rounded-3xl border border-border/60 bg-card p-4 shadow-sm">
