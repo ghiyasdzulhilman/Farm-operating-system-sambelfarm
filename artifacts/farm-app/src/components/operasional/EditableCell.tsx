@@ -66,15 +66,15 @@ export const EditableCell: React.FC<EditableCellProps> = ({
         <PopoverTrigger asChild disabled={disabled}>
           <div className={cn("cursor-pointer min-h-[32px] flex flex-wrap gap-1 p-1 hover:bg-muted/50 rounded items-center w-full", disabled && "opacity-50 cursor-not-allowed hover:bg-transparent", className)}>
             {selectedValues.length === 0 && <span className="text-muted-foreground text-sm pl-1">{placeholder}</span>}
-            {selectedValues.map((val: string) => {
-              const optMatch = options.find(o => typeof o === 'object' && o.value === val);
-              const displayLabel = optMatch ? optMatch.label : val;
-              return (
-                <Badge key={val} variant="secondary" className="text-xs font-normal">
-                  {displayLabel}
-                </Badge>
-              );
-            })}
+            {selectedValues.length > 0 && (
+              <span className="text-xs font-medium text-foreground px-1 truncate max-w-[150px]">
+                {selectedValues.map((val: string) => {
+                  const optMatch = options.find(o => typeof o === 'object' && o.value === val);
+                  return optMatch ? optMatch.label : val;
+                }).join(", ")}
+              </span>
+            )}
+
           </div>
         </PopoverTrigger>
         <PopoverContent className="w-56 p-2" align="start">
