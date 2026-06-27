@@ -507,7 +507,7 @@ export function MasterTableView({
                       e.preventDefault();
                       column.toggleVisibility(!isChecked);
                     }}
-                    className={`flex items-center justify-between text-xs cursor-pointer py-2 px-3 rounded-lg transition-colors focus:bg-primary/10 ${isChecked ? 'text-primary font-bold' : 'text-foreground font-medium'}`}
+                className={`flex items-center justify-between text-xs cursor-pointer py-2 px-3 rounded-lg transition-colors focus:bg-primary/10 focus:!text-primary ${isChecked ? 'text-primary !text-primary font-bold' : 'text-foreground font-medium'}`}
                   >
                     <span>{COLUMN_LABELS[column.id] || column.id}</span>
                     
