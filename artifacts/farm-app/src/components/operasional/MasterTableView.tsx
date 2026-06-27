@@ -1,8 +1,9 @@
 // src/components/operasional/MasterTableView.tsx
 import { useMemo } from "react";
 import { useReactTable, getCoreRowModel, getSortedRowModel, flexRender, type ColumnDef } from "@tanstack/react-table";
-import { Eye, Trash2, Lock, ArrowRight } from "lucide-react";
+import { Eye, Trash2, Lock, ArrowRight, Columns3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import type { AgronomyItem } from "@/types/operasional";
@@ -21,6 +22,7 @@ export function MasterTableView({
 }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [columnVisibility, setColumnVisibility] = useState({});
 
   // 1. Fetch Opsi Master (Area & Pekerja)
   const { data: dropdownOptions } = useQuery({
@@ -453,18 +455,61 @@ export function MasterTableView({
     });
   }, [items]);
 
-  const table = useReactTable({
-    data: sortedItems, // 👈 Ganti dari 'items' menjadi 'sortedItems'
+    const table = useReactTable({
+    data: sortedItems,
     columns,
+    state: { columnVisibility }, 
+    onColumnVisibilityChange: setColumnVisibility,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
   });
 
   return (
 
+  // 💡 KAMUS LABEL KOLOM (Selipkan tepat di atas return)
+  const COLUMN_LABELS: Record<string, string> = {
+    aktivitas: "Kegiatan",
+    tanggal: "Tanggal",
+    waktu: "Jam Kerja",
+    durasi: "Durasi",
+    area: "Area",
+    hst: "Umur (HST)",
+    tagCategory: "Kategori",
+    pekerja: "Tim Pekerja",
+    status: "Status",
+    actions: "Hapus",
+  };
+
+  return (
     <div className="w-full max-w-full rounded-3xl border border-border/60 bg-card shadow-sm overflow-hidden text-left">
+      
+      {/* 💡 HEADER FILTER KOLOM PREMIUM */}
+      <div className="flex items-center justify-end px-4 py-2 border-b border-border/50 bg-muted/20">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="h-8 gap-2 rounded-lg text-[11px] font-bold tracking-wider text-muted-foreground hover:text-primary shadow-sm">
+              <Columns3 className="h-3.5 w-3.5" />
+              KOLOM
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48 rounded-xl shadow-md">
+            {table.getAllLeafColumns().map(column => (
+              <DropdownMenuCheckboxItem
+                key={column.id}
+                checked={column.getIsVisible()}
+                onCheckedChange={(value) => column.toggleVisibility(!!value)}
+                className="text-xs font-semibold cursor-pointer"
+              >
+                {COLUMN_LABELS[column.id] || column.id}
+              </DropdownMenuCheckboxItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
       <div className="w-full overflow-x-auto">
         <table className="w-full min-w-[900px] border-collapse">
+
           <thead>
             {table.getHeaderGroups().map(headerGroup => (
               <tr key={headerGroup.id} className="border-b bg-muted/50">
