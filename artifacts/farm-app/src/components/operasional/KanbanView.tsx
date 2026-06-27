@@ -134,13 +134,6 @@ export function KanbanView({
                         <span className="truncate">{item.area}</span>
                       </div>
 
-                      {item.module === "inspeksi" && (item.metaEkstra?.hama?.length > 0 || item.metaEkstra?.penyakit?.length > 0) && (
-                        <div className="flex gap-1 mb-3">
-                          {item.metaEkstra?.hama?.length > 0 && <span className="text-[9px] font-bold bg-red-500/10 text-red-600 px-1.5 py-0.5 rounded">Hama</span>}
-                          {item.metaEkstra?.penyakit?.length > 0 && <span className="text-[9px] font-bold bg-orange-500/10 text-orange-600 px-1.5 py-0.5 rounded">Penyakit</span>}
-                        </div>
-                      )}
-
                       <div className="mt-auto pt-3 flex items-center justify-between border-t border-border/40">
                         <div className="flex items-center gap-1 text-[10px] font-bold text-muted-foreground">
                           <Clock className="h-3 w-3" />
