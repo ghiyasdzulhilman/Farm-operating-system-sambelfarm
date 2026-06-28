@@ -43,17 +43,13 @@ export function AgronomyHubPage() {
         fetch("/api/notion/operasional-dropdown-options").then((res) => res.json()),
       ]);
 
-      // 1. MAPPING PEKERJA
+    // 1. MAPPING PEKERJA
       const workerMap: Record<string, string> = {};
       resOptions?.petugas?.forEach((p: any) => {
         workerMap[p.id] = p.name;
       });
 
-      // 💡 2. TAMBAHAN BARU: MAPPING AREA (Otomatis narik "Area - Tanaman" dari backend)
-      const areaMap: Record<string, string> = {};
-      resOptions?.areas?.forEach((a: any) => {
-        areaMap[a.id] = a.name; 
-      });
+     // (Mapping Area kita hapus karena backend langsung ngirim 'areaName' dan 'namaSiklus' 🚀)
 
       const formatItem = (item: any, module: ModuleKey, icon: string, titleKey: string): AgronomyItem => {
         const rawDate = item.waktuMulai || new Date().toISOString();
@@ -82,14 +78,17 @@ export function AgronomyHubPage() {
           status: item.status || "Belum dikerjakan",
           areaId: item.areaId,
           
-          // 💡 3. FIX AREA: Panggil dari areaMap pakai ID-nya
-          area: areaMap[item.areaId] || item.areaName || "Area Master",
+          // 🚀 LANGSUNG PAKAI NAMA AREA DARI BACKEND
+          area: item.areaName || "Area Master",
+          
+          // 🚀 SIMPAN DATA SIKLUS KE DALAM ITEM
+          siklusId: item.siklusId,
+          namaSiklus: item.namaSiklus || "-", 
           
           workers: resolvedWorkers.length ? resolvedWorkers : ["Tim Lapangan"], 
           duration: `${item.durasiKerja || 0} jam`,
           priority: item.prioritas || "Medium",
           
-          // 💡 4. FIX KATEGORI: Ganti Umum/Diagnosis jadi nama Modul
           category: item.kategori || item.tagCategory || (
             module === "inspeksi" ? "Inspeksi" : 
             module === "perawatan" ? "Perawatan" : 
