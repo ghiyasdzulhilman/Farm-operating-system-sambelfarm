@@ -169,7 +169,7 @@ function AreaDanSiklusManager({ data }: { data: any[] }) {
       <p className="text-xs text-muted-foreground mb-6">Kelola daftar area kebun beserta tanaman yang sedang aktif di dalamnya.</p>
       
         <div className="flex gap-2 mb-6">
-        <input type="text" placeholder="Nama area baru (cth: Blok A)" value={newName} onChange={e => setNewName(e.target.value)} className="flex-1 rounded-xl border border-border/60 bg-muted/30 px-4 py-2 text-sm outline-none focus:border-primary/50 font-bold" />
+        <input type="text" placeholder="Nama area" value={newName} onChange={e => setNewName(e.target.value)} className="flex-1 rounded-xl border border-border/60 bg-muted/30 px-4 py-2 text-sm outline-none focus:border-primary/50 font-bold" />
         <Button variant="secondary" onClick={() => newName.trim() && addAreaMutation.mutate(newName)} disabled={addAreaMutation.isPending} className="rounded-xl font-bold bg-primary/10 text-primary hover:bg-primary/20 shrink-0">
           {addAreaMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Plus className="h-4 w-4 mr-1"/> Tambah</>}
         </Button>
@@ -206,7 +206,7 @@ function AreaDanSiklusManager({ data }: { data: any[] }) {
                   // KONDISI 1: SEDANG BUKA FORM SIKLUS (Prioritas Tertinggi)
                   <div className="flex flex-col gap-2 rounded-xl bg-background border border-primary/30 p-3 shadow-inner">
                     <div className="flex flex-col md:flex-row gap-2">
-                      <input type="text" placeholder="Nama Tanaman (cth: Tomat Kloter A)" value={namaSiklus} onChange={e => setNamaSiklus(e.target.value)} className="flex-1 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-sm outline-none focus:border-primary/50 font-semibold" />
+                      <input type="text" placeholder="Nama Tanaman" value={namaSiklus} onChange={e => setNamaSiklus(e.target.value)} className="flex-1 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-sm outline-none focus:border-primary/50 font-semibold" />
                       <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-1.5 focus-within:border-primary/50">
                         <span className="text-[10px] font-bold text-muted-foreground">TGL:</span>
                         <input type="date" value={tglTanam} onChange={e => setTglTanam(e.target.value)} className="bg-transparent text-sm outline-none cursor-pointer w-full font-semibold" />
@@ -343,7 +343,7 @@ function PekerjaManager({ data, atribut }: { data: any[], atribut?: any }) {
         
         {/* Form Tambah Pekerja */}
         <div className="flex flex-col gap-2 mb-6 p-4 rounded-2xl bg-muted/20 border border-border/50">
-          <input type="text" placeholder="Nama Pekerja (cth: Supardi)" value={newName} onChange={e => setNewName(e.target.value)} className="w-full rounded-xl border border-border/60 bg-background px-4 py-2 text-sm outline-none focus:border-primary/50 font-bold" />
+          <input type="text" placeholder="Nama Pekerja" value={newName} onChange={e => setNewName(e.target.value)} className="w-full rounded-xl border border-border/60 bg-background px-4 py-2 text-sm outline-none focus:border-primary/50 font-bold" />
           
           <div className="grid grid-cols-3 gap-2">
             <select value={roleId} onChange={e => setRoleId(e.target.value)} className="w-full rounded-xl border border-border/60 bg-background px-2 py-2 text-[10px] outline-none font-bold uppercase tracking-wider cursor-pointer">
@@ -429,9 +429,9 @@ function PekerjaManager({ data, atribut }: { data: any[], atribut?: any }) {
         {/* Form Tambah Tag */}
         <div className="flex flex-col gap-2 mb-6 p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20">
           <select value={tagType} onChange={e => setTagType(e.target.value)} className="w-full rounded-xl border border-border/60 bg-background px-3 py-2 text-xs outline-none font-bold uppercase tracking-wider cursor-pointer text-amber-700">
-            <option value="role">🛠️ Jabatan / Role</option>
-            <option value="jenis_tenaga">💼 Sistem Kerja</option>
-            <option value="status">🟢 Status Pekerja</option>
+            <option value="role">Jabatan / Role</option>
+            <option value="jenis_tenaga">Sistem Kerja</option>
+            <option value="status">Status Pekerja</option>
           </select>
           
           <div className="flex gap-2 mt-1">
@@ -481,7 +481,7 @@ function KategoriManager({ data }: { data: any[] }) {
     <Card className={glassCard}>
       <h3 className="text-lg font-black mb-4">Daftar Kategori</h3>
       <div className="flex flex-col sm:flex-row gap-2 mb-6">
-        <input type="text" placeholder="Nama Kategori (cth: Penyemprotan)" value={newName} onChange={e => setNewName(e.target.value)} className="flex-1 rounded-xl border border-border/60 bg-muted/30 px-4 py-2 text-sm outline-none focus:border-primary/50" />
+        <input type="text" placeholder="Nama Kategori" value={newName} onChange={e => setNewName(e.target.value)} className="flex-1 rounded-xl border border-border/60 bg-muted/30 px-4 py-2 text-sm outline-none focus:border-primary/50" />
         <div className="flex gap-2">
           <select value={moduleType} onChange={e => setModuleType(e.target.value)} className="rounded-xl border border-border/60 bg-muted/30 px-3 py-2 text-sm outline-none font-bold uppercase tracking-wider">
             <option value="perawatan">Perawatan</option>
@@ -518,16 +518,40 @@ function KendalaManager({ data }: { data: any[] }) {
   const [newName, setNewName] = useState("");
   const [jenisKendala, setJenisKendala] = useState("Hama");
 
-  const addMutation = useMutation({
-    mutationFn: async () => fetch("/api/notion/kendala", { 
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nama: newName, jenis: jenisKendala }) 
-    }).then(r => r.json()),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["master-dropdown-options"] }); setNewName(""); toast({ title: "Sukses", description: "Data baru ditambahkan." }); },
+    const addMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/notion/kendala", { 
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nama: newName, jenis: jenisKendala }) 
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal menambah data."); // 💡 Lempar error kalau backend nolak
+      return data;
+    },
+    onSuccess: () => { 
+      queryClient.invalidateQueries({ queryKey: ["master-dropdown-options"] }); 
+      setNewName(""); 
+      toast({ title: "Sukses", description: "Data baru ditambahkan." }); 
+    },
+    onError: (err: any) => {
+      // 💡 Tangkap error dan tampilkan notif merah!
+      toast({ variant: "destructive", title: "Gagal Menyimpan", description: err.message });
+    }
   });
 
   const delMutation = useMutation({
-    mutationFn: async (id: string) => fetch(`/api/notion/kendala/${id}`, { method: "DELETE" }).then(r => r.json()),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["master-dropdown-options"] }); toast({ title: "Dihapus", description: "Data berhasil dihapus." }); },
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/notion/kendala/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal menghapus data.");
+      return data;
+    },
+    onSuccess: () => { 
+      queryClient.invalidateQueries({ queryKey: ["master-dropdown-options"] }); 
+      toast({ title: "Dihapus", description: "Data berhasil dihapus." }); 
+    },
+    onError: (err: any) => {
+      toast({ variant: "destructive", title: "Gagal Menghapus", description: err.message });
+    }
   });
 
   return (
@@ -538,14 +562,10 @@ function KendalaManager({ data }: { data: any[] }) {
       <div className="flex flex-col md:flex-row gap-2 mb-6">
         <div className="flex-1 flex gap-2">
           <select value={jenisKendala} onChange={e => setJenisKendala(e.target.value)} className="rounded-xl border border-border/60 bg-muted/30 px-3 py-2 text-xs outline-none font-bold uppercase tracking-wider text-primary cursor-pointer w-[120px]">
-            <option value="Hama">🦟 Hama</option>
-            <option value="Penyakit">🦠 Penyakit</option>
-            <option value="Gulma">🌿 Gulma</option>
-            <option value="Nutrisi">🧪 Nutrisi</option>
-            <option value="Cuaca">☁️ Cuaca</option>
-            <option value="Teknis">🛠️ Teknis</option>
+            <option value="Hama">Hama</option>
+            <option value="Penyakit">Penyakit</option>
           </select>
-          <input type="text" placeholder="Nama (cth: Ulat Grayak)" value={newName} onChange={e => setNewName(e.target.value)} className="flex-1 rounded-xl border border-border/60 bg-muted/30 px-4 py-2 text-sm outline-none focus:border-primary/50 font-bold" />
+          <input type="text" placeholder="Nama Hama/Penyakit" value={newName} onChange={e => setNewName(e.target.value)} className="flex-1 rounded-xl border border-border/60 bg-muted/30 px-4 py-2 text-sm outline-none focus:border-primary/50 font-bold" />
         </div>
         <Button onClick={() => newName.trim() && addMutation.mutate()} disabled={addMutation.isPending} className="rounded-xl font-bold md:w-auto w-full shrink-0">
           {addMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Plus className="h-4 w-4 mr-1"/> Tambah</>}
