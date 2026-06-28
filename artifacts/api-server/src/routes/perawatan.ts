@@ -111,14 +111,27 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
         ? body.produkPerArea[currentAreaId] 
         : (body.logProduk || []);
 
+      // 🔍 CARI SIKLUS TANAM YANG SEDANG AKTIF DI AREA INI
+      const [activeCycle] = await db
+        .select({ id: siklusTanamTable.id })
+        .from(siklusTanamTable)
+        .where(
+          and(
+            eq(siklusTanamTable.areaId, currentAreaId),
+            eq(siklusTanamTable.status, "Aktif")
+          )
+        )
+        .limit(1);
+
       // 1. Simpan Data Induk
       const [insertedPerawatan] = await db.insert(perawatanTable).values({
         kegiatan: kegiatan,
         areaId: currentAreaId,
+        siklusId: activeCycle ? activeCycle.id : null, // 🚀 SUNTIKAN SIKLUS ID
         waktuMulai: tanggalMulaiStr ? new Date(tanggalMulaiStr) : new Date(),
         waktuSelesai: tanggalSelesaiStr ? new Date(tanggalSelesaiStr) : null,
         durasiKerja: Number(durasiKerjaNum ?? 0),
-        tagCategoryId: tagCategoryStr || null, // 💡 Pakai ID Kategori
+        tagCategoryId: tagCategoryStr || null, 
         status: statusStr || "Belum dikerjakan",
         pekerjaIds: pekerjaIdsArray || [], 
         catatan: catatanStr || null,
@@ -183,16 +196,17 @@ router.get("/notion/all-perawatan", async (req, res): Promise<void> => {
         status: perawatanTable.status,
         pekerjaIds: perawatanTable.pekerjaIds,
         catatan: perawatanTable.catatan,
+        
+        // 🚀 TARIK JUGA SIKLUS ID UNTUK UI
+        siklusId: perawatanTable.siklusId,
         tanggalPindahTanam: siklusTanamTable.tanggalPindahTanam 
       })
       .from(perawatanTable)
       .leftJoin(areasTable, eq(perawatanTable.areaId, areasTable.id))
       .leftJoin(kategoriTable, eq(perawatanTable.tagCategoryId, kategoriTable.id))
-      // 💡 JOIN KE SIKLUS TANAM
-      .leftJoin(siklusTanamTable, and(
-        eq(perawatanTable.areaId, siklusTanamTable.areaId),
-        eq(siklusTanamTable.status, "Aktif")
-      ));
+      // 🚀 SIMPLE JOIN LANGSUNG KE SIKLUS ID!
+      .leftJoin(siklusTanamTable, eq(perawatanTable.siklusId, siklusTanamTable.id));
+
 
     // 2. Ambil semua detail produk racikan dari tabel anak
     // (Pastikan perawatanProdukTable sudah di-import di atas)
