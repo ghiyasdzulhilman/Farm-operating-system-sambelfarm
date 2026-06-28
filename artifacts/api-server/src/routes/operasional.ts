@@ -316,23 +316,42 @@ router.patch("/notion/edit-activity/:id", async (req, res): Promise<void> => {
        return;
     }
 
-    // 💡 Deteksi modul dan tembak ke tabel yang sesuai secara dinamis
-    if (module === "operasional") {
-      result = await db.update(operasionalTable)
-        .set(cleanPayload)
-        .where(eq(operasionalTable.id, id))
-        .returning();
-    } else if (module === "perawatan") {
-      result = await db.update(perawatanTable)
-        .set(cleanPayload)
-        .where(eq(perawatanTable.id, id))
-        .returning();
-    } else if (module === "inspeksi") {
-      result = await db.update(inspeksiTable)
-        .set(cleanPayload)
-        .where(eq(inspeksiTable.id, id))
-        .returning();
-    } else {
+// 🔑 ATOMIC UPDATE: Jika areaId berubah, cari siklus aktif di area baru
+// dan sertakan siklusId baru ke payload sebelum disimpan
+if (cleanPayload.areaId) {
+  const [activeCycle] = await db
+    .select({ id: siklusTanamTable.id })
+    .from(siklusTanamTable)
+    .where(
+      and(
+        eq(siklusTanamTable.areaId, cleanPayload.areaId),
+        eq(siklusTanamTable.status, "Aktif")
+      )
+    )
+    .limit(1);
+
+  // Timpa siklusId dengan yang aktif di area baru (null jika belum ada siklus)
+  cleanPayload.siklusId = activeCycle ? activeCycle.id : null;
+}
+
+if (module === "operasional") {
+  result = await db.update(operasionalTable)
+    .set(cleanPayload)
+    .where(eq(operasionalTable.id, id))
+    .returning();
+} else if (module === "perawatan") {
+  result = await db.update(perawatanTable)
+    .set(cleanPayload)
+    .where(eq(perawatanTable.id, id))
+    .returning();
+} else if (module === "inspeksi") {
+  result = await db.update(inspeksiTable)
+    .set(cleanPayload)
+    .where(eq(inspeksiTable.id, id))
+    .returning();
+}
+      
+      else {
       res.status(400).json({ error: "Modul tidak valid." });
       return;
     }
