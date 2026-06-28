@@ -163,13 +163,13 @@ function AreaDanSiklusManager({ data }: { data: any[] }) {
     return mergedName;
   };
 
-  return (
+    return (
     <Card className={glassCard}>
       <h3 className="text-lg font-black mb-1">Area & Siklus Tanam</h3>
-      <p className="text-xs text-muted-foreground mb-6">Kelola daftar area kebun beserta tanaman yang sedang aktif di dalamnya.</p>
+      <p className="text-xs text-muted-foreground mb-6">Kelola daftar area kebun beserta tanaman yang sedang aktif di dalamnya. Siklus lama akan otomatis diarsipkan saat siklus baru dimulai.</p>
       
-        <div className="flex gap-2 mb-6">
-        <input type="text" placeholder="Nama area" value={newName} onChange={e => setNewName(e.target.value)} className="flex-1 rounded-xl border border-border/60 bg-muted/30 px-4 py-2 text-sm outline-none focus:border-primary/50 font-bold" />
+      <div className="flex gap-2 mb-6">
+        <input type="text" placeholder="Nama area baru (Msl: Blok D)" value={newName} onChange={e => setNewName(e.target.value)} className="flex-1 rounded-xl border border-border/60 bg-muted/30 px-4 py-2 text-sm outline-none focus:border-primary/50 font-bold" />
         <Button variant="secondary" onClick={() => newName.trim() && addAreaMutation.mutate(newName)} disabled={addAreaMutation.isPending} className="rounded-xl font-bold bg-primary/10 text-primary hover:bg-primary/20 shrink-0">
           {addAreaMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Plus className="h-4 w-4 mr-1"/> Tambah</>}
         </Button>
@@ -177,73 +177,83 @@ function AreaDanSiklusManager({ data }: { data: any[] }) {
 
       <div className="space-y-4">
         {data.map((area) => {
-          // 💡 PERBAIKAN: Pastikan hanya mencari siklus yang sedang "Aktif" saja di area tersebut!
           const currentCycle = activeSiklus.find((c:any) => c.areaId === area.id && c.status === "Aktif");
           const cleanAreaName = getCleanAreaName(area.id, area.name);
           const isAddingCycle = cycleAreaId === area.id;
 
           return (
-
             <div key={area.id} className="rounded-2xl border border-border/50 bg-card overflow-hidden shadow-sm transition-all duration-300 hover:border-border">
-              {/* HEADER AREA */}
+           {/* HEADER AREA (Menampilkan Nama Area Murni) */}
               <div className="flex items-center justify-between bg-muted/10 p-4 border-b border-border/40">
                 <span className="text-sm md:text-base font-black flex items-center gap-2">
                   <div className="rounded-full bg-primary/20 p-1.5 text-primary"><Leaf className="h-4 w-4" /></div>
                   {cleanAreaName}
                 </span>
                 
-                {/* ⚠️ Tombol Hapus Sementara */}
-                <Button variant="ghost" size="icon" onClick={() => delAreaMutation.mutate(area.id)} disabled={delAreaMutation.isPending} className="h-8 w-8 text-destructive hover:bg-destructive/10 shrink-0">
+            {/* ⚠️ Tombol Hapus Area Master */}
+                <Button variant="ghost" size="icon" onClick={() => {
+                  if (confirm("⚠️ PERINGATAN KERAS: Menghapus Area ini akan melenyapkan SELURUH riwayat aktivitas dan siklus tanam di dalamnya secara permanen. Lanjutkan?")) {
+                    delAreaMutation.mutate(area.id);
+                  }
+                }} disabled={delAreaMutation.isPending} className="h-8 w-8 text-destructive hover:bg-destructive/10 shrink-0">
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
 
-              {/* BODY SIKLUS */}
+          {/* BODY SIKLUS */}
               <div className="p-4 bg-muted/5">
                 {loadingSiklus ? (
                    <div className="flex items-center gap-2 text-muted-foreground text-xs"><Loader2 className="h-3 w-3 animate-spin"/> Memuat siklus...</div>
                 ) : isAddingCycle ? (
-                  // KONDISI 1: SEDANG BUKA FORM SIKLUS (Prioritas Tertinggi)
+                  // KONDISI 1: SEDANG BUKA FORM SIKLUS
                   <div className="flex flex-col gap-2 rounded-xl bg-background border border-primary/30 p-3 shadow-inner">
+                    
+            {/* 💡 Info peringatan jika sedang mereplace siklus lama */}
+                    {currentCycle && (
+                      <div className="text-[10px] font-bold text-amber-700 bg-amber-500/10 p-2 rounded-lg mb-1 border border-amber-500/20">
+                        ⚠️ Menyimpan siklus baru akan otomatis mengubah status "{currentCycle.namaSiklus}" menjadi Selesai (Diarsipkan).
+                      </div>
+                    )}
+
                     <div className="flex flex-col md:flex-row gap-2">
-                      <input type="text" placeholder="Nama Tanaman" value={namaSiklus} onChange={e => setNamaSiklus(e.target.value)} className="flex-1 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-sm outline-none focus:border-primary/50 font-semibold" />
-                      <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-1.5 focus-within:border-primary/50">
-                        <span className="text-[10px] font-bold text-muted-foreground">TGL:</span>
-                        <input type="date" value={tglTanam} onChange={e => setTglTanam(e.target.value)} className="bg-transparent text-sm outline-none cursor-pointer w-full font-semibold" />
+                      <input type="text" placeholder="Nama Tanaman Baru..." value={namaSiklus} onChange={e => setNamaSiklus(e.target.value)} className="flex-1 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-sm outline-none focus:border-primary/50 font-semibold" />
+                      <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-1.5 focus-within:border-primary/50 shrink-0">
+                        <span className="text-[10px] font-bold text-muted-foreground">TGL TANAM:</span>
+                        <input type="date" value={tglTanam} onChange={e => setTglTanam(e.target.value)} className="bg-transparent text-sm outline-none cursor-pointer font-semibold" />
                       </div>
                     </div>
                     <div className="flex gap-2 justify-end mt-2">
                        <Button variant="ghost" size="sm" onClick={() => setCycleAreaId(null)} className="h-9 text-xs rounded-lg font-bold">Batal</Button>
                        <Button size="sm" 
-                         onClick={() => { if(namaSiklus && tglTanam) addSiklusMutation.mutate(); else toast({variant: "destructive", title:"Gagal", description:"Isi nama dan tanggal."}) }} 
+                         onClick={() => { if(namaSiklus && tglTanam) addSiklusMutation.mutate(); else toast({variant: "destructive", title:"Gagal", description:"Isi nama tanaman dan tanggal tanam."}) }} 
                          disabled={addSiklusMutation.isPending} 
                          className="h-9 text-xs rounded-lg font-bold px-6">
-                         {addSiklusMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Simpan"}
+                         {addSiklusMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Mulai Siklus"}
                        </Button>
                     </div>
                   </div>
                 ) : currentCycle ? (
-                  // KONDISI 2: ADA SIKLUS AKTIF TAPI TIDAK BUKA FORM
+            // KONDISI 2: ADA SIKLUS AKTIF (Read Only Mode)
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between rounded-xl border border-primary/20 bg-primary/5 p-3 gap-3">
                     <div>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded flex w-fit mb-1.5">
+                        🌱 Siklus Aktif
+                      </span>
                       <span className="text-sm font-black block text-primary">{currentCycle.namaSiklus}</span>
                       <span className="text-xs text-muted-foreground mt-0.5 block">
-                        Ditanam: {new Date(currentCycle.tanggalPindahTanam).toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'})}
+                        Mulai Tanam: {new Date(currentCycle.tanggalPindahTanam).toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'})}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto mt-2 sm:mt-0 border-t sm:border-0 border-primary/10 pt-2 sm:pt-0">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full whitespace-nowrap">
-                        Siklus Aktif
-                      </span>
-                      <Button variant="outline" size="sm" onClick={() => setCycleAreaId(area.id)} className="h-7 text-[10px] rounded-full border-primary/20 hover:bg-primary/10">
-                        Ganti Tanaman
+                    <div className="flex items-center sm:justify-end w-full sm:w-auto mt-2 sm:mt-0 border-t sm:border-0 border-primary/10 pt-2 sm:pt-0">
+                      <Button variant="outline" size="sm" onClick={() => setCycleAreaId(area.id)} className="h-8 text-[11px] rounded-lg border-primary/20 hover:bg-primary/10 font-bold bg-background">
+                        Akhiri & Ganti Tanaman
                       </Button>
                     </div>
                   </div>
                 ) : (
-                  // KONDISI 3: AREA KOSONG
-                  <Button variant="ghost" size="sm" onClick={() => setCycleAreaId(area.id)} className="h-10 text-xs font-bold text-muted-foreground hover:text-primary rounded-xl border border-dashed border-border/60 w-full hover:bg-primary/5">
-                    <Plus className="h-3 w-3 mr-1" /> Mulai Siklus Tanam
+              // KONDISI 3: AREA KOSONG
+                  <Button variant="ghost" size="sm" onClick={() => setCycleAreaId(area.id)} className="h-10 text-xs font-bold text-muted-foreground hover:text-primary rounded-xl border border-dashed border-border/60 w-full hover:bg-primary/5 bg-muted/20">
+                    <Plus className="h-3 w-3 mr-1" /> Mulai Siklus Tanam Pertama
                   </Button>
                 )}
               </div>
@@ -255,7 +265,6 @@ function AreaDanSiklusManager({ data }: { data: any[] }) {
       </div>
     </Card>
   );
-}
 
 function PekerjaManager({ data, atribut }: { data: any[], atribut?: any }) {
   const { toast } = useToast();
