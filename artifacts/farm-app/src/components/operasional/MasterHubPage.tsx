@@ -265,6 +265,7 @@ function AreaDanSiklusManager({ data }: { data: any[] }) {
       </div>
     </Card>
   );
+}
 
 function PekerjaManager({ data, atribut }: { data: any[], atribut?: any }) {
   const { toast } = useToast();
