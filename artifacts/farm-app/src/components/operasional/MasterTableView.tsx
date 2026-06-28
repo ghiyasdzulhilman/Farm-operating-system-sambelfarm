@@ -202,20 +202,27 @@ export function MasterTableView({
       },
     },
 
-    {
+     {
       id: "area",
       header: "Area",
       cell: ({ row }) => {
         const item = row.original;
+        
+        // 🚀 GABUNGKAN NAMA AREA DENGAN NAMA SIKLUS (TANAMAN)
+        // Pastikan namaSiklus ditarik dari tipe metaEkstra jika ada, atau default ke properti item
+        const namaSiklus = item.metaEkstra?.namaSiklus || (item as any).namaSiklus;
+        const displayLabel = namaSiklus && namaSiklus !== "-" 
+          ? `${item.area} - ${namaSiklus}` 
+          : item.area;
+
         return (
           <div className="min-w-[160px]">
             <EditableCell
               value={item.areaId} 
               type="select"
               options={areaOptions}
-              placeholder={item.area}
+              placeholder={displayLabel} // 👈 Masukkan label gabungan ke placeholder
               onSave={(val) => updateMutation.mutate({ id: item.id, module: item.module, payload: { areaId: val } })}
-              // ❌ onAddOption & onDeleteOption resmi dicabut sesuai request lu bro!
             />
           </div>
         );
