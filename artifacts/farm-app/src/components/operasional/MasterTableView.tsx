@@ -249,18 +249,19 @@ export function MasterTableView({
             const activityDate = new Date(`${dateOnlyAktivitas}T00:00:00`);
 
             if (!isNaN(plantDate.getTime()) && !isNaN(activityDate.getTime())) {
-              // 3. Hitung selisih hari murni
+              // 3. Hitung selisih hari murni (Tanggal Aktivitas - Tanggal Tanam)
               const diffTime = activityDate.getTime() - plantDate.getTime();
-              const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+              const hst = Math.round(diffTime / (1000 * 60 * 60 * 24));
               
-              // 4. Tambah 1 karena hari pindah tanam dihitung sebagai 1 HST
-              const hst = diffDays + 1;
-
-              hstDisplay = hst <= 0 ? "Pra-tanam" : `${hst} HST`;
+              // 4. Kondisi label umur tanaman murni
+              if (hst < 0) {
+                hstDisplay = "Pra-tanam";
+              } else if (hst === 0) {
+                hstDisplay = "0 HST (Hari Tanam)";
+              } else {
+                hstDisplay = `${hst} HST`;
+              }
             }
-          } catch {
-            hstDisplay = "-";
-          }
         }
 
         return (
