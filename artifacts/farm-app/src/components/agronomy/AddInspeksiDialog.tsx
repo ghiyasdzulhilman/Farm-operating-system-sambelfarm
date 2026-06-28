@@ -190,7 +190,7 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
   const [newKendalaJenis, setNewKendalaJenis] = useState<"hama" | "penyakit">("hama");
 
   const addMasterMutation = useMutation({
-    mutationFn: async ({ type, payload }: { type: 'areas' | 'pekerja', payload: any }) => {
+    mutationFn: async ({ type, payload }: { type: 'pekerja' | 'kendala-master', payload: any }) => {
       const res = await fetch(`/api/notion/${type}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       if (!res.ok) throw new Error(`Gagal tambah ${type}`); return res.json();
     },
@@ -366,20 +366,6 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
                               );
                             })}
                             
-                            {/* 👇 MULAI UI TAMBAH AREA BARU 👇 */}
-                            {isAddingArea ? (
-                              <div className="flex items-center gap-1 bg-muted/50 rounded-full pl-3 pr-1 py-1 border border-border">
-                                <input autoFocus className="bg-transparent text-xs outline-none w-24 font-medium" placeholder="Nama area..." value={newAreaName} onChange={(e) => setNewAreaName(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter') { e.preventDefault(); addMasterMutation.mutate({ type: 'areas', payload: { name: newAreaName }}); setIsAddingArea(false); setNewAreaName(""); } }} />
-                                <Button type="button" size="icon" variant="ghost" className="h-6 w-6 text-green-600 rounded-full" onClick={() => { addMasterMutation.mutate({ type: 'areas', payload: { name: newAreaName }}); setIsAddingArea(false); setNewAreaName(""); }}><Check className="h-3 w-3"/></Button>
-                                <Button type="button" size="icon" variant="ghost" className="h-6 w-6 text-destructive rounded-full" onClick={() => setIsAddingArea(false)}><X className="h-3 w-3"/></Button>
-                              </div>
-                            ) : (
-                              <button type="button" onClick={() => setIsAddingArea(true)} className="px-3 py-2 rounded-full text-xs font-semibold border border-dashed border-primary/50 text-primary hover:bg-primary/5 transition-all flex items-center gap-1">
-                                <Plus className="h-3 w-3" /> Tambah
-                              </button>
-                            )}
-                            {/* 👆 SELESAI UI TAMBAH AREA BARU 👆 */}
-
                           </div>
                         </div>
                       </motion.div>
