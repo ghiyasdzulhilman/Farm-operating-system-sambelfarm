@@ -363,7 +363,7 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
                         {/* CARD 3. Pekerja */}
                         <div className="bg-card p-4 rounded-2xl border border-border shadow-sm space-y-3">
                           <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">3. Tim Pekerja</p>
-                          <div className="flex flex-wrap gap-1.5 max-h-[120px] overflow-y-auto pr-1 items-center">
+                          <div className="flex flex-wrap gap-1.5 items-center">
                             {dropdownOptions?.petugas?.map((item) => {
                               const isSelected = form.watch("petugasBroadcast").includes(item.id);
                               return (
