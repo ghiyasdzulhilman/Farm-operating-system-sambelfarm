@@ -176,13 +176,26 @@ router.post("/notion/add-operasional", async (req, res): Promise<void> => {
       const prioritasStr = body.modeAtribut === "broadcast" ? body.prioritasBroadcast : (body.prioritasPerArea?.[currentAreaId] || body.prioritasBroadcast);
       const jenisStr = body.modeAtribut === "broadcast" ? body.jenisTenagaKerjaBroadcast : (body.jenisTenagaKerjaPerArea?.[currentAreaId] || body.jenisTenagaKerjaBroadcast);
 
-      // 5. Ekstrak Catatan
+            // 5. Ekstrak Catatan
       const catatanStr = body.modeCatatan === "broadcast" ? (body.catatanBroadcast || "") : (body.catatanPerArea?.[currentAreaId] || "");
+
+      // 🔍 6. CARI SIKLUS TANAM YANG SEDANG AKTIF DI AREA INI
+      const [activeCycle] = await db
+        .select({ id: siklusTanamTable.id })
+        .from(siklusTanamTable)
+        .where(
+          and(
+            eq(siklusTanamTable.areaId, currentAreaId),
+            eq(siklusTanamTable.status, "Aktif")
+          )
+        )
+        .limit(1);
 
       // Simpan Data Induk Operasional
       const [insertedOperasional] = await db.insert(operasionalTable).values({
         namaPekerjaan: namaPekerjaan,
         areaId: currentAreaId,
+        siklusId: activeCycle ? activeCycle.id : null, // 🚀 SUNTIKAN SIKLUS ID
         kategoriId: kategoriStr || null,
         waktuMulai: waktuMulaiStr ? new Date(waktuMulaiStr) : new Date(),
         waktuSelesai: waktuSelesaiStr ? new Date(waktuSelesaiStr) : null,
@@ -237,10 +250,15 @@ router.get("/notion/all-operasional", async (req, res): Promise<void> => {
         pekerjaIds: operasionalTable.pekerjaIds,
         status: operasionalTable.status,
         prioritas: operasionalTable.prioritas,
-        // 💡 AMBIL DATA RELASI BARU
+        
+       // 💡 AMBIL DATA RELASI BARU
         jenisTenagaKerjaId: operasionalTable.jenisTenagaKerjaId,
-        jenisTenagaKerjaName: jenisTenagaAttr.namaOption, // 👈 Ini teks yang dibutuhin UI (ex: "Mandor")
+        jenisTenagaKerjaName: jenisTenagaAttr.namaOption, 
         catatan: operasionalTable.catatan,
+        
+        // 🚀 SEKARANG KITA TARIK JUGA NAMA SIKLUSNYA BIAR UI TAU INI TANAMAN APA
+        siklusId: operasionalTable.siklusId,
+        namaSiklus: siklusTanamTable.namaSiklus,
         tanggalPindahTanam: siklusTanamTable.tanggalPindahTanam 
       })
       .from(operasionalTable)
@@ -248,10 +266,8 @@ router.get("/notion/all-operasional", async (req, res): Promise<void> => {
       .leftJoin(kategoriTable, eq(operasionalTable.kategoriId, kategoriTable.id))
       // 💡 JOIN KE TABEL MASTER ATRIBUT
       .leftJoin(jenisTenagaAttr, eq(operasionalTable.jenisTenagaKerjaId, jenisTenagaAttr.id))
-      .leftJoin(siklusTanamTable, and(
-        eq(operasionalTable.areaId, siklusTanamTable.areaId),
-        eq(siklusTanamTable.status, "Aktif")
-      ));
+      // 🚀 SIMPLE JOIN LANGSUNG KE SIKLUS ID, GAK PERLU CEK STATUS AKTIF/ENGGAK!
+      .leftJoin(siklusTanamTable, eq(operasionalTable.siklusId, siklusTanamTable.id));
 
     res.json({ success: true, data: data });
   } catch (err: any) {
