@@ -388,7 +388,7 @@ export function AddOperasionalDialog({ onSuccess }: { onSuccess?: () => void }) 
                             )}
                           </div>
                           
-                          <div className="flex flex-wrap gap-2 max-h-[140px] overflow-y-auto pr-1 items-center pt-2 border-t border-border/50 mt-3">
+                          <div className="flex flex-wrap gap-2 items-center pt-2 border-t border-border/50 mt-3">
                             {dropdownOptions?.petugas?.map((item) => {
                               const isSelected = form.watch("pekerjaBroadcast").includes(item.id);
                               return (
