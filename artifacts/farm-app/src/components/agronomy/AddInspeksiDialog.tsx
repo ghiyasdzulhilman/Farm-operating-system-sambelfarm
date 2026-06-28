@@ -180,17 +180,14 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
   });
 
 
-  // 👇 MULAI KODE BARU: STATE & MUTASI TAMBAH MASTER 👇
-    const [isAddingArea, setIsAddingArea] = useState(false); const [newAreaName, setNewAreaName] = useState("");
-  const [isAddingPekerja, setIsAddingPekerja] = useState(false); const [newPekerjaName, setNewPekerjaName] = useState("");
-  
-  // 👇 TAMBAHIN 3 BARIS INI BRO 👇
+  // 👇 TAMBAH KENDALA 👇
+
   const [isAddingKendala, setIsAddingKendala] = useState(false); 
   const [newKendalaName, setNewKendalaName] = useState("");
   const [newKendalaJenis, setNewKendalaJenis] = useState<"hama" | "penyakit">("hama");
 
   const addMasterMutation = useMutation({
-    mutationFn: async ({ type, payload }: { type: 'pekerja' | 'kendala-master', payload: any }) => {
+    mutationFn: async ({ type, payload }: { type: 'kendala-master', payload: any }) => {
       const res = await fetch(`/api/notion/${type}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       if (!res.ok) throw new Error(`Gagal tambah ${type}`); return res.json();
     },
@@ -371,7 +368,7 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
                       </motion.div>
                     )}
 
-           {/* ================= STEP 2: DATA MASTER INSPEKSI ================= */}
+ {/* ================= STEP 2: DATA MASTER INSPEKSI ================= */}
                     {step === 2 && (
                       <motion.div key="step2" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-4 pt-1">
 
@@ -483,18 +480,6 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
                               }} className={`px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all border ${isSelected ? "bg-primary text-primary-foreground border-primary shadow-sm scale-105" : "bg-background text-muted-foreground border-border hover:bg-muted/80 shadow-sm"}`}>{item.name}</button>
                             )})}
                             
-                            {/* UI TAMBAH PEKERJA BARU */}
-                            {isAddingPekerja ? (
-                              <div className="flex items-center gap-1 bg-muted/50 rounded-full pl-2 pr-1 py-0.5 border border-border">
-                                <input autoFocus className="bg-transparent text-[11px] outline-none w-20 font-medium" placeholder="Nama..." value={newPekerjaName} onChange={(e) => setNewPekerjaName(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter') { e.preventDefault(); addMasterMutation.mutate({ type: 'pekerja', payload: { nama: newPekerjaName }}); setIsAddingPekerja(false); setNewPekerjaName(""); } }} />
-                                <Button type="button" size="icon" variant="ghost" className="h-5 w-5 text-green-600 rounded-full" onClick={() => { addMasterMutation.mutate({ type: 'pekerja', payload: { nama: newPekerjaName }}); setIsAddingPekerja(false); setNewPekerjaName(""); }}><Check className="h-3 w-3"/></Button>
-                                <Button type="button" size="icon" variant="ghost" className="h-5 w-5 text-destructive rounded-full" onClick={() => setIsAddingPekerja(false)}><X className="h-3 w-3"/></Button>
-                              </div>
-                            ) : (
-                              <button type="button" onClick={() => setIsAddingPekerja(true)} className="px-2 py-1.5 rounded-full text-[11px] font-semibold border border-dashed border-primary/50 text-primary hover:bg-primary/5 transition-all flex items-center gap-1">
-                                <Plus className="h-3 w-3" /> Baru
-                              </button>
-                            )}
                           </div>
 
                           <Select onValueChange={(val) => form.setValue("statusBroadcast", val)} value={form.watch("statusBroadcast")}>
