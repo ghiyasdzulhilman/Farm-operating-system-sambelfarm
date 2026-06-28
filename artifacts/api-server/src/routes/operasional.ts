@@ -628,5 +628,61 @@ router.delete("/notion/pekerja-atribut/:id", async (req, res): Promise<void> => 
   } catch (err) { res.status(500).json({ error: "Gagal menghapus atribut." }); }
 });
 
+// ==========================================
+// 12. ENDPOINT MASTER KENDALA (HAMA & PENYAKIT) 🚀
+// ==========================================
+router.post("/notion/kendala", async (req, res): Promise<void> => {
+  const { userId } = getAuth(req);
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+  const { nama, jenis } = req.body;
+  if (!nama || typeof nama !== "string" || nama.trim() === "") {
+    res.status(400).json({ error: "Nama kendala wajib diisi." }); return;
+  }
+  if (!jenis) {
+    res.status(400).json({ error: "Jenis kendala wajib diisi." }); return;
+  }
+
+  try {
+    const [newKendala] = await db.insert(kendalaMasterTable)
+      .values({ nama: nama.trim(), jenis })
+      .returning();
+      
+    res.status(201).json({ success: true, data: newKendala });
+  } catch (err: any) {
+    // 💡 TANGKAP ERROR UNIK (Kalau namanya udah ada di database)
+    if (err.code === '23505') { 
+      res.status(400).json({ error: "Nama kendala ini sudah terdaftar." });
+      return;
+    }
+    res.status(500).json({ error: "Gagal menambah master kendala." });
+  }
+});
+
+router.delete("/notion/kendala/:id", async (req, res): Promise<void> => {
+  const { userId } = getAuth(req);
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+  const { id } = req.params;
+  
+  try {
+    const [deletedKendala] = await db.delete(kendalaMasterTable)
+      .where(eq(kendalaMasterTable.id, id))
+      .returning();
+
+    if (!deletedKendala) {
+      res.status(404).json({ error: "Kendala tidak ditemukan." }); return;
+    }
+    
+    res.json({ success: true, message: "Berhasil dihapus", data: deletedKendala });
+  } catch (err: any) {
+    // 💡 TANGKAP ERROR RELASI (Kalau datanya lagi dipakai di laporan inspeksi)
+    if (err.code === '23503') { 
+      res.status(400).json({ error: "Gagal dihapus! Data ini sedang dipakai di dalam riwayat inspeksi kebun." });
+      return;
+    }
+    res.status(500).json({ error: "Gagal menghapus kendala." });
+  }
+});
 
 export default router;
