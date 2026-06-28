@@ -92,13 +92,26 @@ router.post("/notion/add-inspeksi", async (req, res): Promise<void> => {
       const statusStr = body.modeAtribut === "broadcast" ? body.statusBroadcast : (body.statusPerArea?.[currentAreaId] || body.statusBroadcast);
       const catatanStr = body.modeCatatan === "broadcast" ? (body.keteranganBroadcast || "") : (body.keteranganPerArea?.[currentAreaId] || "");
       
-      // 4. Ekstrak Detail Temuan
+            // 4. Ekstrak Detail Temuan
       const temuanArray = body.modeKendala === "broadcast" ? (body.temuanBroadcast || []) : (body.temuanPerArea?.[currentAreaId] || []);
+
+      // 🔍 5. CARI SIKLUS TANAM YANG SEDANG AKTIF DI AREA INI
+      const [activeCycle] = await db
+        .select({ id: siklusTanamTable.id })
+        .from(siklusTanamTable)
+        .where(
+          and(
+            eq(siklusTanamTable.areaId, currentAreaId),
+            eq(siklusTanamTable.status, "Aktif")
+          )
+        )
+        .limit(1);
 
       // Simpan Data Induk Inspeksi
       const [insertedInspeksi] = await db.insert(inspeksiTable).values({
         kegiatan: kegiatan,
         areaId: currentAreaId,
+        siklusId: activeCycle ? activeCycle.id : null, // 🚀 SUNTIKAN SIKLUS ID
         waktuMulai: waktuMulaiStr ? new Date(waktuMulaiStr) : new Date(),
         waktuSelesai: waktuSelesaiStr ? new Date(waktuSelesaiStr) : null,
         durasiKerja: Number(durasiNum ?? 0),
@@ -167,15 +180,16 @@ router.get("/notion/all-inspeksi", async (req, res): Promise<void> => {
         status: inspeksiTable.status,
         pekerjaIds: inspeksiTable.pekerjaIds,
         keterangan: inspeksiTable.keterangan,
+        
+        // 🚀 TARIK JUGA SIKLUS ID DAN TANGGAL UNTUK UI
+        siklusId: inspeksiTable.siklusId,
         tanggalPindahTanam: siklusTanamTable.tanggalPindahTanam 
       })
       .from(inspeksiTable)
       .leftJoin(areasTable, eq(inspeksiTable.areaId, areasTable.id))
-      // 💡 HUBUNGKAN RELASI SIKLUS TANAM
-      .leftJoin(siklusTanamTable, and(
-        eq(inspeksiTable.areaId, siklusTanamTable.areaId),
-        eq(siklusTanamTable.status, "Aktif")
-      ));
+      // 🚀 SIMPLE JOIN LANGSUNG KE SIKLUS ID!
+      .leftJoin(siklusTanamTable, eq(inspeksiTable.siklusId, siklusTanamTable.id));
+
 
     // 2. Ambil semua data temuan dan JOIN ke master kendala untuk dapet nama & jenis
     // (Pastikan kendalaMasterTable dan inspeksiTemuanTable di-import di atas!)
