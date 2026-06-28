@@ -173,11 +173,13 @@ function AreaDanSiklusManager({ data }: { data: any[] }) {
 
       <div className="space-y-4">
         {data.map((area) => {
-          const currentCycle = activeSiklus.find((c:any) => c.areaId === area.id);
+          // 💡 PERBAIKAN: Pastikan hanya mencari siklus yang sedang "Aktif" saja di area tersebut!
+          const currentCycle = activeSiklus.find((c:any) => c.areaId === area.id && c.status === "Aktif");
           const cleanAreaName = getCleanAreaName(area.id, area.name);
           const isAddingCycle = cycleAreaId === area.id;
 
           return (
+
             <div key={area.id} className="rounded-2xl border border-border/50 bg-card overflow-hidden shadow-sm transition-all duration-300 hover:border-border">
               {/* HEADER AREA */}
               <div className="flex items-center justify-between bg-muted/10 p-4 border-b border-border/40">
