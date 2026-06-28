@@ -221,11 +221,15 @@ export function AgronomyHubPage() {
             <LiveFeedView 
               items={filteredItems} 
               onItemClick={setSelectedItem} 
-              // 💡 WAJIB ngirim 'module' biar backend tau tabel mana yang ditembak
-              onStatusChange={(id, status) => {
-                const target = filteredItems.find(i => i.id === id);
-                if (target) updateStatusMutation.mutate({ id, status, module: target.module });
-              }} 
+  onStatusChange={(id, payload) => {
+  const target = filteredItems.find(i => i.id === id);
+  if (target) {
+    const updateData = typeof payload === "string" 
+      ? { status: payload } 
+      : payload;
+    updateStatusMutation.mutate({ id, module: target.module, ...updateData });
+  }
+}}
             />
           )}
 
@@ -233,10 +237,16 @@ export function AgronomyHubPage() {
             <MasterTableView 
               items={filteredItems} 
               onItemClick={setSelectedItem} 
-              onStatusChange={(id, status) => {
-                const target = filteredItems.find(i => i.id === id);
-                if (target) updateStatusMutation.mutate({ id, status, module: target.module });
-              }} 
+  onStatusChange={(id, payload) => {
+  const target = filteredItems.find(i => i.id === id);
+  if (target) {
+    const updateData = typeof payload === "string" 
+      ? { status: payload } 
+      : payload;
+    updateStatusMutation.mutate({ id, module: target.module, ...updateData });
+  }
+}}
+
             />
           )}
 
@@ -245,10 +255,16 @@ export function AgronomyHubPage() {
             <KanbanView 
               items={filteredItems} 
               onItemClick={setSelectedItem} 
-              onStatusChange={(id, status) => {
-                const target = filteredItems.find(i => i.id === id);
-                if (target) updateStatusMutation.mutate({ id, status, module: target.module });
-              }} 
+  onStatusChange={(id, payload) => {
+  const target = filteredItems.find(i => i.id === id);
+  if (target) {
+    const updateData = typeof payload === "string" 
+      ? { status: payload } 
+      : payload;
+    updateStatusMutation.mutate({ id, module: target.module, ...updateData });
+  }
+}}
+
               // onDelete={(id, module) => handleHapus(id, module)} // Bisa diaktifkan nanti kalau fungsi hapus udah siap
             />
           )}
