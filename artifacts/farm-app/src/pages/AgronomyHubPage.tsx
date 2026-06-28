@@ -55,7 +55,7 @@ export function AgronomyHubPage() {
         areaMap[a.id] = a.name; 
       });
 
-        const formatItem = (item: any, module: ModuleKey, icon: string, titleKey: string): AgronomyItem => {
+      const formatItem = (item: any, module: ModuleKey, icon: string, titleKey: string): AgronomyItem => {
         const rawDate = item.waktuMulai || new Date().toISOString();
         const cleanDate = rawDate.replace(/(Z|\+00:00)$/, '');
         const itemDate = new Date(cleanDate);
@@ -72,12 +72,6 @@ export function AgronomyHubPage() {
           ? `Bahan & Dosis:\n${item.logProduk.map((p: any) => `- ${p.produk} (${p.dosis})`).join("\n")}${item.catatan ? `\n\nCatatan Tambahan:\n${item.catatan}` : ""}`
           : (item.catatan || item.keterangan || "Tidak ada catatan.");
 
-        // Bersihkan nama area dari tempelan nama tanaman (Cth: "C - Jagung" jadi "C" saja)
-        let cleanAreaName = item.areaName || "Area Master";
-        if (cleanAreaName.includes(" - ")) {
-          cleanAreaName = cleanAreaName.split(" - ")[0].trim();
-        }
-
         return {
           id: item.id,
           module: module,
@@ -88,12 +82,14 @@ export function AgronomyHubPage() {
           status: item.status || "Belum dikerjakan",
           areaId: item.areaId,
           
-          area: cleanAreaName,
+          // 💡 3. FIX AREA: Panggil dari areaMap pakai ID-nya
+          area: areaMap[item.areaId] || item.areaName || "Area Master",
           
           workers: resolvedWorkers.length ? resolvedWorkers : ["Tim Lapangan"], 
           duration: `${item.durasiKerja || 0} jam`,
           priority: item.prioritas || "Medium",
           
+          // 💡 4. FIX KATEGORI: Ganti Umum/Diagnosis jadi nama Modul
           category: item.kategori || item.tagCategory || (
             module === "inspeksi" ? "Inspeksi" : 
             module === "perawatan" ? "Perawatan" : 
@@ -105,14 +101,7 @@ export function AgronomyHubPage() {
           timeLabel: "Disinkronkan",
           attachments: [],
           history: [{ time: "Supabase Live", text: "Data ditarik langsung dari server lokal." }],
-          
-          // 💡 KUNCI UTAMA: Kita pastikan 'tanggalPindahTanam' yang historis dari backend 
-          // (hasil dari fungsi mesin waktu) masuk ke dalam metaEkstra dengan aman.
-          metaEkstra: { 
-            ...item,
-            tanggalPindahTanam: item.tanggalPindahTanam || null, 
-            namaSiklus: item.namaSiklus || null
-          },
+          metaEkstra: { ...item },
         } as unknown as AgronomyItem;
       };
 
