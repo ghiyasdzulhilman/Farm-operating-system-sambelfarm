@@ -44,18 +44,21 @@ export function MasterTableView({
 
   // 2. MUTASI DATA (Update, Tambah Master, Hapus Master)
   const updateMutation = useMutation({
-    mutationFn: async ({ id, module, payload }: { id: string; module: string; payload: any }) => {
-      const res = await fetch(`/api/notion/edit-activity/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ module, ...payload }),
-      });
-      if (!res.ok) throw new Error("Gagal menyimpan perubahan");
-      return res.json();
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] }),
-    onError: (err: any) => toast({ variant: "destructive", title: "Gagal Simpan", description: err.message }),
-  });
+  mutationFn: async ({ id, module, payload }: { id: string; module: string; payload: any }) => {
+    const res = await fetch(`/api/notion/edit-activity/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ module, ...payload }),
+    });
+    if (!res.ok) throw new Error("Gagal menyimpan perubahan");
+    return res.json();
+  },
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] });
+    queryClient.invalidateQueries({ queryKey: ["operasional-options-list"] });
+  },
+  onError: (err: any) => toast({ variant: "destructive", title: "Gagal Simpan", description: err.message }),
+});
 
     // Mutasi Area
   const addAreaMutation = useMutation({
