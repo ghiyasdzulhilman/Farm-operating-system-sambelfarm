@@ -117,12 +117,10 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
   });
 
   // --- STATE TAMBAH MASTER DATA ---
-  const [isAddingArea, setIsAddingArea] = useState(false); const [newAreaName, setNewAreaName] = useState("");
-  const [isAddingPekerja, setIsAddingPekerja] = useState(false); const [newPekerjaName, setNewPekerjaName] = useState("");
   const [isAddingKategori, setIsAddingKategori] = useState(false); const [newKategoriName, setNewKategoriName] = useState("");
 
   const addMasterMutation = useMutation({
-    mutationFn: async ({ type, payload }: { type: 'pekerja' | 'kategori', payload: any }) => {
+    mutationFn: async ({ type, payload }: { type: 'kategori', payload: any }) => {
       const res = await fetch(`/api/notion/${type}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       if (!res.ok) throw new Error(`Gagal tambah ${type}`); return res.json();
     },
@@ -374,18 +372,6 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
                               }} className={`px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all border ${isSelected ? "bg-primary text-primary-foreground border-primary shadow-sm scale-105" : "bg-background text-muted-foreground border-border hover:bg-muted/80 shadow-sm"}`}>{item.name}</button>
                             )})}
 
-                            {/* TOMBOL TAMBAH PEKERJA BARU */}
-                            {isAddingPekerja ? (
-                              <div className="flex items-center gap-1 bg-muted/50 rounded-full pl-2 pr-1 py-0.5 border border-border">
-                                <input autoFocus className="bg-transparent text-[11px] outline-none w-20 font-medium" placeholder="Nama..." value={newPekerjaName} onChange={(e) => setNewPekerjaName(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter') { e.preventDefault(); addMasterMutation.mutate({ type: 'pekerja', payload: { nama: newPekerjaName }}); setIsAddingPekerja(false); setNewPekerjaName(""); } }} />
-                                <Button type="button" size="icon" variant="ghost" className="h-5 w-5 text-green-600 rounded-full" onClick={() => { addMasterMutation.mutate({ type: 'pekerja', payload: { nama: newPekerjaName }}); setIsAddingPekerja(false); setNewPekerjaName(""); }}><Check className="h-3 w-3"/></Button>
-                                <Button type="button" size="icon" variant="ghost" className="h-5 w-5 text-destructive rounded-full" onClick={() => setIsAddingPekerja(false)}><X className="h-3 w-3"/></Button>
-                              </div>
-                            ) : (
-                              <button type="button" onClick={() => setIsAddingPekerja(true)} className="px-2 py-1.5 rounded-full text-[11px] font-semibold border border-dashed border-primary/50 text-primary hover:bg-primary/5 transition-all flex items-center gap-1">
-                                <Plus className="h-3 w-3" /> Baru
-                              </button>
-                            )}
                           </div>
                         </div>
 
