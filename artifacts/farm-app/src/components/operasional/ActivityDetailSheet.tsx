@@ -293,6 +293,16 @@ export function ActivityDetailSheet({
                       </>
                     )}
 
+                  {/* 💡 TAMPILKAN NAMA TANAMAN HISTORIS DARI SIKLUS ID */}
+                    {item.metaEkstra?.namaSiklus && (
+                      <>
+                        <span className="text-border/40 font-light">|</span>
+                        <span className="text-primary bg-primary/10 px-1.5 py-0.5 rounded flex items-center gap-1 font-bold tracking-normal">
+                          🌾 {item.metaEkstra.namaSiklus}
+                        </span>
+                      </>
+                    )}
+
                    {/* 💡 HST PINDAH KE SINI, HANYA MUNCUL JIKA ADA DATANYA */}
                     {calculateHST() && (
                       <>
@@ -335,7 +345,7 @@ export function ActivityDetailSheet({
              {/* 💡 JAJARAN BADGE INTERAKTIF BARU (FIX LEBAR DINAMIS) */}
               <div className="mt-4 flex flex-wrap gap-2 items-center">
                 
-{/* 1. Badge Area (Editable) */}
+ {/* 1. Badge Area (Editable) & Tanaman Historis */}
 <div className="relative inline-flex shadow-sm max-w-full">
   <select
     value={item.areaId || ""}
@@ -343,12 +353,22 @@ export function ActivityDetailSheet({
     className="appearance-none max-w-[130px] sm:max-w-[160px] truncate bg-primary text-primary-foreground border border-primary hover:bg-primary/90 rounded-full pl-3 pr-7 py-1 text-[11px] font-bold uppercase tracking-wider outline-none cursor-pointer transition-colors z-10"
   >
     <option value="" disabled>PILIH AREA</option>
-    {dropdownOptions?.areas?.map((a: any) => (
-      <option key={a.id} value={a.id}>
-        {/* 💡 CUKUP PANGGIL a.name, KARENA BACKEND UDAH NYIAPIN "Area - Tanaman" */}
-        {a.name} 
-      </option>
-    ))}
+    {dropdownOptions?.areas?.map((a: any) => {
+      // 💡 LOGIKA HISTORIS PINTAR: 
+      // Jika area yang sedang di-loop ini adalah area tempat aktivitas dilakukan, 
+      // kita paksakan labelnya gabungin 'Area Asli' + 'Nama Siklus Historis'.
+      // Jadi pas ngelihat riwayat lama, teks yang nempel di badge tetap akurat!
+      const isCurrentArea = a.id === item.areaId;
+      const displayLabel = (isCurrentArea && item.metaEkstra?.namaSiklus) 
+        ? `${item.area} - ${item.metaEkstra.namaSiklus}` 
+        : a.name;
+
+      return (
+        <option key={a.id} value={a.id}>
+          {displayLabel}
+        </option>
+      );
+    })}
   </select>
   <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-primary-foreground pointer-events-none z-10" />
 </div>
