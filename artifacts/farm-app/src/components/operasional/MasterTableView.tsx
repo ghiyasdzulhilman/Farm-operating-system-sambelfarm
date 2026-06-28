@@ -205,32 +205,46 @@ export function MasterTableView({
       },
     },
 
-     {
-      id: "area",
-      header: "Area",
-      cell: ({ row }) => {
-        const item = row.original;
-        
-        // 🚀 GABUNGKAN NAMA AREA DENGAN NAMA SIKLUS (TANAMAN)
-        // Pastikan namaSiklus ditarik dari tipe metaEkstra jika ada, atau default ke properti item
-        const namaSiklus = item.metaEkstra?.namaSiklus || (item as any).namaSiklus;
-        const displayLabel = namaSiklus && namaSiklus !== "-" 
-          ? `${item.area} - ${namaSiklus}` 
-          : item.area;
+{
+  id: "area",
+  header: "Area",
+  cell: ({ row }) => {
+    const item = row.original;
 
-        return (
-          <div className="min-w-[160px]">
-            <EditableCell
-              value={item.areaId} 
-              type="select"
-              options={areaOptions}
-              placeholder={displayLabel} // 👈 Masukkan label gabungan ke placeholder
-              onSave={(val) => updateMutation.mutate({ id: item.id, module: item.module, payload: { areaId: val } })}
-            />
-          </div>
-        );
-      },
-    },
+    // 💡 HISTORIS FIX:
+    // EditableCell resolve label dari options (selalu siklus aktif).
+    // Solusi: inject option historis khusus untuk row ini,
+    // sehingga label yang tampil sesuai siklus saat aktivitas dicatat.
+    const namaSiklusHistoris = item.metaEkstra?.namaSiklus;
+    const historisLabel = namaSiklusHistoris && namaSiklusHistoris !== "-"
+      ? `${item.area} - ${namaSiklusHistoris}`
+      : item.area;
+
+    // Gabungkan: option historis untuk row ini + semua area aktif untuk pilihan edit
+    // Kalau areaId sudah ada di areaOptions (label mungkin beda), kita override labelnya
+    const optionsWithHistoris = areaOptions.map(opt =>
+      opt.value === item.areaId
+        ? { ...opt, label: historisLabel } // Override label area ini dengan historis
+        : opt
+    );
+
+    return (
+      <div className="min-w-[160px]">
+        <EditableCell
+          value={item.areaId} 
+          type="select"
+          options={optionsWithHistoris}
+          placeholder={historisLabel}
+          onSave={(val) => updateMutation.mutate({ 
+            id: item.id, 
+            module: item.module, 
+            payload: { areaId: val } 
+          })}
+        />
+      </div>
+    );
+  },
+},
 
        {
       id: "hst",
