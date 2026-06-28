@@ -338,7 +338,7 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
                 <div className="max-h-[55vh] overflow-y-auto pr-1 pb-2 space-y-5">
                   <AnimatePresence mode="wait">
 
-                    {/* ================= STEP 1: INFO DASAR (ANCHOR) ================= */}
+  {/* ================= STEP 1: INFO DASAR (ANCHOR) ================= */}
                     {step === 1 && (
                       <motion.div key="step1" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-5 pt-1">
                         <FormField control={form.control} name="kegiatan" render={({ field }) => (
@@ -416,11 +416,13 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
                           <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">2. Catatan Temuan Lapangan</p>
                           <Select onValueChange={(val) => handleToggleHamaBroadcast(val)}>
                             <SelectTrigger className="w-full h-11 rounded-xl bg-background border-input font-bold text-xs"><SelectValue placeholder="+ Tambah Hama / Penyakit" /></SelectTrigger>
-                            <SelectContent className="max-h-60 rounded-xl">
+                        <SelectContent className="max-h-60 rounded-xl">
                               {dropdownOptions?.kendalaMaster?.map((k) => (
-                                <SelectItem key={k.id} value={k.id}>{k.name} ({k.jenis === 'hama' ? 'Hama' : 'Penyakit'})</SelectItem>
+                                // 💡 Langsung panggil {k.jenis} karena dari DB!
+                                <SelectItem key={k.id} value={k.id}>{k.name} ({k.jenis})</SelectItem>
                               ))}
                             </SelectContent>
+
                           </Select>
 
                           {/* 👇 UI TAMBAH HAMA/PENYAKIT BARU DIMULAI DARI SINI 👇 */}
@@ -453,8 +455,9 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
                             <AnimatePresence>
                               {form.watch("kendalaBroadcast").map((item) => {
                                 // Cari nama & jenis untuk Badge
-                                const kendalaData = dropdownOptions?.kendalaMaster?.find(k => k.id === item);
-                                const isPenyakit = kendalaData?.jenis === "penyakit";
+                              const kendalaData = dropdownOptions?.kendalaMaster?.find(k => k.id === item);
+                                // 💡 Tambahkan .toLowerCase() biar kebal dari huruf besar/kecil
+                                const isPenyakit = kendalaData?.jenis?.toLowerCase() === "penyakit";
 
                                 return (
                                   <motion.div key={item} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="bg-muted/40 p-3 rounded-xl border border-border overflow-hidden">
@@ -517,7 +520,7 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
                       </motion.div>
                     )}
 
-                    {/* ================= STEP 3: REVIEW & CUSTOM PER AREA ================= */}
+ {/* ================= STEP 3: REVIEW & CUSTOM PER AREA ================= */}
                     {step === 3 && (
                       <motion.div key="step3" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-4 pt-1">
                         <div className="bg-primary/10 text-primary p-3 rounded-2xl border border-primary/20 text-[11px] font-medium leading-relaxed shadow-sm">
@@ -562,14 +565,15 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
                                   <div className="space-y-2 pt-2 border-t border-border/50">
                                     <Select onValueChange={(val) => handleToggleHamaSpesifik(areaId, val)}>
                                       <SelectTrigger className="w-full h-8 rounded-lg bg-background border-input font-bold text-[10px]"><SelectValue placeholder="+ Tambah Temuan Khusus Area Ini" /></SelectTrigger>
+                    
   <SelectContent className="max-h-60 rounded-xl">
   {dropdownOptions?.kendalaMaster?.map(k => (
     <SelectItem key={k.id} value={k.id}>
-      {k.name} ({k.jenis === 'hama' ? 'Hama' : 'Penyakit'})
+      {k.name} ({k.jenis})
     </SelectItem>
   ))}
-</SelectContent>
-
+  </SelectContent>
+  
   </Select>
   {form.watch(`kendalaPerArea.${areaId}`)?.map((item) => {
   // 1. Cari data master dari DB berdasarkan ID-nya di sini juga 👇
