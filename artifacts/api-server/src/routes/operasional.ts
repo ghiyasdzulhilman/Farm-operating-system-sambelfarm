@@ -220,10 +220,10 @@ router.get("/notion/all-operasional", async (req, res): Promise<void> => {
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   try {
-    // 💡 BUAT ALIAS: Supaya aman kalau nanti lu mau join atribut lain (role/status)
     const jenisTenagaAttr = aliasedTable(pekerjaAtributMasterTable, "jenis_tenaga_attr");
 
-    const data = await db
+    // 1. Tarik riwayat HANYA DARI tabel operasional dan master tag (TANPA JOIN SIKLUS TANAM)
+    const rawData = await db
       .select({
         id: operasionalTable.id,
         namaPekerjaan: operasionalTable.namaPekerjaan,
@@ -237,23 +237,43 @@ router.get("/notion/all-operasional", async (req, res): Promise<void> => {
         pekerjaIds: operasionalTable.pekerjaIds,
         status: operasionalTable.status,
         prioritas: operasionalTable.prioritas,
-        // 💡 AMBIL DATA RELASI BARU
         jenisTenagaKerjaId: operasionalTable.jenisTenagaKerjaId,
-        jenisTenagaKerjaName: jenisTenagaAttr.namaOption, // 👈 Ini teks yang dibutuhin UI (ex: "Mandor")
+        jenisTenagaKerjaName: jenisTenagaAttr.namaOption, 
         catatan: operasionalTable.catatan,
-        tanggalPindahTanam: siklusTanamTable.tanggalPindahTanam 
       })
       .from(operasionalTable)
       .leftJoin(areasTable, eq(operasionalTable.areaId, areasTable.id)) 
       .leftJoin(kategoriTable, eq(operasionalTable.kategoriId, kategoriTable.id))
-      // 💡 JOIN KE TABEL MASTER ATRIBUT
-      .leftJoin(jenisTenagaAttr, eq(operasionalTable.jenisTenagaKerjaId, jenisTenagaAttr.id))
-      .leftJoin(siklusTanamTable, and(
-        eq(operasionalTable.areaId, siklusTanamTable.areaId),
-        eq(siklusTanamTable.status, "Aktif")
-      ));
+      .leftJoin(jenisTenagaAttr, eq(operasionalTable.jenisTenagaKerjaId, jenisTenagaAttr.id));
 
-    res.json({ success: true, data: data });
+    // 2. Tarik SELURUH data historis siklus tanam (Yang Aktif maupun Selesai/Panen)
+    const allCycles = await db.select().from(siklusTanamTable);
+
+    // 3. 🚀 LOGIKA PINTAR: Cocokkan aktivitas dengan siklus pada saat itu (Mesin Waktu)
+    const processedData = rawData.map(item => {
+      // Ambil semua siklus yang pernah terjadi di area tempat aktivitas ini dilakukan
+      const cyclesInArea = allCycles.filter(c => c.areaId === item.areaId);
+
+      // Urutkan dari yang paling baru ke yang paling lama (Berdasarkan tanggal tanam)
+      cyclesInArea.sort((a, b) => new Date(b.tanggalPindahTanam).getTime() - new Date(a.tanggalPindahTanam).getTime());
+
+      // Cari siklus pertama yang "tanggal tanamnya" SEBELUM atau SAMA DENGAN "waktu aktivitas"
+      const matchedCycle = cyclesInArea.find(c => {
+        const tglTanam = new Date(c.tanggalPindahTanam);
+        tglTanam.setHours(0, 0, 0, 0); // Normalisasi ke jam 00:00
+        const tglAktivitas = new Date(item.waktuMulai);
+        return tglTanam.getTime() <= tglAktivitas.getTime();
+      });
+
+      return {
+        ...item,
+        // Sisipkan tanggal tanam sejarah (atau null jika aktivitas dilakukan saat lahan kosong/pra-tanam)
+        tanggalPindahTanam: matchedCycle ? matchedCycle.tanggalPindahTanam : null,
+        namaSiklus: matchedCycle ? matchedCycle.namaSiklus : null
+      };
+    });
+
+    res.json({ success: true, data: processedData });
   } catch (err: any) {
     console.error("[DB ERROR GET ALL OPERASIONAL]:", err);
     res.status(500).json({ error: "Gagal mengambil riwayat operasional.", detail: err.message });
