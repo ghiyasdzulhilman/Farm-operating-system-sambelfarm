@@ -310,10 +310,6 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
                                 </button>
                               );
                             })}
-                            
-// Hapus state isAddingArea dan newAreaName
-// Hapus seluruh blok UI tambah area di atas
-// Tidak ada pengganti — area list cukup dari dropdown saja
 
                           </div>
                         </div>
