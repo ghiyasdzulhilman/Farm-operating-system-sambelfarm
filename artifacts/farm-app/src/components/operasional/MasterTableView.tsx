@@ -262,7 +262,7 @@ export function MasterTableView({
                 hstDisplay = `${hst} HST`;
               }
             }
-        }
+        
 
         return (
           <div className="min-w-[80px] px-2 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-500/10 border border-emerald-500/20 rounded-md text-center">
