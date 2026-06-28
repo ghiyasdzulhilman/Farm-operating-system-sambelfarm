@@ -297,7 +297,7 @@ export function ActivityDetailSheet({
                       <>
                         <span className="text-border/40 font-light">|</span>
                         <span className="text-primary bg-primary/10 px-1.5 py-0.5 rounded flex items-center gap-1 font-bold tracking-normal">
-                          🌾 {item.metaEkstra.namaSiklus}
+                           {item.metaEkstra.namaSiklus}
                         </span>
                       </>
                     )}
