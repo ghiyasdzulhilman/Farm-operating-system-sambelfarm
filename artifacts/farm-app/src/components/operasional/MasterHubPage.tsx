@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Leaf, Users, Database, Trash2, Plus, Loader2, ChevronRight, X, CalendarDays } from "lucide-react";
+import { Leaf, Users, Database, Trash2, Plus, Loader2, ChevronRight, X, CalendarDays, Bug } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -10,12 +10,13 @@ import { cn } from "@/lib/utils";
 // ---------------------------------------------------------------------------
 // 📂 1. DICTIONARY DOMAIN MASTER
 // ---------------------------------------------------------------------------
-type MasterDomain = "area" | "pekerja" | "kategori";
+type MasterDomain = "area" | "pekerja" | "kategori" | "kendala";
 
 const MASTER_DOMAINS = [
   { id: "area" as MasterDomain, label: "Area & Blok", icon: Leaf, desc: "Kelola daftar area & siklus tanam" },
   { id: "pekerja" as MasterDomain, label: "Tim Pekerja", icon: Users, desc: "Daftar karyawan & tenaga kerja" },
   { id: "kategori" as MasterDomain, label: "Kategori Aktivitas", icon: Database, desc: "Label aktivitas per modul" },
+  { id: "kendala" as MasterDomain, label: "Hama & Penyakit", icon: Bug, desc: "Master kendala operasional" },
 ];
 
 const glassCard = "rounded-[1.75rem] border-border/50 bg-card text-card-foreground shadow-sm transition-all duration-300 p-5";
@@ -88,8 +89,11 @@ export function MasterHubPage({ onClose }: { onClose?: () => void }) {
                 {activeDomain === "area" && <AreaDanSiklusManager data={masterData?.areas || []} />}
                 {activeDomain === "pekerja" && <PekerjaManager data={masterData?.petugas || []} atribut={masterData?.atributPekerja} />}
                 {activeDomain === "kategori" && <KategoriManager data={masterData?.kategori || []} />}
+                {/* 💡 Komponen Kendala ngambil data dari masterData?.kendalaMaster */}
+                {activeDomain === "kendala" && <KendalaManager data={masterData?.kendalaMaster || []} />}
 
               </motion.div>
+
             </AnimatePresence>
           )}
         </main>
@@ -500,6 +504,69 @@ function KategoriManager({ data }: { data: any[] }) {
             </Button>
           </div>
         ))}
+      </div>
+    </Card>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 📦 4. KOMPONEN PENGELOLA HAMA & PENYAKIT (KENDALA)
+// ---------------------------------------------------------------------------
+function KendalaManager({ data }: { data: any[] }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [newName, setNewName] = useState("");
+  const [jenisKendala, setJenisKendala] = useState("Hama");
+
+  const addMutation = useMutation({
+    mutationFn: async () => fetch("/api/notion/kendala", { 
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nama: newName, jenis: jenisKendala }) 
+    }).then(r => r.json()),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["master-dropdown-options"] }); setNewName(""); toast({ title: "Sukses", description: "Data baru ditambahkan." }); },
+  });
+
+  const delMutation = useMutation({
+    mutationFn: async (id: string) => fetch(`/api/notion/kendala/${id}`, { method: "DELETE" }).then(r => r.json()),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["master-dropdown-options"] }); toast({ title: "Dihapus", description: "Data berhasil dihapus." }); },
+  });
+
+  return (
+    <Card className={glassCard}>
+      <h3 className="text-lg font-black mb-1">Daftar Hama & Penyakit</h3>
+      <p className="text-xs text-muted-foreground mb-6">Kelola daftar kendala lapangan yang sering terjadi untuk mempermudah laporan tim.</p>
+      
+      <div className="flex flex-col md:flex-row gap-2 mb-6">
+        <div className="flex-1 flex gap-2">
+          <select value={jenisKendala} onChange={e => setJenisKendala(e.target.value)} className="rounded-xl border border-border/60 bg-muted/30 px-3 py-2 text-xs outline-none font-bold uppercase tracking-wider text-primary cursor-pointer w-[120px]">
+            <option value="Hama">🦟 Hama</option>
+            <option value="Penyakit">🦠 Penyakit</option>
+            <option value="Gulma">🌿 Gulma</option>
+            <option value="Nutrisi">🧪 Nutrisi</option>
+            <option value="Cuaca">☁️ Cuaca</option>
+            <option value="Teknis">🛠️ Teknis</option>
+          </select>
+          <input type="text" placeholder="Nama (cth: Ulat Grayak)" value={newName} onChange={e => setNewName(e.target.value)} className="flex-1 rounded-xl border border-border/60 bg-muted/30 px-4 py-2 text-sm outline-none focus:border-primary/50 font-bold" />
+        </div>
+        <Button onClick={() => newName.trim() && addMutation.mutate()} disabled={addMutation.isPending} className="rounded-xl font-bold md:w-auto w-full shrink-0">
+          {addMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Plus className="h-4 w-4 mr-1"/> Tambah</>}
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {data.map((item) => (
+          <div key={item.id} className="flex items-center justify-between rounded-xl border border-border/40 bg-muted/10 p-3 hover:bg-muted/30 transition-colors">
+            <div>
+              <span className="text-sm font-bold block">{item.name}</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground border border-border/50 bg-background px-1.5 py-0.5 rounded inline-block mt-1">
+                {item.jenis}
+              </span>
+            </div>
+            <Button variant="ghost" size="icon" onClick={() => delMutation.mutate(item.id)} disabled={delMutation.isPending} className="h-8 w-8 text-destructive hover:bg-destructive/10">
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        ))}
+        {data.length === 0 && <p className="text-center text-xs text-muted-foreground py-4 md:col-span-2">Belum ada data hama atau penyakit.</p>}
       </div>
     </Card>
   );
