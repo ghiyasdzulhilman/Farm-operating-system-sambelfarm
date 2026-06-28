@@ -149,10 +149,12 @@ function AreaDanSiklusManager({ data }: { data: any[] }) {
   });
 
   // Helper untuk membersihkan teks area dari backend (Membuang tempelan nama tanaman)
+    // 💡 PERBAIKAN: Pisahkan string berdasarkan " - " dan ambil murni nama areanya saja
   const getCleanAreaName = (areaId: string, mergedName: string) => {
-    const cycle = activeSiklus.find((c: any) => c.areaId === areaId);
-    if (cycle && cycle.namaSiklus && mergedName.includes(` - ${cycle.namaSiklus}`)) {
-      return mergedName.replace(` - ${cycle.namaSiklus}`, "");
+    if (!mergedName) return "";
+    // Kalau ada tanda " - ", kita split dan ambil yang depan saja (Cth: "C - Jagung" -> "C")
+    if (mergedName.includes(" - ")) {
+      return mergedName.split(" - ")[0].trim();
     }
     return mergedName;
   };
