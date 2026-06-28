@@ -314,24 +314,29 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
                       </motion.div>
                     )}
 
-                    {/* ================= STEP 2: DATA MASTER ================= */}
+ {/* ================= STEP 2: DATA MASTER ================= */}
                     {step === 2 && (
                       <motion.div key="step2" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-4 pt-1">
 
-                        {/* CARD 1. Waktu */}
-                        <div className="bg-card p-4 rounded-2xl border border-border shadow-sm space-y-3">
-                          <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">1. Waktu & Durasi</p>
-                          <div className="flex flex-col gap-3">
-                           <div className="space-y-1.5"><p className="text-[10px] font-bold text-muted-foreground ml-1">Mulai</p>
-                           <Input type="datetime-local" 
-    className="h-11 rounded-xl bg-background border-input focus-visible:ring-primary/20 text-xs font-bold w-full min-w-0 flex-1 px-3 appearance-none" value={form.watch("tanggalBroadcast") || ""} onChange={(e) => { form.setValue("tanggalBroadcast", e.target.value); form.setValue("durasiKerjaBroadcast", calculateDuration(e.target.value, form.getValues("tanggalSelesaiBroadcast"))); }} />
-                           </div>
-                           <div className="space-y-1.5"><p className="text-[10px] font-bold text-muted-foreground ml-1">Selesai</p>
-                           <Input type="datetime-local" 
-    className="h-11 rounded-xl bg-background border-input focus-visible:ring-primary/20 text-xs font-bold w-full min-w-0 flex-1 px-3 appearance-none" value={form.watch("tanggalSelesaiBroadcast") || ""} onChange={(e) => { form.setValue("tanggalSelesaiBroadcast", e.target.value); form.setValue("durasiKerjaBroadcast", calculateDuration(form.getValues("tanggalBroadcast"), e.target.value)); }} />
-                           </div>
-                           </div>
-
+ {/* CARD 1. Waktu */}
+ <div className="bg-card p-4 rounded-2xl border border-border shadow-sm space-y-3">
+  <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">1. Waktu & Durasi</p>
+  <div className="grid grid-cols-2 gap-2">
+    <div className="space-y-1.5">
+      <p className="text-[10px] font-bold text-muted-foreground ml-1">Mulai</p>
+      <Input type="datetime-local" 
+        className="h-11 rounded-xl bg-background border-input focus-visible:ring-primary/20 text-xs font-bold w-full px-2 appearance-none" 
+        value={form.watch("tanggalBroadcast") || ""} 
+        onChange={(e) => { form.setValue("tanggalBroadcast", e.target.value); form.setValue("durasiKerjaBroadcast", calculateDuration(e.target.value, form.getValues("tanggalSelesaiBroadcast"))); }} />
+    </div>
+    <div className="space-y-1.5">
+      <p className="text-[10px] font-bold text-muted-foreground ml-1">Selesai</p>
+      <Input type="datetime-local" 
+        className="h-11 rounded-xl bg-background border-input focus-visible:ring-primary/20 text-xs font-bold w-full px-2 appearance-none" 
+        value={form.watch("tanggalSelesaiBroadcast") || ""} 
+        onChange={(e) => { form.setValue("tanggalSelesaiBroadcast", e.target.value); form.setValue("durasiKerjaBroadcast", calculateDuration(form.getValues("tanggalBroadcast"), e.target.value)); }} />
+    </div>
+  </div>
                           <div className="space-y-1.5 pt-1.5"><p className="text-[10px] font-bold text-muted-foreground ml-1">Durasi Total (Jam)</p>
                             <Input type="number" step="0.1" className="h-11 rounded-xl bg-background border-input focus-visible:ring-primary/20 text-sm font-bold w-1/2" value={form.watch("durasiKerjaBroadcast") || 0} onChange={(e) => form.setValue("durasiKerjaBroadcast", Number(e.target.value))} />
                           </div>
