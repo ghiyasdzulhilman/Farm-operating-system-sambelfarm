@@ -471,7 +471,7 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
                         {/* 4. Pekerja, Status, Catatan Tambahan */}
                         <div className="bg-card p-4 rounded-2xl border border-border shadow-sm space-y-4">
                           <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">4. Tim & Status Penyelesaian</p>
-                          <div className="flex flex-wrap gap-2 max-h-[100px] overflow-y-auto pr-1 items-center">
+                          <div className="flex flex-wrap gap-2 items-center">
                             {dropdownOptions?.petugas?.map((item) => {
                               const isSelected = form.watch("pekerjaBroadcast").includes(item.id);
                               return (
