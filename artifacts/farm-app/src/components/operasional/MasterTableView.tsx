@@ -110,21 +110,31 @@ export function MasterTableView({
 
 
   // 3. Helper Pengatur Waktu & Tanggal (NAIVE STRATEGY) 🚀
-  const updateDateTime = (item: RichAgronomyItem, field: 'waktuMulai' | 'waktuSelesai', dateStr?: string, timeStr?: string) => {
-    // 💡 Ambil string mentah dari DB atau buat fallback string hari ini
+    const updateDateTime = (item: RichAgronomyItem, field: 'waktuMulai' | 'waktuSelesai', dateStr?: string, timeStr?: string) => {
     const rawVal = item.metaEkstra?.[field] || new Date().toISOString().substring(0, 19).replace('T', ' ');
-    
-    // Pecah jadi tanggal dan jam
     const [dbDate, dbTime] = rawVal.split(/[T ]/);
     
-    // Timpa dengan inputan user jika ada
     const finalDateStr = dateStr || dbDate;
     const finalTimeStr = timeStr ? (timeStr.length === 5 ? `${timeStr}:00` : timeStr) : dbTime;
     
-    // 🚀 KIRIM STRING MENTAH KE BACKEND (TANPA ZONA WAKTU)
     const naiveDateTimeStr = `${finalDateStr}T${finalTimeStr}`;
+    const payload: any = { [field]: naiveDateTimeStr };
+
+    // 🚀 TAMBAHAN: Kalkulasi durasi kerja otomatis saat ngedit dari tabel!
+    const startRaw = field === 'waktuMulai' ? naiveDateTimeStr : item.metaEkstra?.waktuMulai;
+    const endRaw = field === 'waktuSelesai' ? naiveDateTimeStr : item.metaEkstra?.waktuSelesai;
+
+    if (startRaw && endRaw) {
+      // Ubah spasi jadi T buat jaga-jaga kalau string dari DB formatnya "YYYY-MM-DD HH:mm:ss"
+      const safeStart = startRaw.replace(' ', 'T');
+      const safeEnd = endRaw.replace(' ', 'T');
+      
+      const msDiff = new Date(safeEnd).getTime() - new Date(safeStart).getTime();
+      const calcHours = Math.max(0, msDiff / (1000 * 60 * 60));
+      payload.durasiKerja = Math.round(calcHours); // Skema DB minta integer bulat
+    }
     
-    updateMutation.mutate({ id: item.id, module: item.module, payload: { [field]: naiveDateTimeStr } });
+    updateMutation.mutate({ id: item.id, module: item.module, payload });
   };
 
   // 4. Definisi Kolom Dinamis
