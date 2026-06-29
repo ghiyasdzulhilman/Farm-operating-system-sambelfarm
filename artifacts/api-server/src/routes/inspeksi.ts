@@ -239,18 +239,30 @@ router.get("/notion/all-inspeksi", async (req, res): Promise<void> => {
         .join("\n");
 
       return {
-        ...inspeksi,
-        
-        // 🚀 SERIALIZE WAKTU KE FORMAT WIB STRING SEBELUM DIKIRIM
-        waktuMulai: toWIBString(inspeksi.waktuMulai as Date),
-        waktuSelesai: toWIBString(inspeksi.waktuSelesai as Date),
-        
-        hama: daftarHama,
-        penyakit: daftarPenyakit,
-        keterangan: inspeksi.keterangan 
-          ? `${inspeksi.keterangan}\n\n⚠️ Detail Kendala:\n${catatanTemuan}`
-          : catatanTemuan || "Kondisi tanaman terpantau aman terkendali."
-      };
+  ...inspeksi,
+  waktuMulai: toWIBString(inspeksi.waktuMulai as Date),
+  waktuSelesai: toWIBString(inspeksi.waktuSelesai as Date),
+  hama: daftarHama,
+  penyakit: daftarPenyakit,
+  // Pisahkan: keterangan untuk catatan user, catatanTemuan untuk detail hama
+  // Jangan gabung keduanya kalau hama ada tapi catatan user kosong
+  keterangan: (() => {
+    const adaTemuan = temuanKhusus.length > 0;
+    const adaCatatan = inspeksi.keterangan && inspeksi.keterangan.trim() !== "";
+    
+    if (adaCatatan && adaTemuan) {
+      return `${inspeksi.keterangan}\n\n⚠️ Detail Kendala:\n${catatanTemuan}`;
+    }
+    if (adaCatatan && !adaTemuan) {
+      return inspeksi.keterangan;
+    }
+    if (!adaCatatan && adaTemuan) {
+      return `⚠️ Detail Kendala:\n${catatanTemuan}`;
+    }
+    // Tidak ada catatan DAN tidak ada temuan
+    return "Kondisi tanaman terpantau aman terkendali.";
+  })()
+};
     });
 
     res.json({ success: true, data: dataMatang });
