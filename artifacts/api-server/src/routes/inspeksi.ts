@@ -10,12 +10,33 @@ import {
   kategoriTable,
   siklusTanamTable,           
   pekerjaAtributMasterTable,  
-  inspeksiTable,           // 👈 INI YANG BIKIN ERROR (Ketinggalan)
-  inspeksiTemuanTable,     // 👈 Pastikan ini ada
-  kendalaMasterTable       // 👈 Pastikan ini juga ada
+  inspeksiTable,           
+  inspeksiTemuanTable,     
+  kendalaMasterTable     
 } from "@workspace/db";
 
 const router: IRouter = Router();
+
+// ==========================================
+// 0. HELPER TIMEZONE WIB (NAIVE STRATEGY) 🚀
+// ==========================================
+const parseWIB = (str?: string | null) => {
+  if (!str) return null;
+  if (str.includes('Z') || str.match(/[+-]\d{2}:\d{2}$/)) return new Date(str);
+  const withSeconds = str.length === 16 ? `${str}:00` : str;
+  return new Date(`${withSeconds}+07:00`);
+};
+
+const toWIBString = (date: Date | string | null | undefined) => {
+  if (!date) return null;
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Asia/Jakarta',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false
+  }).format(d).replace(' ', 'T');
+};
 
 // ==========================================
 // 1. TYPE DEFINITION (Sesuai Payload iOS/Frontend)
@@ -112,8 +133,11 @@ router.post("/notion/add-inspeksi", async (req, res): Promise<void> => {
         kegiatan: kegiatan,
         areaId: currentAreaId,
         siklusId: activeCycle ? activeCycle.id : null, // 🚀 SUNTIKAN SIKLUS ID
-        waktuMulai: waktuMulaiStr ? new Date(waktuMulaiStr) : new Date(),
-        waktuSelesai: waktuSelesaiStr ? new Date(waktuSelesaiStr) : null,
+        
+        // 🚀 SUNTIKAN ZONA WAKTU WIB
+        waktuMulai: parseWIB(waktuMulaiStr) ?? new Date(),
+        waktuSelesai: parseWIB(waktuSelesaiStr),
+        
         durasiKerja: Number(durasiNum ?? 0),
         phTanah: phVal ? Number(phVal) : null,
         tingkatSerangan: seranganVal ? Number(seranganVal) : null,
@@ -216,6 +240,11 @@ router.get("/notion/all-inspeksi", async (req, res): Promise<void> => {
 
       return {
         ...inspeksi,
+        
+        // 🚀 SERIALIZE WAKTU KE FORMAT WIB STRING SEBELUM DIKIRIM
+        waktuMulai: toWIBString(inspeksi.waktuMulai as Date),
+        waktuSelesai: toWIBString(inspeksi.waktuSelesai as Date),
+        
         hama: daftarHama,
         penyakit: daftarPenyakit,
         keterangan: inspeksi.keterangan 
