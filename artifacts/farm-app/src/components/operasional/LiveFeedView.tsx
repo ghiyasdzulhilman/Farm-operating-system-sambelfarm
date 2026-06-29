@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { 
-  Sprout, Leaf, Wrench, Banknote, ChevronRight, ChevronDown, MapPin 
+  Sprout, HardHat, Bug, Banknote, ChevronRight, ChevronDown, MapPin, CalendarClock 
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -76,45 +76,57 @@ export function LiveFeedView({
           </div>
 
           <div className="space-y-3">
-            {group.items.map((item) => {
-              // LOGIKA WARNA IKON
-              let iconColorClass = "bg-primary/10 text-primary";
-              if (item.module === "finance") {
+                        {group.items.map((item) => {
+              // 1. LOGIKA WARNA & IKON (Sinkron dengan Kanban)
+              let RenderIcon = <Sprout className="h-5 w-5" />;
+              let iconColorClass = "bg-emerald-500/10 text-emerald-600";
+              
+              if (item.module === "operasional") {
+                RenderIcon = <HardHat className="h-5 w-5" />;
+                iconColorClass = "bg-blue-500/10 text-blue-600";
+              } else if (item.module === "inspeksi") {
+                RenderIcon = <Bug className="h-5 w-5" />;
+                iconColorClass = "bg-red-500/10 text-red-600";
+              } else if (item.module === "finance") {
+                RenderIcon = <Banknote className="h-5 w-5" />;
                 iconColorClass = item.category === "Pengeluaran" ? "bg-red-500/10 text-red-600" : "bg-emerald-500/10 text-emerald-600";
+              }
+
+              // 2. LOGIKA FORMAT JADWAL (Tanggal | Waktu)
+              const startDate = new Date(item.rawDate);
+              const endDate = item.metaEkstra?.waktuSelesai ? new Date(item.metaEkstra.waktuSelesai) : null;
+              
+              const formatDate = (d: Date) => d.toLocaleDateString("id-ID", { day: '2-digit', month: '2-digit', year: 'numeric' });
+              const formatTime = (d: Date) => d.toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' }).replace(':', '.');
+              
+              const startDStr = formatDate(startDate);
+              const startTStr = formatTime(startDate);
+              let scheduleDisplay = `${startDStr} | ${startTStr}`;
+              
+              if (endDate) {
+                const endDStr = formatDate(endDate);
+                const endTStr = formatTime(endDate);
+                scheduleDisplay = startDStr === endDStr 
+                  ? `${startDStr} | ${startTStr} - ${endTStr}` 
+                  : `${startDStr} - ${endDStr} | ${startTStr} - ${endTStr}`;
               }
 
               return (
                 <div key={item.id} className="group relative w-full rounded-3xl border border-border/60 bg-card p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
                   <div className="flex items-start gap-3">
                     
-                    {/* BAGIAN KIRI: IKON & INDIKATOR STAGING */}
+                    {/* BAGIAN KIRI: IKON BARU & INDIKATOR STAGING */}
                     <div className={cn("relative mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl", iconColorClass)}>
-                      {item.icon === "sprout" && <Sprout className="h-5 w-5" />}
-                      {item.icon === "leaf" && <Leaf className="h-5 w-5" />}
-                      {item.icon === "wrench" && <Wrench className="h-5 w-5" />}
-                      {item.icon === "banknote" && <Banknote className="h-5 w-5" />}
+                      {RenderIcon}
                       {item.isPendingStaging && <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-background bg-amber-500 animate-pulse" title="Menunggu Sync" />}
                     </div>
 
-                    {/* BAGIAN TENGAH: KONTEN UTAMA (KLIKABEL) */}
+                    {/* BAGIAN TENGAH: KONTEN UTAMA */}
                     <div className="min-w-0 flex-1 cursor-pointer" onClick={() => onItemClick(item)}>
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-xs font-bold text-muted-foreground">{item.time}</span>
                         <Badge variant="secondary" className="rounded-full bg-muted/60 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider">
                           {item.category}
                         </Badge>
-
-                        {/* 💎 INJEKSI RICH DATA DARI BACKEND */}
-                        {item.module === "inspeksi" && item.metaEkstra?.hama?.length > 0 && (
-                           <Badge variant="outline" className="rounded-full bg-red-500/10 text-red-700 border-red-500/20 px-2 py-0 text-[10px]">
-                             🚨 Hama
-                           </Badge>
-                        )}
-                        {item.module === "inspeksi" && item.metaEkstra?.penyakit?.length > 0 && (
-                           <Badge variant="outline" className="rounded-full bg-orange-500/10 text-orange-700 border-orange-500/20 px-2 py-0 text-[10px]">
-                             🦠 Penyakit
-                           </Badge>
-                        )}
                         {item.module === "finance" && item.metaEkstra?.nominal && (
                            <Badge variant="outline" className="rounded-full bg-emerald-500/10 text-emerald-700 border-emerald-500/20 px-2 py-0 text-[10px] font-mono">
                              Rp {(item.metaEkstra.nominal).toLocaleString('id-ID')}
@@ -123,47 +135,70 @@ export function LiveFeedView({
                       </div>
 
                       <h3 className="mt-2 text-base font-black tracking-tight truncate pr-4">{item.title}</h3>
-                      <p className="mt-1 text-sm text-muted-foreground truncate">{item.area}</p>
+                      <p className="mt-0.5 text-sm text-muted-foreground truncate">{item.area}</p>
+                      
+                      {/* JADWAL EKSEKUSI (Bawah Area) */}
+                      <div className="mt-3 flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground bg-muted/40 w-max px-2.5 py-1 rounded-md">
+                        <CalendarClock className="h-3.5 w-3.5 text-primary/70" />
+                        {scheduleDisplay}
+                      </div>
                     </div>
 
-                    {/* BAGIAN KANAN: KONTROL & AKSI */}
+                    {/* BAGIAN KANAN: JAM INPUT & KONTROL STATUS */}
                     <div className="flex shrink-0 flex-col items-end justify-between gap-3 h-full">
                       
-                      {/* INLINE STATUS MODIFIER (Gaya Badge) */}
-                      <div className="relative inline-block">
-                        <select
-                          value={item.status}
-                          onChange={(e) => onStatusChange?.(item.id, e.target.value)}
-                          disabled={item.isPendingStaging}
-                          className={cn(
-                            "appearance-none rounded-full px-2.5 py-1 pr-6 text-[10px] font-bold uppercase tracking-wider outline-none cursor-pointer border transition-all shadow-sm",
-                            item.status === "Selesai" ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20" :
-                            item.status === "Dalam proses" ? "border-amber-500/20 bg-amber-500/10 text-amber-700 hover:bg-amber-500/20" :
-                            "border-muted-foreground/20 bg-muted/20 text-muted-foreground hover:bg-muted/40",
-                            item.isPendingStaging && "opacity-50 cursor-not-allowed"
-                          )}
+                      {/* JAM INPUT PINDAH KE ATAS SINI */}
+                      <span className="text-[10px] font-bold text-muted-foreground/60 tracking-wide mt-1">
+                        {item.time}
+                      </span>
+                      
+                      {/* KONTROL STATUS DINAMIS & TOMBOL PANAH */}
+                      <div className="flex items-center gap-2 mt-auto">
+                        <div className="relative inline-block">
+                          <select
+                            value={item.status}
+                            onChange={(e) => onStatusChange?.(item.id, e.target.value)}
+                            disabled={item.isPendingStaging}
+                            className={cn(
+                              "appearance-none rounded-full px-2.5 py-1 pr-6 text-[10px] font-bold uppercase tracking-wider outline-none cursor-pointer border transition-all shadow-sm",
+                              (item.status === "Selesai" || item.status === "Sudah ditangani") ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20" :
+                              (item.status === "Dalam proses" || item.status === "Sedang ditangani") ? "border-amber-500/20 bg-amber-500/10 text-amber-700 hover:bg-amber-500/20" :
+                              "border-muted-foreground/20 bg-muted/20 text-muted-foreground hover:bg-muted/40",
+                              item.isPendingStaging && "opacity-50 cursor-not-allowed"
+                            )}
+                          >
+                            {item.module === "inspeksi" ? (
+                              <>
+                                <option value="Baru ditemukan">Baru</option>
+                                <option value="Sedang ditangani">Proses</option>
+                                <option value="Sudah ditangani">Selesai</option>
+                              </>
+                            ) : (
+                              <>
+                                <option value="Belum dikerjakan">Belum</option>
+                                <option value="Dalam proses">Proses</option>
+                                <option value="Selesai">Selesai</option>
+                              </>
+                            )}
+                          </select>
+                          <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none opacity-60" />
+                        </div>
+                        
+                        <button 
+                          onClick={() => onItemClick(item)} 
+                          className="rounded-full bg-muted/40 p-1.5 hover:bg-primary/10 hover:text-primary transition-colors"
+                          title="Lihat Detail"
                         >
-                          <option value="Belum dikerjakan">Belum</option>
-                          <option value="Dalam proses">Proses</option>
-                          <option value="Selesai">Selesai</option>
-                        </select>
-                        <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none opacity-60" />
+                           <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                        </button>
                       </div>
-
-                      {/* TOMBOL DETAIL ARROW */}
-                      <button 
-                        onClick={() => onItemClick(item)} 
-                        className="rounded-full bg-muted/40 p-1.5 hover:bg-primary/10 hover:text-primary transition-colors"
-                        title="Lihat Detail"
-                      >
-                         <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                      </button>
 
                     </div>
                   </div>
                 </div>
               );
             })}
+
           </div>
         </div>
       ))}
