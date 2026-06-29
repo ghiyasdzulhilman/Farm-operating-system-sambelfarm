@@ -48,74 +48,61 @@ export function ActivityDetailSheet({
     enabled: !!item // Hanya nge-fetch kalau sheet-nya lagi kebuka
   });
 
-  // 💡 Helper format Tanggal & Waktu dari DB
-  const formatDateValue = (iso?: string) => {
-    if (!iso) return "";
-    try { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date(iso)); } catch { return ""; }
+ // 💡 Helper format Tanggal & Waktu (NAIVE STRATEGY)
+  const formatDateValue = (raw?: string) => {
+    if (!raw) return "";
+    return raw.split(/[T ]/)[0]; // Ambil YYYY-MM-DD
   };
   
-  const formatTimeValue = (iso?: string) => {
-    if (!iso) return "";
-    try { return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }); } catch { return ""; }
+  const formatTimeValue = (raw?: string) => {
+    if (!raw) return "";
+    const timePart = raw.split(/[T ]/)[1];
+    return timePart ? timePart.substring(0, 5) : ""; // Ambil HH:mm
   };
 
- // 💡 Helper update Waktu & Tanggal (Refactored & Schema-Safe) 🚀
+  // 💡 Helper update Waktu & Tanggal (NAIVE STRATEGY) 🚀
   const handleDateTimeSave = (field: 'waktuMulai' | 'waktuSelesai', type: 'date' | 'time', value: string) => {
     if (!value) return;
     
-    const currentIso = item.metaEkstra?.[field] || item.rawDate || new Date().toISOString();
-    const tempDate = new Date(currentIso);
-    
-    // Ambil tanggal & waktu dari DB dalam format string WIB
-    const wibDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(tempDate);
-    const wibTimeStr = tempDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Asia/Jakarta' });
+    // 1. Ambil raw string, pecah jadi tanggal & jam
+    const currentRaw = item.metaEkstra?.[field] || item.rawDate || new Date().toISOString().substring(0, 19).replace('T', ' ');
+    const [dbDate, dbTime] = currentRaw.split(/[T ]/);
 
-    // Timpa dengan inputan user
-    const finalDateStr = type === 'date' ? value : wibDateStr;
-    const finalTimeStr = type === 'time' ? (value.length === 5 ? `${value}:00` : value) : wibTimeStr;
+    // 2. Timpa bagian yang diedit user
+    const finalDateStr = type === 'date' ? value : dbDate;
+    const finalTimeStr = type === 'time' ? (value.length === 5 ? `${value}:00` : value) : (dbTime || "00:00:00");
 
-    // Paksa format ke WIB (+07:00) 
-    const isoStringWithWIB = `${finalDateStr}T${finalTimeStr}+07:00`;
-    const updatedDate = new Date(isoStringWithWIB);
+    // 🚀 3. GABUNGKAN JADI STRING MENTAH TANPA ZONA WAKTU
+    const naiveDateTimeStr = `${finalDateStr}T${finalTimeStr}`;
+    const payload: any = { [field]: naiveDateTimeStr };
 
-    if (!isNaN(updatedDate.getTime())) {
-      const updatedIso = updatedDate.toISOString();
-      const payload: any = { [field]: updatedIso };
+    // 4. Kalkulasi durasi kerja (JS Date aman dipakai cuma buat cari selisih waktu)
+    const startRaw = field === 'waktuMulai' ? naiveDateTimeStr : (item.metaEkstra?.waktuMulai || currentRaw);
+    const endRaw = field === 'waktuSelesai' ? naiveDateTimeStr : item.metaEkstra?.waktuSelesai;
 
-      // Kalkulasi selisih jam untuk durasi kerja
-      const startIso = field === 'waktuMulai' ? updatedIso : (item.metaEkstra?.waktuMulai || item.rawDate);
-      const endIso = field === 'waktuSelesai' ? updatedIso : item.metaEkstra?.waktuSelesai;
-
-      if (startIso && endIso) {
-        const msDiff = new Date(endIso).getTime() - new Date(startIso).getTime();
-        const calcHours = Math.max(0, msDiff / (1000 * 60 * 60));
-        
-        // 💡 BUGFIX UTAMA: Skema database Drizzle lu minta INTEGER (Angka Bulat). 
-        // Kita bulatkan hasilnya agar Postgres tidak menolak data!
-        payload.durasiKerja = Math.round(calcHours); 
-      }
-
-      onStatusChange?.(item.id, payload);
+    if (startRaw && endRaw) {
+      const msDiff = new Date(endRaw).getTime() - new Date(startRaw).getTime();
+      const calcHours = Math.max(0, msDiff / (1000 * 60 * 60));
+      payload.durasiKerja = Math.round(calcHours); 
     }
+
+    onStatusChange?.(item.id, payload);
   };
 
   if (!item) return null;
 
-  const formatJamMendalam = (dateStr?: string) => {
+    const formatJamMendalam = (dateStr?: string) => {
     if (!dateStr) return "-";
-    try {
-      const cleanDate = dateStr.replace(/(Z|\+00:00)$/, '');
-      return format(new Date(cleanDate), "HH:mm");
-    } catch {
-      return "-";
-    }
+    const timePart = dateStr.split(/[T ]/)[1];
+    return timePart ? timePart.substring(0, 5) : "-";
   };
 
   const formatTanggalLengkap = (dateStr?: string) => {
     if (!dateStr) return "-";
     try {
-      const cleanDate = dateStr.replace(/(Z|\+00:00)$/, '');
-      return format(new Date(cleanDate), "dd MMM yyyy");
+      const datePart = dateStr.split(/[T ]/)[0]; 
+      // Force set jam ke 00:00:00 agar date-fns tidak bergeser hari
+      return format(new Date(`${datePart}T00:00:00`), "dd MMM yyyy");
     } catch {
       return "-";
     }
