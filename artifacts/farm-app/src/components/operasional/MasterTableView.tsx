@@ -352,7 +352,8 @@ export function MasterTableView({
 
 // Ambil YYYY-MM-DD langsung dari string tanpa konversi
 const extractWIBDate = (isoStr: string) => {
-  return isoStr.split('T')[0] || "";
+  // Handle format dengan T atau spasi sebagai separator
+  return isoStr.split(/[T ]/)[0] || "";
 };
 
 const startDate = item.metaEkstra?.waktuMulai 
@@ -398,8 +399,8 @@ const endDate = item.metaEkstra?.waktuSelesai
 // Jangan apply timezone — baca jam mentah dari string DB langsung
 // karena DB sudah simpan dalam WIB, bukan UTC
 const extractWIBTime = (isoStr: string) => {
-  // Ambil bagian waktu dari string DB (HH:MM) tanpa konversi timezone
-  const match = isoStr.match(/T(\d{2}):(\d{2})/);
+  // Handle format "2026-06-29T18:36:00" dan "2026-06-29 18:36:00"
+  const match = isoStr.match(/[T ](\d{2}):(\d{2})/);
   if (!match) return "";
   return `${match[1]}.${match[2]}`;
 };
