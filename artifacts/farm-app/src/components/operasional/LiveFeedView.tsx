@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { 
-  Sprout, HardHat, Bug, Banknote, ChevronRight, ChevronDown, MapPin, CalendarClock 
+  Sprout, HardHat, Bug, Banknote, ChevronRight, ChevronDown, MapPin, CalendarClock, Trash2 
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -14,8 +14,9 @@ type RichAgronomyItem = AgronomyItem & {
 interface LiveFeedViewProps {
   items: RichAgronomyItem[];
   onItemClick: (item: RichAgronomyItem) => void;
-  feedMode?: "time" | "area"; // State mode tampilan dari AgronomyHubPage
-  onStatusChange?: (id: string, status: string) => void; // Hook mutasi status
+  feedMode?: "time" | "area"; 
+  onStatusChange?: (id: string, status: string) => void; 
+  onDelete?: (id: string, module: string) => void; // 👈 Tambahin baris ini
 }
 
 export function LiveFeedView({ 
@@ -76,23 +77,23 @@ export function LiveFeedView({
           </div>
 
           <div className="space-y-3">
-                        {group.items.map((item) => {
-              // 1. LOGIKA WARNA & IKON (Sinkron dengan Kanban)
-              let RenderIcon = <Sprout className="h-5 w-5" />;
+                      {group.items.map((item) => {
+              // 1. LOGIKA WARNA & IKON
+              let RenderIcon = <Sprout className="h-4 w-4" />;
               let iconColorClass = "bg-emerald-500/10 text-emerald-600";
               
               if (item.module === "operasional") {
-                RenderIcon = <HardHat className="h-5 w-5" />;
+                RenderIcon = <HardHat className="h-4 w-4" />;
                 iconColorClass = "bg-blue-500/10 text-blue-600";
               } else if (item.module === "inspeksi") {
-                RenderIcon = <Bug className="h-5 w-5" />;
+                RenderIcon = <Bug className="h-4 w-4" />;
                 iconColorClass = "bg-red-500/10 text-red-600";
               } else if (item.module === "finance") {
-                RenderIcon = <Banknote className="h-5 w-5" />;
+                RenderIcon = <Banknote className="h-4 w-4" />;
                 iconColorClass = item.category === "Pengeluaran" ? "bg-red-500/10 text-red-600" : "bg-emerald-500/10 text-emerald-600";
               }
 
-              // 2. LOGIKA FORMAT JADWAL (Tanggal | Waktu)
+              // 2. LOGIKA FORMAT JADWAL 
               const startDate = new Date(item.rawDate);
               const endDate = item.metaEkstra?.waktuSelesai ? new Date(item.metaEkstra.waktuSelesai) : null;
               
@@ -112,88 +113,101 @@ export function LiveFeedView({
               }
 
               return (
-                <div key={item.id} className="group relative w-full rounded-3xl border border-border/60 bg-card p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
-                  <div className="flex items-start gap-3">
-                    
-                    {/* BAGIAN KIRI: IKON BARU & INDIKATOR STAGING */}
-                    <div className={cn("relative mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl", iconColorClass)}>
-                      {RenderIcon}
-                      {item.isPendingStaging && <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-background bg-amber-500 animate-pulse" title="Menunggu Sync" />}
-                    </div>
+                // CONTAINER UTAMA (Menyembunyikan konten yang meluber)
+                <div key={item.id} className="group relative w-full overflow-hidden rounded-3xl border border-border/60 bg-card shadow-sm transition-all hover:shadow-md">
+                  
+                  {/* CONTAINER SWIPE NATIVE (Bisa digeser ke kiri/kanan di HP) */}
+                  <div className="flex w-full overflow-x-auto snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
 
-                    {/* BAGIAN TENGAH: KONTEN UTAMA */}
-                    <div className="min-w-0 flex-1 cursor-pointer" onClick={() => onItemClick(item)}>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant="secondary" className="rounded-full bg-muted/60 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider">
-                          {item.category}
-                        </Badge>
-                        {item.module === "finance" && item.metaEkstra?.nominal && (
-                           <Badge variant="outline" className="rounded-full bg-emerald-500/10 text-emerald-700 border-emerald-500/20 px-2 py-0 text-[10px] font-mono">
-                             Rp {(item.metaEkstra.nominal).toLocaleString('id-ID')}
-                           </Badge>
-                        )}
+                    {/* 🌟 MUKA KARTU (Tampilan Depan) */}
+                    <div 
+                      className="w-full shrink-0 snap-center p-4 cursor-pointer bg-card"
+                      onClick={() => onItemClick(item)}
+                    >
+                      {/* HEADER: Ikon, Modul, dan Jam Sejajar */}
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className={cn("flex h-7 w-7 items-center justify-center rounded-lg", iconColorClass)}>
+                            {RenderIcon}
+                            {item.isPendingStaging && <span className="absolute -left-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-background bg-amber-500 animate-pulse" />}
+                          </div>
+                          <Badge variant="secondary" className="rounded-full bg-muted/60 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+                            {item.category}
+                          </Badge>
+                          {item.module === "finance" && item.metaEkstra?.nominal && (
+                             <Badge variant="outline" className="rounded-full bg-emerald-500/10 text-emerald-700 border-emerald-500/20 px-2 py-0 text-[10px] font-mono">
+                               Rp {(item.metaEkstra.nominal).toLocaleString('id-ID')}
+                             </Badge>
+                          )}
+                        </div>
+                        <span className="text-[10px] font-bold text-muted-foreground/60 tracking-wide">
+                          {item.time}
+                        </span>
                       </div>
 
-                      <h3 className="mt-2 text-base font-black tracking-tight truncate pr-4">{item.title}</h3>
-                      <p className="mt-0.5 text-sm text-muted-foreground truncate">{item.area}</p>
-                      
-                      {/* JADWAL EKSEKUSI (Bawah Area) */}
+                      {/* TENGAH: Judul, Area & Panah */}
+                      <div className="flex items-center justify-between">
+                        <div className="min-w-0 flex-1 pr-4">
+                          <h3 className="text-base font-black tracking-tight truncate">{item.title}</h3>
+                          <p className="mt-0.5 text-sm text-muted-foreground truncate">{item.area}</p>
+                        </div>
+                        <div className="shrink-0 rounded-full bg-muted/40 p-1.5 transition-colors">
+                           <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      </div>
+
+                      {/* BAWAH: Jadwal */}
                       <div className="mt-3 flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground bg-muted/40 w-max px-2.5 py-1 rounded-md">
                         <CalendarClock className="h-3.5 w-3.5 text-primary/70" />
                         {scheduleDisplay}
                       </div>
                     </div>
 
-                    {/* BAGIAN KANAN: JAM INPUT & KONTROL STATUS */}
-                    <div className="flex shrink-0 flex-col items-end justify-between gap-3 h-full">
+                    {/* 🌟 AREA BELAKANG (Muncul Pas Di-Swipe Kiri) */}
+                    <div className="flex shrink-0 snap-center items-center justify-end gap-3 bg-muted/20 px-5 border-l border-border/40">
                       
-                      {/* JAM INPUT PINDAH KE ATAS SINI */}
-                      <span className="text-[10px] font-bold text-muted-foreground/60 tracking-wide mt-1">
-                        {item.time}
-                      </span>
-                      
-                      {/* KONTROL STATUS DINAMIS & TOMBOL PANAH */}
-                      <div className="flex items-center gap-2 mt-auto">
-                        <div className="relative inline-block">
-                          <select
-                            value={item.status}
-                            onChange={(e) => onStatusChange?.(item.id, e.target.value)}
-                            disabled={item.isPendingStaging}
-                            className={cn(
-                              "appearance-none rounded-full px-2.5 py-1 pr-6 text-[10px] font-bold uppercase tracking-wider outline-none cursor-pointer border transition-all shadow-sm",
-                              (item.status === "Selesai" || item.status === "Sudah ditangani") ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20" :
-                              (item.status === "Dalam proses" || item.status === "Sedang ditangani") ? "border-amber-500/20 bg-amber-500/10 text-amber-700 hover:bg-amber-500/20" :
-                              "border-muted-foreground/20 bg-muted/20 text-muted-foreground hover:bg-muted/40",
-                              item.isPendingStaging && "opacity-50 cursor-not-allowed"
-                            )}
-                          >
-                            {item.module === "inspeksi" ? (
-                              <>
-                                <option value="Baru ditemukan">Baru</option>
-                                <option value="Sedang ditangani">Proses</option>
-                                <option value="Sudah ditangani">Selesai</option>
-                              </>
-                            ) : (
-                              <>
-                                <option value="Belum dikerjakan">Belum</option>
-                                <option value="Dalam proses">Proses</option>
-                                <option value="Selesai">Selesai</option>
-                              </>
-                            )}
-                          </select>
-                          <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none opacity-60" />
-                        </div>
-                        
-                        <button 
-                          onClick={() => onItemClick(item)} 
-                          className="rounded-full bg-muted/40 p-1.5 hover:bg-primary/10 hover:text-primary transition-colors"
-                          title="Lihat Detail"
+                      {/* DROPDOWN STATUS TERSORONG */}
+                      <div className="relative inline-block">
+                        <select
+                          value={item.status}
+                          onChange={(e) => onStatusChange?.(item.id, e.target.value)}
+                          disabled={item.isPendingStaging}
+                          className={cn(
+                            "appearance-none rounded-2xl px-4 py-2.5 pr-9 text-[11px] font-bold uppercase tracking-wider outline-none cursor-pointer border transition-all shadow-sm",
+                            (item.status === "Selesai" || item.status === "Sudah ditangani") ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700" :
+                            (item.status === "Dalam proses" || item.status === "Sedang ditangani") ? "border-amber-500/20 bg-amber-500/10 text-amber-700" :
+                            "border-muted-foreground/30 bg-background text-foreground",
+                            item.isPendingStaging && "opacity-50 cursor-not-allowed"
+                          )}
                         >
-                           <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                        </button>
+                          {item.module === "inspeksi" ? (
+                            <>
+                              <option value="Baru ditemukan">Baru</option>
+                              <option value="Sedang ditangani">Proses</option>
+                              <option value="Sudah ditangani">Selesai</option>
+                            </>
+                          ) : (
+                            <>
+                              <option value="Belum dikerjakan">Belum</option>
+                              <option value="Dalam proses">Proses</option>
+                              <option value="Selesai">Selesai</option>
+                            </>
+                          )}
+                        </select>
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none opacity-60" />
                       </div>
 
+                      {/* TOMBOL HAPUS */}
+                      <button 
+                        onClick={() => onDelete?.(item.id, item.module)}
+                        className="flex h-10 w-10 items-center justify-center rounded-2xl bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                        title="Hapus"
+                      >
+                        <Trash2 className="h-5 w-5" />
+                      </button>
+
                     </div>
+
                   </div>
                 </div>
               );
