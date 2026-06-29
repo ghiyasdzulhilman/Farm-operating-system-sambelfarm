@@ -350,10 +350,18 @@ export function MasterTableView({
         const startRaw = item.metaEkstra?.waktuMulai ? new Date(item.metaEkstra.waktuMulai) : null;
         const endRaw = item.metaEkstra?.waktuSelesai ? new Date(item.metaEkstra.waktuSelesai) : null;
 
-        // Format ke YYYY-MM-DD khusus zona waktu WIB
-        const dateOptions: Intl.DateTimeFormatOptions = { timeZone: 'Asia/Jakarta' };
-        const startDate = startRaw ? new Intl.DateTimeFormat('en-CA', dateOptions).format(startRaw) : "";
-        const endDate = endRaw ? new Intl.DateTimeFormat('en-CA', dateOptions).format(endRaw) : "";
+// Ambil YYYY-MM-DD langsung dari string tanpa konversi
+const extractWIBDate = (isoStr: string) => {
+  return isoStr.split('T')[0] || "";
+};
+
+const startDate = item.metaEkstra?.waktuMulai 
+  ? extractWIBDate(item.metaEkstra.waktuMulai) 
+  : "";
+const endDate = item.metaEkstra?.waktuSelesai 
+  ? extractWIBDate(item.metaEkstra.waktuSelesai) 
+  : "";
+
 
         return (
           <div className="flex items-center gap-1 min-w-[280px]">
@@ -387,10 +395,21 @@ export function MasterTableView({
         const startRaw = item.metaEkstra?.waktuMulai ? new Date(item.metaEkstra.waktuMulai) : null;
         const endRaw = item.metaEkstra?.waktuSelesai ? new Date(item.metaEkstra.waktuSelesai) : null;
         
-        // Memaksa format jam ke WIB (Asia/Jakarta)
-        const timeOptions: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' };
-        const startTime = startRaw ? startRaw.toLocaleTimeString('en-GB', timeOptions) : "";
-        const endTime = endRaw ? endRaw.toLocaleTimeString('en-GB', timeOptions) : "";
+// Jangan apply timezone — baca jam mentah dari string DB langsung
+// karena DB sudah simpan dalam WIB, bukan UTC
+const extractWIBTime = (isoStr: string) => {
+  // Ambil bagian waktu dari string DB (HH:MM) tanpa konversi timezone
+  const match = isoStr.match(/T(\d{2}):(\d{2})/);
+  if (!match) return "";
+  return `${match[1]}.${match[2]}`;
+};
+
+const startTime = item.metaEkstra?.waktuMulai 
+  ? extractWIBTime(item.metaEkstra.waktuMulai) 
+  : "";
+const endTime = item.metaEkstra?.waktuSelesai 
+  ? extractWIBTime(item.metaEkstra.waktuSelesai) 
+  : "";
 
         return (
           <div className="flex items-center gap-1 min-w-[140px]">
