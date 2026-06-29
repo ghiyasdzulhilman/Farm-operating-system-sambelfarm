@@ -182,7 +182,7 @@ export function AddOperasionalDialog({ onSuccess }: { onSuccess?: () => void }) 
     if (step === 1) fieldsToValidate = ["namaPekerjaan", "areaIds"];
 
     if (step === 1 && form.getValues("areaIds").length === 0) {
-      toast({ variant: "destructive", title: "Oops!", description: "Pilih minimal 1 Area / Laba Rugi." }); return;
+      toast({ variant: "destructive", title: "Oops!", description: "Pilih minimal 1 Area" }); return;
     }
 
     if (step === 2) {
