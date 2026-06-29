@@ -269,29 +269,7 @@ router.get("/notion/all-operasional", async (req, res): Promise<void> => {
       // 🚀 SIMPLE JOIN LANGSUNG KE SIKLUS ID, GAK PERLU CEK STATUS AKTIF/ENGGAK!
       .leftJoin(siklusTanamTable, eq(operasionalTable.siklusId, siklusTanamTable.id));
 
-// Konversi Date object ke string WIB sebelum dikirim ke frontend
-const serialized = data.map(item => ({
-  ...item,
-  waktuMulai: item.waktuMulai 
-    ? new Intl.DateTimeFormat('sv-SE', { 
-        timeZone: 'Asia/Jakarta',
-        year: 'numeric', month: '2-digit', day: '2-digit',
-        hour: '2-digit', minute: '2-digit', second: '2-digit',
-        hour12: false
-      }).format(new Date(item.waktuMulai)).replace(' ', 'T')
-    : null,
-  waktuSelesai: item.waktuSelesai
-    ? new Intl.DateTimeFormat('sv-SE', { 
-        timeZone: 'Asia/Jakarta',
-        year: 'numeric', month: '2-digit', day: '2-digit',
-        hour: '2-digit', minute: '2-digit', second: '2-digit',
-        hour12: false
-      }).format(new Date(item.waktuSelesai)).replace(' ', 'T')
-    : null,
-}));
-
-res.json({ success: true, data: serialized });
-
+    res.json({ success: true, data: data });
   } catch (err: any) {
     console.error("[DB ERROR GET ALL OPERASIONAL]:", err);
     res.status(500).json({ error: "Gagal mengambil riwayat operasional.", detail: err.message });
