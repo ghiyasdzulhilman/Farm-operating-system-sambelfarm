@@ -386,7 +386,7 @@ export function ActivityDetailSheet({
             </div>
 
            {/* SEGMEN SPESIFIKASI LAPANGAN (GRID 2x2 YANG PRESISI) */}
-            {item.metaEkstra && Object.keys(item.metaEkstra).length > 0 && (item.module === "inspeksi" || item.module === "operasional") && (
+            {item.metaEkstra && Object.keys(item.metaEkstra).length > 0 && (item.module === "inspeksi" || item.module === "operasional" || item.module === "perawatan") && (
               <section className="mt-6 space-y-3">
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-amber-500" />
@@ -495,9 +495,21 @@ export function ActivityDetailSheet({
     {item.metaEkstra.durasiKerja ? `${item.metaEkstra.durasiKerja} Jam` : "0 Jam"}
   </p>
 </div>
-                    </>
-                  )}
+ </>
+)}
 
+{/* 3. KOTAK UNTUK MODUL PERAWATAN — hanya durasi */}
+      {item.module === "perawatan" && (
+        <div className="rounded-2xl border border-border/40 bg-muted/40 p-3 shadow-sm select-none">
+          <div className="flex items-center gap-2 text-muted-foreground/70 mb-1">
+            <Clock3 className="h-4 w-4 opacity-70" />
+            <span className="text-xs font-bold uppercase tracking-wider">Durasi Kerja</span>
+          </div>
+          <p className="text-lg font-black text-muted-foreground">
+            {item.metaEkstra.durasiKerja ? `${item.metaEkstra.durasiKerja} Jam` : "0 Jam"}
+          </p>
+        </div>
+      )}
                 </div>
               </section>
             )}
