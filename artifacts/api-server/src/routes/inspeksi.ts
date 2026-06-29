@@ -244,24 +244,29 @@ router.get("/notion/all-inspeksi", async (req, res): Promise<void> => {
   waktuSelesai: toWIBString(inspeksi.waktuSelesai as Date),
   hama: daftarHama,
   penyakit: daftarPenyakit,
-  // Pisahkan: keterangan untuk catatan user, catatanTemuan untuk detail hama
-  // Jangan gabung keduanya kalau hama ada tapi catatan user kosong
+
   keterangan: (() => {
-    const adaTemuan = temuanKhusus.length > 0;
-    const adaCatatan = inspeksi.keterangan && inspeksi.keterangan.trim() !== "";
-    
-    if (adaCatatan && adaTemuan) {
-      return `${inspeksi.keterangan}\n\n⚠️ Detail Kendala:\n${catatanTemuan}`;
-    }
-    if (adaCatatan && !adaTemuan) {
-      return inspeksi.keterangan;
-    }
-    if (!adaCatatan && adaTemuan) {
-      return `⚠️ Detail Kendala:\n${catatanTemuan}`;
-    }
-    // Tidak ada catatan DAN tidak ada temuan
-    return "Kondisi tanaman terpantau aman terkendali.";
-  })()
+  const adaTemuan = temuanKhusus.length > 0;
+  const adaCatatan = inspeksi.keterangan && inspeksi.keterangan.trim() !== "";
+
+  if (adaCatatan && adaTemuan) {
+    // Catatan user + detail hama — keduanya ada
+    return `${inspeksi.keterangan}\n\n⚠️ Detail Kendala:\n${catatanTemuan}`;
+  }
+  if (adaCatatan && !adaTemuan) {
+    // Hanya catatan user, tidak ada hama
+    return inspeksi.keterangan;
+  }
+  if (!adaCatatan && adaTemuan) {
+    // Ada hama tapi tidak ada catatan user
+    // Taruh detail kendala SETELAH separator kosong
+    // supaya getCleanCatatan() return "" dan getDetailKendala() return detail hama
+    return `\n\n⚠️ Detail Kendala:\n${catatanTemuan}`;
+  }
+  // Tidak ada keduanya
+  return "";
+})()
+
 };
     });
 
