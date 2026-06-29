@@ -566,10 +566,12 @@ export function ActivityDetailSheet({
                     )}
                   </div>
                   
-                  {/* Bagian Detail Text (Thrips: xxx, dsb) */}
-                  <div className="text-sm text-destructive whitespace-pre-wrap leading-relaxed font-medium">
-                    {getDetailKendala() || "Tidak ada rincian spesifik."}
-                  </div>
+{/* Bagian Detail Text — hanya tampil kalau ada isinya */}
+{getDetailKendala() && (
+  <div className="text-sm text-destructive whitespace-pre-wrap leading-relaxed font-medium">
+    {getDetailKendala()}
+  </div>
+)}
                 </div>
               </section>
             )}
@@ -579,8 +581,8 @@ export function ActivityDetailSheet({
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-primary" />
                 <h3 className="text-sm font-black uppercase tracking-[0.18em] text-muted-foreground">
-                  Catatan / Detail
-                </h3>
+                {item.module === "inspeksi" ? "Catatan Kegiatan" : "Catatan / Detail"}
+               </h3>
               </div>
 
               {/* Kotak Read-Only Khusus Rincian Bahan & Dosis (PERAWATAN) */}
@@ -593,7 +595,7 @@ export function ActivityDetailSheet({
               {/* Kotak Catatan Utama (Bisa Di-edit untuk semua modul) */}
               <div 
                 onClick={() => { if(activeField !== "catatan") { setActiveField("catatan"); setLocalValue(getCleanCatatan()); } }}
-                className="rounded-3xl border border-border/60 bg-muted/20 p-4 text-sm leading-6 text-foreground min-h-[80px] cursor-pointer hover:bg-muted/40 transition-colors"
+                className="rounded-3xl border border-border/60 bg-muted/20 p-4 text-sm leading-6 text-foreground min-h-[120px] cursor-pointer hover:bg-muted/40 transition-colors"
               >
                 {activeField === "catatan" ? (
                   <textarea 
