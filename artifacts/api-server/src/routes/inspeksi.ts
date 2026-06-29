@@ -113,8 +113,13 @@ router.post("/notion/add-inspeksi", async (req, res): Promise<void> => {
       const statusStr = body.modeAtribut === "broadcast" ? body.statusBroadcast : (body.statusPerArea?.[currentAreaId] || body.statusBroadcast);
       const catatanStr = body.modeCatatan === "broadcast" ? (body.keteranganBroadcast || "") : (body.keteranganPerArea?.[currentAreaId] || "");
       
-            // 4. Ekstrak Detail Temuan
+      // 4. Ekstrak Semua Centangan Hama, Penyakit, & Catatannya
+      const hamaArr = body.modeKendala === "broadcast" ? (body.hamaBroadcast || []) : (body.hamaPerArea?.[currentAreaId] || []);
+      const penyakitArr = body.modeKendala === "broadcast" ? (body.penyakitBroadcast || []) : (body.penyakitPerArea?.[currentAreaId] || []);
       const temuanArray = body.modeKendala === "broadcast" ? (body.temuanBroadcast || []) : (body.temuanPerArea?.[currentAreaId] || []);
+      
+      // Gabungin semua ID Kendala yang dicentang user
+      const semuaKendalaIds = [...hamaArr, ...penyakitArr];
 
       // 🔍 5. CARI SIKLUS TANAM YANG SEDANG AKTIF DI AREA INI
       const [activeCycle] = await db
@@ -147,13 +152,18 @@ router.post("/notion/add-inspeksi", async (req, res): Promise<void> => {
         keterangan: catatanStr || null,
       }).returning();
 
-      // Simpan Detail Temuan Hama/Penyakit (Jika Ada)
-      if (temuanArray && temuanArray.length > 0) {
-        const dataTemuan = temuanArray.map((t) => ({
-          inspeksiId: insertedInspeksi.id,
-          kendalaMasterId: t.kendalaMasterId, // 👈 Langsung pakai ID yang dikirim frontend
-          catatanKhusus: t.catatan || null,
-        }));
+     // Simpan Detail Temuan Hama/Penyakit (Wajib masuk walau tanpa catatan)
+      if (semuaKendalaIds.length > 0) {
+        const dataTemuan = semuaKendalaIds.map((idKendala) => {
+          // Cari barangkali user nulis catatan khusus buat kendala ini
+          const matchCatatan = temuanArray.find((t: any) => t.kendalaMasterId === idKendala);
+          
+          return {
+            inspeksiId: insertedInspeksi.id,
+            kendalaMasterId: idKendala,
+            catatanKhusus: matchCatatan ? (matchCatatan.catatan || null) : null,
+          };
+        });
 
         await db.insert(inspeksiTemuanTable).values(dataTemuan);
       }
@@ -238,18 +248,25 @@ router.get("/notion/all-inspeksi", async (req, res): Promise<void> => {
         .map((t) => `${t.namaKendala}: ${t.catatanKhusus || "Tanpa catatan khusus"}`)
         .join("\n");
 
+       // Racik teks keterangan dengan sangat presisi
+      let finalKeterangan = inspeksi.keterangan || "";
+      if (catatanTemuan) {
+        finalKeterangan = finalKeterangan 
+          ? `${finalKeterangan}\n\n⚠️ Detail Kendala:\n${catatanTemuan}` 
+          : catatanTemuan;
+      }
+      if (!finalKeterangan && !catatanTemuan) {
+        finalKeterangan = "Kondisi tanaman terpantau aman terkendali.";
+      }
+
       return {
         ...inspeksi,
-        
         // 🚀 SERIALIZE WAKTU KE FORMAT WIB STRING SEBELUM DIKIRIM
         waktuMulai: toWIBString(inspeksi.waktuMulai as Date),
         waktuSelesai: toWIBString(inspeksi.waktuSelesai as Date),
-        
         hama: daftarHama,
         penyakit: daftarPenyakit,
-        keterangan: inspeksi.keterangan 
-          ? `${inspeksi.keterangan}\n\n⚠️ Detail Kendala:\n${catatanTemuan}`
-          : catatanTemuan || "Kondisi tanaman terpantau aman terkendali."
+        keterangan: finalKeterangan
       };
     });
 
