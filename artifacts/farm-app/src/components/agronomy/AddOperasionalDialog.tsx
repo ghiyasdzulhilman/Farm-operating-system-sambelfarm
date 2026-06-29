@@ -438,8 +438,8 @@ export function AddOperasionalDialog({ onSuccess }: { onSuccess?: () => void }) 
                                 )}
                               </div>
 
-                              {isOverridden && (
-                                <div className="mt-3 space-y-3.5 pt-3 border-t border-border/50 animate-in fade-in zoom-in-95">
+ {isOverridden && (
+  <div className="mt-3 space-y-3.5 pt-3 border-t border-border/50 animate-in fade-in zoom-in-95">
   <div className="grid grid-cols-2 gap-2">
   <div className="space-y-1">
     <p className="text-[9px] font-bold text-muted-foreground uppercase">Mulai</p>
@@ -456,6 +456,7 @@ export function AddOperasionalDialog({ onSuccess }: { onSuccess?: () => void }) 
       onChange={(e) => { form.setValue(`waktuSelesaiPerArea.${areaId}`, e.target.value); form.setValue(`durasiKerjaPerArea.${areaId}`, calculateDuration(form.getValues(`waktuMulaiPerArea.${areaId}`), e.target.value)); }} />
   </div>
 </div>
+
                                   <div className="flex items-center gap-2"><p className="text-[9px] font-bold text-muted-foreground uppercase">Durasi:</p><Input type="number" step="0.1" className="h-7 w-16 text-[10px] font-bold px-1 bg-background border-input" value={form.watch(`durasiKerjaPerArea.${areaId}`) || 0} onChange={(e) => form.setValue(`durasiKerjaPerArea.${areaId}`, Number(e.target.value))} /><span className="text-[9px] font-bold">Jam</span></div>
 
                                   <div className="space-y-2 pt-2 border-t border-border/50">
