@@ -449,31 +449,23 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
 {isOverridden && (
   <div className="mt-4 space-y-4 pt-4 border-t border-border/50 animate-in fade-in zoom-in-95">
     {/* Waktu Spesifik */}
-    <div className="flex flex-col gap-2">
-      <div className="space-y-1 w-full max-w-full overflow-hidden">
-        <p className="text-[9px] font-bold text-muted-foreground uppercase">Mulai</p>
-        <div className="w-full flex">
-          <Input 
-            type="datetime-local" 
-            className="h-8 text-[10px] bg-background border-input w-full min-w-0 flex-1 px-2 appearance-none" 
-            value={form.watch(`tanggalPerArea.${areaId}`) || ""} 
-            onChange={(e) => { form.setValue(`tanggalPerArea.${areaId}`, e.target.value); form.setValue(`durasiKerjaPerArea.${areaId}`, calculateDuration(e.target.value, form.getValues(`tanggalSelesaiPerArea.${areaId}`))); }} 
-          />
-        </div>
-      </div>
-      
-      <div className="space-y-1 w-full max-w-full overflow-hidden">
-        <p className="text-[9px] font-bold text-muted-foreground uppercase">Selesai</p>
-        <div className="w-full flex">
-          <Input 
-            type="datetime-local" 
-            className="h-8 text-[10px] bg-background border-input w-full min-w-0 flex-1 px-2 appearance-none" 
-            value={form.watch(`tanggalSelesaiPerArea.${areaId}`) || ""} 
-            onChange={(e) => { form.setValue(`tanggalSelesaiPerArea.${areaId}`, e.target.value); form.setValue(`durasiKerjaPerArea.${areaId}`, calculateDuration(form.getValues(`tanggalPerArea.${areaId}`), e.target.value)); }} 
-          />
-        </div>
-      </div>
-    </div>
+    <div className="grid grid-cols-2 gap-2">
+  <div className="space-y-1">
+    <p className="text-[9px] font-bold text-muted-foreground uppercase">Mulai</p>
+    <Input type="datetime-local" 
+      className="h-8 text-[10px] bg-background border-input w-full px-1 appearance-none" 
+      value={form.watch(`tanggalPerArea.${areaId}`) || ""} 
+      onChange={(e) => { form.setValue(`tanggalPerArea.${areaId}`, e.target.value); form.setValue(`durasiKerjaPerArea.${areaId}`, calculateDuration(e.target.value, form.getValues(`tanggalSelesaiPerArea.${areaId}`))); }} />
+  </div>
+  <div className="space-y-1">
+    <p className="text-[9px] font-bold text-muted-foreground uppercase">Selesai</p>
+    <Input type="datetime-local" 
+      className="h-8 text-[10px] bg-background border-input w-full px-1 appearance-none" 
+      value={form.watch(`tanggalSelesaiPerArea.${areaId}`) || ""} 
+      onChange={(e) => { form.setValue(`tanggalSelesaiPerArea.${areaId}`, e.target.value); form.setValue(`durasiKerjaPerArea.${areaId}`, calculateDuration(form.getValues(`tanggalPerArea.${areaId}`), e.target.value)); }} />
+  </div>
+</div>
+
    <div className="flex items-center gap-2"><p className="text-[9px] font-bold text-muted-foreground uppercase">Durasi:</p><Input type="number" step="0.1" className="h-7 w-16 text-[10px] font-bold px-1 bg-background border-input" value={form.watch(`durasiKerjaPerArea.${areaId}`) || 0} onChange={(e) => form.setValue(`durasiKerjaPerArea.${areaId}`, Number(e.target.value))} /><span className="text-[9px] font-bold">Jam</span></div>
 
                                   {/* 👇 SELIPIN KODE PEKERJA SPESIFIK DI SINI 👇 */}
