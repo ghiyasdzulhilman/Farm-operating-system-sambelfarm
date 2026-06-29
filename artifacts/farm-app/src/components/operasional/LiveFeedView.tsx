@@ -77,7 +77,7 @@ export function LiveFeedView({
           </div>
 
           <div className="space-y-3">
-                      {group.items.map((item) => {
+              {group.items.map((item) => {
               // 1. LOGIKA WARNA & IKON
               let RenderIcon = <Sprout className="h-4 w-4" />;
               let iconColorClass = "bg-emerald-500/10 text-emerald-600";
@@ -148,8 +148,12 @@ export function LiveFeedView({
                       {/* TENGAH: Judul, Area & Panah */}
                       <div className="flex items-center justify-between">
                         <div className="min-w-0 flex-1 pr-4">
-                          <h3 className="text-base font-black tracking-tight truncate">{item.title}</h3>
-                          <p className="mt-0.5 text-sm text-muted-foreground truncate">{item.area}</p>
+                      <h3 className="mt-2 text-base font-black tracking-tight truncate pr-4">{item.title}</h3>
+                      {/* 💡 PENGGABUNGAN VISUAL AREA - SIKLUS KHUSUS FEED */}
+                      <p className="mt-0.5 text-sm text-muted-foreground truncate">
+                         {item.namaSiklus && item.namaSiklus !== "-" ? `${item.area} - ${item.namaSiklus}` : item.area}
+                      </p>
+
                         </div>
                         <div className="shrink-0 rounded-full bg-muted/40 p-1.5 transition-colors">
                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
