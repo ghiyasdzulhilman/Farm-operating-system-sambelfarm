@@ -109,23 +109,22 @@ export function MasterTableView({
   });
 
 
-    // 3. Helper Pengatur Waktu & Tanggal (KUNCI DI ZONA WIB)
+  // 3. Helper Pengatur Waktu & Tanggal (NAIVE STRATEGY) 🚀
   const updateDateTime = (item: RichAgronomyItem, field: 'waktuMulai' | 'waktuSelesai', dateStr?: string, timeStr?: string) => {
-    const currentVal = item.metaEkstra?.[field] || new Date().toISOString();
-    const tempDate = new Date(currentVal);
+    // 💡 Ambil string mentah dari DB atau buat fallback string hari ini
+    const rawVal = item.metaEkstra?.[field] || new Date().toISOString().substring(0, 19).replace('T', ' ');
     
-    // Ambil tanggal & waktu dari DB dalam format string WIB
-    const wibDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(tempDate);
-    const wibTimeStr = tempDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Asia/Jakarta' });
+    // Pecah jadi tanggal dan jam
+    const [dbDate, dbTime] = rawVal.split(/[T ]/);
     
     // Timpa dengan inputan user jika ada
-    const finalDateStr = dateStr || wibDateStr;
-    const finalTimeStr = timeStr ? `${timeStr}:00` : wibTimeStr;
+    const finalDateStr = dateStr || dbDate;
+    const finalTimeStr = timeStr ? (timeStr.length === 5 ? `${timeStr}:00` : timeStr) : dbTime;
     
-    // Gabungin ke ISO 8601 dengan offset paksa WIB (+07:00) supaya DB nggak bingung
-    const isoStringWithWIB = `${finalDateStr}T${finalTimeStr}+07:00`;
+    // 🚀 KIRIM STRING MENTAH KE BACKEND (TANPA ZONA WAKTU)
+    const naiveDateTimeStr = `${finalDateStr}T${finalTimeStr}`;
     
-    updateMutation.mutate({ id: item.id, module: item.module, payload: { [field]: new Date(isoStringWithWIB).toISOString() } });
+    updateMutation.mutate({ id: item.id, module: item.module, payload: { [field]: naiveDateTimeStr } });
   };
 
   // 4. Definisi Kolom Dinamis
@@ -342,20 +341,18 @@ export function MasterTableView({
       },
     },
 
-    {
+        {
       id: "tanggal",
       header: "Tanggal (Mulai - Selesai)",
       cell: ({ row }) => {
         const item = row.original;
-        const startRaw = item.metaEkstra?.waktuMulai ? new Date(item.metaEkstra.waktuMulai) : null;
-        const endRaw = item.metaEkstra?.waktuSelesai ? new Date(item.metaEkstra.waktuSelesai) : null;
-
-        // Format ke YYYY-MM-DD khusus zona waktu WIB
-        const dateOptions: Intl.DateTimeFormatOptions = { timeZone: 'Asia/Jakarta' };
-        const startDate = startRaw ? new Intl.DateTimeFormat('en-CA', dateOptions).format(startRaw) : "";
-        const endDate = endRaw ? new Intl.DateTimeFormat('en-CA', dateOptions).format(endRaw) : "";
+        
+        // 🚀 BACA LANGSUNG SEBAGAI STRING (Split di huruf T)
+        const startDate = item.metaEkstra?.waktuMulai ? item.metaEkstra.waktuMulai.split(/[T ]/)[0] : "";
+        const endDate = item.metaEkstra?.waktuSelesai ? item.metaEkstra.waktuSelesai.split(/[T ]/)[0] : "";
 
         return (
+
           <div className="flex items-center gap-1 min-w-[280px]">
             <EditableCell
               value={startDate}
@@ -379,18 +376,21 @@ export function MasterTableView({
       },
     },
     
-     {
+    {
       id: "waktu",
       header: "Waktu (Mulai - Akhir)",
       cell: ({ row }) => {
         const item = row.original;
-        const startRaw = item.metaEkstra?.waktuMulai ? new Date(item.metaEkstra.waktuMulai) : null;
-        const endRaw = item.metaEkstra?.waktuSelesai ? new Date(item.metaEkstra.waktuSelesai) : null;
         
-        // Memaksa format jam ke WIB (Asia/Jakarta)
-        const timeOptions: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' };
-        const startTime = startRaw ? startRaw.toLocaleTimeString('en-GB', timeOptions) : "";
-        const endTime = endRaw ? endRaw.toLocaleTimeString('en-GB', timeOptions) : "";
+        // 🚀 BACA LANGSUNG SEBAGAI STRING (Split di huruf T lalu ambil porsi jamnya HH:MM)
+        const getHHMM = (str?: string) => {
+          if (!str) return "";
+          const timePart = str.split(/[T ]/)[1];
+          return timePart ? timePart.substring(0, 5) : "";
+        };
+
+        const startTime = getHHMM(item.metaEkstra?.waktuMulai);
+        const endTime = getHHMM(item.metaEkstra?.waktuSelesai);
 
         return (
           <div className="flex items-center gap-1 min-w-[140px]">
@@ -409,15 +409,12 @@ export function MasterTableView({
               className="w-16 text-center px-0"
               onSave={(val) => {
                 if (val) {
-                  // 💡 PERBAIKAN LOGIKA: 
-                  // Jika endRaw (tanggal selesai) BELUM ada, baru numpang ke tanggal mulai.
-                  // Jika endRaw SUDAH ada, kirim undefined agar tanggal aslinya dipertahankan.
+                  // Kalau belum ada waktu selesai, pinjam tanggal mulai
                   let fallbackDate = undefined;
-                  
-                  if (!endRaw) {
-                    fallbackDate = startRaw 
-                      ? new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(startRaw)
-                      : new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
+                  if (!item.metaEkstra?.waktuSelesai) {
+                    fallbackDate = item.metaEkstra?.waktuMulai 
+                      ? item.metaEkstra.waktuMulai.split(/[T ]/)[0]
+                      : new Date().toISOString().split('T')[0];
                   }
                   
                   updateDateTime(item, 'waktuSelesai', fallbackDate, val);
