@@ -8,6 +8,7 @@ import {
   TrendingUp,
   LeafyGreen,
   Clock3,
+  Zap,
   Users,
   Briefcase,
   Thermometer,
@@ -465,7 +466,7 @@ export function ActivityDetailSheet({
                       {/* CARD 1: Prioritas (Value disamakan dengan Form Input: Low, Medium, High) */}
                       <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm relative">
                         <div className="mb-1 flex items-center gap-2 text-muted-foreground">
-                          <Clock3 className="h-4 w-4" />
+                          <Zap className="h-4 w-4" />
                           <span className="text-xs font-bold uppercase">Prioritas</span>
                         </div>
                         <select 
@@ -484,21 +485,16 @@ export function ActivityDetailSheet({
                         <ChevronDown className="absolute right-3 top-1/2 mt-2 -translate-y-1/2 h-4 w-4 text-muted-foreground opacity-50 pointer-events-none" />
                       </div>
 
-                      {/* CARD 2: Durasi Kerja (Sejajar berdampingan dengan Prioritas) */}
-                      <div 
-                        onClick={() => { if(activeField !== "durasiKerja") { setActiveField("durasiKerja"); setLocalValue(String(item.metaEkstra.durasiKerja || "0")); } }}
-                        className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm cursor-pointer hover:bg-muted/40 transition-colors"
-                      >
-                        <div className="mb-1 flex items-center gap-2 text-muted-foreground">
-                          <Clock3 className="h-4 w-4" />
-                          <span className="text-xs font-bold uppercase">Durasi Kerja</span>
-                        </div>
-                        {activeField === "durasiKerja" ? (
-                          <input autoFocus type="number" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("durasiKerja")} onKeyDown={(e) => e.key === "Enter" && handleInlineSave("durasiKerja")} className="w-full bg-transparent text-sm font-black outline-none border-b border-primary/30 p-0" />
-                        ) : (
-                          <p className="text-sm font-black">{item.metaEkstra.durasiKerja ? `${item.metaEkstra.durasiKerja} Jam` : "0 Jam"}</p>
-                        )}
-                      </div>
+{/* CARD 2: Durasi Kerja (Read-Only) */}
+<div className="rounded-2xl border border-border/40 bg-muted/40 p-3 shadow-sm select-none">
+  <div className="mb-1 flex items-center gap-2 text-muted-foreground/70">
+    <Clock3 className="h-4 w-4 opacity-70" />
+    <span className="text-xs font-bold uppercase tracking-wider">Durasi Kerja</span>
+  </div>
+  <p className="text-sm font-black text-muted-foreground">
+    {item.metaEkstra.durasiKerja ? `${item.metaEkstra.durasiKerja} Jam` : "0 Jam"}
+  </p>
+</div>
                     </>
                   )}
 
