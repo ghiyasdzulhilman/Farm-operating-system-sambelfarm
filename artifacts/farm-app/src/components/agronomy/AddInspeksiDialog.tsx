@@ -108,7 +108,8 @@ const EMPTY_VALUES: InspeksiFormValues = {
 
 function sanitizeTemuanBroadcast(kendalaBroadcast: string[], temuanBroadcast: Record<string, string>) {
   return kendalaBroadcast.reduce<Record<string, string>>((next, kendala) => {
-    if (temuanBroadcast[kendala] !== undefined) next[kendala] = temuanBroadcast[kendala];
+    // Selalu masukkan kendala yang dipilih, catatan boleh kosong string
+    next[kendala] = temuanBroadcast[kendala] ?? "";
     return next;
   }, {});
 }
