@@ -68,7 +68,7 @@ export function AgronomyHubPage() {
           ? `Bahan & Dosis:\n${item.logProduk.map((p: any) => `- ${p.produk} (${p.dosis})`).join("\n")}${item.catatan ? `\n\nCatatan Tambahan:\n${item.catatan}` : ""}`
           : (item.catatan || item.keterangan || "Tidak ada catatan.");
 
-                 return {
+        return {
           id: item.id,
           module: module,
           icon: icon,
@@ -78,12 +78,10 @@ export function AgronomyHubPage() {
           status: item.status || "Belum dikerjakan",
           areaId: item.areaId,
           
-          // 🚀 GABUNGKAN AREA DAN SIKLUS SECARA OTOMATIS
-          area: item.namaSiklus && item.namaSiklus !== "-" 
-            ? `${item.areaName} - ${item.namaSiklus}` 
-            : (item.areaName || "Area Master"),
+          // 🚀 LANGSUNG PAKAI NAMA AREA DARI BACKEND
+          area: item.areaName || "Area Master",
           
-          // 🚀 SIMPAN DATA SIKLUS KE DALAM ITEM (Untuk referensi data internal jika dibutuhkan)
+          // 🚀 SIMPAN DATA SIKLUS KE DALAM ITEM
           siklusId: item.siklusId,
           namaSiklus: item.namaSiklus || "-", 
           
