@@ -108,19 +108,32 @@ export function ActivityDetailSheet({
     }
   };
 
-  // 💡 Fungsi pintar untuk mengambil murni catatan ketikan user (Support Inspeksi & Perawatan)
+    // 💡 Fungsi pintar untuk mengambil murni catatan ketikan user
   const getCleanCatatan = () => {
     const raw = item.notes || "";
     
-    // Cegah duplikasi di modul perawatan
+    // Modul Perawatan
     if (item.module === "perawatan" && raw.includes("\n\nCatatan Tambahan:\n")) {
       const parts = raw.split("\n\nCatatan Tambahan:\n");
-      return parts[parts.length - 1]; // Ambil yang paling akhir buat ngakalin data lu yang udah terlanjur numpuk
+      return parts[parts.length - 1]; 
     }
     
-    // Cegah duplikasi di modul inspeksi
-    if (item.module === "inspeksi" && raw.includes("\n\n⚠️ Detail Kendala:\n")) {
-      return raw.split("\n\n⚠️ Detail Kendala:\n")[0];
+    // 🚀 FIX: Modul Inspeksi
+    if (item.module === "inspeksi") {
+      if (raw.includes("\n\n⚠️ Detail Kendala:\n")) {
+        return raw.split("\n\n⚠️ Detail Kendala:\n")[0];
+      }
+      
+      // Deteksi kalau ada array hama/penyakit yang disisipkan
+      const adaKendala = (item.metaEkstra?.hama?.length > 0) || (item.metaEkstra?.penyakit?.length > 0);
+      
+      // Jika ada hama tapi gak ada pemisah, berarti seluruh isi `raw` adalah detail kendala
+      if (adaKendala) return ""; 
+      
+      // Jangan tampilkan teks fallback backend di form edit
+      if (raw === "Kondisi tanaman terpantau aman terkendali.") return "";
+      
+      return raw;
     }
     
     return raw;
@@ -130,7 +143,7 @@ export function ActivityDetailSheet({
   const getDetailPerawatan = () => {
     const raw = item.notes || "";
     if (item.module === "perawatan" && raw.includes("\n\nCatatan Tambahan:\n")) {
-      return raw.split("\n\nCatatan Tambahan:\n")[0]; // Ambil bagian atasnya saja
+      return raw.split("\n\nCatatan Tambahan:\n")[0]; 
     }
     return "";
   };
@@ -138,8 +151,19 @@ export function ActivityDetailSheet({
   // 💡 Ekstrak khusus detail kendala (Read-Only) untuk Inspeksi
   const getDetailKendala = () => {
     const raw = item.notes || "";
-    const parts = raw.split("\n\n⚠️ Detail Kendala:\n");
-    return parts.length > 1 ? parts[1] : "";
+    if (item.module !== "inspeksi") return "";
+
+    if (raw.includes("\n\n⚠️ Detail Kendala:\n")) {
+      return raw.split("\n\n⚠️ Detail Kendala:\n")[1];
+    }
+    
+    // 🚀 FIX: Kalau gak ada teks pemisah TAPI ada hama/penyakit, ambil seluruh teksnya
+    const adaKendala = (item.metaEkstra?.hama?.length > 0) || (item.metaEkstra?.penyakit?.length > 0);
+    if (adaKendala) {
+      return raw;
+    }
+
+    return "";
   };
 
   // 💡 Fungsi penembak data otomatis ala Notion (dipanggil saat klik di luar input / onBlur)
