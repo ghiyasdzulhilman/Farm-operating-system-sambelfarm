@@ -246,18 +246,18 @@ export function ActivityDetailSheet({
                 <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none opacity-60 z-10" />
               </div>
 
-              {/* TOMBOL KEMBALI BESAR & NYAMAN DI KANAN (JEMPOL KANAN) */}
-              <button 
-                onClick={onClose}
-                className="flex items-center gap-2 py-1.5 pl-4 pr-1.5 rounded-full bg-secondary/50 hover:bg-secondary border border-border/50 transition-all group"
-              >
-                <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground group-hover:text-foreground transition-colors">
-                  Kembali
-                </span>
-                <div className="bg-background rounded-full p-1.5 shadow-sm group-hover:scale-105 transition-transform border border-border/50 text-foreground">
-                  <ArrowRight className="h-4 w-4" />
-                </div>
-              </button>
+{/* TOMBOL KEMBALI BESAR & NYAMAN DI KANAN (JEMPOL KANAN) */}
+  <button 
+  onClick={onClose}
+  className="flex items-center gap-2 py-1.5 pl-4 pr-1.5 rounded-full bg-primary/10 hover:bg-primary/20 border border-primary/20 transition-all group"
+>
+  <span className="text-[11px] font-bold uppercase tracking-widest text-primary transition-colors">
+    Kembali
+  </span>
+  <div className="bg-primary rounded-full p-1.5 shadow-sm group-hover:scale-105 transition-transform text-primary-foreground">
+    <ArrowRight className="h-4 w-4" />
+  </div>
+</button>
 
             </div>
           </SheetHeader>
@@ -294,8 +294,8 @@ export function ActivityDetailSheet({
                     {calculateHST() && (
                       <>
                         <span className="text-border/40 font-light">|</span>
-                        <span className="text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded flex items-center gap-1 font-bold tracking-normal">
-                          🌱 {calculateHST()}
+                        <span className="text-primary bg-primary/10 px-1.5 py-0.5 rounded flex items-center gap-1 font-bold tracking-normal">
+                        {calculateHST()}
                         </span>
                       </>
                     )}
