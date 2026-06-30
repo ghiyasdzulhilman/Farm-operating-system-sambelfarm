@@ -222,12 +222,17 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
       return response.json();
     },
 
-    onSuccess: async (responseData) => {
+      onSuccess: async (responseData) => {
       await queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey(), refetchType: "all" });
+      
+      // 🚀 SUNTIKAN BARU: Wajib invalidate ini biar feed di background langsung refresh instan!
+      await queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] });
+      
       const results = responseData?.data || [];
       if (results.length > 0) setSubmittedRecords(results);
       form.reset(EMPTY_VALUES); setOverriddenAreas({});
     },
+
     onError: (error) => toast({ variant: "destructive", title: "Gagal menyimpan", description: error instanceof Error ? error.message : "Cek kembali koneksi internet." }),
   });
 
