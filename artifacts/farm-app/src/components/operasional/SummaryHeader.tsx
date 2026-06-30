@@ -5,9 +5,10 @@ import type { AgronomyItem } from "@/types/operasional";
 export function SummaryHeader({ feedData, meta }: { feedData: AgronomyItem[], meta: any }) {
   // Hitung otomatis dari data feed berdasarkan status aslinya
   const todayCount = feedData.filter((i) => i.dateLabel === "Hari ini").length;
-  const doneCount = feedData.filter((i) => i.status === "Selesai").length;
-  const progressCount = feedData.filter((i) => i.status === "Dalam proses").length;
-  const todoCount = feedData.filter((i) => i.status === "Belum dikerjakan").length;
+    // 🚀 Tambahin status Inspeksi di setiap hitungan
+  const doneCount = feedData.filter((i) => i.status === "Selesai" || i.status === "Sudah ditangani").length;
+  const progressCount = feedData.filter((i) => i.status === "Dalam proses" || i.status === "Sedang ditangani").length;
+  const todoCount = feedData.filter((i) => i.status === "Belum dikerjakan" || i.status === "Baru ditemukan").length;
 
   return (
     <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
