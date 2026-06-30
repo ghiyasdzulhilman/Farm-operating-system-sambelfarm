@@ -186,6 +186,9 @@ router.get("/notion/all-inspeksi", async (req, res): Promise<void> => {
     return; 
   }
 
+  // 🚀 1. TANGKAP QUERY FILTER SIKLUS STATUS DARI FRONTEND
+  const { statusSiklus } = req.query; 
+
   try {
     // 1. Ambil data induk inspeksi (Ditambah namaSiklus)
     const indukData = await db
@@ -207,13 +210,24 @@ router.get("/notion/all-inspeksi", async (req, res): Promise<void> => {
         
         // 🚀 TARIK JUGA SIKLUS ID DAN TANGGAL UNTUK UI
         siklusId: inspeksiTable.siklusId,
-        tanggalPindahTanam: siklusTanamTable.tanggalPindahTanam 
+        tanggalPindahTanam: siklusTanamTable.tanggalPindahTanam, 
+        statusSiklus: siklusTanamTable.status // 🚀 2. TARIK STATUS SIKLUS
       })
       .from(inspeksiTable)
       .leftJoin(areasTable, eq(inspeksiTable.areaId, areasTable.id))
       // 🚀 SIMPLE JOIN LANGSUNG KE SIKLUS ID!
       .leftJoin(siklusTanamTable, eq(inspeksiTable.siklusId, siklusTanamTable.id));
 
+
+    // 🚀 3. FILTER DATANYA SEBELUM DI-MAP
+    let filteredIndukData = indukData;
+    if (statusSiklus === "selesai") {
+      // Hanya ambil catatan yang masa tanamnya sudah beres
+      filteredIndukData = indukData.filter(item => item.statusSiklus === "Selesai/Panen");
+    } else {
+      // Default: Ambil yang masih 'Aktif' ATAU yang nggak punya siklus (null)
+      filteredIndukData = indukData.filter(item => item.statusSiklus === "Aktif" || !item.statusSiklus);
+    }
 
     // 2. Ambil semua data temuan dan JOIN ke master kendala untuk dapet nama & jenis
     // (Pastikan kendalaMasterTable dan inspeksiTemuanTable di-import di atas!)
@@ -228,7 +242,8 @@ router.get("/notion/all-inspeksi", async (req, res): Promise<void> => {
       .leftJoin(kendalaMasterTable, eq(inspeksiTemuanTable.kendalaMasterId, kendalaMasterTable.id));
 
     // 3. Petakan temuan masuk ke induk inspeksi masing-masing
-    const dataMatang = indukData.map((inspeksi) => {
+    // 🚀 PASTIKAN MAPPING MENGGUNAKAN 'filteredIndukData'
+      const dataMatang = filteredIndukData.map((inspeksi) => {
       const temuanKhusus = semuaTemuan.filter((t) => t.inspeksiId === inspeksi.id);
 
       const daftarHama = temuanKhusus.filter((t) => t.jenisKendala?.toLowerCase() === "hama").map((t) => t.namaKendala);
@@ -239,35 +254,28 @@ router.get("/notion/all-inspeksi", async (req, res): Promise<void> => {
         .join("\n");
 
       return {
-  ...inspeksi,
-  waktuMulai: toWIBString(inspeksi.waktuMulai as Date),
-  waktuSelesai: toWIBString(inspeksi.waktuSelesai as Date),
-  hama: daftarHama,
-  penyakit: daftarPenyakit,
+        ...inspeksi,
+        waktuMulai: toWIBString(inspeksi.waktuMulai as Date),
+        waktuSelesai: toWIBString(inspeksi.waktuSelesai as Date),
+        hama: daftarHama,
+        penyakit: daftarPenyakit,
 
-  keterangan: (() => {
-  const adaTemuan = temuanKhusus.length > 0;
-  const adaCatatan = inspeksi.keterangan && inspeksi.keterangan.trim() !== "";
+        keterangan: (() => {
+          const adaTemuan = temuanKhusus.length > 0;
+          const adaCatatan = inspeksi.keterangan && inspeksi.keterangan.trim() !== "";
 
-  if (adaCatatan && adaTemuan) {
-    // Catatan user + detail hama — keduanya ada
-    return `${inspeksi.keterangan}\n\n⚠️ Detail Kendala:\n${catatanTemuan}`;
-  }
-  if (adaCatatan && !adaTemuan) {
-    // Hanya catatan user, tidak ada hama
-    return inspeksi.keterangan;
-  }
-  if (!adaCatatan && adaTemuan) {
-    // Ada hama tapi tidak ada catatan user
-    // Taruh detail kendala SETELAH separator kosong
-    // supaya getCleanCatatan() return "" dan getDetailKendala() return detail hama
-    return `\n\n⚠️ Detail Kendala:\n${catatanTemuan}`;
-  }
-  // Tidak ada keduanya
-  return "";
-})()
-
-};
+          if (adaCatatan && adaTemuan) {
+            return `${inspeksi.keterangan}\n\n⚠️ Detail Kendala:\n${catatanTemuan}`;
+          }
+          if (adaCatatan && !adaTemuan) {
+            return inspeksi.keterangan;
+          }
+          if (!adaCatatan && adaTemuan) {
+            return `\n\n⚠️ Detail Kendala:\n${catatanTemuan}`;
+          }
+          return "";
+        })()
+      };
     });
 
     res.json({ success: true, data: dataMatang });
