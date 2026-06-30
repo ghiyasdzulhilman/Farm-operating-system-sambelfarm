@@ -283,7 +283,7 @@ router.get("/notion/all-operasional", async (req, res): Promise<void> => {
         // 🚀 SEKARANG KITA TARIK JUGA NAMA SIKLUSNYA BIAR UI TAU INI TANAMAN APA
         siklusId: operasionalTable.siklusId,
         namaSiklus: siklusTanamTable.namaSiklus,
-        tanggalPindahTanam: siklusTanamTable.tanggalPindahTanam 
+        tanggalPindahTanam: siklusTanamTable.tanggalPindahTanam,
         statusSiklus: siklusTanamTable.status
       })
       .from(operasionalTable)
@@ -304,8 +304,8 @@ router.get("/notion/all-operasional", async (req, res): Promise<void> => {
       filteredData = data.filter(item => item.statusSiklus === "Aktif" || !item.statusSiklus);
     }
 
-    // 🚀 SERIALIZE KE FORMAT WIB STRING SEBELUM DIKIRIM
-    const serializedData = data.map(item => ({
+        // 🚀 SERIALIZE KE FORMAT WIB STRING SEBELUM DIKIRIM
+    const serializedData = filteredData.map(item => ({ 
       ...item,
       waktuMulai: toWIBString(item.waktuMulai as Date),
       waktuSelesai: toWIBString(item.waktuSelesai as Date),
