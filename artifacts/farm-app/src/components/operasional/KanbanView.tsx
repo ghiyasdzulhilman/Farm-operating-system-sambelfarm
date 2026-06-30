@@ -83,7 +83,6 @@ export function KanbanView({
             <div className="flex flex-col gap-3 min-h-[100px]">
               <AnimatePresence>
                 {columnItems.map((item) => {
-                                  {columnItems.map((item) => {
                   let RenderIcon = <Sprout className="h-3.5 w-3.5" />;
                   let iconBg = "bg-emerald-500/10 text-emerald-600";
                   
