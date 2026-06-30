@@ -179,9 +179,14 @@ export function AgronomyHubPage() {
       let matchFilter = true;
       if (activeFilter === "Hari ini") matchFilter = item.dateLabel === "Hari ini";
       else if (activeFilter === "Kemarin") matchFilter = item.dateLabel === "Kemarin";
-      else if (activeFilter === "Selesai") matchFilter = item.status === "Selesai";
-      else if (activeFilter === "Dalam proses") matchFilter = item.status === "Dalam proses";
-      else if (activeFilter === "Belum dikerjakan") matchFilter = item.status === "Belum dikerjakan";
+      
+      // 🚀 TAMBAHIN KONDISI STATUS INSPEKSI DI SINI
+      else if (activeFilter === "Selesai") 
+        matchFilter = item.status === "Selesai" || item.status === "Sudah ditangani";
+      else if (activeFilter === "Dalam proses") 
+        matchFilter = item.status === "Dalam proses" || item.status === "Sedang ditangani";
+      else if (activeFilter === "Belum dikerjakan") 
+        matchFilter = item.status === "Belum dikerjakan" || item.status === "Baru ditemukan";
 
       return matchModule && matchFilter;
     });
