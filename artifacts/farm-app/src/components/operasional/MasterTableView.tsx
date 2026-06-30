@@ -14,7 +14,7 @@ type RichAgronomyItem = AgronomyItem & { metaEkstra?: Record<string, any> };
 export function MasterTableView({ 
   items, 
   onItemClick, 
-  onDeleteClick
+  onDeleteClick,
   // 🚀 1. TAMBAH PROPS UNTUK TERIMA KONDISI FILTER DARI PARENT
   filterSiklus = "aktif", 
   onFilterSiklusChange
