@@ -269,16 +269,12 @@ export function AgronomyHubPage() {
           )}
 
 
-            {activeView === "table" && (
+        {activeView === "table" && (
             <MasterTableView 
               items={filteredItems} 
               onItemClick={setSelectedItem} 
-              
-              // 🚀 4. KIRIM STATE DAN FUNGSI PENGUBAHNYA KE DALAM TABEL
-              filterSiklus={filterSiklus}
-              onFilterSiklusChange={setFilterSiklus}
-              
-  onStatusChange={(id, payload) => {
+              onStatusChange={(id, payload) => {
+
   const target = filteredItems.find(i => i.id === id);
 
   if (target) {
