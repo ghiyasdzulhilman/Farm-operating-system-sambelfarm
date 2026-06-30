@@ -218,7 +218,7 @@ export function ActivityDetailSheet({
                   disabled={item.isPendingStaging}
                   className={cn(
                     // 💡 BUGFIX: Tambahkan 'relative z-10' di sini agar elemen terangkat dari tumpukan layer transparan
-                    "relative z-10 appearance-none rounded-full pl-4 pr-10 py-2.5 text-[11px] font-bold uppercase tracking-wider outline-none cursor-pointer border transition-all shadow-sm",
+                    "relative z-10 appearance-none rounded-full pl-4 pr-10 py-1.5 text-[11px] font-bold uppercase tracking-wider outline-none cursor-pointer border transition-all shadow-sm",
                     (item.status === "Selesai" || item.status === "Sudah ditangani")
                       ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20"
                       : (item.status === "Dalam proses" || item.status === "Sedang ditangani")
