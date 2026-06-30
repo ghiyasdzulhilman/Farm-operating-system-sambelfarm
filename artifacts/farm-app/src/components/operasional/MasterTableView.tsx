@@ -14,12 +14,19 @@ type RichAgronomyItem = AgronomyItem & { metaEkstra?: Record<string, any> };
 export function MasterTableView({ 
   items, 
   onItemClick, 
-  onDeleteClick 
+  onDeleteClick
+  // 🚀 1. TAMBAH PROPS UNTUK TERIMA KONDISI FILTER DARI PARENT
+  filterSiklus = "aktif", 
+  onFilterSiklusChange
 }: { 
+
   items: RichAgronomyItem[]; 
   onItemClick: (item: RichAgronomyItem) => void;
   onDeleteClick?: (id: string) => void;
+  filterSiklus?: "aktif" | "selesai";
+  onFilterSiklusChange?: (val: "aktif" | "selesai") => void;
 }) {
+
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [columnVisibility, setColumnVisibility] = useState({});
@@ -530,16 +537,40 @@ export function MasterTableView({
     <div className="w-full max-w-full rounded-3xl border border-border/60 bg-card shadow-sm overflow-hidden text-left">
       
       {/* 💡 HEADER FILTER KOLOM PREMIUM */}
-      {/* 💡 Note: "justify-end" diganti menjadi "justify-between" agar judul di kiri & tombol di kanan */}
+
       <div className="flex items-center justify-between px-4 py-2 border-b border-border/50 bg-muted/20">
         
-        {/* 📝 TAMBAHAN TEKS JUDUL DI SINI BRO */}
-        <div className="flex flex-col">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-foreground">
-            Table View
-          </h2>
-          {/* Opsional sub-judul kecil, kalau gak butuh baris <span sub-judul> di bawah ini boleh dihapus */}
-          <span className="text-[10px] text-muted-foreground font-medium"></span>
+         {/* 📝 BUNGKUS JUDUL DAN TOMBOL FILTER AGAR SEJAJAR */}
+        <div className="flex items-center gap-6">
+          <div className="flex flex-col">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-foreground">
+              Table View
+            </h2>
+          </div>
+
+          {/* 🚀 2. UI TOMBOL FILTER KHAS iOS (Segmented Control) */}
+          <div className="flex bg-muted/50 p-0.5 rounded-lg border border-border/50">
+            <button
+              onClick={() => onFilterSiklusChange?.("aktif")}
+              className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wide rounded-md transition-all ${
+                filterSiklus === "aktif" 
+                  ? "bg-background shadow-sm text-primary border border-border/50" 
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Siklus Aktif
+            </button>
+            <button
+              onClick={() => onFilterSiklusChange?.("selesai")}
+              className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wide rounded-md transition-all ${
+                filterSiklus === "selesai" 
+                  ? "bg-background shadow-sm text-primary border border-border/50" 
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Riwayat Selesai
+            </button>
+          </div>
         </div>
 
         <DropdownMenu>
