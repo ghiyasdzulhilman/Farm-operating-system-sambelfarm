@@ -238,7 +238,10 @@ export function AgronomyHubPage() {
         setActiveModule={setActiveModule}
         activeFilter={activeFilter}
         setActiveFilter={setActiveFilter}
+        filterSiklus={filterSiklus}
+        setFilterSiklus={setFilterSiklus}
       />
+
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1.4fr_0.9fr]">
         <div className="space-y-6 min-w-0">
