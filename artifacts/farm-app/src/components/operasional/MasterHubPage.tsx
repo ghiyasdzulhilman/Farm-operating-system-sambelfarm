@@ -113,10 +113,13 @@ function AreaDanSiklusManager({ data }: { data: any[] }) {
   // State Area Baru
   const [newName, setNewName] = useState("");
 
-  // State Siklus Inline (Penyimpan ID Area yang sedang buka form siklus)
+    // State Siklus Inline (Penyimpan ID Area yang sedang buka form siklus)
   const [cycleAreaId, setCycleAreaId] = useState<string | null>(null);
   const [namaSiklus, setNamaSiklus] = useState("");
   const [tglTanam, setTglTanam] = useState("");
+
+  // 🚀 SUNTIKAN BARU: State buat nyimpen area mana yang riwayatnya lagi dibuka
+  const [expandedArchives, setExpandedArchives] = useState<Record<string, boolean>>({});
 
   // Fetch data siklus aktif secara mandiri
   const { data: listSiklus, isLoading: loadingSiklus } = useQuery({
@@ -250,12 +253,48 @@ function AreaDanSiklusManager({ data }: { data: any[] }) {
                       </Button>
                     </div>
                   </div>
-                ) : (
+                  ) : (
+
               // KONDISI 3: AREA KOSONG
                   <Button variant="ghost" size="sm" onClick={() => setCycleAreaId(area.id)} className="h-10 text-xs font-bold text-muted-foreground hover:text-primary rounded-xl border border-dashed border-border/60 w-full hover:bg-primary/5 bg-muted/20">
                     <Plus className="h-3 w-3 mr-1" /> Mulai Siklus Tanam Pertama
                   </Button>
                 )}
+
+                {/* 🚀 SUNTIKAN BARU: ARSIP SIKLUS HISTORIS (Ditaruh tepat sebelum div penutup kotak) */}
+                {(() => {
+                  // Saring siklus lama yang sudah beres di area ini
+                  const selesaiSiklus = activeSiklus.filter((c: any) => c.areaId === area.id && c.status !== "Aktif");
+                  if (selesaiSiklus.length === 0) return null;
+
+                  const isExpanded = !!expandedArchives[area.id];
+
+                  return (
+                    <div className="mt-3 border-t border-border/40 pt-2.5">
+                      <button
+                        onClick={() => setExpandedArchives(prev => ({ ...prev, [area.id]: !isExpanded }))}
+                        className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <CalendarDays className="h-3.5 w-3.5 text-muted-foreground/70" />
+                        <span>{isExpanded ? "Sembunyikan Arsip Tanam" : `Lihat Arsip Tanam (${selesaiSiklus.length})`}</span>
+                      </button>
+
+                      {isExpanded && (
+                        <div className="mt-2 space-y-1.5 pl-5 border-l border-dashed border-border/60 ml-1.5">
+                          {selesaiSiklus.map((c: any) => (
+                            <div key={c.id} className="flex items-center justify-between text-xs py-1 text-muted-foreground bg-muted/10 px-2 rounded-lg border border-border/30">
+                              <span className="font-bold text-foreground/80">{c.namaSiklus}</span>
+                              <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded font-medium">
+                                Tanam: {new Date(c.tanggalPindahTanam).toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'})}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
               </div>
             </div>
           );
