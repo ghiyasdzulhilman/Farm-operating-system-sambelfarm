@@ -139,7 +139,7 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
     return 0;
   };
 
-  const savePerawatan = useMutation({
+    const savePerawatan = useMutation({
     mutationFn: async (payload: PerawatanFormValues) => {
       const cleanPayload = sanitizePerawatanPayload(payload);
 
@@ -148,14 +148,17 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
       return response.json();
     },
     onSuccess: async (data) => {
-  await queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey(), refetchType: "all" });
-  
-  // 🎯 GANTI DI SINI: Sesuaikan nama fungsinya dengan state yang baru
-  if (data && data.data) setSubmittedRecords(data.data);
-  
-  form.reset(EMPTY_VALUES); 
-  setOverriddenAreas({});
-},
+      await queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey(), refetchType: "all" });
+      
+      // 🚀 SUNTIKAN BARU: Wajib invalidate ini biar feed di background langsung refresh!
+      await queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] });
+      
+      if (data && data.data) setSubmittedRecords(data.data);
+      
+      form.reset(EMPTY_VALUES); 
+      setOverriddenAreas({});
+    },
+
     onError: (error) => toast({ variant: "destructive", title: "Gagal menyimpan", description: error instanceof Error ? error.message : "Cek kembali koneksi internet.", }),
   });
 
