@@ -153,6 +153,22 @@ export function AgronomyHubPage() {
     }
   });
 
+  // 🚀 SUNTIKAN BARU: Mutasi untuk menghapus baris aktivitas
+  const deleteActivityMutation = useMutation({
+    mutationFn: async ({ id, module }: { id: string; module: string }) => {
+      const response = await fetch(`/api/notion/activity/${module}/${id}`, { method: 'DELETE' });
+      if (!response.ok) throw new Error("Gagal menghapus data aktivitas");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] });
+      toast({ title: "Terhapus", description: "Aktivitas berhasil dihapus dari riwayat." });
+    },
+    onError: (err) => {
+      toast({ variant: "destructive", title: "Gagal Menghapus", description: err.message });
+    }
+  });
+
   // =====================================================================
   // 3. FILTER LOGIC
   // =====================================================================
@@ -217,10 +233,10 @@ export function AgronomyHubPage() {
       <div className="mt-6 grid gap-6 lg:grid-cols-[1.4fr_0.9fr]">
         <div className="space-y-6 min-w-0">
           
-          {activeView === "feed" && (
-            <LiveFeedView 
-              items={filteredItems} 
-              onItemClick={setSelectedItem} 
+{activeView === "feed" && (
+   <LiveFeedView 
+  items={filteredItems} 
+  onItemClick={setSelectedItem} 
   onStatusChange={(id, payload) => {
   const target = filteredItems.find(i => i.id === id);
   if (target) {
@@ -230,8 +246,15 @@ export function AgronomyHubPage() {
     updateStatusMutation.mutate({ id, module: target.module, ...updateData });
   }
 }}
+              // 🚀 SUNTIKAN BARU: Lempar fungsi hapus ke komponen LiveFeedView
+              onDelete={(id, module) => {
+                if (confirm("Yakin ingin menghapus aktivitas ini secara permanen?")) {
+                  deleteActivityMutation.mutate({ id, module });
+                }
+              }}
             />
           )}
+
 
           {activeView === "table" && (
             <MasterTableView 
@@ -250,11 +273,11 @@ export function AgronomyHubPage() {
             />
           )}
 
-          {/* BLOK KANBAN DI SINI */}
-          {activeView === "kanban" && (
-            <KanbanView 
-              items={filteredItems} 
-              onItemClick={setSelectedItem} 
+ {/* BLOK KANBAN DI SINI */}
+  {activeView === "kanban" && (
+  <KanbanView 
+  items={filteredItems} 
+  onItemClick={setSelectedItem} 
   onStatusChange={(id, payload) => {
   const target = filteredItems.find(i => i.id === id);
   if (target) {
@@ -264,11 +287,15 @@ export function AgronomyHubPage() {
     updateStatusMutation.mutate({ id, module: target.module, ...updateData });
   }
 }}
-
-              // onDelete={(id, module) => handleHapus(id, module)} // Bisa diaktifkan nanti kalau fungsi hapus udah siap
+              // 🚀 SUNTIKAN BARU: Hapus dinyalakan untuk Kanban!
+              onDelete={(id, module) => {
+                if (confirm("Yakin ingin menghapus aktivitas ini secara permanen?")) {
+                  deleteActivityMutation.mutate({ id, module });
+                }
+              }}
             />
           )}
-         </div>
+
 
         <aside className="space-y-4">
           <div className="rounded-3xl border border-border/60 bg-card p-4 shadow-sm">
