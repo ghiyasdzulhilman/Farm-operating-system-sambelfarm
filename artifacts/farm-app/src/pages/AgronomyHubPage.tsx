@@ -27,19 +27,24 @@ export function AgronomyHubPage() {
   const [feedMode, setFeedMode] = useState<FeedModeKey>("time");
   const [activeModule, setActiveModule] = useState<ModuleKey>("all");
   const [activeFilter, setActiveFilter] = useState("Hari ini");
+  
+  // 🚀 1. TAMBAHIN STATE BARU BUAT FILTER SIKLUS (Default-nya "aktif")
+  const [filterSiklus, setFilterSiklus] = useState<"aktif" | "selesai">("aktif"); 
   const [selectedItem, setSelectedItem] = useState<AgronomyItem | null>(null);
   const [showMasterHub, setShowMasterHub] = useState(false);
 
   // =====================================================================
   // 1. FETCH DATA (LANGSUNG DARI 3 ENDPOINT SUPABASE + MASTER PEKERJA)
   // =====================================================================
-  const { data: unifiedFeedData, isLoading } = useQuery({
-    queryKey: ["agronomy-feed-supabase"],
-        queryFn: async () => {
+    const { data: unifiedFeedData, isLoading } = useQuery({
+    // 🚀 2. MASUKIN STATE KE QUERY KEY BIAR AUTO-REFRESH KALAU BERUBAH
+    queryKey: ["agronomy-feed-supabase", filterSiklus], 
+      queryFn: async () => {
       const [resOp, resPer, resIns, resOptions] = await Promise.all([
-        fetch("/api/notion/all-operasional").then((res) => res.json()),
-        fetch("/api/notion/all-perawatan").then((res) => res.json()),
-        fetch("/api/notion/all-inspeksi").then((res) => res.json()),
+        // 🚀 3. TAMBAHIN PARAMETER '?statusSiklus=' KE SEMUA ENDPOINT BACKEND
+        fetch(`/api/notion/all-operasional?statusSiklus=${filterSiklus}`).then((res) => res.json()),
+        fetch(`/api/notion/all-perawatan?statusSiklus=${filterSiklus}`).then((res) => res.json()),
+        fetch(`/api/notion/all-inspeksi?statusSiklus=${filterSiklus}`).then((res) => res.json()),
         fetch("/api/notion/operasional-dropdown-options").then((res) => res.json()),
       ]);
 
@@ -261,12 +266,18 @@ export function AgronomyHubPage() {
           )}
 
 
-          {activeView === "table" && (
+            {activeView === "table" && (
             <MasterTableView 
               items={filteredItems} 
               onItemClick={setSelectedItem} 
+              
+              // 🚀 4. KIRIM STATE DAN FUNGSI PENGUBAHNYA KE DALAM TABEL
+              filterSiklus={filterSiklus}
+              onFilterSiklusChange={setFilterSiklus}
+              
   onStatusChange={(id, payload) => {
   const target = filteredItems.find(i => i.id === id);
+
   if (target) {
     const updateData = typeof payload === "string" 
       ? { status: payload } 
