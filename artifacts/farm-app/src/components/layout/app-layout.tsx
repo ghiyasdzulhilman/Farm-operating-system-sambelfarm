@@ -16,7 +16,7 @@ import {
   Sprout,
   ShoppingBasket, 
   HardHat, 
-  Search 
+  Bug 
 } from "lucide-react";
 
 import { AddHarvestDialog } from "@/components/harvest/add-harvest-dialog";
@@ -73,7 +73,7 @@ export function AppLayout({
   // URUTAN FAB MUNCUL KE ATAS (VERTIKAL LURUS) DENGAN ICON PILIHAN MANDOR
   const quickActions = [
     { id: "expense", component: AddExpenseDialog, icon: Banknote, delay: 0.12 },
-    { id: "inspeksi", component: AddInspeksiDialog, icon: Search, delay: 0.09 }, 
+    { id: "inspeksi", component: AddInspeksiDialog, icon: Bug, delay: 0.09 }, 
     { id: "operasional", component: AddOperasionalDialog, icon: HardHat, delay: 0.06 }, 
     { id: "perawatan", component: AddPerawatanDialog, icon: Sprout, delay: 0.03 },
     { id: "harvest", component: AddHarvestDialog, icon: ShoppingBasket, delay: 0.0 }, 
