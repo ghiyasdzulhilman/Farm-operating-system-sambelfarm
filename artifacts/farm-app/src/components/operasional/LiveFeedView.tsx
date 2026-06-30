@@ -167,10 +167,11 @@ export function LiveFeedView({
                       </div>
 
                       {/* BAWAH: Jadwal */}
-                      <div className="mt-3 flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground bg-muted/40 w-max px-2.5 py-1 rounded-md">
-                        <CalendarClock className="h-3.5 w-3.5 text-primary/70" />
-                        {scheduleDisplay}
-                      </div>
+                      <div className="mt-2 flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground">
+                        <CalendarClock className="h-3.5 w-3.5 text-primary/70 shrink-0" />
+                        <span className="bg-muted/40 px-2 py-0.5 rounded-md">{scheduleDisplay}</span>
+                       </div>
+
                     </div>
 
                     {/* 🌟 AREA BELAKANG (Muncul Pas Di-Swipe Kiri) */}
