@@ -130,8 +130,10 @@ export function KanbanView({
                       </h3>
                       
                       <div className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground/80 mb-3">
-                        <MapPin className="h-3 w-3" />
-                        <span className="truncate">{item.area}</span>
+                        <MapPin className="h-3 w-3 shrink-0" />
+                        <span className="truncate">
+                          {item.namaSiklus && item.namaSiklus !== "-" ? `${item.area} - ${item.namaSiklus}` : item.area}
+                        </span>
                       </div>
 
                       <div className="mt-auto pt-3 flex items-center justify-between border-t border-border/40">
