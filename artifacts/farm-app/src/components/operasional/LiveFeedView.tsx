@@ -126,13 +126,14 @@ export function LiveFeedView({
                       onClick={() => onItemClick(item)}
                     >
                       {/* HEADER: Ikon, Modul, dan Jam Sejajar */}
-                      <div className="flex items-center justify-between mb-3">
+                                            <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <div className={cn("flex h-7 w-7 items-center justify-center rounded-lg", iconColorClass)}>
                             {RenderIcon}
                             {item.isPendingStaging && <span className="absolute -left-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-background bg-amber-500 animate-pulse" />}
                           </div>
-                          <Badge variant="secondary" className="rounded-full bg-muted/60 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+                          {/* 🚀 PERBAIKAN WARNA TEKS MODUL (Pakai text-muted-foreground biar abu-abu netral) */}
+                          <Badge variant="secondary" className="rounded-full bg-muted/60 text-muted-foreground px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider">
                             {item.category}
                           </Badge>
                           {item.module === "finance" && item.metaEkstra?.nominal && (
@@ -146,14 +147,18 @@ export function LiveFeedView({
                         </span>
                       </div>
 
-                      {/* TENGAH: Judul, Area & Panah */}
+                    {/* TENGAH: Judul, Area & Panah */}
                       <div className="flex items-center justify-between">
                         <div className="min-w-0 flex-1 pr-4">
-                      <h3 className="mt-2 text-base font-black tracking-tight truncate pr-4">{item.title}</h3>
-                      {/* 💡 PENGGABUNGAN VISUAL AREA - SIKLUS KHUSUS FEED */}
-                      <p className="mt-0.5 text-sm text-muted-foreground truncate">
-                         {item.namaSiklus && item.namaSiklus !== "-" ? `${item.area} - ${item.namaSiklus}` : item.area}
-                      </p>
+                          <h3 className="mt-2 text-base font-black tracking-tight truncate pr-4">{item.title}</h3>
+                          
+                          {/* 🚀 TAMBAHAN ICON MAP-PIN DI SAMPING NAMA AREA */}
+                          <div className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground truncate">
+                            <MapPin className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">
+                              {item.namaSiklus && item.namaSiklus !== "-" ? `${item.area} - ${item.namaSiklus}` : item.area}
+                            </span>
+                          </div>
 
                         </div>
                         <div className="shrink-0 rounded-full bg-muted/40 p-1.5 transition-colors">
