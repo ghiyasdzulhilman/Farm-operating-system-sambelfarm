@@ -210,23 +210,24 @@ export function ActivityDetailSheet({
           <SheetHeader className="border-b border-border/60 px-4 py-3">
             <div className="flex items-center justify-between gap-3 w-full">
               
-            {/* DROPDOWN STATUS DINAMIS DI KIRI */}
-              <div className="relative inline-block shrink-0">
-                <select
-                  value={item.status}
-                  onChange={(e) => onStatusChange?.(item.id, e.target.value)}
-                  disabled={item.isPendingStaging}
-                  className={cn(
-                    // 💡 BUGFIX: Tambahkan 'relative z-10' di sini agar elemen terangkat dari tumpukan layer transparan
-                    "relative z-10 appearance-none rounded-full pl-4 pr-10 py-1.5 text-[11px] font-bold uppercase tracking-wider outline-none cursor-pointer border transition-all shadow-sm",
-                    (item.status === "Selesai" || item.status === "Sudah ditangani")
-                      ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20"
-                      : (item.status === "Dalam proses" || item.status === "Sedang ditangani")
-                        ? "border-amber-500/20 bg-amber-500/10 text-amber-700 hover:bg-amber-500/20"
-                        : "border-muted-foreground/20 bg-muted/20 text-muted-foreground hover:bg-muted/40",
-                    item.isPendingStaging && "opacity-50 cursor-not-allowed",
-                  )}
-                >
+{/* DROPDOWN STATUS DINAMIS DI KIRI */}
+  <div className="relative inline-block shrink-0">
+  <select
+    value={item.status}
+    onChange={(e) => onStatusChange?.(item.id, e.target.value)}
+    disabled={item.isPendingStaging}
+    className={cn(
+      "relative z-10 appearance-none rounded-full pl-3 pr-8 text-[11px] font-bold uppercase tracking-wider outline-none cursor-pointer border transition-all shadow-sm max-w-[130px] truncate",
+      "h-[34px]", // Paksa tinggi sama dengan tombol kembali
+      (item.status === "Selesai" || item.status === "Sudah ditangani")
+        ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20"
+        : (item.status === "Dalam proses" || item.status === "Sedang ditangani")
+          ? "border-amber-500/20 bg-amber-500/10 text-amber-700 hover:bg-amber-500/20"
+          : "border-muted-foreground/20 bg-muted/20 text-muted-foreground hover:bg-muted/40",
+      item.isPendingStaging && "opacity-50 cursor-not-allowed",
+    )}
+  >
+
                   {/* 💡 Fix: Opsi disesuaikan dengan jenis modul */}
                   {item.module === "inspeksi" ? (
                     <>
@@ -249,8 +250,9 @@ export function ActivityDetailSheet({
 {/* TOMBOL KEMBALI BESAR & NYAMAN DI KANAN (JEMPOL KANAN) */}
   <button 
   onClick={onClose}
-  className="flex items-center gap-2 py-1.5 pl-4 pr-1.5 rounded-full bg-primary/10 hover:bg-primary/20 border border-primary/20 transition-all group"
+  className="flex items-center gap-2 h-[34px] pl-4 pr-1.5 rounded-full bg-primary/10 hover:bg-primary/20 border border-primary/20 transition-all group"
 >
+
   <span className="text-[11px] font-bold uppercase tracking-widest text-primary transition-colors">
     Kembali
   </span>
