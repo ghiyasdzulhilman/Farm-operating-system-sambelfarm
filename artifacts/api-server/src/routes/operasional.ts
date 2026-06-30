@@ -253,6 +253,9 @@ router.get("/notion/all-operasional", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
+  // 🚀 1. TANGKAP QUERY FILTER SIKLUS STATUS DARI FRONTEND
+  const { statusSiklus } = req.query; 
+
   try {
     // 💡 BUAT ALIAS: Supaya aman kalau nanti lu mau join atribut lain (role/status)
     const jenisTenagaAttr = aliasedTable(pekerjaAtributMasterTable, "jenis_tenaga_attr");
@@ -281,6 +284,7 @@ router.get("/notion/all-operasional", async (req, res): Promise<void> => {
         siklusId: operasionalTable.siklusId,
         namaSiklus: siklusTanamTable.namaSiklus,
         tanggalPindahTanam: siklusTanamTable.tanggalPindahTanam 
+        statusSiklus: siklusTanamTable.status
       })
       .from(operasionalTable)
       .leftJoin(areasTable, eq(operasionalTable.areaId, areasTable.id)) 
@@ -289,6 +293,16 @@ router.get("/notion/all-operasional", async (req, res): Promise<void> => {
       .leftJoin(jenisTenagaAttr, eq(operasionalTable.jenisTenagaKerjaId, jenisTenagaAttr.id))
       // 🚀 SIMPLE JOIN LANGSUNG KE SIKLUS ID, GAK PERLU CEK STATUS AKTIF/ENGGAK!
       .leftJoin(siklusTanamTable, eq(operasionalTable.siklusId, siklusTanamTable.id));
+
+    // 🚀 3. FILTER DATANYA SEBELUM DIKIRIM KE FRONTEND
+    let filteredData = data;
+    if (statusSiklus === "selesai") {
+      // Hanya ambil catatan yang masa tanamnya sudah beres
+      filteredData = data.filter(item => item.statusSiklus === "Selesai/Panen");
+    } else {
+      // Default: Ambil yang masih 'Aktif' ATAU yang nggak punya siklus (null)
+      filteredData = data.filter(item => item.statusSiklus === "Aktif" || !item.statusSiklus);
+    }
 
     // 🚀 SERIALIZE KE FORMAT WIB STRING SEBELUM DIKIRIM
     const serializedData = data.map(item => ({
