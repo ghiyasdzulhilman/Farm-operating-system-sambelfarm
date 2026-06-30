@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { 
   Sprout, Banknote, MapPin, 
-  HardHat, Bug, Trash2, Clock, ChevronDown
+  HardHat, Bug, Trash2, Clock, ChevronDown, CalendarClock // 🚀 TAMBAHIN INI
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AgronomyItem } from "@/types/operasional";
@@ -100,6 +100,25 @@ export function KanbanView({
                     iconBg = item.category === "Pengeluaran" ? "bg-red-500/10 text-red-600" : "bg-emerald-500/10 text-emerald-600";
                   }
 
+                // 🚀 LOGIKA FORMAT JADWAL (Sama kayak di LiveFeed)
+                  const startDate = new Date(item.rawDate);
+                  const endDate = item.metaEkstra?.waktuSelesai ? new Date(item.metaEkstra.waktuSelesai) : null;
+                  
+                  const formatDate = (d: Date) => d.toLocaleDateString("id-ID", { day: '2-digit', month: '2-digit', year: 'numeric' });
+                  const formatTime = (d: Date) => d.toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' }).replace(':', '.');
+                  
+                  const startDStr = formatDate(startDate);
+                  const startTStr = formatTime(startDate);
+                  let scheduleDisplay = `${startDStr} | ${startTStr}`;
+                  
+                  if (endDate) {
+                    const endDStr = formatDate(endDate);
+                    const endTStr = formatTime(endDate);
+                    scheduleDisplay = startDStr === endDStr 
+                      ? `${startDStr} | ${startTStr} - ${endTStr}` 
+                      : `${startDStr} - ${endDStr} | ${startTStr} - ${endTStr}`;
+                  }
+
                   return (
                     <motion.div
                       layout
@@ -120,9 +139,14 @@ export function KanbanView({
                             {item.category}
                           </span>
                         </div>
-                        {item.isPendingStaging && (
-                          <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-                        )}
+                        
+                        {/* 🚀 WAKTU INPUT DIPINDAH KESINI (KANAN ATAS) */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-[9px] font-bold text-muted-foreground/60">{item.time}</span>
+                          {item.isPendingStaging && (
+                            <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                          )}
+                        </div>
                       </div>
 
                       <h3 className="text-[13px] font-bold text-foreground leading-tight mb-1.5">
@@ -137,12 +161,15 @@ export function KanbanView({
                       </div>
 
                       <div className="mt-auto pt-3 flex items-center justify-between border-t border-border/40">
-                        <div className="flex items-center gap-1 text-[10px] font-bold text-muted-foreground">
-                          <Clock className="h-3 w-3" />
-                          {item.time}
+                        
+                        {/* 🚀 JADWAL MULAI-SELESAI (Pakai truncate & teks kecil biar muat) */}
+                        <div className="flex items-center gap-1 text-[9px] font-bold text-muted-foreground/80 truncate pr-2">
+                          <CalendarClock className="h-3.5 w-3.5 shrink-0" />
+                          <span className="truncate" title={scheduleDisplay}>{scheduleDisplay}</span>
                         </div>
 
-                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                        {/* 🚀 STATUS & HAPUS TETAP ORIGINAL (Ditambah shrink-0 biar gak kegencet teks jadwal) */}
+                        <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                           <div className="relative flex items-center hover:bg-muted p-1 rounded-md transition-colors cursor-pointer">
                             <select
                               value={item.status}
@@ -177,6 +204,7 @@ export function KanbanView({
                       </div>
                     </motion.div>
                   );
+
                 })}
               </AnimatePresence>
             </div>
