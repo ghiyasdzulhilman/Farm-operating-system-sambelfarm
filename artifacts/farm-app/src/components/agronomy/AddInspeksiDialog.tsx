@@ -6,7 +6,7 @@ import { format } from "date-fns";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft, ArrowRight, CheckCircle2, Search, Trash2,
+  ArrowLeft, ArrowRight, CheckCircle2, Bug, Trash2,
   ExternalLink, Loader2, MapPinned, Briefcase, PlusCircle, Edit3, Undo2,
   Check, X, Plus 
 } from "lucide-react";
@@ -295,7 +295,7 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
     <Sheet open={open} onOpenChange={(val) => { setOpen(val); if (!val) { setStep(1); setSubmittedRecords(null); setOverriddenAreas({}); } }}>
       <SheetTrigger asChild>
         <Button className="h-11 rounded-xl px-5 font-bold transition-all active:scale-[0.98] bg-primary text-primary-foreground hover:opacity-90 gap-2">
-          <Search className="h-4 w-4" /> Inspeksi
+          <Bug className="h-4 w-4" /> Inspeksi
         </Button>
       </SheetTrigger>
 
@@ -305,7 +305,7 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
         {/* HEADER */}
         <SheetHeader className="px-6 py-4 flex flex-row items-center justify-between border-b border-border">
           <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-primary/10 p-2 text-primary shadow-sm"><Search className="h-5 w-5" /></div>
+            <div className="rounded-xl bg-primary/10 p-2 text-primary shadow-sm"><Bug className="h-5 w-5" /></div>
             <div className="text-left">
               <SheetTitle className="text-base font-black tracking-tight">Input Inspeksi</SheetTitle>
               <p className="text-[10px] font-bold text-primary tracking-wider uppercase">Step {step} dari 3</p>
