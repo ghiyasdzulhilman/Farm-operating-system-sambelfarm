@@ -23,7 +23,8 @@ export function LiveFeedView({
   items, 
   onItemClick, 
   feedMode = "time", 
-  onStatusChange 
+  onStatusChange,
+  onDelete 
 }: LiveFeedViewProps) {
   
   // 🧠 LOGIKA GROUPING DINAMIS (WAKTU vs AREA PIVOT)
