@@ -8,11 +8,18 @@ interface FilterProps {
   activeView: ViewKey; setActiveView: (v: ViewKey) => void;
   activeModule: ModuleKey; setActiveModule: (m: ModuleKey) => void;
   activeFilter: string; setActiveFilter: (f: string) => void;
+  // 🚀 PROPS BARU UNTUK FILTER SIKLUS
+  filterSiklus: "aktif" | "selesai"; 
+  setFilterSiklus: (val: "aktif" | "selesai") => void;
 }
 
 const FILTERS = ["Hari ini", "Kemarin", "Selesai", "Dalam proses", "Belum dikerjakan"];
 
-export function FilterControls({ feedData, activeView, setActiveView, activeModule, setActiveModule, activeFilter, setActiveFilter }: FilterProps) {
+export function FilterControls({ 
+  feedData, activeView, setActiveView, activeModule, setActiveModule, activeFilter, setActiveFilter,
+  filterSiklus, setFilterSiklus // 🚀 JANGAN LUPA DESTRUCTURE DI SINI
+}: FilterProps) {
+
   // 🧠 STATE UNTUK BUKA/TUTUP FILTER
   const [showFilters, setShowFilters] = useState(false);
   
@@ -30,20 +37,46 @@ export function FilterControls({ feedData, activeView, setActiveView, activeModu
       {/* 🌟 BARIS ATAS: TOMBOL FILTER & TOGGLE VIEW (MINIMALIS) */}
       <div className="flex items-center justify-between gap-3">
         
-        {/* Tombol Buka/Tutup Filter */}
-        <button 
-          onClick={() => setShowFilters(!showFilters)}
-          className={cn(
-            "flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold transition-all border",
-            showFilters 
-              ? "bg-primary text-primary-foreground border-primary shadow-sm" 
-              : "bg-muted/40 text-muted-foreground border-transparent hover:bg-muted"
-          )}
-        >
-          <Filter className="h-3.5 w-3.5" />
-          {showFilters ? "Tutup Filter" : "Filter Data"}
-          {showFilters ? <ChevronUp className="h-3 w-3 ml-1" /> : <ChevronDown className="h-3 w-3 ml-1" />}
-        </button>
+        {/* 🚀 KELOMPOK KIRI: TOMBOL FILTER & TOGGLE SIKLUS */}
+        <div className="flex items-center gap-2">
+          {/* Tombol Buka/Tutup Filter */}
+          <button 
+            onClick={() => setShowFilters(!showFilters)}
+            className={cn(
+              "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition-all border shrink-0",
+              showFilters 
+                ? "bg-primary text-primary-foreground border-primary shadow-sm" 
+                : "bg-muted/40 text-muted-foreground border-transparent hover:bg-muted"
+            )}
+          >
+            <Filter className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">{showFilters ? "Tutup" : "Filter"}</span>
+          </button>
+
+          {/* 🚀 UI TOMBOL SIKLUS PINDAHAN DARI TABEL */}
+          <div className="flex bg-muted/50 p-0.5 rounded-lg border border-border/50 shrink-0">
+            <button
+              onClick={() => setFilterSiklus("aktif")}
+              className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide rounded-md transition-all ${
+                filterSiklus === "aktif" 
+                  ? "bg-background shadow-sm text-primary border border-border/50" 
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Aktif
+            </button>
+            <button
+              onClick={() => setFilterSiklus("selesai")}
+              className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide rounded-md transition-all ${
+                filterSiklus === "selesai" 
+                  ? "bg-background shadow-sm text-primary border border-border/50" 
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Selesai
+            </button>
+          </div>
+        </div>
 
         {/* View Options (Diubah jadi Icon Saja biar gak sempit) */}
         <div className="rounded-full bg-muted/50 p-1 flex items-center gap-1">
