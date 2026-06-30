@@ -190,9 +190,7 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
   }
 });
 
-// ==========================================
-// 3. ENDPOINT GET ALL PERAWATAN (SUPABASE REALTIME + NAMA AREA + DETAIL PRODUK)
-// ==========================================
+
 // ==========================================
 // 3. ENDPOINT GET ALL PERAWATAN (SUPABASE REALTIME + NAMA AREA + DETAIL PRODUK)
 // ==========================================
@@ -202,6 +200,9 @@ router.get("/notion/all-perawatan", async (req, res): Promise<void> => {
     res.status(401).json({ error: "Unauthorized" }); 
     return; 
   }
+
+  // 🚀 1. TANGKAP QUERY FILTER SIKLUS STATUS DARI FRONTEND
+  const { statusSiklus } = req.query;
 
   try {
     // 1. Ambil data induk perawatan + nama area + NAMA TANAMAN
@@ -223,7 +224,8 @@ router.get("/notion/all-perawatan", async (req, res): Promise<void> => {
         
         // 🚀 TARIK JUGA SIKLUS ID UNTUK UI
         siklusId: perawatanTable.siklusId,
-        tanggalPindahTanam: siklusTanamTable.tanggalPindahTanam 
+        tanggalPindahTanam: siklusTanamTable.tanggalPindahTanam, // 👈 KOMA SUDAH AMAN
+        statusSiklus: siklusTanamTable.status // 🚀 2. TARIK STATUS SIKLUS
       })
       .from(perawatanTable)
       .leftJoin(areasTable, eq(perawatanTable.areaId, areasTable.id))
@@ -232,12 +234,23 @@ router.get("/notion/all-perawatan", async (req, res): Promise<void> => {
       .leftJoin(siklusTanamTable, eq(perawatanTable.siklusId, siklusTanamTable.id));
 
 
+    // 🚀 3. FILTER DATANYA SEBELUM DI-MAP
+    let filteredIndukData = indukData;
+    if (statusSiklus === "selesai") {
+      // Hanya ambil catatan yang masa tanamnya sudah beres
+      filteredIndukData = indukData.filter(item => item.statusSiklus === "Selesai/Panen");
+    } else {
+      // Default: Ambil yang masih 'Aktif' ATAU yang nggak punya siklus (null)
+      filteredIndukData = indukData.filter(item => item.statusSiklus === "Aktif" || !item.statusSiklus);
+    }
+
     // 2. Ambil semua detail produk racikan dari tabel anak
     // (Pastikan perawatanProdukTable sudah di-import di atas)
     const semuaProduk = await db.select().from(perawatanProdukTable);
 
     // 3. Gabungkan produk ke masing-masing induk perawatan yang cocok
-    const dataMatang = indukData.map((perawatan) => {
+    // 🚀 PASTIKAN MAPPING MENGGUNAKAN 'filteredIndukData'
+      const dataMatang = filteredIndukData.map((perawatan) => {
       const racikanBahan = semuaProduk
         .filter((p) => p.perawatanId === perawatan.id)
         .map((p) => ({
@@ -262,8 +275,10 @@ router.get("/notion/all-perawatan", async (req, res): Promise<void> => {
     });
   
   } catch (err: any) {
+    console.error("[DB ERROR GET ALL PERAWATAN]:", err);
     res.status(500).json({ error: err.message || "Gagal mengambil riwayat perawatan." });
   }
 });
+
 
 export default router;
