@@ -83,6 +83,7 @@ export function KanbanView({
             <div className="flex flex-col gap-3 min-h-[100px]">
               <AnimatePresence>
                 {columnItems.map((item) => {
+                                  {columnItems.map((item) => {
                   let RenderIcon = <Sprout className="h-3.5 w-3.5" />;
                   let iconBg = "bg-emerald-500/10 text-emerald-600";
                   
@@ -100,20 +101,29 @@ export function KanbanView({
                     iconBg = item.category === "Pengeluaran" ? "bg-red-500/10 text-red-600" : "bg-emerald-500/10 text-emerald-600";
                   }
 
-                // 🚀 LOGIKA FORMAT JADWAL (Sama kayak di LiveFeed)
-                  const startDate = new Date(item.rawDate);
-                  const endDate = item.metaEkstra?.waktuSelesai ? new Date(item.metaEkstra.waktuSelesai) : null;
+                  // 🚀 LOGIKA WAKTU (FIX NAIVE TIMEZONE, BEBAS BUG GESER JAM)
+                  const getTanggal = (str?: string) => {
+                    if (!str) return "";
+                    const datePart = str.split(/[T ]/)[0]; // YYYY-MM-DD
+                    const [y, m, d] = datePart.split('-');
+                    return `${d}/${m}/${y}`; // Format DD/MM/YYYY
+                  };
+
+                  const getJam = (str?: string) => {
+                    if (!str) return "";
+                    const timePart = str.split(/[T ]/)[1];
+                    return timePart ? timePart.substring(0, 5).replace(':', '.') : ""; // Format 18.36
+                  };
+
+                  const startDStr = getTanggal(item.metaEkstra?.waktuMulai || item.rawDate);
+                  const startTStr = getJam(item.metaEkstra?.waktuMulai || item.rawDate);
                   
-                  const formatDate = (d: Date) => d.toLocaleDateString("id-ID", { day: '2-digit', month: '2-digit', year: 'numeric' });
-                  const formatTime = (d: Date) => d.toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' }).replace(':', '.');
-                  
-                  const startDStr = formatDate(startDate);
-                  const startTStr = formatTime(startDate);
                   let scheduleDisplay = `${startDStr} | ${startTStr}`;
                   
-                  if (endDate) {
-                    const endDStr = formatDate(endDate);
-                    const endTStr = formatTime(endDate);
+                  if (item.metaEkstra?.waktuSelesai) {
+                    const endDStr = getTanggal(item.metaEkstra.waktuSelesai);
+                    const endTStr = getJam(item.metaEkstra.waktuSelesai);
+                    
                     scheduleDisplay = startDStr === endDStr 
                       ? `${startDStr} | ${startTStr} - ${endTStr}` 
                       : `${startDStr} - ${endDStr} | ${startTStr} - ${endTStr}`;
@@ -122,10 +132,11 @@ export function KanbanView({
                   return (
                     <motion.div
                       layout
-                      initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
-                      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                      layoutId={item.id} // 🚀 MAGIC KEY: Bikin kartu "terbang" antar kolom saat ganti status!
+                      initial={{ opacity: 0, y: 15 }} // Hapus scale, pakai slide vertical halus
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.15 } }}
+                      transition={{ type: "spring", stiffness: 300, damping: 30 }} // 🚀 Spring dibikin lebih smooth & empuk
                       key={item.id}
                       className="group relative flex flex-col bg-background p-4 rounded-2xl shadow-sm border border-border/50 hover:shadow-md hover:border-primary/30 transition-all cursor-pointer"
                       onClick={() => onItemClick(item)}
@@ -140,7 +151,7 @@ export function KanbanView({
                           </span>
                         </div>
                         
-                        {/* 🚀 WAKTU INPUT DIPINDAH KESINI (KANAN ATAS) */}
+                        {/* WAKTU INPUT */}
                         <div className="flex items-center gap-2">
                           <span className="text-[9px] font-bold text-muted-foreground/60">{item.time}</span>
                           {item.isPendingStaging && (
@@ -162,13 +173,13 @@ export function KanbanView({
 
                       <div className="mt-auto pt-3 flex items-center justify-between border-t border-border/40">
                         
-                        {/* 🚀 JADWAL MULAI-SELESAI (Pakai truncate & teks kecil biar muat) */}
+                        {/* JADWAL MULAI-SELESAI */}
                         <div className="flex items-center gap-1 text-[9px] font-bold text-muted-foreground/80 truncate pr-2">
                           <CalendarClock className="h-3.5 w-3.5 shrink-0" />
                           <span className="truncate" title={scheduleDisplay}>{scheduleDisplay}</span>
                         </div>
 
-                        {/* 🚀 STATUS & HAPUS TETAP ORIGINAL (Ditambah shrink-0 biar gak kegencet teks jadwal) */}
+                        {/* STATUS & HAPUS */}
                         <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                           <div className="relative flex items-center hover:bg-muted p-1 rounded-md transition-colors cursor-pointer">
                             <select
