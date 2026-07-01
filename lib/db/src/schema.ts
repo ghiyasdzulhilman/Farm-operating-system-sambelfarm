@@ -3,7 +3,11 @@ export * from "./schema/oauthStates";
 export * from "./schema/fieldMappings";
 export * from "./schema/stagingData";
 
-import { pgTable, uuid, text, timestamp, integer, doublePrecision, jsonb, date } from "drizzle-orm/pg-core";
+import { 
+  pgTable, uuid, text, timestamp, integer, doublePrecision, 
+  jsonb, date, boolean, check, uniqueIndex 
+} from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm"; // WAJIB, dipakai di check() dan uniqueIndex()
 
 // ==========================================
 // 1. MASTER TABLES 
@@ -57,6 +61,38 @@ export const siklusTanamTable = pgTable("siklus_tanam", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const produkMasterTable = pgTable(
+  "produk_master",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    nama: text("nama").notNull(), // TANPA .unique() bawaan — diganti uniqueIndex di bawah
+    jenis: text("jenis").notNull(),
+
+    n: doublePrecision("n").default(0),
+    p: doublePrecision("p").default(0),
+    k: doublePrecision("k").default(0),
+    ca: doublePrecision("ca").default(0),
+    mg: doublePrecision("mg").default(0),
+    bentuk: text("bentuk").default("Solid").notNull(),
+
+    satuanDasar: text("satuan_dasar").default("gram").notNull(),
+    satuanTampilan: text("satuan_tampilan").default("kg").notNull(),
+
+    hargaPerSatuanDasar: integer("harga_per_satuan_dasar").default(0).notNull(),
+    stokSaatIni: doublePrecision("stok_saat_ini").default(0).notNull(),
+
+    isActive: boolean("is_active").default(true).notNull(),
+
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    check("stok_non_negative", sql`${table.stokSaatIni} >= 0`),
+    check("harga_non_negative", sql`${table.hargaPerSatuanDasar} >= 0`),
+    uniqueIndex("produk_master_nama_lower_unique").on(sql`lower(${table.nama})`),
+  ]
+);
+
 // ==========================================
 // 2. TRANSACTIONAL / CORE TABLES (SUNTIK SIKLUS ID 🚀)
 // ==========================================
@@ -81,9 +117,18 @@ export const perawatanTable = pgTable("perawatan", {
 
 export const perawatanProdukTable = pgTable("perawatan_produk", {
   id: uuid("id").defaultRandom().primaryKey(),
-  perawatanId: uuid("perawatan_id").references(() => perawatanTable.id, { onDelete: "cascade" }).notNull(),
-  namaProduk: text("nama_produk").notNull(),
-  dosis: text("dosis").notNull(),
+  perawatanId: uuid("perawatan_id")
+    .references(() => perawatanTable.id, { onDelete: "restrict" })
+    .notNull(),
+  produkId: uuid("produk_id")
+    .references(() => produkMasterTable.id, { onDelete: "restrict" })
+    .notNull(),
+
+  kuantitasPemakaian: doublePrecision("kuantitas_pemakaian").notNull(),
+  hargaTercatatPerSatuan: integer("harga_tercatat_per_satuan").notNull(),
+  totalBiaya: integer("total_biaya").notNull(), // dihitung di app code, bukan generated column
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const inspeksiTable = pgTable("inspeksi", {
@@ -132,3 +177,21 @@ export const operasionalTable = pgTable("operasional", {
   catatan: text("catatan"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const stockMovementTable = pgTable("stock_movement", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  produkId: uuid("produk_id")
+    .references(() => produkMasterTable.id, { onDelete: "restrict" })
+    .notNull(),
+
+  tipe: text("tipe").notNull(),
+  delta: doublePrecision("delta").notNull(),
+  stokSebelum: doublePrecision("stok_sebelum").notNull(),
+  stokSesudah: doublePrecision("stok_sesudah").notNull(),
+
+  perawatanProdukId: uuid("perawatan_produk_id").references(() => perawatanProdukTable.id, { onDelete: "set null" }),
+  catatan: text("catatan"),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
