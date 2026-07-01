@@ -55,9 +55,9 @@ export function ColorControl() {
               <Moon className="h-3 w-3 text-slate-950" />
             ) : (
               <Sun className="h-3 w-3 text-amber-500" />
-            )
-          )}
+            )}
           </motion.div>
+
         </button>
       </div>
 
