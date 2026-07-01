@@ -1,15 +1,20 @@
 import { Router, type IRouter } from "express";
 import { getAuth } from "@clerk/express";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { 
   db, 
   areasTable, 
   perawatanTable, 
   perawatanProdukTable,
+  produkMasterTable,
+  stockMovementTable,
   pekerjaTable,
   kategoriTable,
   siklusTanamTable
 } from "@workspace/db";
+// 🔴 BELUM ADA: import { adjustStock } from "@workspace/db/helpers/stock" (atau path lain)
+// Fungsi ini saya tulis di respons sebelumnya tapi lokasinya masih tebakan — perlu kamu
+// konfirmasi/buat filenya dulu sebelum baris ini bisa jalan.
 
 const router: IRouter = Router();
 
@@ -64,8 +69,8 @@ interface AddPerawatanBody {
   catatanPerArea?: Record<string, string>;
   
   modeProduk: "broadcast" | "spesifik"; 
-  logProduk: Array<{ produk: string; dosis: string }>; 
-  produkPerArea: Record<string, Array<{ produk: string; dosis: string }>>;
+  logProduk: Array<{ produkId: string; kuantitasPemakaian: number }>; 
+  produkPerArea: Record<string, Array<{ produkId: string; kuantitasPemakaian: number }>>;
 }
 
 // ==========================================
@@ -144,33 +149,75 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
         )
         .limit(1);
 
-            // 1. Simpan Data Induk
-      const [insertedPerawatan] = await db.insert(perawatanTable).values({
-        kegiatan: kegiatan,
-        areaId: currentAreaId,
-        siklusId: activeCycle ? activeCycle.id : null, // 🚀 SUNTIKAN SIKLUS ID
-        
-        // 🚀 SUNTIKAN ZONA WAKTU WIB
-        waktuMulai: parseWIB(tanggalMulaiStr) ?? new Date(),
-        waktuSelesai: parseWIB(tanggalSelesaiStr),
-        
-        durasiKerja: Number(durasiKerjaNum ?? 0),
-        tagCategoryId: tagCategoryStr || null, 
-        status: statusStr || "Belum dikerjakan",
-        pekerjaIds: pekerjaIdsArray || [], 
-        catatan: catatanStr || null,
-      }).returning();
+       // 🔒 Transaction membungkus: insert perawatan + validasi produk + potong stok + insert perawatan_produk.
+      // Kalau salah satu produk gagal (stok kurang / harga 0), SELURUH blok area ini di-rollback —
+      // termasuk insert perawatanTable-nya, supaya tidak ada "perawatan tanpa produk" nyangkut di DB
+      // akibat kegagalan di tengah proses.
+      const insertedPerawatan = await db.transaction(async (tx) => {
+        // 1. Simpan Data Induk
+        const [newPerawatan] = await tx.insert(perawatanTable).values({
+          kegiatan: kegiatan,
+          areaId: currentAreaId,
+          siklusId: activeCycle ? activeCycle.id : null,
+          waktuMulai: parseWIB(tanggalMulaiStr) ?? new Date(),
+          waktuSelesai: parseWIB(tanggalSelesaiStr),
+          durasiKerja: Number(durasiKerjaNum ?? 0),
+          tagCategoryId: tagCategoryStr || null,
+          status: statusStr || "Belum dikerjakan",
+          pekerjaIds: pekerjaIdsArray || [],
+          catatan: catatanStr || null,
+        }).returning();
 
-      // 2. Simpan Racikan Produk (Jika ada)
-      if (produkArray && produkArray.length > 0) {
-        const dataProduk = produkArray.map((p) => ({
-          perawatanId: insertedPerawatan.id,
-          namaProduk: p.produk,
-          dosis: p.dosis,
-        }));
-        
-        await db.insert(perawatanProdukTable).values(dataProduk);
-      }
+        // 2. Validasi SEMUA produk dulu, sebelum ada mutation stok apapun —
+        // supaya tidak ada produk ke-1,2 yang sudah kepotong sebelum produk ke-3 ketahuan gagal.
+        if (produkArray && produkArray.length > 0) {
+          const produkIds = produkArray.map((p) => p.produkId);
+          const produkRows = await tx
+            .select()
+            .from(produkMasterTable)
+            .where(sql`${produkMasterTable.id} = ANY(${produkIds})`);
+
+          const produkMap = new Map(produkRows.map((p) => [p.id, p]));
+
+          for (const item of produkArray) {
+            const produk = produkMap.get(item.produkId);
+            if (!produk) {
+              throw new Error(`Produk dengan ID ${item.produkId} tidak ditemukan.`);
+            }
+            if (produk.hargaPerSatuanDasar === 0) {
+              throw new Error(`Produk "${produk.nama}" belum punya harga. Set harga dulu di Manajemen Produk.`);
+            }
+            if (item.kuantitasPemakaian <= 0) {
+              throw new Error(`Kuantitas pemakaian "${produk.nama}" harus lebih dari 0.`);
+            }
+          }
+
+          // 3. Baru potong stok + insert baris perawatan_produk, satu per satu
+          for (const item of produkArray) {
+            const produk = produkMap.get(item.produkId)!;
+
+            // Panggil adjustStock — throw "STOK_TIDAK_CUKUP:..." kalau gagal, ditangkap di catch luar.
+            await adjustStock(tx, {
+              produkId: item.produkId,
+              delta: -item.kuantitasPemakaian,
+              tipe: "pemakaian",
+              perawatanProdukId: null, // diisi belakangan setelah insert, lihat catatan di bawah
+            });
+
+            const totalBiaya = Math.round(item.kuantitasPemakaian * produk.hargaPerSatuanDasar);
+
+            await tx.insert(perawatanProdukTable).values({
+              perawatanId: newPerawatan.id,
+              produkId: item.produkId,
+              kuantitasPemakaian: item.kuantitasPemakaian,
+              hargaTercatatPerSatuan: produk.hargaPerSatuanDasar,
+              totalBiaya,
+            });
+          }
+        }
+
+        return newPerawatan;
+      });
 
       recordsCreated.push({
         id: insertedPerawatan.id,
@@ -185,8 +232,14 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
       data: recordsCreated 
     });
 
-  } catch (err) {
-    res.status(500).json({ error: err instanceof Error ? err.message : "Internal Server Error" });
+    } catch (err: any) {
+    if (typeof err.message === 'string' && err.message.startsWith('STOK_TIDAK_CUKUP:')) {
+      res.status(400).json({ error: `Stok tidak cukup untuk produk ID ${err.message.split(':')[1]}.` });
+      return;
+    }
+    // Pesan dari validasi harga=0 / kuantitas<=0 / produk tidak ditemukan sudah human-readable,
+    // aman diteruskan langsung ke response.
+    res.status(400).json({ error: err instanceof Error ? err.message : "Internal Server Error" });
   }
 });
 
@@ -244,28 +297,30 @@ router.get("/notion/all-perawatan", async (req, res): Promise<void> => {
       filteredIndukData = indukData.filter(item => item.statusSiklus === "Aktif" || !item.statusSiklus);
     }
 
-    // 2. Ambil semua detail produk racikan dari tabel anak
-    // (Pastikan perawatanProdukTable sudah di-import di atas)
-    const semuaProduk = await db.select().from(perawatanProdukTable);
+        // 2. Ambil semua detail produk racikan + JOIN nama produk dari master
+    const semuaProduk = await db
+      .select({
+        perawatanId: perawatanProdukTable.perawatanId,
+        produkId: perawatanProdukTable.produkId,
+        namaProduk: produkMasterTable.nama,
+        kuantitasPemakaian: perawatanProdukTable.kuantitasPemakaian,
+        satuanDasar: produkMasterTable.satuanDasar,
+        hargaTercatatPerSatuan: perawatanProdukTable.hargaTercatatPerSatuan,
+        totalBiaya: perawatanProdukTable.totalBiaya,
+      })
+      .from(perawatanProdukTable)
+      .leftJoin(produkMasterTable, eq(perawatanProdukTable.produkId, produkMasterTable.id));
 
-    // 3. Gabungkan produk ke masing-masing induk perawatan yang cocok
-    // 🚀 PASTIKAN MAPPING MENGGUNAKAN 'filteredIndukData'
-      const dataMatang = filteredIndukData.map((perawatan) => {
-      const racikanBahan = semuaProduk
-        .filter((p) => p.perawatanId === perawatan.id)
-        .map((p) => ({
-          produk: p.namaProduk,
-          dosis: p.dosis
-        }));
+    const dataMatang = filteredIndukData.map((perawatan) => {
+      const racikanBahan = semuaProduk.filter((p) => p.perawatanId === perawatan.id);
+      const totalBiayaPerawatan = racikanBahan.reduce((sum, p) => sum + (p.totalBiaya ?? 0), 0);
 
       return {
         ...perawatan,
-        
-        // 🚀 SERIALIZE WAKTU KE FORMAT WIB STRING SEBELUM DIKIRIM
         waktuMulai: toWIBString(perawatan.waktuMulai as Date),
         waktuSelesai: toWIBString(perawatan.waktuSelesai as Date),
-        
-        logProduk: racikanBahan 
+        logProduk: racikanBahan,
+        totalBiayaProduk: totalBiayaPerawatan, // 🆕 dipakai Step 4 (detail sheet)
       };
     });
 
@@ -280,5 +335,54 @@ router.get("/notion/all-perawatan", async (req, res): Promise<void> => {
   }
 });
 
+// ==========================================
+// 4. ENDPOINT DELETE PERAWATAN (DENGAN REVERSAL STOK)
+// ⚠️ Endpoint ini MENGGANTIKAN pemanggilan generic DELETE /notion/activity/perawatan/:id
+// dari frontend. Endpoint generic itu sekarang akan SELALU GAGAL untuk perawatan yang
+// punya produk terkait (FK restrict), jadi frontend WAJIB dialihkan ke path ini.
+// ==========================================
+router.delete("/notion/perawatan/:id", async (req, res): Promise<void> => {
+  const { userId } = getAuth(req);
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+  const { id } = req.params;
+
+  try {
+    await db.transaction(async (tx) => {
+      const produkRows = await tx
+        .select()
+        .from(perawatanProdukTable)
+        .where(eq(perawatanProdukTable.perawatanId, id));
+
+      // Reverse stok untuk tiap produk yang pernah dipakai — HARUS sebelum baris
+      // perawatan_produk dihapus, kalau tidak kita kehilangan info kuantitas yang perlu dikembalikan.
+      for (const row of produkRows) {
+        await adjustStock(tx, {
+          produkId: row.produkId,
+          delta: row.kuantitasPemakaian, // positif = kembalikan stok
+          tipe: "reversal_delete",
+          perawatanProdukId: null,
+        });
+      }
+
+      await tx.delete(perawatanProdukTable).where(eq(perawatanProdukTable.perawatanId, id));
+
+      const [deleted] = await tx.delete(perawatanTable).where(eq(perawatanTable.id, id)).returning();
+
+      if (!deleted) {
+        throw new Error("PERAWATAN_TIDAK_DITEMUKAN");
+      }
+    });
+
+    res.json({ success: true, message: "Perawatan dan riwayat stok terkait berhasil dihapus & dikembalikan." });
+  } catch (err: any) {
+    if (err.message === "PERAWATAN_TIDAK_DITEMUKAN") {
+      res.status(404).json({ error: "Data perawatan tidak ditemukan." });
+      return;
+    }
+    console.error("Error delete perawatan:", err);
+    res.status(500).json({ error: "Gagal menghapus perawatan." });
+  }
+});
 
 export default router;
