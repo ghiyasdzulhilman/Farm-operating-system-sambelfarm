@@ -10,11 +10,9 @@ import {
   stockMovementTable,
   pekerjaTable,
   kategoriTable,
-  siklusTanamTable
+  siklusTanamTable,
+  adjustStock
 } from "@workspace/db";
-// 🔴 BELUM ADA: import { adjustStock } from "@workspace/db/helpers/stock" (atau path lain)
-// Fungsi ini saya tulis di respons sebelumnya tapi lokasinya masih tebakan — perlu kamu
-// konfirmasi/buat filenya dulu sebelum baris ini bisa jalan.
 
 const router: IRouter = Router();
 
