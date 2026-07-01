@@ -41,7 +41,11 @@ const toWIBString = (date: Date | string | null | undefined) => {
 // ==========================================
 // 1. TYPE DEFINITION (Sesuai Payload iOS/Frontend)
 // ==========================================
-interface TemuanDetail { nama: string; catatan: string; }
+interface TemuanDetail { 
+  nama: string; 
+  kendalaMasterId: string; // 🚀 WAJIB DITAMBAH: Supaya TS nggak ngamuk pas lu panggil di bawah
+  catatan: string; 
+}
 
 interface AddInspeksiBody {
   kegiatan: string;
@@ -116,13 +120,13 @@ router.post("/notion/add-inspeksi", async (req, res): Promise<void> => {
             // 4. Ekstrak Detail Temuan
       const temuanArray = body.modeKendala === "broadcast" ? (body.temuanBroadcast || []) : (body.temuanPerArea?.[currentAreaId] || []);
 
-      // 🔍 5. CARI SIKLUS TANAM YANG SEDANG AKTIF DI AREA INI
+            // 🔍 5. CARI SIKLUS TANAM YANG SEDANG AKTIF DI AREA INI
       const [activeCycle] = await db
         .select({ id: siklusTanamTable.id })
         .from(siklusTanamTable)
         .where(
           and(
-            eq(siklusTanamTable.areaId, currentAreaId),
+            eq(siklusTanamTable.areaId, currentAreaId as string), // 🚀 DITAMBAH: as string
             eq(siklusTanamTable.status, "Aktif")
           )
         )
