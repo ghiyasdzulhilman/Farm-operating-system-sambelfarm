@@ -9,7 +9,7 @@ import operasionalRoutes from "./operasional";
 import mappingsRouter from "./mappings";
 import dashboardRouter from "./dashboard";
 import stagingRouter from "./staging";
-// import produkRoutes from "./produk";
+import produkRoutes from "./produk";
 
 const router: IRouter = Router();
 
@@ -23,6 +23,6 @@ router.use(operasionalRoutes);
 router.use(mappingsRouter);
 router.use(dashboardRouter);
 router.use(stagingRouter);
-// router.use(produkRoutes);
+router.use(produkRoutes);
 
 export default router;
