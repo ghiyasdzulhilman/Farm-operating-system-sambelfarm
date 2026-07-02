@@ -37,15 +37,17 @@ import { useQuery } from "@tanstack/react-query";
 interface ActivityDetailSheetProps {
   item: AgronomyItem | null;
   onClose: () => void;
-  // 💡 Tipe diubah agar bisa menerima string (untuk status) atau object (untuk data lain)
-  onStatusChange?: (id: string, payload: any) => void; 
+  onStatusChange?: (id: string, payload: any) => void;
+  isUpdating?: boolean; // 🆕
 }
 
 export function ActivityDetailSheet({
   item,
   onClose,
   onStatusChange,
+  isUpdating = false, // 🆕
 }: ActivityDetailSheetProps) {
+
   // 💡 State untuk mendeteksi elemen mana yang lagi di-tap (inline edit)
  
   const [activeField, setActiveField] = useState<string | null>(null);
@@ -698,14 +700,15 @@ export function ActivityDetailSheet({
                   <Button 
                     variant="default" 
                     size="sm" 
-                    className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold tracking-wider"
+                    disabled={isUpdating}
+                    className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold tracking-wider disabled:opacity-50"
                     onClick={() => {
-                      // 🚀 Kirim payload UTUH berisi logProduk ke backend
                       onStatusChange?.(item.id, { logProduk: editedProducts });
                     }}
                   >
-                    <Save className="h-4 w-4 mr-2" /> Simpan Racikan Produk
+                    {isUpdating ? "Menyimpan..." : <><Save className="h-4 w-4 mr-2" /> Simpan Racikan Produk</>}
                   </Button>
+
                 </div>
               </section>
             )}
