@@ -357,9 +357,10 @@ export function AgronomyHubPage() {
         </aside>
       </div>
 
-       <ActivityDetailSheet 
+      <ActivityDetailSheet 
         item={selectedItem} 
         onClose={() => setSelectedItem(null)} 
+        isUpdating={updateStatusMutation.isPending}
         onStatusChange={(id, payload) => {
           if (selectedItem) {
             const updateData = typeof payload === "string" ? { status: payload } : payload;
