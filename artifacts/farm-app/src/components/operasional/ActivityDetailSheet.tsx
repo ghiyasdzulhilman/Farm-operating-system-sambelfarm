@@ -12,6 +12,7 @@ import {
   Users,
   Briefcase,
   Thermometer,
+  Lock,
   Radar,
 } from "lucide-react";
 import {
@@ -334,33 +335,38 @@ export function ActivityDetailSheet({
              {/* 💡 JAJARAN BADGE INTERAKTIF BARU (FIX LEBAR DINAMIS) */}
               <div className="mt-4 flex flex-wrap gap-2 items-center">
                 
- {/* 1. Badge Area (Editable) & Tanaman Historis */}
-<div className="relative inline-flex shadow-sm max-w-full">
-  <select
-    value={item.areaId || ""}
-    onChange={(e) => onStatusChange?.(item.id, { areaId: e.target.value })}
-    className="appearance-none max-w-[130px] sm:max-w-[160px] truncate bg-primary text-primary-foreground border border-primary hover:bg-primary/90 rounded-full pl-3 pr-7 py-1 text-[11px] font-bold uppercase tracking-wider outline-none cursor-pointer transition-colors z-10"
-  >
-    <option value="" disabled>PILIH AREA</option>
-    {dropdownOptions?.areas?.map((a: any) => {
-      // 💡 LOGIKA HISTORIS PINTAR: 
-      // Jika area yang sedang di-loop ini adalah area tempat aktivitas dilakukan, 
-      // kita paksakan labelnya gabungin 'Area Asli' + 'Nama Siklus Historis'.
-      // Jadi pas ngelihat riwayat lama, teks yang nempel di badge tetap akurat!
-      const isCurrentArea = a.id === item.areaId;
-      const displayLabel = (isCurrentArea && item.metaEkstra?.namaSiklus) 
-        ? `${item.area} - ${item.metaEkstra.namaSiklus}` 
-        : a.name;
+ {/* 1. Badge Area (perawatan dikunci) & Tanaman Historis */}
+{item.module === "perawatan" ? (
+  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted text-muted-foreground text-[11px] font-bold uppercase tracking-wider max-w-[160px] truncate">
+    <Lock className="h-3 w-3 shrink-0" />
+    <span className="truncate">
+      {item.metaEkstra?.namaSiklus ? `${item.area} - ${item.metaEkstra.namaSiklus}` : item.area}
+    </span>
+  </div>
+) : (
+  <div className="relative inline-flex shadow-sm max-w-full">
+    <select
+      value={item.areaId || ""}
+      onChange={(e) => onStatusChange?.(item.id, { areaId: e.target.value })}
+      className="appearance-none max-w-[130px] sm:max-w-[160px] truncate bg-primary text-primary-foreground border border-primary hover:bg-primary/90 rounded-full pl-3 pr-7 py-1 text-[11px] font-bold uppercase tracking-wider outline-none cursor-pointer transition-colors z-10"
+    >
+      <option value="" disabled>PILIH AREA</option>
+      {dropdownOptions?.areas?.map((a: any) => {
+        const isCurrentArea = a.id === item.areaId;
+        const displayLabel = (isCurrentArea && item.metaEkstra?.namaSiklus) 
+          ? `${item.area} - ${item.metaEkstra.namaSiklus}` 
+          : a.name;
+        return (
+          <option key={a.id} value={a.id}>
+            {displayLabel}
+          </option>
+        );
+      })}
+    </select>
+    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-primary-foreground pointer-events-none z-10" />
+  </div>
+)}
 
-      return (
-        <option key={a.id} value={a.id}>
-          {displayLabel}
-        </option>
-      );
-    })}
-  </select>
-  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-primary-foreground pointer-events-none z-10" />
-</div>
 
               {/* 2. Badge Kategori (Sembunyikan khusus untuk Inspeksi karena tidak ada di schema DB) */}
                 {item.module !== "inspeksi" && (
