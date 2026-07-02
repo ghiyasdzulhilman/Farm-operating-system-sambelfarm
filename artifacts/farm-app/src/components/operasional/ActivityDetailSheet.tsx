@@ -14,7 +14,11 @@ import {
   Thermometer,
   Lock,
   Radar,
+  Plus,
+  Trash2,
+  Save,
 } from "lucide-react";
+import { useEffect } from "react";
 import {
   Sheet,
   SheetContent,
@@ -40,11 +44,32 @@ export function ActivityDetailSheet({
   onStatusChange,
 }: ActivityDetailSheetProps) {
   // 💡 State untuk mendeteksi elemen mana yang lagi di-tap (inline edit)
+ 
   const [activeField, setActiveField] = useState<string | null>(null);
   const [localValue, setLocalValue] = useState<string>("");
+  
+  // 💡 State khusus penampung array racikan produk yang lagi diedit
+  const [editedProducts, setEditedProducts] = useState<Array<{ produkId: string; kuantitasPemakaian: number; namaProduk?: string; satuanDasar?: string }>>([]);
 
-    // 💡 Fetch Opsi Kategori langsung dari backend
+  // 💡 Sinkronisasi otomatis: Saat sheet dibuka, salin array logProduk dari database ke state lokal
+  useEffect(() => {
+    if (item?.module === "perawatan" && item.metaEkstra?.logProduk) {
+      setEditedProducts(item.metaEkstra.logProduk);
+    } else {
+      setEditedProducts([]);
+    }
+  }, [item]);
+
+  // 💡 Fetch Opsi Master Produk dari backend
+  const { data: produkOptions } = useQuery({
+    queryKey: ["produk-master-list"],
+    queryFn: async () => fetch("/api/notion/produk").then(res => res.json()), // 👈 Pastikan endpoint ini mengembalikan daftar produk dari produkMasterTable
+    enabled: !!item && item.module === "perawatan"
+  });
+
+  // 💡 Fetch Opsi Kategori langsung dari backend
   const { data: dropdownOptions } = useQuery({
+
     queryKey: ["operasional-options-list"],
     queryFn: async () => fetch("/api/notion/operasional-dropdown-options").then(res => res.json()),
     enabled: !!item // Hanya nge-fetch kalau sheet-nya lagi kebuka
@@ -126,15 +151,6 @@ export function ActivityDetailSheet({
     }
     
     return raw;
-  };
-
-  // 💡 Ekstrak khusus Bahan & Dosis (Read-Only) untuk Perawatan
-  const getDetailPerawatan = () => {
-    const raw = item.notes || "";
-    if (item.module === "perawatan" && raw.includes("\n\nCatatan Tambahan:\n")) {
-      return raw.split("\n\nCatatan Tambahan:\n")[0]; // Ambil bagian atasnya saja
-    }
-    return "";
   };
 
   // 💡 Ekstrak khusus detail kendala (Read-Only) untuk Inspeksi
@@ -588,6 +604,105 @@ export function ActivityDetailSheet({
     {getDetailKendala()}
   </div>
 )}
+</div>
+</section>
+)}
+
+            {/* 💡 SEGMEN BARU: RINCIAN BAHAN & DOSIS (KHUSUS PERAWATAN) */}
+            {item.module === "perawatan" && (
+              <section className="mt-6 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-emerald-500" />
+                    <h3 className="text-sm font-black uppercase tracking-[0.18em] text-muted-foreground">
+                      Bahan & Dosis
+                    </h3>
+                  </div>
+                </div>
+
+                <div className="rounded-3xl border border-emerald-500/20 bg-emerald-500/5 p-4 shadow-sm flex flex-col gap-3">
+                  {editedProducts.length === 0 ? (
+                    <div className="text-sm text-muted-foreground italic text-center py-2">Belum ada produk yang digunakan.</div>
+                  ) : (
+                    editedProducts.map((prod, index) => (
+                      <div key={index} className="flex gap-2 items-center">
+                        {/* Dropdown Pilih Produk */}
+                        <div className="relative flex-1">
+                          <select
+                            value={prod.produkId || ""}
+                            onChange={(e) => {
+                              const newProds = [...editedProducts];
+                              const selectedMaster = produkOptions?.data?.find((p: any) => p.id === e.target.value);
+                              newProds[index] = { 
+                                ...newProds[index], 
+                                produkId: e.target.value,
+                                namaProduk: selectedMaster?.nama,
+                                satuanDasar: selectedMaster?.satuanDasar
+                              };
+                              setEditedProducts(newProds);
+                            }}
+                            className="w-full appearance-none rounded-xl bg-background border border-border/50 px-3 py-2 text-xs font-bold outline-none"
+                          >
+                            <option value="" disabled>Pilih Produk...</option>
+                            {produkOptions?.data?.map((p: any) => (
+                              <option key={p.id} value={p.id}>{p.nama}</option>
+                            ))}
+                          </select>
+                          <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground opacity-50 pointer-events-none" />
+                        </div>
+
+                        {/* Input Gram/Dosis */}
+                        <div className="flex items-center bg-background border border-border/50 rounded-xl px-2 w-[100px]">
+                          <input
+                            type="number"
+                            min="0"
+                            value={prod.kuantitasPemakaian || ""}
+                            onChange={(e) => {
+                              const newProds = [...editedProducts];
+                              newProds[index].kuantitasPemakaian = parseFloat(e.target.value) || 0;
+                              setEditedProducts(newProds);
+                            }}
+                            className="w-full bg-transparent text-xs font-bold outline-none py-2 text-right"
+                            placeholder="0"
+                          />
+                          <span className="text-[10px] font-bold text-muted-foreground ml-1">{prod.satuanDasar || "gram"}</span>
+                        </div>
+
+                        {/* Tombol Hapus Baris */}
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 shrink-0 text-destructive hover:bg-destructive/10"
+                          onClick={() => setEditedProducts(editedProducts.filter((_, i) => i !== index))}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))
+                  )}
+
+                  {/* Tombol Tambah Baris */}
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full mt-1 border-dashed border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10"
+                    onClick={() => setEditedProducts([...editedProducts, { produkId: "", kuantitasPemakaian: 0 }])}
+                  >
+                    <Plus className="h-4 w-4 mr-2" /> Tambah Produk
+                  </Button>
+
+                  {/* Tombol Simpan (Trigger Transaksi Reverse & Reapply) */}
+                  <Button 
+                    variant="default" 
+                    size="sm" 
+                    className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold tracking-wider"
+                    onClick={() => {
+                      // 🚀 Kirim payload UTUH berisi logProduk ke backend
+                      onStatusChange?.(item.id, { logProduk: editedProducts });
+                    }}
+                  >
+                    <Save className="h-4 w-4 mr-2" /> Simpan Racikan Produk
+                  </Button>
                 </div>
               </section>
             )}
@@ -596,17 +711,11 @@ export function ActivityDetailSheet({
             <section className="mt-6 space-y-3">
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-primary" />
+
                 <h3 className="text-sm font-black uppercase tracking-[0.18em] text-muted-foreground">
                 {item.module === "inspeksi" ? "Catatan Kegiatan" : "Catatan / Detail"}
                </h3>
               </div>
-
-              {/* Kotak Read-Only Khusus Rincian Bahan & Dosis (PERAWATAN) */}
-              {getDetailPerawatan() && (
-                <div className="mb-3 rounded-2xl border border-primary/20 bg-primary/5 p-4 text-sm text-primary shadow-sm">
-                  <div className="whitespace-pre-wrap font-medium leading-relaxed">{getDetailPerawatan()}</div>
-                </div>
-              )}
               
               {/* Kotak Catatan Utama (Bisa Di-edit untuk semua modul) */}
               <div 
