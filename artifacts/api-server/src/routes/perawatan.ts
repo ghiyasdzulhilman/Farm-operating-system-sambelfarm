@@ -7,8 +7,6 @@ import {
   perawatanTable, 
   perawatanProdukTable,
   produkMasterTable,
-  stockMovementTable,
-  pekerjaTable,
   kategoriTable,
   siklusTanamTable,
   adjustStock
