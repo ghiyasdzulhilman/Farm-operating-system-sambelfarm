@@ -145,7 +145,7 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
   const produkList: ProdukOption[] = produkData?.data || [];
   // Hanya produk aktif DAN sudah punya harga yang boleh dipilih — konsisten dengan validasi backend
   // yang akan menolak submit kalau harga = 0. Ini cuma UX, bukan pengganti validasi backend.
-  const produkTersedia = produkList.filter((p) => p.isActive); // 🧪 TEMPORARY: filter harga dimatikan untuk testing backend
+  const produkTersedia = produkList.filter((p) => p.isActive && p.hargaPerSatuanDasar > 0);
 
   // --- STATE TAMBAH MASTER DATA ---
   const [isAddingKategori, setIsAddingKategori] = useState(false); const [newKategoriName, setNewKategoriName] = useState("");
