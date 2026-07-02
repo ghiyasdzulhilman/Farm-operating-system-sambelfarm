@@ -64,9 +64,9 @@ export function ActivityDetailSheet({
   }, [item]);
 
   // 💡 Fetch Opsi Master Produk dari backend
-  const { data: produkOptions } = useQuery({
+    const { data: produkOptions } = useQuery({
     queryKey: ["produk-master-list"],
-    queryFn: async () => fetch("/api/notion/produk").then(res => res.json()), // 👈 Pastikan endpoint ini mengembalikan daftar produk dari produkMasterTable
+    queryFn: async () => fetch("/api/produk").then(res => res.json()),
     enabled: !!item && item.module === "perawatan"
   });
 
