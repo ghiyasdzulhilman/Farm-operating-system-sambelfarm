@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { getAuth } from "@clerk/express";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { 
   db, 
   areasTable, 
@@ -173,7 +173,7 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
           const produkRows = await tx
             .select()
             .from(produkMasterTable)
-            .where(sql`${produkMasterTable.id} = ANY(${produkIds})`);
+            .where(inArray(produkMasterTable.id, produkIds));
 
           const produkMap = new Map(produkRows.map((p) => [p.id, p]));
 
@@ -231,7 +231,10 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
     });
 
     } catch (err: any) {
+    console.error("[DB ERROR ADD PERAWATAN]:", err);
+    console.error("[CAUSE]:", err.cause);
     if (typeof err.message === 'string' && err.message.startsWith('STOK_TIDAK_CUKUP:')) {
+
       res.status(400).json({ error: `Stok tidak cukup untuk produk ID ${err.message.split(':')[1]}.` });
       return;
     }
