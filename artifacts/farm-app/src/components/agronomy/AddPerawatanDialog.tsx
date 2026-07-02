@@ -51,8 +51,14 @@ const perawatanSchema = z.object({
   catatanBroadcast: z.string().optional(), catatanPerArea: z.record(z.string()).optional(),
 
   modeProduk: z.enum(["broadcast", "spesifik"]).default("broadcast"),
-  logProduk: z.array(z.object({ produk: z.string().min(1, "Wajib"), dosis: z.string().min(1, "Wajib") })).default([]),
-  produkPerArea: z.record(z.array(z.object({ produk: z.string(), dosis: z.string() }))).default({}),
+  logProduk: z.array(z.object({
+  produkId: z.string().min(1, "Pilih produk"),
+  kuantitasPemakaian: z.coerce.number().positive("Kuantitas harus lebih dari 0"),
+})).default([]),
+  produkPerArea: z.record(z.array(z.object({
+  produkId: z.string().min(1, "Pilih produk"),
+  kuantitasPemakaian: z.coerce.number().positive("Kuantitas harus lebih dari 0"),
+}))).default({}),
 });
 
 type PerawatanFormValues = z.infer<typeof perawatanSchema>;
@@ -61,6 +67,16 @@ interface DropdownOptions {
   areas: Array<{ id: string; name: string }>; 
   petugas: Array<{ id: string; name: string }>; 
   kategori: Array<{ id: string; name: string; module: string }>; 
+}
+
+interface ProdukOption {
+  id: string;
+  nama: string;
+  jenis: string;
+  satuanDasar: string;
+  hargaPerSatuanDasar: number;
+  stokSaatIni: number;
+  isActive: boolean;
 }
 
 const PERAWATAN_OVERRIDE_FIELDS = [
@@ -106,7 +122,7 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
 
   // 💡 SEBELUMNYA: fetch("/api/notion/perawatan-dropdown-options")
   // 💡 SESUDAHNYA: fetch("/api/notion/operasional-dropdown-options")
-  const { data: dropdownOptions, isLoading: isLoadingOptions } = useQuery<DropdownOptions>({
+    const { data: dropdownOptions, isLoading: isLoadingOptions } = useQuery<DropdownOptions>({
     queryKey: ["perawatan-dropdown-options"], 
     queryFn: async () => {
       const res = await fetch("/api/notion/operasional-dropdown-options");
@@ -115,6 +131,21 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
     }, 
     enabled: open,
   });
+
+  // 🆕 Query terpisah — sengaja pakai key sama dengan ProdukManager.tsx supaya cache bisa dibagi.
+  const { data: produkData, isLoading: isLoadingProduk } = useQuery({
+    queryKey: ["produk-master-list"],
+    queryFn: async () => {
+      const res = await fetch("/api/produk");
+      if (!res.ok) throw new Error("Gagal mengambil data produk");
+      return res.json();
+    },
+    enabled: open,
+  });
+  const produkList: ProdukOption[] = produkData?.data || [];
+  // Hanya produk aktif DAN sudah punya harga yang boleh dipilih — konsisten dengan validasi backend
+  // yang akan menolak submit kalau harga = 0. Ini cuma UX, bukan pengganti validasi backend.
+  const produkTersedia = produkList.filter((p) => p.isActive && p.hargaPerSatuanDasar > 0);
 
   // --- STATE TAMBAH MASTER DATA ---
   const [isAddingKategori, setIsAddingKategori] = useState(false); const [newKategoriName, setNewKategoriName] = useState("");
@@ -345,25 +376,57 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
                           </div>
                         </div>
 
-                        {/* CARD 2. Bahan / Produk */}
+                       {/* CARD 2. Bahan / Produk */}
                         <div className="bg-card p-4 rounded-2xl border border-border shadow-sm space-y-3">
                           <div className="flex justify-between items-center">
                             <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">2. Racikan Bahan</p>
-                            <Button type="button" variant="outline" size="sm" className="h-7 text-[10px] rounded-md bg-primary/10 text-primary border-primary/20 hover:bg-primary/20" onClick={() => appendProduk({ produk: "", dosis: "" })}><Plus className="h-3 w-3 mr-1" /> Tambah</Button>
+                            <Button type="button" variant="outline" size="sm" className="h-7 text-[10px] rounded-md bg-primary/10 text-primary border-primary/20 hover:bg-primary/20" onClick={() => appendProduk({ produkId: "", kuantitasPemakaian: 0 })}><Plus className="h-3 w-3 mr-1" /> Tambah</Button>
                           </div>
                           {produkFields.length === 0 && <p className="text-xs text-muted-foreground/60 italic p-3 text-center border border-dashed border-border rounded-xl">Belum ada bahan ditambahkan.</p>}
+                          {isLoadingProduk && produkFields.length > 0 && <p className="text-[10px] text-muted-foreground">Memuat daftar produk...</p>}
+                          {!isLoadingProduk && produkTersedia.length === 0 && (
+                            <p className="text-[10px] text-amber-700 bg-amber-500/10 p-2 rounded-lg border border-amber-500/20">
+                              ⚠️ Belum ada produk aktif dengan harga terisi. Tambahkan dulu di Master Data → Produk & Stok.
+                            </p>
+                          )}
 
                           <div className="space-y-2">
                             <AnimatePresence>
-                              {produkFields.map((field, index) => (
-                                <motion.div key={field.id} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="flex gap-2 items-start bg-muted/40 p-2 rounded-xl border border-border overflow-hidden">
-                                  <div className="grid grid-cols-2 gap-2 flex-1">
-                                    <Input className="h-9 text-xs bg-background border-input rounded-lg focus-visible:ring-primary/20" placeholder="Nama Produk" {...form.register(`logProduk.${index}.produk`)} />
-                                    <Input className="h-9 text-xs bg-background border-input rounded-lg focus-visible:ring-primary/20" placeholder="Dosis" {...form.register(`logProduk.${index}.dosis`)} />
-                                  </div>
-                                  <Button type="button" variant="ghost" size="icon" className="h-9 w-9 text-destructive hover:bg-destructive/10 shrink-0 rounded-lg" onClick={() => removeProduk(index)}><Trash2 className="h-4 w-4" /></Button>
-                                </motion.div>
-                              ))}
+                              {produkFields.map((field, index) => {
+                                const selectedProdukId = form.watch(`logProduk.${index}.produkId`);
+                                const selectedProduk = produkList.find((p) => p.id === selectedProdukId);
+                                return (
+                                  <motion.div key={field.id} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="flex gap-2 items-start bg-muted/40 p-2 rounded-xl border border-border overflow-hidden">
+                                    <div className="grid grid-cols-2 gap-2 flex-1">
+                                      <Select
+                                        onValueChange={(val) => form.setValue(`logProduk.${index}.produkId`, val)}
+                                        value={selectedProdukId || ""}
+                                      >
+                                        <SelectTrigger className="h-9 text-xs bg-background border-input rounded-lg">
+                                          <SelectValue placeholder="Pilih Produk" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {produkTersedia.map((p) => (
+                                            <SelectItem key={p.id} value={p.id}>{p.nama}</SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                      <div className="flex items-center gap-1">
+                                        <Input
+                                          type="number" step="0.01" placeholder="Jumlah"
+                                          className="h-9 text-xs bg-background border-input rounded-lg focus-visible:ring-primary/20"
+                                          value={form.watch(`logProduk.${index}.kuantitasPemakaian`) || ""}
+                                          onChange={(e) => form.setValue(`logProduk.${index}.kuantitasPemakaian`, Number(e.target.value))}
+                                        />
+                                        {selectedProduk && (
+                                          <span className="text-[9px] font-bold text-muted-foreground shrink-0">{selectedProduk.satuanDasar}</span>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <Button type="button" variant="ghost" size="icon" className="h-9 w-9 text-destructive hover:bg-destructive/10 shrink-0 rounded-lg" onClick={() => removeProduk(index)}><Trash2 className="h-4 w-4" /></Button>
+                                  </motion.div>
+                                );
+                              })}
                             </AnimatePresence>
                           </div>
                         </div>
@@ -494,12 +557,36 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
                                     </div>
                                   </div>
 
-                                  {/* Bahan Spesifik */}
+                                {/* Bahan Spesifik */}
                                   <div className="space-y-1.5 pt-2 border-t border-border/50">
-                                    <div className="flex justify-between items-center"><p className="text-[9px] font-bold text-muted-foreground uppercase">Bahan / Dosis</p><Button type="button" variant="outline" size="sm" className="h-6 text-[9px] py-0 px-1.5 rounded bg-primary/10 text-primary border-primary/20 hover:bg-primary/20" onClick={() => form.setValue(`produkPerArea.${areaId}`, [...(form.getValues(`produkPerArea.${areaId}`)||[]), {produk:"", dosis:""}])}><Plus className="h-2 w-2 mr-1" /> Tambah</Button></div>
-                                    {(form.watch(`produkPerArea.${areaId}`) || []).map((prod, idx) => (
-                                      <div key={idx} className="flex gap-1.5"><Input className="h-8 text-[10px] bg-background border-input" placeholder="Produk" value={prod.produk} onChange={(e) => { const arr = [...form.getValues(`produkPerArea.${areaId}`)]; arr[idx].produk = e.target.value; form.setValue(`produkPerArea.${areaId}`, arr); }} /><Input className="h-8 text-[10px] bg-background border-input" placeholder="Dosis" value={prod.dosis} onChange={(e) => { const arr = [...form.getValues(`produkPerArea.${areaId}`)]; arr[idx].dosis = e.target.value; form.setValue(`produkPerArea.${areaId}`, arr); }} /><Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive rounded-md" onClick={() => { const arr = [...form.getValues(`produkPerArea.${areaId}`)]; arr.splice(idx,1); form.setValue(`produkPerArea.${areaId}`, arr); }}><Trash2 className="h-3.5 w-3.5" /></Button></div>
-                                    ))}
+                                    <div className="flex justify-between items-center"><p className="text-[9px] font-bold text-muted-foreground uppercase">Bahan / Kuantitas</p><Button type="button" variant="outline" size="sm" className="h-6 text-[9px] py-0 px-1.5 rounded bg-primary/10 text-primary border-primary/20 hover:bg-primary/20" onClick={() => form.setValue(`produkPerArea.${areaId}`, [...(form.getValues(`produkPerArea.${areaId}`)||[]), {produkId:"", kuantitasPemakaian:0}])}><Plus className="h-2 w-2 mr-1" /> Tambah</Button></div>
+                                    {(form.watch(`produkPerArea.${areaId}`) || []).map((prod, idx) => {
+                                      const selectedProduk = produkList.find((p) => p.id === prod.produkId);
+                                      return (
+                                        <div key={idx} className="flex gap-1.5 items-center">
+                                          <Select
+                                            onValueChange={(val) => { const arr = [...(form.getValues(`produkPerArea.${areaId}`) || [])]; arr[idx] = { ...arr[idx], produkId: val }; form.setValue(`produkPerArea.${areaId}`, arr); }}
+                                            value={prod.produkId || ""}
+                                          >
+                                            <SelectTrigger className="h-8 text-[10px] bg-background border-input flex-1">
+                                              <SelectValue placeholder="Pilih Produk" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              {produkTersedia.map((p) => (
+                                                <SelectItem key={p.id} value={p.id}>{p.nama}</SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                          <Input
+                                            type="number" step="0.01" className="h-8 text-[10px] bg-background border-input w-16" placeholder="Jml"
+                                            value={prod.kuantitasPemakaian || ""}
+                                            onChange={(e) => { const arr = [...(form.getValues(`produkPerArea.${areaId}`) || [])]; arr[idx] = { ...arr[idx], kuantitasPemakaian: Number(e.target.value) }; form.setValue(`produkPerArea.${areaId}`, arr); }}
+                                          />
+                                          {selectedProduk && <span className="text-[8px] font-bold text-muted-foreground shrink-0">{selectedProduk.satuanDasar}</span>}
+                                          <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive rounded-md" onClick={() => { const arr = [...(form.getValues(`produkPerArea.${areaId}`) || [])]; arr.splice(idx, 1); form.setValue(`produkPerArea.${areaId}`, arr); }}><Trash2 className="h-3.5 w-3.5" /></Button>
+                                        </div>
+                                      );
+                                    })}
                                   </div>
 
 {/* Kategori & Status Spesifik */}
