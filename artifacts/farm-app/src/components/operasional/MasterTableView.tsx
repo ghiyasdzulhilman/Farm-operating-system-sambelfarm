@@ -238,6 +238,15 @@ export function MasterTableView({
         : opt
     );
 
+    if (item.module === "perawatan") {
+      return (
+        <div className="min-w-[160px] flex items-center gap-1.5 px-2 py-1.5 text-xs text-muted-foreground bg-muted/30 rounded-md w-fit">
+          <Lock className="h-3 w-3" />
+          <span>{historisLabel}</span>
+        </div>
+      );
+    }
+
     return (
       <div className="min-w-[160px]">
         <EditableCell
@@ -253,6 +262,7 @@ export function MasterTableView({
         />
       </div>
     );
+
   },
 },
 
