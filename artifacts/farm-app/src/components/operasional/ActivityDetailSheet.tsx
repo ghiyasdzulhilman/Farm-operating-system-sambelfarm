@@ -18,7 +18,6 @@ import {
   Trash2,
   Save,
 } from "lucide-react";
-import { useEffect } from "react";
 import {
   Sheet,
   SheetContent,
@@ -26,7 +25,9 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button"; 
 import { cn } from "@/lib/utils";
+
 import type { AgronomyItem } from "@/types/operasional";
 import { format } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
