@@ -386,4 +386,128 @@ router.delete("/notion/perawatan/:id", async (req, res): Promise<void> => {
   }
 });
 
+// ==========================================
+// 5. Endpoint Baru PATCH /notion/perawatan/:id
+// ==========================================
+
+router.patch("/notion/perawatan/:id", async (req, res): Promise<void> => {
+  const { userId } = getAuth(req);
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+  const { id } = req.params;
+  const body = req.body;
+
+  // ⚠️ areaId sengaja TIDAK termasuk allowed fields — keputusan eksplisit: edit area
+  // tidak didukung lewat endpoint ini. Kalau frontend kirim areaId, diabaikan diam-diam
+  // di sini (bukan error) karena UI sudah di-lock terpisah di dua file frontend.
+  const allowedBasicFields = ['kegiatan', 'waktuMulai', 'waktuSelesai', 'durasiKerja', 'tagCategoryId', 'status', 'pekerjaIds', 'catatan'];
+
+  const basicPayload: Record<string, any> = Object.fromEntries(
+    Object.entries(body).filter(([key, v]) => allowedBasicFields.includes(key) && v !== undefined)
+  );
+
+  if (basicPayload.waktuMulai) basicPayload.waktuMulai = parseWIB(basicPayload.waktuMulai);
+  if (basicPayload.waktuSelesai) basicPayload.waktuSelesai = parseWIB(basicPayload.waktuSelesai);
+
+  // 🔑 KUNCI dari desain kamu: bedakan "field tidak dikirim" vs "field dikirim kosong".
+  // 'logProduk' in body menangkap KEDUANYA benar: array isi, MAUPUN array kosong eksplisit.
+  const produkFieldDikirim = 'logProduk' in body && Array.isArray(body.logProduk);
+  const produkArray: Array<{ produkId: string; kuantitasPemakaian: number }> = produkFieldDikirim ? body.logProduk : [];
+
+  if (Object.keys(basicPayload).length === 0 && !produkFieldDikirim) {
+    res.status(400).json({ error: "Tidak ada data valid untuk diupdate." });
+    return;
+  }
+
+  try {
+    const updated = await db.transaction(async (tx) => {
+      let updatedPerawatan;
+
+      if (Object.keys(basicPayload).length > 0) {
+        [updatedPerawatan] = await tx.update(perawatanTable)
+          .set(basicPayload)
+          .where(eq(perawatanTable.id, id))
+          .returning();
+      } else {
+        [updatedPerawatan] = await tx.select().from(perawatanTable).where(eq(perawatanTable.id, id));
+      }
+
+      if (!updatedPerawatan) {
+        throw new Error("PERAWATAN_TIDAK_DITEMUKAN");
+      }
+
+      // 🔒 INI ATURAN INTI KAMU: reverse-reapply CUMA jalan kalau field produk eksplisit dikirim.
+      // Field-only update (basicPayload doang) tidak pernah sampai ke blok ini sama sekali.
+      if (produkFieldDikirim) {
+        // 1. REVERSE — kembalikan semua stok yang tercatat lama untuk perawatan ini
+        const produkLama = await tx
+          .select()
+          .from(perawatanProdukTable)
+          .where(eq(perawatanProdukTable.perawatanId, id));
+
+        for (const row of produkLama) {
+          await adjustStock(tx, {
+            produkId: row.produkId,
+            delta: row.kuantitasPemakaian, // kembalikan (positif)
+            tipe: "reversal_edit",
+            perawatanProdukId: null,
+          });
+        }
+
+        await tx.delete(perawatanProdukTable).where(eq(perawatanProdukTable.perawatanId, id));
+
+        // 2. REAPPLY — proses ulang array baru, identik dengan logika create.
+        // Kalau produkArray kosong ([]), loop ini tidak jalan sama sekali — hasilnya
+        // perawatan itu benar-benar tanpa produk, sesuai niat "kosongkan semua".
+        if (produkArray.length > 0) {
+          const produkIds = produkArray.map((p) => p.produkId);
+          const produkRows = await tx.select().from(produkMasterTable).where(inArray(produkMasterTable.id, produkIds));
+          const produkMap = new Map(produkRows.map((p) => [p.id, p]));
+
+          for (const item of produkArray) {
+            const produk = produkMap.get(item.produkId);
+            if (!produk) throw new Error(`Produk dengan ID ${item.produkId} tidak ditemukan.`);
+            if (produk.hargaPerSatuanDasar === 0) throw new Error(`Produk "${produk.nama}" belum punya harga. Set harga dulu di Manajemen Produk.`);
+            if (item.kuantitasPemakaian <= 0) throw new Error(`Kuantitas pemakaian "${produk.nama}" harus lebih dari 0.`);
+          }
+
+          for (const item of produkArray) {
+            const produk = produkMap.get(item.produkId)!;
+            await adjustStock(tx, {
+              produkId: item.produkId,
+              delta: -item.kuantitasPemakaian,
+              tipe: "pemakaian",
+              perawatanProdukId: null,
+            });
+            const totalBiaya = Math.round(item.kuantitasPemakaian * produk.hargaPerSatuanDasar);
+            await tx.insert(perawatanProdukTable).values({
+              perawatanId: id,
+              produkId: item.produkId,
+              kuantitasPemakaian: item.kuantitasPemakaian,
+              hargaTercatatPerSatuan: produk.hargaPerSatuanDasar,
+              totalBiaya,
+            });
+          }
+        }
+      }
+
+      return updatedPerawatan;
+    });
+
+    res.json({ success: true, data: updated });
+  } catch (err: any) {
+    if (err.message === "PERAWATAN_TIDAK_DITEMUKAN") {
+      res.status(404).json({ error: "Data perawatan tidak ditemukan." });
+      return;
+    }
+    console.error("[DB ERROR EDIT PERAWATAN]:", err);
+    console.error("[CAUSE]:", err.cause);
+    if (typeof err.message === 'string' && err.message.startsWith('STOK_TIDAK_CUKUP:')) {
+      res.status(400).json({ error: `Stok tidak cukup untuk produk ID ${err.message.split(':')[1]}.` });
+      return;
+    }
+    res.status(400).json({ error: err instanceof Error ? err.message : "Internal Server Error" });
+  }
+});
+
 export default router;
