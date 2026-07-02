@@ -386,15 +386,6 @@ if (module === "operasional") {
     .set(filteredPayload)
     .where(eq(operasionalTable.id, id))
     .returning();
-} else if (module === "perawatan") {
-  // 🚀 AMAN: Hanya ijinkan kolom yang sah milik perawatanTable
-  const allowed = ["kegiatan", "areaId", "siklusId", "waktuMulai", "waktuSelesai", "durasiKerja", "tagCategoryId", "status", "pekerjaIds", "catatan"];
-  const filteredPayload = Object.fromEntries(Object.entries(cleanPayload).filter(([k]) => allowed.includes(k)));
-
-  result = await db.update(perawatanTable)
-    .set(filteredPayload)
-    .where(eq(perawatanTable.id, id))
-    .returning();
 } else if (module === "inspeksi") {
   // 🚀 AMAN: Hanya ijinkan kolom yang sah milik inspeksiTable
   const allowed = ["kegiatan", "areaId", "siklusId", "waktuMulai", "waktuSelesai", "durasiKerja", "phTanah", "tingkatSerangan", "radius", "status", "pekerjaIds", "keterangan"];
