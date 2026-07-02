@@ -43,10 +43,15 @@ export function MasterTableView({
     return (dropdownOptions?.kategori || []).map((k: any) => ({ label: k.name, value: k.id, module: k.module }));
   }, [dropdownOptions]);
 
-  // 2. MUTASI DATA (Update, Tambah Master, Hapus Master)
+    // 2. MUTASI DATA (Update, Tambah Master, Hapus Master)
   const updateMutation = useMutation({
   mutationFn: async ({ id, module, payload }: { id: string; module: string; payload: any }) => {
-    const res = await fetch(`/api/notion/edit-activity/${id}`, {
+    // 🚀 Opsi A2: Pengalihan rute pintar
+    const targetUrl = module === "perawatan" 
+      ? `/api/notion/perawatan/${id}`
+      : `/api/notion/edit-activity/${id}`;
+
+    const res = await fetch(targetUrl, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ module, ...payload }),
@@ -54,6 +59,7 @@ export function MasterTableView({
     if (!res.ok) throw new Error("Gagal menyimpan perubahan");
     return res.json();
   },
+
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] });
     queryClient.invalidateQueries({ queryKey: ["operasional-options-list"] });
@@ -84,7 +90,12 @@ export function MasterTableView({
   // Mutasi Hapus Baris (Row) Aktivitas
   const deleteActivityMutation = useMutation({
     mutationFn: async ({ id, module }: { id: string; module: string }) => {
-      const res = await fetch(`/api/notion/activity/${module}/${id}`, { method: 'DELETE' });
+      // 🚀 Pintu khusus untuk delete perawatan agar stok balik utuh
+      const targetUrl = module === "perawatan"
+        ? `/api/notion/perawatan/${id}`
+        : `/api/notion/activity/${module}/${id}`;
+        
+      const res = await fetch(targetUrl, { method: 'DELETE' });
       if (!res.ok) throw new Error("Gagal menghapus baris");
       return res.json();
     },
