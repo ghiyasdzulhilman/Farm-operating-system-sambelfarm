@@ -136,22 +136,34 @@ export function AgronomyHubPage() {
   }, [unifiedFeedData, selectedItem]);
 
   // =====================================================================
-  // 2. MUTATION: UNIVERSAL DYNAMIC UPDATE (Siap nerima data apa aja)
+  // 2. MUTATION: UNIVERSAL DYNAMIC UPDATE + PERAWATAN FIELD ONLY DAN PRODUK
   // =====================================================================
-  const updateStatusMutation = useMutation({
+    const updateStatusMutation = useMutation({
     mutationFn: async ({ id, module, ...updateData }: { id: string; module: string; [key: string]: any }) => {
-      // Tembak langsung ke endpoint universal yang udah lu siapin di operasional.ts
-      const response = await fetch(`/api/notion/edit-activity/${id}`, {
+      // 🔑 Deteksi payload yang menyentuh produk perawatan — arahkan ke endpoint baru
+      const isProdukUpdate = module === "perawatan" && "logProduk" in updateData;
+
+      const url = isProdukUpdate
+        ? `/api/notion/perawatan/${id}`
+        : `/api/notion/edit-activity/${id}`;
+
+      const body = isProdukUpdate
+        ? updateData // endpoint baru tidak butuh 'module' dalam body
+        : { module, ...updateData };
+
+      const response = await fetch(url, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ module, ...updateData }),
+        body: JSON.stringify(body),
       });
-      if (!response.ok) throw new Error("Gagal menyimpan perubahan");
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({}));
+        throw new Error(errBody.error || "Gagal menyimpan perubahan");
+      }
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] });
-      // Toast kita hilangkan sebagian biar persis Notion: save di background secara diam-diam tanpa berisik
     },
     onError: (err) => {
       toast({ variant: "destructive", title: "Gagal Menyimpan", description: err instanceof Error ? err.message : "Kesalahan jaringan." });
