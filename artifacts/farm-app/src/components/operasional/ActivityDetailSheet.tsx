@@ -17,6 +17,7 @@ import {
   Plus,
   Trash2,
   Save,
+  Banknote,
 } from "lucide-react";
 import { useEffect } from "react";
 
@@ -64,6 +65,33 @@ export function ActivityDetailSheet({
       setEditedProducts([]);
     }
   }, [item]);
+
+  // 🚀 KALKULATOR LIVE: Total Biaya Racikan
+  const totalBiayaRacikan = useMemo(() => {
+    if (editedProducts.length === 0) return 0;
+    
+    // Kalau master produk udah ter-fetch, hitung live sesuai takaran yang lagi diketik
+    if (produkOptions?.data) {
+      return editedProducts.reduce((sum, prod) => {
+        const master = produkOptions.data.find((p: any) => p.id === prod.produkId);
+        const harga = master?.hargaPerSatuanDasar || 0;
+        return sum + (prod.kuantitasPemakaian * harga);
+      }, 0);
+    }
+    
+    // Fallback ke data historis kalau master produk masih loading
+    return item?.metaEkstra?.totalBiayaProduk || 0;
+  }, [editedProducts, produkOptions?.data, item]);
+
+  // 💡 Helper Format Rupiah
+  const formatRupiah = (angka: number) => {
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+    }).format(angka);
+  };
+
 
   // 💡 Fetch Opsi Master Produk dari backend
     const { data: produkOptions } = useQuery({
@@ -527,18 +555,32 @@ export function ActivityDetailSheet({
  </>
 )}
 
-{/* 3. KOTAK UNTUK MODUL PERAWATAN — hanya durasi */}
+{/* 3. KOTAK UNTUK MODUL PERAWATAN — Durasi & Total Biaya */}
       {item.module === "perawatan" && (
-        <div className="rounded-2xl border border-border/40 bg-muted/40 p-3 shadow-sm select-none">
-          <div className="flex items-center gap-2 text-muted-foreground/70 mb-1">
-            <Clock3 className="h-4 w-4 opacity-70" />
-            <span className="text-xs font-bold uppercase tracking-wider">Durasi Kerja</span>
+        <>
+          <div className="rounded-2xl border border-border/40 bg-muted/40 p-3 shadow-sm select-none">
+            <div className="flex items-center gap-2 text-muted-foreground/70 mb-1">
+              <Clock3 className="h-4 w-4 opacity-70" />
+              <span className="text-xs font-bold uppercase tracking-wider">Durasi Kerja</span>
+            </div>
+            <p className="text-lg font-black text-muted-foreground">
+              {item.metaEkstra.durasiKerja ? `${item.metaEkstra.durasiKerja} Jam` : "0 Jam"}
+            </p>
           </div>
-          <p className="text-lg font-black text-muted-foreground">
-            {item.metaEkstra.durasiKerja ? `${item.metaEkstra.durasiKerja} Jam` : "0 Jam"}
-          </p>
-        </div>
+
+          {/* 💡 KOTAK BARU: Total Biaya (Live Calculator) */}
+          <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-3 shadow-sm select-none transition-colors">
+            <div className="flex items-center gap-2 text-emerald-600/80 mb-1">
+              <Banknote className="h-4 w-4" />
+              <span className="text-xs font-bold uppercase tracking-wider">Total Biaya</span>
+            </div>
+            <p className="text-lg font-black text-emerald-700 truncate">
+              {formatRupiah(totalBiayaRacikan)}
+            </p>
+          </div>
+        </>
       )}
+
                 </div>
               </section>
             )}
