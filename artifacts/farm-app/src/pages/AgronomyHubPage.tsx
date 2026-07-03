@@ -135,23 +135,24 @@ export function AgronomyHubPage() {
     }
   }, [unifiedFeedData, selectedItem]);
 
-  // =====================================================================
+    // =====================================================================
   // 2. MUTATION: UNIVERSAL DYNAMIC UPDATE + PERAWATAN FIELD ONLY DAN PRODUK
   // =====================================================================
     const updateStatusMutation = useMutation({
     mutationFn: async ({ id, module, ...updateData }: { id: string; module: string; [key: string]: any }) => {
-      // 🔑 Deteksi payload yang menyentuh produk perawatan — arahkan ke endpoint baru
-      const isProdukUpdate = module === "perawatan" && "logProduk" in updateData;
+      // 🚀 OPSI A2 (Satu Pintu): Apapun updatenya (teks atau produk), kalau dia perawatan, tembak ke pintu perawatan!
+      const isPerawatan = module === "perawatan";
 
-      const url = isProdukUpdate
+      const url = isPerawatan
         ? `/api/notion/perawatan/${id}`
         : `/api/notion/edit-activity/${id}`;
 
-      const body = isProdukUpdate
-        ? updateData // endpoint baru tidak butuh 'module' dalam body
+      const body = isPerawatan
+        ? updateData // Endpoint perawatan tidak butuh properti 'module' di dalam body
         : { module, ...updateData };
 
       const response = await fetch(url, {
+
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -170,13 +171,19 @@ export function AgronomyHubPage() {
     }
   });
 
-  // 🚀 SUNTIKAN BARU: Mutasi untuk menghapus baris aktivitas
+    // 🚀 SUNTIKAN BARU: Mutasi untuk menghapus baris aktivitas
   const deleteActivityMutation = useMutation({
     mutationFn: async ({ id, module }: { id: string; module: string }) => {
-      const response = await fetch(`/api/notion/activity/${module}/${id}`, { method: 'DELETE' });
+      // 🚀 Pintu khusus untuk delete perawatan agar stok balik utuh
+      const targetUrl = module === "perawatan"
+        ? `/api/notion/perawatan/${id}`
+        : `/api/notion/activity/${module}/${id}`;
+        
+      const response = await fetch(targetUrl, { method: 'DELETE' });
       if (!response.ok) throw new Error("Gagal menghapus data aktivitas");
       return response.json();
     },
+
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] });
       toast({ title: "Terhapus", description: "Aktivitas berhasil dihapus dari riwayat." });
