@@ -364,17 +364,20 @@ export function AgronomyHubPage() {
         </aside>
       </div>
 
-      <ActivityDetailSheet 
+    <ActivityDetailSheet 
         item={selectedItem} 
         onClose={() => setSelectedItem(null)} 
         isUpdating={updateStatusMutation.isPending}
         onStatusChange={(id, payload) => {
           if (selectedItem) {
             const updateData = typeof payload === "string" ? { status: payload } : payload;
-            updateStatusMutation.mutate({ id, module: selectedItem.module, ...updateData });
+            // 🔑 Return promise-nya, supaya pemanggil (ActivityDetailSheet) bisa await kapan
+            // request BENAR-BENAR sukses, tanpa bergantung pada rantai refetch-compare-effect.
+            return updateStatusMutation.mutateAsync({ id, module: selectedItem.module, ...updateData });
           }
         }} 
       />
+
 
       {/* 💡 OVERLAY MASTER HUB (MUNCUL KALAU TOMBOL RIWAYAT DIKLIK) */}
       {showMasterHub && (
