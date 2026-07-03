@@ -55,6 +55,7 @@ export function ActivityDetailSheet({
   
   // 💡 State khusus penampung array racikan produk yang lagi diedit
   const [editedProducts, setEditedProducts] = useState<Array<{ produkId: string; kuantitasPemakaian: number; namaProduk?: string; satuanDasar?: string }>>([]);
+  const [isDirty, setIsDirty] = useState(false);
 
   // 💡 Sinkronisasi otomatis: Saat sheet dibuka, salin array logProduk dari database ke state lokal
   useEffect(() => {
