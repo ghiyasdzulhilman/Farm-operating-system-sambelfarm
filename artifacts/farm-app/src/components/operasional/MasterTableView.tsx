@@ -44,7 +44,7 @@ export function MasterTableView({
   }, [dropdownOptions]);
 
     // 2. MUTASI DATA (Update, Tambah Master, Hapus Master)
-  const updateMutation = useMutation({
+    const updateMutation = useMutation({
   mutationFn: async ({ id, module, payload }: { id: string; module: string; payload: any }) => {
     // 🚀 Opsi A2: Pengalihan rute pintar
     const targetUrl = module === "perawatan" 
@@ -56,7 +56,10 @@ export function MasterTableView({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ module, ...payload }),
     });
-    if (!res.ok) throw new Error("Gagal menyimpan perubahan");
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      throw new Error(errBody.error || "Gagal menyimpan perubahan");
+    }
     return res.json();
   },
 
@@ -88,7 +91,7 @@ export function MasterTableView({
   });
 
   // Mutasi Hapus Baris (Row) Aktivitas
-  const deleteActivityMutation = useMutation({
+    const deleteActivityMutation = useMutation({
     mutationFn: async ({ id, module }: { id: string; module: string }) => {
       // 🚀 Pintu khusus untuk delete perawatan agar stok balik utuh
       const targetUrl = module === "perawatan"
@@ -96,10 +99,14 @@ export function MasterTableView({
         : `/api/notion/activity/${module}/${id}`;
         
       const res = await fetch(targetUrl, { method: 'DELETE' });
-      if (!res.ok) throw new Error("Gagal menghapus baris");
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody.error || "Gagal menghapus baris");
+      }
       return res.json();
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] })
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] }),
+    onError: (err: any) => toast({ variant: "destructive", title: "Gagal Menghapus", description: err.message }),
   });
 
   // Mutasi Kategori (Langsung tembak ID)
