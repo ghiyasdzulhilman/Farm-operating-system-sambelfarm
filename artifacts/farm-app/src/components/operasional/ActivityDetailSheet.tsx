@@ -576,7 +576,7 @@ export function ActivityDetailSheet({
             <div className="flex items-center gap-2 text-emerald-600/80 mb-1">
               <Banknote className="h-4 w-4" />
               <span className="text-xs font-bold uppercase tracking-wider">
-                {isDirty ? "Perkiraan Biaya*" : "Total Biaya"}
+                {isDirty ? "Estimasi" : "Total Biaya"}
               </span>
             </div>
             <p className="text-lg font-black text-emerald-700 truncate">
