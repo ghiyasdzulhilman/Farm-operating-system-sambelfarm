@@ -65,7 +65,22 @@ export function ActivityDetailSheet({
     }
   }, [item]);
 
-  // 🚀 KALKULATOR LIVE: Total Biaya Racikan
+  // 💡 Fetch Opsi Master Produk dari backend
+    const { data: produkOptions } = useQuery({
+    queryKey: ["produk-master-list"],
+    queryFn: async () => fetch("/api/produk").then(res => res.json()),
+    enabled: !!item && item.module === "perawatan"
+  });
+
+  // 💡 Fetch Opsi Kategori langsung dari backend
+  const { data: dropdownOptions } = useQuery({
+
+    queryKey: ["operasional-options-list"],
+    queryFn: async () => fetch("/api/notion/operasional-dropdown-options").then(res => res.json()),
+    enabled: !!item // Hanya nge-fetch kalau sheet-nya lagi kebuka
+  });
+
+// 🚀 KALKULATOR LIVE: Total Biaya Racikan
   const totalBiayaRacikan = useMemo(() => {
     if (editedProducts.length === 0) return 0;
     
@@ -90,22 +105,6 @@ export function ActivityDetailSheet({
       minimumFractionDigits: 0,
     }).format(angka);
   };
-
-
-  // 💡 Fetch Opsi Master Produk dari backend
-    const { data: produkOptions } = useQuery({
-    queryKey: ["produk-master-list"],
-    queryFn: async () => fetch("/api/produk").then(res => res.json()),
-    enabled: !!item && item.module === "perawatan"
-  });
-
-  // 💡 Fetch Opsi Kategori langsung dari backend
-  const { data: dropdownOptions } = useQuery({
-
-    queryKey: ["operasional-options-list"],
-    queryFn: async () => fetch("/api/notion/operasional-dropdown-options").then(res => res.json()),
-    enabled: !!item // Hanya nge-fetch kalau sheet-nya lagi kebuka
-  });
 
  // 💡 Helper format Tanggal & Waktu (NAIVE STRATEGY)
   const formatDateValue = (raw?: string) => {
