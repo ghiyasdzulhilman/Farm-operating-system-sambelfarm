@@ -81,21 +81,25 @@ export function ActivityDetailSheet({
   });
 
 // 🚀 KALKULATOR LIVE: Total Biaya Racikan
-  const totalBiayaRacikan = useMemo(() => {
-    if (editedProducts.length === 0) return 0;
-    
-    // Kalau master produk udah ter-fetch, hitung live sesuai takaran yang lagi diketik
-    if (produkOptions?.data) {
-      return editedProducts.reduce((sum, prod) => {
-        const master = produkOptions.data.find((p: any) => p.id === prod.produkId);
-        const harga = master?.hargaPerSatuanDasar || 0;
-        return sum + (prod.kuantitasPemakaian * harga);
-      }, 0);
+    const totalBiayaRacikan = useMemo(() => {
+    // 🔒 Belum diedit: SELALU pakai angka historis dari backend (snapshot hargaTercatatPerSatuan),
+    // jangan pernah hitung ulang dari harga master sekarang — itu bisa drift dari kejadian aslinya.
+    if (!isDirty) {
+      return item?.metaEkstra?.totalBiayaProduk || 0;
     }
-    
-    // Fallback ke data historis kalau master produk masih loading
-    return item?.metaEkstra?.totalBiayaProduk || 0;
-  }, [editedProducts, produkOptions?.data, item]);
+
+    // 🧮 Sedang diedit, belum disimpan: ini PERKIRAAN pakai harga master TERKINI,
+    // karena harga final yang akan tersimpan memang ditentukan backend saat submit,
+    // bukan snapshot lama yang sedang ditimpa.
+    if (editedProducts.length === 0) return 0;
+    if (!produkOptions?.data) return 0; // master belum ke-load, jangan tampilkan angka menyesatkan
+
+    return editedProducts.reduce((sum, prod) => {
+      const master = produkOptions.data.find((p: any) => p.id === prod.produkId);
+      const harga = master?.hargaPerSatuanDasar || 0;
+      return sum + (prod.kuantitasPemakaian * harga);
+    }, 0);
+  }, [isDirty, editedProducts, produkOptions?.data, item]);
 
   // 💡 Helper Format Rupiah
   const formatRupiah = (angka: number) => {
@@ -567,15 +571,21 @@ export function ActivityDetailSheet({
           </div>
 
           {/* 💡 KOTAK BARU: Total Biaya (Live Calculator) */}
-          <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-3 shadow-sm select-none transition-colors">
+           <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-3 shadow-sm select-none transition-colors">
             <div className="flex items-center gap-2 text-emerald-600/80 mb-1">
               <Banknote className="h-4 w-4" />
-              <span className="text-xs font-bold uppercase tracking-wider">Total Biaya</span>
+              <span className="text-xs font-bold uppercase tracking-wider">
+                {isDirty ? "Perkiraan Biaya*" : "Total Biaya"}
+              </span>
             </div>
             <p className="text-lg font-black text-emerald-700 truncate">
               {formatRupiah(totalBiayaRacikan)}
             </p>
+            {isDirty && (
+              <p className="text-[9px] text-emerald-600/70 mt-1">*Pakai harga saat ini, belum tersimpan</p>
+            )}
           </div>
+
         </>
       )}
 
@@ -673,7 +683,7 @@ export function ActivityDetailSheet({
                       <div key={index} className="flex gap-2 items-center">
                         {/* Dropdown Pilih Produk */}
                         <div className="relative flex-1">
-                          <select
+             <select
                             value={prod.produkId || ""}
                             onChange={(e) => {
                               const newProds = [...editedProducts];
@@ -685,7 +695,9 @@ export function ActivityDetailSheet({
                                 satuanDasar: selectedMaster?.satuanDasar
                               };
                               setEditedProducts(newProds);
+                              setIsDirty(true);
                             }}
+
                             className="w-full appearance-none rounded-xl bg-background border border-border/50 px-3 py-2 text-xs font-bold outline-none"
                           >
                             <option value="" disabled>Pilih Produk...</option>
@@ -702,11 +714,13 @@ export function ActivityDetailSheet({
                             type="number"
                             min="0"
                             value={prod.kuantitasPemakaian || ""}
-                            onChange={(e) => {
+           onChange={(e) => {
                               const newProds = [...editedProducts];
                               newProds[index].kuantitasPemakaian = parseFloat(e.target.value) || 0;
                               setEditedProducts(newProds);
+                              setIsDirty(true);
                             }}
+
                             className="w-full bg-transparent text-xs font-bold outline-none py-2 text-right"
                             placeholder="0"
                           />
@@ -718,7 +732,7 @@ export function ActivityDetailSheet({
                           variant="ghost" 
                           size="icon" 
                           className="h-8 w-8 shrink-0 text-destructive hover:bg-destructive/10"
-                          onClick={() => setEditedProducts(editedProducts.filter((_, i) => i !== index))}
+                          onClick={() => { setEditedProducts(editedProducts.filter((_, i) => i !== index)); setIsDirty(true); }}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -731,7 +745,7 @@ export function ActivityDetailSheet({
                     variant="outline" 
                     size="sm" 
                     className="w-full mt-1 border-dashed border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10"
-                    onClick={() => setEditedProducts([...editedProducts, { produkId: "", kuantitasPemakaian: 0 }])}
+   onClick={() => { setEditedProducts([...editedProducts, { produkId: "", kuantitasPemakaian: 0 }]); setIsDirty(true); }}
                   >
                     <Plus className="h-4 w-4 mr-2" /> Tambah Produk
                   </Button>
