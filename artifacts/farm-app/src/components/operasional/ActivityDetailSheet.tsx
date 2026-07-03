@@ -583,7 +583,7 @@ export function ActivityDetailSheet({
               {formatRupiah(totalBiayaRacikan)}
             </p>
             {isDirty && (
-              <p className="text-[9px] text-emerald-600/70 mt-1">*Pakai harga saat ini, belum tersimpan</p>
+              <p className="text-[9px] text-emerald-600/70 mt-1">Harga saat ini</p>
             )}
           </div>
 
