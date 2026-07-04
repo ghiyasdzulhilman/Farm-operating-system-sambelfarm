@@ -150,14 +150,16 @@ export function AgronomyHubPage() {
         ? updateData
         : { module, ...updateData };
 
-      const response = await fetch(url, {
+     const updateProdukMutation = useMutation({
+    mutationFn: async ({ id, logProduk }: { id: string; logProduk: any[] }) => {
+      const response = await fetch(`/api/notion/perawatan/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ logProduk }),
       });
       if (!response.ok) {
         const errBody = await response.json().catch(() => ({}));
-        throw new Error(errBody.error || "Gagal menyimpan perubahan");
+        throw new Error(errBody.error || "Gagal menyimpan racikan produk");
       }
       return response.json();
     },
@@ -165,7 +167,7 @@ export function AgronomyHubPage() {
       queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] });
     },
     onError: (err) => {
-      toast({ variant: "destructive", title: "Gagal Menyimpan", description: err instanceof Error ? err.message : "Kesalahan jaringan." });
+      toast({ variant: "destructive", title: "Gagal Menyimpan Produk", description: err instanceof Error ? err.message : "Kesalahan jaringan." });
     }
   });
 
