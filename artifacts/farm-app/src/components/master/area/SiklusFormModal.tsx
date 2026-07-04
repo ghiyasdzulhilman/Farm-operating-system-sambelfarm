@@ -99,22 +99,20 @@ export function SiklusFormModal({ isOpen, onClose, areaId, areaName, currentCycl
             </div>
 
   <div className="space-y-1.5">
-  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-    Tanggal Pindah Tanam
+  {/* Ikon kalendernya kita pindah ke label biar aman 100% */}
+  <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
+    <CalendarDays className="h-3.5 w-3.5" /> Tanggal Pindah Tanam
   </label>
   
-  <div className="relative w-full">
-    {/* Tambahan pointer-events-none biar icon gak nutupin klik */}
-    <CalendarDays className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-    
-    {/* 👇 Pakai <input> huruf kecil, bukan <Input> Shadcn 👇 */}
-    <input 
-      type="date" 
-      value={tglTanam} 
-      onChange={e => setTglTanam(e.target.value)} 
-      className="w-full min-w-full h-12 rounded-xl bg-background border border-input outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 shadow-sm text-sm font-medium pl-10 pr-3 cursor-pointer"
-    />
-  </div>
+  {/* Adopsi murni gaya dari AddOperasionalDialog */}
+  <Input 
+    type="date" 
+    value={tglTanam} 
+    onChange={e => setTglTanam(e.target.value)} 
+    className="h-12 rounded-xl bg-background border-input text-sm font-medium w-full px-4 appearance-none"
+  />
+</div>
+
 </div>
 
           </div>
