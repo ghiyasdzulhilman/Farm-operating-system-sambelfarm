@@ -63,12 +63,12 @@ export function ActivityDetailSheet({
 
   // 💡 Sinkronisasi otomatis: Saat sheet dibuka, salin array logProduk dari database ke state lokal
   useEffect(() => {
-    if (item?.module === "perawatan" && item.metaEkstra?.logProduk) {
-      setEditedProducts(item.metaEkstra.logProduk);
-    } else {
-      setEditedProducts([]);
-    }
-  }, [item]);
+  if (item?.module === "perawatan" && item.metaEkstra?.logProduk) {
+    setEditedProducts(item.metaEkstra.logProduk.map((p: any) => ({ ...p }))); // clone tiap objek
+  } else {
+    setEditedProducts([]);
+  }
+}, [item]);
 
   // 💡 Fetch Opsi Master Produk dari backend
     const { data: produkOptions } = useQuery({
@@ -729,12 +729,13 @@ export function ActivityDetailSheet({
                             type="number"
                             min="0"
                             value={prod.kuantitasPemakaian || ""}
-           onChange={(e) => {
-                              const newProds = [...editedProducts];
-                              newProds[index].kuantitasPemakaian = parseFloat(e.target.value) || 0;
-                              setEditedProducts(newProds);
-                              setIsDirty(true);
-                            }}
+           
+  onChange={(e) => {
+  const newProds = [...editedProducts];
+  newProds[index] = { ...newProds[index], kuantitasPemakaian: parseFloat(e.target.value) || 0 };
+  setEditedProducts(newProds);
+  setIsDirty(true);
+}}
 
                             className="w-full bg-transparent text-xs font-bold outline-none py-2 text-right"
                             placeholder="0"
