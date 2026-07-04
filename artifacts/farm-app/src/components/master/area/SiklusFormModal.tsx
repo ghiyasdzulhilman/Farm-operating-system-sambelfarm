@@ -112,9 +112,6 @@ export function SiklusFormModal({ isOpen, onClose, areaId, areaName, currentCycl
     className="h-12 rounded-xl bg-background border-input text-sm font-medium w-full px-4 appearance-none"
   />
 </div>
-
-</div>
-
           </div>
 
         </div>
