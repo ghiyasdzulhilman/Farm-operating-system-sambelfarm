@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { X, Loader2, Leaf, MapPinned } from "lucide-react";
+import { X, Loader2, Leaf, CheckCircle2, MapPinned } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -58,9 +58,7 @@ export function AreaFormModal({ isOpen, onClose }: AreaFormModalProps) {
               <p className="text-[10px] font-bold text-primary tracking-wider uppercase">Master Data</p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 rounded-full hover:bg-muted/50 text-muted-foreground shrink-0">
-            <X className="h-4 w-4" />
-          </Button>
+          
         </SheetHeader>
 
         <div className="px-6 py-5">
@@ -83,13 +81,18 @@ export function AreaFormModal({ isOpen, onClose }: AreaFormModalProps) {
           <Button variant="ghost" onClick={onClose} disabled={addAreaMutation.isPending} className="h-11 rounded-xl px-4 font-bold text-muted-foreground hover:bg-muted">
             Batal
           </Button>
-          <Button 
-            onClick={handleSubmit} 
-            disabled={addAreaMutation.isPending || !newName.trim()} 
-            className="h-11 rounded-xl px-6 font-bold bg-primary text-primary-foreground hover:opacity-90 transition-all shadow-sm"
-          >
-            {addAreaMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Simpan Area"}
-          </Button>
+<Button 
+  onClick={handleSubmit} 
+  disabled={addAreaMutation.isPending || !newName.trim()} 
+  className="h-11 rounded-xl px-6 font-bold bg-primary text-primary-foreground hover:opacity-90 transition-all shadow-sm gap-2"
+>
+  {addAreaMutation.isPending ? (
+    <Loader2 className="h-4 w-4 animate-spin" />
+  ) : (
+    <><CheckCircle2 className="h-4 w-4" /> Simpan Area</>
+  )}
+</Button>
+
         </div>
         
         {/* Garis pemanis di bawah sheet */}
