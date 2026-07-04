@@ -102,14 +102,16 @@ export function SiklusFormModal({ isOpen, onClose, areaId, areaName, currentCycl
   <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
     Tanggal Pindah Tanam
   </label>
-  {/* 👇 Bagian pembungkus (relative) dan Input ini yang diubah 👇 */}
-  <div className="relative flex w-full">
+  
+  {/* 👇 Balikin parent ke relative biasa 👇 */}
+  <div className="relative w-full">
     <CalendarDays className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
     <Input 
       type="date" 
       value={tglTanam} 
       onChange={e => setTglTanam(e.target.value)} 
-      className="w-full flex-1 block appearance-none h-12 rounded-xl bg-background border border-input focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm text-sm font-medium pl-10 cursor-pointer"
+      // 👇 Hapus flex/appearance-none, tambahkan py-3 (padding vertikal) 👇
+      className="w-full h-12 rounded-xl bg-background border border-input focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm text-sm font-medium pl-10 pr-4 py-3 cursor-pointer"
     />
   </div>
 </div>
