@@ -70,9 +70,7 @@ export function SiklusFormModal({ isOpen, onClose, areaId, areaName, currentCycl
               <p className="text-[10px] font-bold text-primary tracking-wider uppercase">{areaName}</p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 rounded-full hover:bg-muted/50 text-muted-foreground shrink-0">
-            <X className="h-4 w-4" />
-          </Button>
+          
         </SheetHeader>
 
         <div className="px-6 py-5 space-y-5 text-left max-h-[70vh] overflow-y-auto">
@@ -106,12 +104,13 @@ export function SiklusFormModal({ isOpen, onClose, areaId, areaName, currentCycl
               </label>
               <div className="relative">
                 <CalendarDays className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  type="date" 
-                  value={tglTanam} 
-                  onChange={e => setTglTanam(e.target.value)} 
-                  className="h-12 rounded-xl bg-background border border-input focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm text-sm font-medium pl-10 cursor-pointer"
-                />
+  <Input 
+  type="date" 
+  value={tglTanam} 
+  onChange={e => setTglTanam(e.target.value)} 
+  // 👇 Tambahin w-full di sini 👇
+  className="w-full h-12 rounded-xl bg-background border border-input focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm text-sm font-medium pl-10 cursor-pointer"
+/>
               </div>
             </div>
           </div>
