@@ -250,7 +250,13 @@ export function ActivityDetailSheet({
   };
 
   return (
-    <Sheet open={!!item} onOpenChange={(open) => !open && onClose()}>
+<Sheet open={!!item} onOpenChange={(open) => {
+  if (!open) {
+    setIsDirty(false);
+    setEditedProducts([]);
+    onClose();
+  }
+}}>
       
       <SheetContent
         side="right"
@@ -301,8 +307,12 @@ export function ActivityDetailSheet({
               </div>
 
 {/* TOMBOL KEMBALI BESAR & NYAMAN DI KANAN (JEMPOL KANAN) */}
-  <button 
-  onClick={onClose}
+<button 
+  onClick={() => {
+    setIsDirty(false);
+    setEditedProducts([]);
+    onClose();
+  }}
   className="flex items-center gap-2 h-[34px] pl-4 pr-1.5 rounded-full bg-primary/10 hover:bg-primary/20 border border-primary/20 transition-all group"
 >
 
