@@ -21,10 +21,12 @@ export function SiklusFormModal({ isOpen, onClose, areaId, areaName, currentCycl
   const [namaSiklus, setNamaSiklus] = useState("");
   const [tglTanam, setTglTanam] = useState("");
 
-  useEffect(() => {
+    useEffect(() => {
     if (isOpen) {
       setNamaSiklus("");
-      setTglTanam(new Date().toISOString().split('T')[0]); 
+      // 🚀 FIX: Paksa pakai zona waktu Asia/Jakarta (WIB) agar tanggalnya pas dan tidak mundur
+      const hariIniWIB = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
+      setTglTanam(hariIniWIB); 
     }
   }, [isOpen]);
 
