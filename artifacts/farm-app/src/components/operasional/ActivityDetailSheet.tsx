@@ -38,14 +38,18 @@ interface ActivityDetailSheetProps {
   item: AgronomyItem | null;
   onClose: () => void;
   onStatusChange?: (id: string, payload: any) => void | Promise<any>;
+  onProdukChange?: (id: string, logProduk: any[]) => Promise<any>;
   isUpdating?: boolean;
+  isUpdatingProduk?: boolean;
 }
 
 export function ActivityDetailSheet({
   item,
   onClose,
   onStatusChange,
-  isUpdating = false, // 🆕
+  onProdukChange,
+  isUpdating = false,
+  isUpdatingProduk = false,
 }: ActivityDetailSheetProps) {
 
   // 💡 State untuk mendeteksi elemen mana yang lagi di-tap (inline edit)
