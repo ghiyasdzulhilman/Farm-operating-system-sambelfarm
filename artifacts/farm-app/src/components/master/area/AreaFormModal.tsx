@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { X, Loader2, Leaf } from "lucide-react";
+import { X, Loader2, Leaf, MapPinned } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 interface AreaFormModalProps {
   isOpen: boolean;
@@ -14,7 +16,6 @@ export function AreaFormModal({ isOpen, onClose }: AreaFormModalProps) {
   const queryClient = useQueryClient();
   const [newName, setNewName] = useState("");
 
-  // Reset form otomatis setiap kali modal dibuka
   useEffect(() => {
     if (isOpen) setNewName("");
   }, [isOpen]);
@@ -28,7 +29,7 @@ export function AreaFormModal({ isOpen, onClose }: AreaFormModalProps) {
     onSuccess: () => { 
       queryClient.invalidateQueries({ queryKey: ["master-dropdown-options"] }); 
       toast({ title: "Sukses", description: "Area baru berhasil ditambahkan." });
-      onClose(); // Tutup modal otomatis setelah berhasil
+      onClose(); 
     },
     onError: (err: any) => {
       toast({ variant: "destructive", title: "Gagal", description: err.message });
@@ -41,60 +42,59 @@ export function AreaFormModal({ isOpen, onClose }: AreaFormModalProps) {
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    // Backdrop Hitam Transparan
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-      
-      {/* Kotak Utama Modal */}
-      <div className="w-full max-w-md overflow-hidden rounded-3xl bg-background border border-border/50 shadow-2xl animate-in zoom-in-95 duration-200">
-        
-        {/* Header Modal */}
-        <div className="flex items-center justify-between border-b border-border/40 bg-muted/10 px-5 py-4">
-          <div className="flex items-center gap-2">
-            <div className="rounded-full bg-primary/20 p-1.5 text-primary">
-              <Leaf className="h-4 w-4" />
+    <Sheet open={isOpen} onOpenChange={(val) => { if (!val) onClose(); }}>
+      <SheetContent 
+        side="top" 
+        className="mx-auto max-w-md rounded-b-[2rem] border-x-0 border-t-0 p-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl shadow-[0_16px_40px_rgba(0,0,0,0.12)] pb-5 z-[100]"
+      >
+        <SheetHeader className="px-6 py-4 flex flex-row items-center justify-between border-b border-border">
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl bg-primary/10 p-2 text-primary shadow-sm">
+              <MapPinned className="h-5 w-5" />
             </div>
-            <h3 className="text-sm font-black">Tambah Area Baru</h3>
+            <div className="text-left">
+              <SheetTitle className="text-base font-black tracking-tight">Tambah Area Baru</SheetTitle>
+              <p className="text-[10px] font-bold text-primary tracking-wider uppercase">Master Data</p>
+            </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 rounded-full hover:bg-muted/50 text-muted-foreground">
+          <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 rounded-full hover:bg-muted/50 text-muted-foreground shrink-0">
             <X className="h-4 w-4" />
           </Button>
-        </div>
-        
-        {/* Body Modal */}
-        <div className="p-5 space-y-4">
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-              Nama Area / Blok
+        </SheetHeader>
+
+        <div className="px-6 py-5">
+          <div className="space-y-1.5 text-left">
+            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
+              <Leaf className="inline-block h-3.5 w-3.5 mr-1" /> Nama Area / Blok
             </label>
-            <input 
-              type="text" 
+            <Input 
               placeholder="Misal: Blok A, Greenhouse 2..." 
               value={newName} 
               onChange={e => setNewName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSubmit()} 
-              className="w-full rounded-xl border border-border/60 bg-muted/20 px-4 py-2.5 text-sm outline-none focus:border-primary/50 font-bold transition-colors" 
+              className="h-12 rounded-xl bg-background border border-input focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm text-sm font-medium"
               autoFocus
             />
           </div>
         </div>
 
-        {/* Footer Actions */}
-        <div className="flex items-center justify-end gap-2 border-t border-border/40 bg-muted/10 px-5 py-4">
-          <Button variant="ghost" onClick={onClose} disabled={addAreaMutation.isPending} className="text-xs font-bold rounded-xl h-10 px-5">
+        <div className="flex items-center justify-end gap-3 px-6 pt-4 border-t border-border mt-2">
+          <Button variant="ghost" onClick={onClose} disabled={addAreaMutation.isPending} className="h-11 rounded-xl px-4 font-bold text-muted-foreground hover:bg-muted">
             Batal
           </Button>
           <Button 
             onClick={handleSubmit} 
             disabled={addAreaMutation.isPending || !newName.trim()} 
-            className="text-xs font-bold rounded-xl h-10 px-6 gap-2"
+            className="h-11 rounded-xl px-6 font-bold bg-primary text-primary-foreground hover:opacity-90 transition-all shadow-sm"
           >
-            {addAreaMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Simpan Area"}
+            {addAreaMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Simpan Area"}
           </Button>
         </div>
-      </div>
-    </div>
+        
+        {/* Garis pemanis di bawah sheet */}
+        <div className="mx-auto mt-4 h-1.5 w-12 rounded-full bg-border/60" />
+      </SheetContent>
+    </Sheet>
   );
 }
