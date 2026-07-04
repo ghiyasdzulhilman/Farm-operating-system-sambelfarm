@@ -1,23 +1,48 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Leaf, Users, Database, Trash2, Plus, Loader2, ChevronRight, X, CalendarDays, Bug, Package, Pencil, ToggleLeft, ToggleRight } from "lucide-react";
+import { Leaf, Users, Database, Trash2, Plus, Loader2, ChevronRight, X, CalendarDays, Bug, Package, Pencil, Sprout, Wallet, Wrench, ChevronDown, ToggleLeft, ToggleRight } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { AreaManager } from "./components/master/area/AreaManager";
+// import { PekerjaManager } from "./..."; (siapkan buat nanti)
 
 // ---------------------------------------------------------------------------
 // 📂 1. DICTIONARY DOMAIN MASTER
 // ---------------------------------------------------------------------------
-type MasterDomain = "area" | "pekerja" | "kategori" | "kendala" | "produk";
 
-const MASTER_DOMAINS = [
-  { id: "area" as MasterDomain, label: "Area & Blok", icon: Leaf, desc: "Kelola daftar area & siklus tanam" },
-  { id: "pekerja" as MasterDomain, label: "Tim Pekerja", icon: Users, desc: "Daftar karyawan & tenaga kerja" },
-  { id: "kategori" as MasterDomain, label: "Kategori Aktivitas", icon: Database, desc: "Label aktivitas per modul" },
-  { id: "kendala" as MasterDomain, label: "Hama & Penyakit", icon: Bug, desc: "Master kendala operasional" },
-  { id: "produk" as MasterDomain, label: "Produk & Stok", icon: Package, desc: "Master pupuk, pestisida & inventori" },
+// Struktur Kamus Baru (Berhirarki)
+const ERP_MODULES = [
+  {
+    id: "agronomy",
+    label: "Modul Agronomy",
+    icon: Sprout,
+    children: [
+      { id: "area", label: "Area & Blok", icon: Leaf },
+      { id: "pekerja", label: "Tim Pekerja", icon: Users },
+      { id: "kategori", label: "Kategori Aktivitas", icon: Database },
+      { id: "kendala", label: "Hama & Penyakit", icon: Bug },
+    ],
+  },
+  {
+    id: "finance",
+    label: "Modul Finance",
+    icon: Wallet,
+    children: [
+      { id: "panen", label: "Data Pemanenan", icon: Package },
+      { id: "pengeluaran", label: "Lacak Pengeluaran", icon: Database },
+    ],
+  },
+  {
+    id: "tools",
+    label: "Tools & Gudang",
+    icon: Wrench,
+    children: [
+      { id: "produk", label: "Produk & Stok", icon: Package },
+    ],
+  },
 ];
 
 const glassCard = "rounded-[1.75rem] border-border/50 bg-card text-card-foreground shadow-sm transition-all duration-300 p-5";
@@ -26,14 +51,10 @@ const glassCard = "rounded-[1.75rem] border-border/50 bg-card text-card-foregrou
 // 🚀 2. MAIN PAGE COMPONENT
 // ---------------------------------------------------------------------------
 export function MasterHubPage({ onClose }: { onClose?: () => void }) {
-  const [activeDomain, setActiveDomain] = useState<MasterDomain>("area");
+  // Buka Agronomy dan Area secara default
+  const [activeModule, setActiveModule] = useState<string>("agronomy");
+  const [activeChild, setActiveChild] = useState<string>("area");
   
-  // Ambil semua data dari endpoint yang udah lu bikin sebelumnya
-  const { data: masterData, isLoading } = useQuery({
-    queryKey: ["master-dropdown-options"],
-    queryFn: async () => fetch("/api/notion/operasional-dropdown-options").then(res => res.json()),
-  });
-
     return (
     // 💡 Tambahin pb-32 (padding-bottom super tebal) biar gampang digeser sampai mentok bawah
     <div className="mx-auto w-full max-w-7xl px-4 py-6 pb-32 md:px-6">
@@ -55,259 +76,109 @@ export function MasterHubPage({ onClose }: { onClose?: () => void }) {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr]">
         
-        {/* SIDEBAR CONTAINER */}
-        <aside className="space-y-3">
-          {MASTER_DOMAINS.map((domain) => {
-            const Icon = domain.icon;
-            const isActive = activeDomain === domain.id;
-            return (
-              <button key={domain.id} onClick={() => setActiveDomain(domain.id)}
-                className={cn("group flex w-full items-center gap-3 rounded-2xl p-4 transition-all duration-300", 
-                  isActive ? "bg-primary text-primary-foreground shadow-sm" : "hover:bg-primary/5 text-muted-foreground bg-card border border-border/50")}>
-                <div className={cn("rounded-xl p-2 transition-colors", isActive ? "bg-primary-foreground/20 text-white" : "bg-muted text-muted-foreground")}>
-                  <Icon className="h-5 w-5" />
-                </div>
-                <div className="text-left flex-1">
-                  <p className={cn("text-sm font-black", isActive && "text-white")}>{domain.label}</p>
-                  <p className={cn("text-[10px]", isActive ? "text-white/80" : "text-muted-foreground/60")}>{domain.desc}</p>
-                </div>
-                {isActive && <ChevronRight className="h-4 w-4" />}
-              </button>
-            );
-          })}
-        </aside>
+  {/* SIDEBAR CONTAINER */}
+  <aside className="space-y-4">
+  {ERP_MODULES.map((modul) => {
+    const IconInduk = modul.icon;
+    const isModuleExpanded = activeModule === modul.id;
+
+    return (
+      <div key={modul.id} className="space-y-1.5">
+        {/* TOMBOL INDUK MODUL */}
+        <button 
+          onClick={() => setActiveModule(isModuleExpanded ? "" : modul.id)}
+          className={cn(
+            "flex w-full items-center justify-between gap-3 rounded-2xl p-4 transition-all duration-300 border",
+            isModuleExpanded 
+              ? "bg-primary/5 border-primary/20 text-primary shadow-sm" 
+              : "bg-card border-border/50 text-muted-foreground hover:bg-muted/50"
+          )}
+        >
+          <div className="flex items-center gap-3">
+            <div className={cn("rounded-xl p-2 transition-colors", isModuleExpanded ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground")}>
+              <IconInduk className="h-5 w-5" />
+            </div>
+            <span className={cn("text-sm font-black", isModuleExpanded && "text-foreground")}>
+              {modul.label}
+            </span>
+          </div>
+          <ChevronDown className={cn("h-4 w-4 transition-transform duration-300", isModuleExpanded && "rotate-180")} />
+        </button>
+
+        {/* DAFTAR ANAK (MUNCUL KALAU INDUK DIKLIK) */}
+        <AnimatePresence>
+          {isModuleExpanded && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden pl-4 pr-1 space-y-1.5"
+            >
+              <div className="pt-1.5 pb-2 border-l-2 border-border/50 pl-3 space-y-1.5">
+                {modul.children.map((child) => {
+                  const IconAnak = child.icon;
+                  const isChildActive = activeChild === child.id;
+
+                  return (
+                    <button
+                      key={child.id}
+                      onClick={() => setActiveChild(child.id)}
+                      className={cn(
+                        "flex w-full items-center gap-3 rounded-xl p-3 transition-all duration-200 text-left",
+                        isChildActive
+                          ? "bg-primary text-primary-foreground shadow-md"
+                          : "bg-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                      )}
+                    >
+                      <IconAnak className="h-4 w-4 shrink-0" />
+                      <span className="text-xs font-bold">{child.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  })}
+</aside>
 
         {/* MAIN CONTENT */}
-        <main className="space-y-4">
-          {isLoading ? (
-            <div className="flex h-32 items-center justify-center rounded-3xl border border-border/50 bg-card/50">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            </div>
-          ) : (
-            <AnimatePresence mode="wait">
-              <motion.div key={activeDomain} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
-                
-               {activeDomain === "area" && <AreaDanSiklusManager data={masterData?.areas || []} />}
-                {activeDomain === "pekerja" && <PekerjaManager data={masterData?.petugas || []} atribut={masterData?.atributPekerja} />}
-                {activeDomain === "kategori" && <KategoriManager data={masterData?.kategori || []} />}
-                {/* 💡 Komponen Kendala ngambil data dari masterData?.kendalaMaster */}
-                {activeDomain === "kendala" && <KendalaManager data={masterData?.kendalaMaster || []} />}
-                {/* 🆕 Produk fetch data sendiri, TIDAK dari masterData — lihat alasan di catatan implementasi */}
-                {activeDomain === "produk" && <ProdukManager />}
+  <main className="space-y-4 w-full overflow-hidden">
+  <AnimatePresence mode="wait">
+    <motion.div 
+      key={activeChild} 
+      initial={{ opacity: 0, x: 10 }} 
+      animate={{ opacity: 1, x: 0 }} 
+      exit={{ opacity: 0, x: -10 }} 
+      transition={{ duration: 0.2 }}
+      className="w-full"
+    >
+      
+      {/* 🚀 COLOKAN MODUL AGRONOMY */}
+      {activeChild === "area" && <AreaManager />}
+      
+      {/* Placeholder buat anak-anak lainnya (tunggu di-refactor nanti) */}
+      {activeChild === "pekerja" && (
+        <div className="p-8 text-center text-muted-foreground border border-dashed rounded-3xl">Pekerja Manager (Coming Soon)</div>
+      )}
+      {activeChild === "panen" && (
+        <div className="p-8 text-center text-muted-foreground border border-dashed rounded-3xl">Modul Panen (Coming Soon)</div>
+      )}
 
-              </motion.div>
+    </motion.div>
+  </AnimatePresence>
+</main>
 
-            </AnimatePresence>
-          )}
-        </main>
       </div>
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// 📦 3. KOMPONEN PENGELOLA (AREA, PEKERJA, KATEGORI)
+// 📦 3. KOMPONEN PENGELOLA (PEKERJA, KATEGORI)
 // ---------------------------------------------------------------------------
-
-function AreaDanSiklusManager({ data }: { data: any[] }) {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  
-  // State Area Baru
-  const [newName, setNewName] = useState("");
-
-    // State Siklus Inline (Penyimpan ID Area yang sedang buka form siklus)
-  const [cycleAreaId, setCycleAreaId] = useState<string | null>(null);
-  const [namaSiklus, setNamaSiklus] = useState("");
-  const [tglTanam, setTglTanam] = useState("");
-
-  // 🚀 SUNTIKAN BARU: State buat nyimpen area mana yang riwayatnya lagi dibuka
-  const [expandedArchives, setExpandedArchives] = useState<Record<string, boolean>>({});
-
-  // Fetch data siklus aktif secara mandiri
-  const { data: listSiklus, isLoading: loadingSiklus } = useQuery({
-    queryKey: ["siklus-tanam-list"],
-    queryFn: async () => fetch("/api/notion/siklus-tanam").then(r => r.json()),
-  });
-  const activeSiklus = listSiklus?.data || [];
-
-  // Mutasi Area
-  const addAreaMutation = useMutation({
-    mutationFn: async (name: string) => fetch("/api/notion/areas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name }) }).then(r => r.json()),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["master-dropdown-options"] }); setNewName(""); toast({ title: "Sukses", description: "Area baru ditambahkan." }); },
-  });
-
-  const delAreaMutation = useMutation({
-    mutationFn: async (id: string) => fetch(`/api/notion/areas/${id}`, { method: "DELETE" }).then(r => r.json()),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["master-dropdown-options"] }); toast({ title: "Dihapus", description: "Area & seluruh siklus terkait berhasil dihapus." }); },
-  });
-
-  // Mutasi Siklus Baru
-  const addSiklusMutation = useMutation({
-    mutationFn: async () => fetch("/api/notion/siklus-tanam", { 
-      method: "POST", 
-      headers: { "Content-Type": "application/json" }, 
-      body: JSON.stringify({ areaId: cycleAreaId, namaSiklus, tanggalPindahTanam: tglTanam }) 
-    }).then(r => r.json()),
-    onSuccess: () => { 
-      queryClient.invalidateQueries({ queryKey: ["siklus-tanam-list"] }); 
-      queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] });
-      queryClient.invalidateQueries({ queryKey: ["master-dropdown-options"] }); 
-      setCycleAreaId(null); setNamaSiklus(""); setTglTanam("");
-      toast({ title: "Siklus Dimulai", description: "Siklus tanam baru berhasil didaftarkan." }); 
-    },
-  });
-
-  // Helper untuk membersihkan teks area dari backend (Membuang tempelan nama tanaman)
-    // 💡 PERBAIKAN: Pisahkan string berdasarkan " - " dan ambil murni nama areanya saja
-  const getCleanAreaName = (areaId: string, mergedName: string) => {
-    if (!mergedName) return "";
-    // Kalau ada tanda " - ", kita split dan ambil yang depan saja (Cth: "C - Jagung" -> "C")
-    if (mergedName.includes(" - ")) {
-      return mergedName.split(" - ")[0].trim();
-    }
-    return mergedName;
-  };
-
-    return (
-    <Card className={glassCard}>
-      <h3 className="text-lg font-black mb-1">Area & Siklus Tanam</h3>
-      <p className="text-xs text-muted-foreground mb-6">Kelola daftar area kebun beserta tanaman yang sedang aktif di dalamnya. Siklus lama akan otomatis diarsipkan saat siklus baru dimulai.</p>
-      
-      <div className="flex gap-2 mb-6">
-        <input type="text" placeholder="Nama area baru (Msl: Blok D)" value={newName} onChange={e => setNewName(e.target.value)} className="flex-1 rounded-xl border border-border/60 bg-muted/30 px-4 py-2 text-sm outline-none focus:border-primary/50 font-bold" />
-        <Button variant="secondary" onClick={() => newName.trim() && addAreaMutation.mutate(newName)} disabled={addAreaMutation.isPending} className="rounded-xl font-bold bg-primary/10 text-primary hover:bg-primary/20 shrink-0">
-          {addAreaMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Plus className="h-4 w-4 mr-1"/> Tambah</>}
-        </Button>
-      </div>
-
-      <div className="space-y-4">
-        {data.map((area) => {
-          const currentCycle = activeSiklus.find((c:any) => c.areaId === area.id && c.status === "Aktif");
-          const cleanAreaName = getCleanAreaName(area.id, area.name);
-          const isAddingCycle = cycleAreaId === area.id;
-
-          return (
-            <div key={area.id} className="rounded-2xl border border-border/50 bg-card overflow-hidden shadow-sm transition-all duration-300 hover:border-border">
-           {/* HEADER AREA (Menampilkan Nama Area Murni) */}
-              <div className="flex items-center justify-between bg-muted/10 p-4 border-b border-border/40">
-                <span className="text-sm md:text-base font-black flex items-center gap-2">
-                  <div className="rounded-full bg-primary/20 p-1.5 text-primary"><Leaf className="h-4 w-4" /></div>
-                  {cleanAreaName}
-                </span>
-                
-            {/* ⚠️ Tombol Hapus Area Master */}
-                <Button variant="ghost" size="icon" onClick={() => {
-                  if (confirm("⚠️ PERINGATAN KERAS: Menghapus Area ini akan melenyapkan SELURUH riwayat aktivitas dan siklus tanam di dalamnya secara permanen. Lanjutkan?")) {
-                    delAreaMutation.mutate(area.id);
-                  }
-                }} disabled={delAreaMutation.isPending} className="h-8 w-8 text-destructive hover:bg-destructive/10 shrink-0">
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-
-          {/* BODY SIKLUS */}
-              <div className="p-4 bg-muted/5">
-                {loadingSiklus ? (
-                   <div className="flex items-center gap-2 text-muted-foreground text-xs"><Loader2 className="h-3 w-3 animate-spin"/> Memuat siklus...</div>
-                ) : isAddingCycle ? (
-                  // KONDISI 1: SEDANG BUKA FORM SIKLUS
-                  <div className="flex flex-col gap-2 rounded-xl bg-background border border-primary/30 p-3 shadow-inner">
-                    
-            {/* 💡 Info peringatan jika sedang mereplace siklus lama */}
-                    {currentCycle && (
-                      <div className="text-[10px] font-bold text-amber-700 bg-amber-500/10 p-2 rounded-lg mb-1 border border-amber-500/20">
-                        ⚠️ Menyimpan siklus baru akan otomatis mengubah status "{currentCycle.namaSiklus}" menjadi Selesai (Diarsipkan).
-                      </div>
-                    )}
-
-                    <div className="flex flex-col md:flex-row gap-2">
-                      <input type="text" placeholder="Nama Tanaman Baru..." value={namaSiklus} onChange={e => setNamaSiklus(e.target.value)} className="flex-1 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-sm outline-none focus:border-primary/50 font-semibold" />
-                      <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-1.5 focus-within:border-primary/50 shrink-0">
-                        <span className="text-[10px] font-bold text-muted-foreground">TGL TANAM:</span>
-                        <input type="date" value={tglTanam} onChange={e => setTglTanam(e.target.value)} className="bg-transparent text-sm outline-none cursor-pointer font-semibold" />
-                      </div>
-                    </div>
-                    <div className="flex gap-2 justify-end mt-2">
-                       <Button variant="ghost" size="sm" onClick={() => setCycleAreaId(null)} className="h-9 text-xs rounded-lg font-bold">Batal</Button>
-                       <Button size="sm" 
-                         onClick={() => { if(namaSiklus && tglTanam) addSiklusMutation.mutate(); else toast({variant: "destructive", title:"Gagal", description:"Isi nama tanaman dan tanggal tanam."}) }} 
-                         disabled={addSiklusMutation.isPending} 
-                         className="h-9 text-xs rounded-lg font-bold px-6">
-                         {addSiklusMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Mulai Siklus"}
-                       </Button>
-                    </div>
-                  </div>
-                ) : currentCycle ? (
-            // KONDISI 2: ADA SIKLUS AKTIF (Read Only Mode)
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between rounded-xl border border-primary/20 bg-primary/5 p-3 gap-3">
-                    <div>
-                      <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded flex w-fit mb-1.5">
-                        🌱 Siklus Aktif
-                      </span>
-                      <span className="text-sm font-black block text-primary">{currentCycle.namaSiklus}</span>
-                      <span className="text-xs text-muted-foreground mt-0.5 block">
-                        Mulai Tanam: {new Date(currentCycle.tanggalPindahTanam).toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'})}
-                      </span>
-                    </div>
-                    <div className="flex items-center sm:justify-end w-full sm:w-auto mt-2 sm:mt-0 border-t sm:border-0 border-primary/10 pt-2 sm:pt-0">
-                      <Button variant="outline" size="sm" onClick={() => setCycleAreaId(area.id)} className="h-8 text-[11px] rounded-lg border-primary/20 hover:bg-primary/10 font-bold bg-background">
-                        Akhiri & Ganti Tanaman
-                      </Button>
-                    </div>
-                  </div>
-                  ) : (
-
-              // KONDISI 3: AREA KOSONG
-                  <Button variant="ghost" size="sm" onClick={() => setCycleAreaId(area.id)} className="h-10 text-xs font-bold text-muted-foreground hover:text-primary rounded-xl border border-dashed border-border/60 w-full hover:bg-primary/5 bg-muted/20">
-                    <Plus className="h-3 w-3 mr-1" /> Mulai Siklus Tanam Pertama
-                  </Button>
-                )}
-
-                {/* 🚀 SUNTIKAN BARU: ARSIP SIKLUS HISTORIS (Ditaruh tepat sebelum div penutup kotak) */}
-                {(() => {
-                  // Saring siklus lama yang sudah beres di area ini
-                  const selesaiSiklus = activeSiklus.filter((c: any) => c.areaId === area.id && c.status !== "Aktif");
-                  if (selesaiSiklus.length === 0) return null;
-
-                  const isExpanded = !!expandedArchives[area.id];
-
-                  return (
-                    <div className="mt-3 border-t border-border/40 pt-2.5">
-                      <button
-                        onClick={() => setExpandedArchives(prev => ({ ...prev, [area.id]: !isExpanded }))}
-                        className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        <CalendarDays className="h-3.5 w-3.5 text-muted-foreground/70" />
-                        <span>{isExpanded ? "Sembunyikan Arsip Tanam" : `Lihat Arsip Tanam (${selesaiSiklus.length})`}</span>
-                      </button>
-
-                      {isExpanded && (
-                        <div className="mt-2 space-y-1.5 pl-5 border-l border-dashed border-border/60 ml-1.5">
-                          {selesaiSiklus.map((c: any) => (
-                            <div key={c.id} className="flex items-center justify-between text-xs py-1 text-muted-foreground bg-muted/10 px-2 rounded-lg border border-border/30">
-                              <span className="font-bold text-foreground/80">{c.namaSiklus}</span>
-                              <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded font-medium">
-                                Tanam: {new Date(c.tanggalPindahTanam).toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'})}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
-
-              </div>
-            </div>
-          );
-        })}
-
-        {data.length === 0 && <p className="text-center text-xs text-muted-foreground py-8">Belum ada area yang terdaftar.</p>}
-      </div>
-    </Card>
-  );
-}
 
 function PekerjaManager({ data, atribut }: { data: any[], atribut?: any }) {
   const { toast } = useToast();
