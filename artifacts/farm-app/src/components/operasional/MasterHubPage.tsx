@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { AreaManager } from "./components/master/area/AreaManager";
+import { AreaManager } from "@/components/master/area/AreaManager";
 // import { PekerjaManager } from "./..."; (siapkan buat nanti)
 
 // ---------------------------------------------------------------------------
