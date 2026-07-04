@@ -135,41 +135,31 @@ export function AgronomyHubPage() {
     }
   }, [unifiedFeedData, selectedItem]);
 
-    // =====================================================================
+  // =====================================================================
   // 2. MUTATION: UNIVERSAL DYNAMIC UPDATE + PERAWATAN FIELD ONLY DAN PRODUK
   // =====================================================================
-    const updateStatusMutation = useMutation({
-    mutationFn: async ({ id, module, ...updateData }: { id: string; module: string; [key: string]: any }) => {
-      // 🚀 OPSI A2 (Satu Pintu): Apapun updatenya (teks atau produk), kalau dia perawatan, tembak ke pintu perawatan!
-      const isPerawatan = module === "perawatan";
+    const updateStatusMutation = useMutation({ /* field-only, seperti sekarang, tanpa perubahan logic */ });
 
-      const url = isPerawatan
-        ? `/api/notion/perawatan/${id}`
-        : `/api/notion/edit-activity/${id}`;
-
-      const body = isPerawatan
-        ? updateData // Endpoint perawatan tidak butuh properti 'module' di dalam body
-        : { module, ...updateData };
-
-      const response = await fetch(url, {
-
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (!response.ok) {
-        const errBody = await response.json().catch(() => ({}));
-        throw new Error(errBody.error || "Gagal menyimpan perubahan");
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] });
-    },
-    onError: (err) => {
-      toast({ variant: "destructive", title: "Gagal Menyimpan", description: err instanceof Error ? err.message : "Kesalahan jaringan." });
+const updateProdukMutation = useMutation({
+  mutationFn: async ({ id, logProduk }: { id: string; logProduk: any[] }) => {
+    const response = await fetch(`/api/notion/perawatan/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ logProduk }),
+    });
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({}));
+      throw new Error(errBody.error || "Gagal menyimpan racikan produk");
     }
-  });
+    return response.json();
+  },
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] });
+  },
+  onError: (err) => {
+    toast({ variant: "destructive", title: "Gagal Menyimpan Produk", description: err instanceof Error ? err.message : "Kesalahan jaringan." });
+  }
+});
 
     // 🚀 SUNTIKAN BARU: Mutasi untuk menghapus baris aktivitas
   const deleteActivityMutation = useMutation({
