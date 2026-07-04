@@ -761,25 +761,18 @@ export function ActivityDetailSheet({
                     <Plus className="h-4 w-4 mr-2" /> Tambah Produk
                   </Button>
 
-              {/* Tombol Simpan (Trigger Transaksi Reverse & Reapply) */}
-                <Button 
-                    variant="default" 
-                    size="sm" 
-                    disabled={isUpdating}
-                    className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold tracking-wider disabled:opacity-50"
-                    onClick={async () => {
-                      try {
-                        await onStatusChange?.(item.id, { logProduk: editedProducts });
-                        setIsDirty(false); // ✅ Reset SEGERA setelah backend benar-benar konfirmasi sukses
-                      } catch {
-                        // Sengaja dibiarkan — kalau gagal, isDirty TETAP true, supaya user
-                        // sadar perubahan belum tersimpan dan tidak salah kira sudah aman.
-                        // Toast error sudah ditangani di level mutation (onError di AgronomyHubPage).
-                      }
-                    }}
-                  >
-                    {isUpdating ? "Menyimpan..." : <><Save className="h-4 w-4 mr-2" /> Simpan Racikan Produk</>}
-                  </Button>
+  {/* Tombol Simpan (Trigger Transaksi Reverse & Reapply) */}
+ <Button 
+  disabled={isUpdatingProduk}
+  onClick={async () => {
+    try {
+      await onProdukChange?.(item.id, editedProducts);
+      setIsDirty(false);
+    } catch {}
+  }}
+>
+  {isUpdatingProduk ? "Menyimpan..." : <><Save className="h-4 w-4 mr-2" /> Simpan Racikan Produk</>}
+</Button>
 
                 </div>
               </section>
