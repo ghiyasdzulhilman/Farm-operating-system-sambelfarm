@@ -355,19 +355,20 @@ const updateProdukMutation = useMutation({
       </div>
 
     <ActivityDetailSheet 
-        item={selectedItem} 
-        onClose={() => setSelectedItem(null)} 
-        isUpdating={updateStatusMutation.isPending}
-        onStatusChange={(id, payload) => {
-          if (selectedItem) {
-            const updateData = typeof payload === "string" ? { status: payload } : payload;
-            // 🔑 Return promise-nya, supaya pemanggil (ActivityDetailSheet) bisa await kapan
-            // request BENAR-BENAR sukses, tanpa bergantung pada rantai refetch-compare-effect.
-            return updateStatusMutation.mutateAsync({ id, module: selectedItem.module, ...updateData });
-          }
-        }} 
-      />
-
+  item={selectedItem} 
+  onClose={() => setSelectedItem(null)} 
+  isUpdating={updateStatusMutation.isPending}
+  isUpdatingProduk={updateProdukMutation.isPending}
+  onStatusChange={(id, payload) => {
+    if (selectedItem) {
+      const updateData = typeof payload === "string" ? { status: payload } : payload;
+      updateStatusMutation.mutate({ id, module: selectedItem.module, ...updateData });
+    }
+  }}
+  onProdukChange={(id, logProduk) => {
+    return updateProdukMutation.mutateAsync({ id, logProduk });
+  }}
+/>
 
       {/* 💡 OVERLAY MASTER HUB (MUNCUL KALAU TOMBOL RIWAYAT DIKLIK) */}
       {showMasterHub && (
