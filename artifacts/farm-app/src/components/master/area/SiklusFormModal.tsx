@@ -1,16 +1,17 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { X, Loader2, Sprout, AlertTriangle, CalendarDays } from "lucide-react";
+import { X, Loader2, Sprout, AlertTriangle, CalendarDays, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 interface SiklusFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   areaId: string;
   areaName: string;
-  currentCycle: any | null; // Bisa null kalau area kosong
+  currentCycle: any | null; 
 }
 
 export function SiklusFormModal({ isOpen, onClose, areaId, areaName, currentCycle }: SiklusFormModalProps) {
@@ -20,11 +21,9 @@ export function SiklusFormModal({ isOpen, onClose, areaId, areaName, currentCycl
   const [namaSiklus, setNamaSiklus] = useState("");
   const [tglTanam, setTglTanam] = useState("");
 
-  // Otomatis reset form & set tanggal default ke hari ini setiap kali Modal dibuka
   useEffect(() => {
     if (isOpen) {
       setNamaSiklus("");
-      // Format YYYY-MM-DD untuk input type="date"
       setTglTanam(new Date().toISOString().split('T')[0]); 
     }
   }, [isOpen]);
@@ -40,7 +39,7 @@ export function SiklusFormModal({ isOpen, onClose, areaId, areaName, currentCycl
       queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] });
       queryClient.invalidateQueries({ queryKey: ["master-dropdown-options"] }); 
       toast({ title: "Siklus Diperbarui", description: `Siklus tanaman di ${areaName} berhasil dikelola.` }); 
-      onClose(); // Tutup modal setelah sukses
+      onClose(); 
     },
     onError: (err: any) => {
       toast({ variant: "destructive", title: "Gagal Menyimpan", description: err.message || "Terjadi kesalahan sistem." });
@@ -55,72 +54,63 @@ export function SiklusFormModal({ isOpen, onClose, areaId, areaName, currentCycl
     addSiklusMutation.mutate();
   };
 
-  // Jangan render apapun kalau statusnya tertutup
-  if (!isOpen) return null;
-
   return (
-    // Backdrop Hitam Transparan
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-      
-      {/* Kotak Utama Modal */}
-      <div className="w-full max-w-md overflow-hidden rounded-3xl bg-background border border-border/50 shadow-2xl animate-in zoom-in-95 duration-200">
-        
-        {/* Header Modal */}
-        <div className="flex items-center justify-between border-b border-border/40 bg-muted/10 px-5 py-4">
-          <div className="flex items-center gap-2">
-            <div className="rounded-full bg-primary/20 p-1.5 text-primary">
-              <Sprout className="h-4 w-4" />
+    <Sheet open={isOpen} onOpenChange={(val) => { if (!val) onClose(); }}>
+      <SheetContent 
+        side="top" 
+        className="mx-auto max-w-md rounded-b-[2rem] border-x-0 border-t-0 p-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl shadow-[0_16px_40px_rgba(0,0,0,0.12)] pb-5 z-[100]"
+      >
+        <SheetHeader className="px-6 py-4 flex flex-row items-center justify-between border-b border-border">
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl bg-primary/10 p-2 text-primary shadow-sm">
+              <Sprout className="h-5 w-5" />
             </div>
-            <div>
-              <h3 className="text-sm font-black">Kelola Siklus</h3>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{areaName}</p>
+            <div className="text-left">
+              <SheetTitle className="text-base font-black tracking-tight">Kelola Siklus Tanam</SheetTitle>
+              <p className="text-[10px] font-bold text-primary tracking-wider uppercase">{areaName}</p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 rounded-full hover:bg-muted/50 text-muted-foreground">
+          <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 rounded-full hover:bg-muted/50 text-muted-foreground shrink-0">
             <X className="h-4 w-4" />
           </Button>
-        </div>
+        </SheetHeader>
 
-        {/* Body Modal */}
-        <div className="p-5 space-y-4">
+        <div className="px-6 py-5 space-y-5 text-left max-h-[70vh] overflow-y-auto">
           
-          {/* Peringatan Jika Ada Siklus Aktif */}
           {currentCycle && (
-            <div className="flex gap-3 rounded-xl bg-amber-500/10 border border-amber-500/20 p-3 text-amber-700">
-              <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-              <p className="text-xs font-semibold leading-relaxed">
+             <div className="bg-amber-500/10 text-amber-700 p-3.5 rounded-2xl border border-amber-500/20 text-[11px] font-medium leading-relaxed shadow-sm flex gap-3">
+              <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
+              <p>
                 Saat ini terdapat tanaman <strong>{currentCycle.namaSiklus}</strong> yang sedang aktif. 
-                Memulai siklus baru akan otomatis mengakhiri dan mengarsipkan tanaman sebelumnya.
+                Menyimpan data ini otomatis mengakhiri dan mengarsipkan tanaman tersebut.
               </p>
             </div>
           )}
 
-          {/* Form Input */}
-          <div className="space-y-3">
+          <div className="space-y-4 pt-1">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                Nama Tanaman Baru
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
+                Nama Komoditas / Tanaman
               </label>
-              <input 
-                type="text" 
+              <Input 
                 placeholder="Misal: Tomat Ceri - Batch 2" 
                 value={namaSiklus} 
                 onChange={e => setNamaSiklus(e.target.value)} 
-                className="w-full rounded-xl border border-border/60 bg-muted/20 px-4 py-2.5 text-sm outline-none focus:border-primary/50 font-bold transition-colors" 
+                className="h-12 rounded-xl bg-background border border-input focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm text-sm font-medium"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
                 Tanggal Pindah Tanam
               </label>
               <div className="relative">
-                <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <input 
+                <CalendarDays className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input 
                   type="date" 
                   value={tglTanam} 
                   onChange={e => setTglTanam(e.target.value)} 
-                  className="w-full rounded-xl border border-border/60 bg-muted/20 pl-9 pr-4 py-2.5 text-sm outline-none focus:border-primary/50 font-bold transition-colors cursor-pointer" 
+                  className="h-12 rounded-xl bg-background border border-input focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm text-sm font-medium pl-10 cursor-pointer"
                 />
               </div>
             </div>
@@ -128,21 +118,22 @@ export function SiklusFormModal({ isOpen, onClose, areaId, areaName, currentCycl
 
         </div>
 
-        {/* Footer Actions */}
-        <div className="flex items-center justify-end gap-2 border-t border-border/40 bg-muted/10 px-5 py-4">
-          <Button variant="ghost" onClick={onClose} disabled={addSiklusMutation.isPending} className="text-xs font-bold rounded-xl h-10 px-5">
+        <div className="flex items-center justify-end gap-3 px-6 pt-4 border-t border-border mt-2">
+          <Button variant="ghost" onClick={onClose} disabled={addSiklusMutation.isPending} className="h-11 rounded-xl px-4 font-bold text-muted-foreground hover:bg-muted">
             Batal
           </Button>
           <Button 
             onClick={handleSubmit} 
             disabled={addSiklusMutation.isPending} 
-            className="text-xs font-bold rounded-xl h-10 px-6 gap-2"
+            className="h-11 rounded-xl px-6 font-bold bg-primary text-primary-foreground hover:opacity-90 transition-all shadow-sm gap-2"
           >
-            {addSiklusMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Simpan & Mulai Tanam"}
+            {addSiklusMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><CheckCircle2 className="h-4 w-4" /> Mulai Tanam</>}
           </Button>
         </div>
 
-      </div>
-    </div>
+        {/* Garis pemanis di bawah sheet */}
+        <div className="mx-auto mt-4 h-1.5 w-12 rounded-full bg-border/60" />
+      </SheetContent>
+    </Sheet>
   );
 }
