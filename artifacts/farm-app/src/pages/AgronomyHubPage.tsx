@@ -138,7 +138,7 @@ export function AgronomyHubPage() {
   // =====================================================================
   // 2. MUTATION: UNIVERSAL DYNAMIC UPDATE + PERAWATAN FIELD ONLY DAN PRODUK
   // =====================================================================
-      const updateStatusMutation = useMutation({
+  const updateStatusMutation = useMutation({
     mutationFn: async ({ id, module, ...updateData }: { id: string; module: string; [key: string]: any }) => {
       const isPerawatan = module === "perawatan";
 
@@ -150,7 +150,26 @@ export function AgronomyHubPage() {
         ? updateData
         : { module, ...updateData };
 
-     const updateProdukMutation = useMutation({
+      const response = await fetch(url, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({}));
+        throw new Error(errBody.error || "Gagal menyimpan perubahan");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] });
+    },
+    onError: (err) => {
+      toast({ variant: "destructive", title: "Gagal Menyimpan", description: err instanceof Error ? err.message : "Kesalahan jaringan." });
+    }
+  });
+
+  const updateProdukMutation = useMutation({
     mutationFn: async ({ id, logProduk }: { id: string; logProduk: any[] }) => {
       const response = await fetch(`/api/notion/perawatan/${id}`, {
         method: "PATCH",
