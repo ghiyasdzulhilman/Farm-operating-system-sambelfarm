@@ -162,7 +162,7 @@ export function PekerjaFormModal({ isOpen, onClose, atribut }: PekerjaFormModalP
             disabled={addPekerjaMutation.isPending} 
             className="h-11 rounded-xl px-6 font-bold bg-primary text-primary-foreground hover:opacity-90 transition-all shadow-sm gap-2"
           >
-            {addPekerjaMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><CheckCircle2 className="h-4 w-4" /> Simpan Tim</>}
+            {addPekerjaMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><CheckCircle2 className="h-4 w-4" /> Simpan</>}
           </Button>
         </div>
 
