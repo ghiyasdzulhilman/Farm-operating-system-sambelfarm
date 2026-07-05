@@ -101,24 +101,30 @@ export function AreaActiveGrid({ areas, allSiklus, searchQuery }: AreaActiveGrid
 
               {/* 2. BODY CARD (Informasi Siklus Berjalan) */}
               <div className="p-4 flex-1 flex flex-col justify-center min-h-[100px]">
-                {currentCycle ? (
+{currentCycle ? (
                   <div className="space-y-2 w-full">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
-                        Siklus Aktif
-                      </span>
-                      <span className="text-[11px] font-bold text-muted-foreground">
+                    {/* Baris 1: Nama Tanaman & Umur (HST) sejajar */}
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-base font-black text-primary leading-tight">
+                        {currentCycle.namaSiklus}
+                      </p>
+                      <span className="text-[11px] font-bold text-muted-foreground shrink-0 mt-0.5">
                         {calculateHST(currentCycle.tanggalPindahTanam)} HST
                       </span>
                     </div>
-                    <div>
-                      <p className="text-base font-black text-primary">{currentCycle.namaSiklus}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
+                    
+                    {/* Baris 2 & 3: Tanggal Tanam lalu disusul Badge Aktif di bawahnya */}
+                    <div className="flex flex-col items-start gap-2 pt-0.5">
+                      <p className="text-xs text-muted-foreground">
                         Tanam: {new Date(currentCycle.tanggalPindahTanam).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </p>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded w-fit">
+                        Siklus Aktif
+                      </span>
                     </div>
                   </div>
                 ) : (
+
                   <p className="text-xs text-center font-medium text-muted-foreground/70 py-2">
                     Belum ada siklus berjalan di area ini.
                   </p>
