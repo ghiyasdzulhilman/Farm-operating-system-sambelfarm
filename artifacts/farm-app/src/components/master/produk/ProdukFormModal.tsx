@@ -110,9 +110,10 @@ export function ProdukFormModal({ isOpen, onClose, defaultType }: ProdukFormModa
     <Sheet open={isOpen} onOpenChange={(val) => { if (!val) onClose(); }}>
       <SheetContent 
         side="top" 
-        className="mx-auto max-w-md rounded-b-[2rem] border-x-0 border-t-0 p-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl shadow-[0_16px_40px_rgba(0,0,0,0.12)] pb-5 z-[100] max-h-[90vh] overflow-y-auto"
-      >
-        <SheetHeader className="px-6 py-4 flex flex-row items-center justify-between border-b border-border pr-12 sticky top-0 bg-background/95 backdrop-blur z-10">
+        className="mx-auto max-w-md rounded-b-[2rem] border-x-0 border-t-0 p-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl shadow-[0_16px_40px_rgba(0,0,0,0.12)] z-[100] max-h-[90vh] flex flex-col"
+        >
+
+        <SheetHeader className="px-6 py-4 flex flex-row items-center justify-between border-b border-border pr-12 shrink-0">
           <div className="flex items-center gap-3">
             <div className="rounded-xl bg-primary/10 p-2 text-primary shadow-sm">
               <PackagePlus className="h-5 w-5" />
@@ -124,7 +125,8 @@ export function ProdukFormModal({ isOpen, onClose, defaultType }: ProdukFormModa
           </div>
         </SheetHeader>
 
-        <div className="px-6 py-5 space-y-5 text-left">
+        {/* Area ini yang akan scrollable, aman dari keyboard */}
+    <div className="px-6 py-5 space-y-5 text-left flex-1 overflow-y-auto custom-scrollbar">
           
           {/* 1. INPUT NAMA PRODUK */}
           <div className="space-y-1.5">
@@ -234,8 +236,9 @@ export function ProdukFormModal({ isOpen, onClose, defaultType }: ProdukFormModa
           </div>
         </div>
 
-        {/* FOOTER ACTIONS */}
-        <div className="flex items-center justify-end gap-3 px-6 pt-2 pb-2 sticky bottom-0 bg-background/95 backdrop-blur border-t border-border/50">
+        {/* FOOTER ACTIONS (Shrink-0 biar ukurannya ga kegencet) */}
+      <div className="flex items-center justify-end gap-3 px-6 py-4 bg-background border-t border-border/50 shrink-0">
+
           <Button 
             variant="ghost" 
             onClick={onClose} 
