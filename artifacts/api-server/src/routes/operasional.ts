@@ -517,13 +517,20 @@ router.patch("/notion/pekerja/:id", async (req, res): Promise<void> => {
       res.status(400).json({ error: "Tidak ada data yang diupdate." }); return;
     }
 
-    const [updatedPekerja] = await db.update(pekerjaTable)
-      .set(cleanPayload)
-      .where(eq(pekerjaTable.id, id))
-      .returning();
+      try {
+        const [updatedPekerja] = await db.update(pekerjaTable)
+          .set({ deleted: true })
+          .where(eq(pekerjaTable.id, id))
+          .returning();
 
-    res.json({ success: true, message: "Data pekerja diperbarui.", data: updatedPekerja });
-  } catch (err) { 
+        if (!updatedPekerja) {
+          res.status(404).json({ error: "Pekerja tidak ditemukan." }); return;
+        }
+        
+        // 🚀 FIX: Ubah 'data: deletedPekerja' menjadi 'data: updatedPekerja'
+        res.json({ success: true, message: "Pekerja berhasil dihapus.", data: updatedPekerja });
+      } catch (err) {
+
     res.status(500).json({ error: "Gagal update pekerja." }); 
   }
 });
