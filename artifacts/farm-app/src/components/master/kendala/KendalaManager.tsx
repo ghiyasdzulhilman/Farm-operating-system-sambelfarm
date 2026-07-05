@@ -14,13 +14,18 @@ export function KendalaManager() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // 2. FETCH DATA MANDIRI DARI ENDPOINT
+    // 2. FETCH DATA MANDIRI DARI ENDPOINT
   const { data: masterData, isLoading } = useQuery({
     queryKey: ["master-dropdown-options"],
     queryFn: async () => fetch("/api/notion/operasional-dropdown-options").then(res => res.json()),
   });
 
-  const allKendala = masterData?.kendala || [];
+  // 💡 ALAT PELACAK: Buka Console di browser lu (Inspect Element -> Console)
+  // Biar kita bisa lihat apa aja nama kunci (key) yang dikirim sama backend lu.
+  console.log("📦 ISI MASTER DATA:", masterData);
+
+  // 🚀 SEMENTARA: Kita coba tembak beberapa kemungkinan nama key-nya
+  const allKendala = masterData?.kendala || masterData?.hamaPenyakit || masterData?.hama_penyakit || masterData?.dataKendala || [];
 
   return (
     <div className="space-y-6">
