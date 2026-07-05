@@ -31,11 +31,11 @@ export function KendalaList({ kendala, activeTab, searchQuery }: KendalaListProp
     }
   });
 
-  // 2. LOGIKA FILTERING DATA MONOKROM
+// 2. LOGIKA FILTERING DATA MONOKROM (KEBAL HURUF BESAR/KECIL)
   const filteredKendala = useMemo(() => {
     return kendala
-      .filter((item) => item.jenis === activeTab)
-      .filter((item) => item.name.toLowerCase().includes(searchQuery.toLowerCase()));
+      .filter((item) => item.jenis?.toLowerCase() === activeTab.toLowerCase()) // 👈 Ini yang bikin aman
+      .filter((item) => item.name?.toLowerCase().includes(searchQuery.toLowerCase()));
   }, [kendala, activeTab, searchQuery]);
 
   return (
