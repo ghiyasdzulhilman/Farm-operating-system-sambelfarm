@@ -35,7 +35,7 @@ export function PekerjaManager() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
               type="text"
-              placeholder={activeTab === "tim" ? "Cari nama pekerja..." : "Cari di opsi properti..."}
+              placeholder={activeTab === "tim" ? "Cari nama karyawan..." : "Cari di opsi properti..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-4 py-2 rounded-xl border border-border/60 bg-muted/20 text-sm outline-none focus:border-primary/50 font-semibold transition-all"
@@ -48,7 +48,7 @@ export function PekerjaManager() {
               onClick={() => setIsPekerjaModalOpen(true)}
               className="rounded-xl font-bold bg-primary text-primary-foreground gap-1.5 shrink-0"
             >
-              <Plus className="h-4 w-4" /> Pekerja
+              <Plus className="h-4 w-4" /> Karyawan
             </Button>
           )}
         </div>
@@ -62,7 +62,7 @@ export function PekerjaManager() {
               activeTab === "tim" ? "bg-background text-primary shadow-sm border border-border/40" : "text-muted-foreground hover:text-foreground"
             )}
           >
-            <Users className="h-3.5 w-3.5" /> Tim Pekerja
+            <Users className="h-3.5 w-3.5" /> Karyawan
           </button>
           <button
             onClick={() => { setActiveTab("properti"); setSearchQuery(""); }}
