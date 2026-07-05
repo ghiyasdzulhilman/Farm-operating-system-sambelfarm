@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Leaf, Users, Database, Trash2, Plus, Loader2, ChevronRight, X, CalendarDays, Bug, Package, Pencil, Sprout, Wallet, Wrench, ChevronDown, ToggleLeft, ToggleRight } from "lucide-react";
+import { Leaf, Users, Database, Trash2, Plus, Loader2, ChevronRight, MapPin, X, CalendarDays, Bug, Package, Pencil, Sprout, Wallet, Wrench, ChevronDown, ToggleLeft, ToggleRight } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -22,7 +22,7 @@ const ERP_MODULES = [
     label: "Agronomy",
     icon: Sprout,
     children: [
-      { id: "area", label: "Area & Blok", icon: Leaf },
+      { id: "area", label: "Area & Blok", icon: MapPin },
       { id: "pekerja", label: "Karyawan", icon: Users },
       { id: "kategori", label: "Kategori Aktivitas", icon: Database },
       { id: "produk", label: "Produk & Stok", icon: Package },
