@@ -155,8 +155,8 @@ export function PekerjaAtributPanel({ atribut, searchQuery }: PekerjaAtributPane
                     }
                   }} 
                   disabled={delTagMutation.isPending} 
-                  className="h-8 w-8 text-destructive opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 rounded-lg"
-                >
+                  className="h-8 w-8 text-destructive/70 hover:text-destructive hover:bg-destructive/10 transition-colors rounded-lg"
+                  >
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
