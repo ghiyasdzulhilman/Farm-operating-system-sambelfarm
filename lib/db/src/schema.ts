@@ -34,6 +34,7 @@ export const pekerjaTable = pgTable("pekerja", {
   jenisTenagaKerjaId: uuid("jenis_tenaga_kerja_id").references(() => pekerjaAtributMasterTable.id, { onDelete: "set null" }), 
   statusId: uuid("status_id").references(() => pekerjaAtributMasterTable.id, { onDelete: "set null" }), 
   mulaiBekerja: date("mulai_bekerja"), 
+  deleted: boolean("deleted").default(false).notNull(), // 🚀 SUNTIKAN BENDERA SOFT DELETE
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -94,7 +95,7 @@ export const produkMasterTable = pgTable(
 );
 
 // ==========================================
-// 2. TRANSACTIONAL / CORE TABLES (SUNTIK SIKLUS ID 🚀)
+// 2. TRANSACTIONAL / CORE TABLES
 // ==========================================
 
 export const perawatanTable = pgTable("perawatan", {
