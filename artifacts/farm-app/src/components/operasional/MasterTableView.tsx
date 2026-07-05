@@ -80,16 +80,6 @@ export function MasterTableView({
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["operasional-options-list"] })
   });
 
-  // Mutasi Pekerja
-  const addPekerjaMutation = useMutation({
-    mutationFn: async (nama: string) => fetch('/api/notion/pekerja', { method: 'POST', body: JSON.stringify({ nama }), headers: { 'Content-Type': 'application/json' } }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["operasional-options-list"] })
-  });
-  const deletePekerjaMutation = useMutation({
-    mutationFn: async (id: string) => fetch(`/api/notion/pekerja/${id}`, { method: 'DELETE' }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["operasional-options-list"] })
-  });
-
   // Mutasi Hapus Baris (Row) Aktivitas
     const deleteActivityMutation = useMutation({
     mutationFn: async ({ id, module }: { id: string; module: string }) => {
@@ -160,7 +150,7 @@ export function MasterTableView({
   const columns = useMemo<ColumnDef<RichAgronomyItem>[]>(() => [
     {
       id: "aktivitas",
-      header: "Kegiatan / Pekerjaan",
+      header: "Kegiatan",
       cell: ({ row }) => {
         const item = row.original;
         return (
@@ -332,7 +322,7 @@ export function MasterTableView({
 
    {
       id: "pekerja",
-      header: "Tim Pekerja",
+      header: "Karyawan",
       cell: ({ row }) => {
         const item = row.original;
         // Ambil array ID Pekerja dari metaEkstra, fallback ke string kosong
@@ -340,18 +330,16 @@ export function MasterTableView({
 
         return (
           <div className="min-w-[180px]"> {/* 💡 Dilebarin dikit karena ada format "Nama - Jenis" */}
-            <EditableCell
+          <EditableCell
               value={currentWorkerIds} 
               type="multi-select"
               options={workerOptions} 
-              placeholder="Pilih Pekerja"
+              placeholder="Pilih karyawan"
               onSave={(nextIds: string[]) => {
-                // 💡 Fungsi ini yang otomatis nge-handle Un-assign kalau lu silang nama pekerja dari baris
                 updateMutation.mutate({ id: item.id, module: item.module, payload: { pekerjaIds: nextIds } });
               }}
-              onAddOption={(newLabel) => addPekerjaMutation.mutate(newLabel)} // 💡 Fitur tambah pekerja TETAP ADA
-              // ❌ onDeleteOption dicabut biar aman dari hapus master
             />
+
           </div>
         );
 
@@ -547,7 +535,7 @@ export function MasterTableView({
     tagCategory: "Kategori",
     area: "Area",
     hst: "Umur (HST)",
-    pekerja: "Tim Pekerja",
+    pekerja: "Karyawan",
     status: "Status",
     tanggal: "Tanggal",
     waktu: "Jam Kerja",
