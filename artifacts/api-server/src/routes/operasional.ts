@@ -543,7 +543,6 @@ router.delete("/notion/pekerja/:id", async (req, res): Promise<void> => {
   if (!id) { res.status(400).json({ error: "ID pekerja wajib disertakan." }); return; }
 
   try {
-    
     // 🚀 UBAH JADI UPDATE BENDERA, JANGAN DIHAPUS BARISNYA
     const [updatedPekerja] = await db.update(pekerjaTable)
       .set({ deleted: true })
@@ -551,11 +550,11 @@ router.delete("/notion/pekerja/:id", async (req, res): Promise<void> => {
       .returning();
 
     if (!updatedPekerja) {
-
       res.status(404).json({ error: "Pekerja tidak ditemukan." }); return;
     }
     
-    res.json({ success: true, message: "Pekerja berhasil dihapus.", data: deletedPekerja });
+    // 🚀 FIX: Ganti 'deletedPekerja' menjadi 'updatedPekerja'
+    res.json({ success: true, message: "Pekerja berhasil dihapus.", data: updatedPekerja });
   } catch (err) {
     res.status(500).json({ error: "Gagal menghapus pekerja." });
   }
