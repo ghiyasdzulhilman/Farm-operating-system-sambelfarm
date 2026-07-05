@@ -40,26 +40,22 @@ export function ProdukList({ produk, activeTab, searchQuery }: ProdukListProps) 
     },
   });
 
-      // 2. MUTASI HAPUS (Versi Anti-Crash)
+    // 2. MUTASI HAPUS (Versi Anti-Crash)
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const res = await fetch(`/api/produk/${id}`, { method: "DELETE" });
       
-      // 🚀 Trik Paling Aman: Baca response sebagai teks mentah dulu
       const text = await res.text();
-      
       let data;
       try {
-        // Coba jadikan JSON. Kalau responsnya kosong (text == ""), jadikan object kosong {}
         data = text ? JSON.parse(text) : {}; 
       } catch (error) {
-        // Kalau gagal di-parse (berarti server ngirim teks biasa / HTML error), tampung teksnya
         data = { error: text };
       }
 
-      // Cek status HTTP-nya (kalau 400 atau 500, lempar error ke toast)
       if (!res.ok) {
-        throw new Error(data.error || "Produk tidak bisa dihapus, kemungkinan masih dipakai di data perawatan.");
+        // 🔥 Ini yang bakal nangkep JSON dari backend lu dan ngelempar ke onError
+        throw new Error(data.error || "Gagal menghapus produk.");
       }
       
       return data;
@@ -69,7 +65,7 @@ export function ProdukList({ produk, activeTab, searchQuery }: ProdukListProps) 
       toast({ title: "Dihapus", description: "Produk berhasil dihapus dari database." });
     },
     onError: (err: any) => {
-      // ⚠️ Pesan FK restrict (karena masih kepakai di perawatan) bakal muncul di sini
+      // 🔥 Dan pesan error "Produk tidak bisa dihapus..." bakal muncul di sini
       toast({ variant: "destructive", title: "Gagal Menghapus", description: err.message });
     }
   });
