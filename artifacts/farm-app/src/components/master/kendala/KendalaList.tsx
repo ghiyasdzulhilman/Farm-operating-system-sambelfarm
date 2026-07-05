@@ -14,13 +14,19 @@ export function KendalaList({ kendala, activeTab, searchQuery }: KendalaListProp
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // 1. MUTASI HAPUS DATA KENDALA
-  const delMutation = useMutation({
+    const delMutation = useMutation({
     mutationFn: async (id: string) => {
       const res = await fetch(`/api/notion/kendala/${id}`, { method: "DELETE" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Gagal menghapus data.");
-      return data;
+      
+      // 🚀 FIX: Cek tipe data dari server sebelum di-parse biar gak crash di HP
+      const contentType = res.headers.get("content-type");
+      if (!res.ok) {
+        const errText = contentType?.includes("application/json") 
+          ? (await res.json()).error 
+          : await res.text();
+        throw new Error(errText || "Gagal menghapus data.");
+      }
+      return contentType?.includes("application/json") ? await res.json() : { success: true };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["master-dropdown-options"] });
