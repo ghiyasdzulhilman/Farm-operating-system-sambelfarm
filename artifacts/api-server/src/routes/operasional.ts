@@ -617,12 +617,10 @@ router.delete("/notion/kategori/:id", async (req, res): Promise<void> => {
       res.status(404).json({ error: "Kategori tidak ditemukan." }); return;
     }
     res.json({ success: true, message: "Berhasil dihapus", data: deletedKategori });
-    } catch (err: any) {
-  console.error("[DB ERROR KATEGORI] - err.code:", err.code);
-  console.error("[DB ERROR KATEGORI] - err.cause:", err.cause);
-  console.error("[DB ERROR KATEGORI] - String(err):", String(err));
-  console.error("[DB ERROR KATEGORI] - full object:", JSON.stringify(err, Object.getOwnPropertyNames(err)));
-  ...
+      } catch (err: any) {
+    // 💡 Tampilkan error asli di terminal Replit biar gampang di-debug kalau ada apa-apa
+    console.error("[DB ERROR KATEGORI]:", err);
+
     // 🚀 FIX: Deteksi kebal (Mengecek kode ATAU isi pesan error dari database)
     const errorString = String(err).toLowerCase();
     const isForeignKeyError = 
