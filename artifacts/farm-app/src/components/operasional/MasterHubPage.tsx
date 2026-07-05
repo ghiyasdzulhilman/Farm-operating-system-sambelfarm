@@ -21,7 +21,7 @@ const ERP_MODULES = [
     icon: Sprout,
     children: [
       { id: "area", label: "Area & Blok", icon: Leaf },
-      { id: "pekerja", label: "Tim Pekerja", icon: Users },
+      { id: "pekerja", label: "Karyawan", icon: Users },
       { id: "kategori", label: "Kategori Aktivitas", icon: Database },
       { id: "kendala", label: "Hama & Penyakit", icon: Bug },
     ],
