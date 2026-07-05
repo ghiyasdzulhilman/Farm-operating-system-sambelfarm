@@ -322,7 +322,7 @@ export function MasterTableView({
 
    {
       id: "pekerja",
-      header: "Karyawan",
+      header: "Tim kebun",
       cell: ({ row }) => {
         const item = row.original;
         // Ambil array ID Pekerja dari metaEkstra, fallback ke string kosong
@@ -334,7 +334,7 @@ export function MasterTableView({
               value={currentWorkerIds} 
               type="multi-select"
               options={workerOptions} 
-              placeholder="Pilih karyawan"
+              placeholder="Pilih tim"
               onSave={(nextIds: string[]) => {
                 updateMutation.mutate({ id: item.id, module: item.module, payload: { pekerjaIds: nextIds } });
               }}
@@ -535,7 +535,7 @@ export function MasterTableView({
     tagCategory: "Kategori",
     area: "Area",
     hst: "Umur (HST)",
-    pekerja: "Karyawan",
+    pekerja: "Tim Kebun",
     status: "Status",
     tanggal: "Tanggal",
     waktu: "Jam Kerja",
