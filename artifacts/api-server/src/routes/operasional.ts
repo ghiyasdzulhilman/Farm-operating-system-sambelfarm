@@ -109,8 +109,10 @@ router.get("/notion/operasional-dropdown-options", async (req, res): Promise<voi
         roleId: pekerjaTable.roleId,
         jenisTenagaKerjaId: pekerjaTable.jenisTenagaKerjaId,
         statusId: pekerjaTable.statusId,
-        jenisTenagaName: tenagaAtribut.namaOption, // 💡 Tarik teks nama opsinya
+        jenisTenagaName: tenagaAtribut.namaOption, 
+        deleted: pekerjaTable.deleted, // 🚀 TARIK STATUS BENDERANYA
       })
+
       .from(pekerjaTable)
       .leftJoin(tenagaAtribut, eq(pekerjaTable.jenisTenagaKerjaId, tenagaAtribut.id));
 
@@ -120,7 +122,8 @@ router.get("/notion/operasional-dropdown-options", async (req, res): Promise<voi
       name: p.jenisTenagaName ? `${p.namaAsli} - ${p.jenisTenagaName}` : p.namaAsli,
       roleId: p.roleId,
       jenisTenagaKerjaId: p.jenisTenagaKerjaId,
-      statusId: p.statusId
+      statusId: p.statusId,
+      deleted: p.deleted // 🚀 MASUKKAN KE FORMAT DATA FRONTEND
     }));
 
     const dbKategori = await db.select().from(kategoriTable);
@@ -533,11 +536,15 @@ router.delete("/notion/pekerja/:id", async (req, res): Promise<void> => {
   if (!id) { res.status(400).json({ error: "ID pekerja wajib disertakan." }); return; }
 
   try {
-    const [deletedPekerja] = await db.delete(pekerjaTable)
+    
+    // 🚀 UBAH JADI UPDATE BENDERA, JANGAN DIHAPUS BARISNYA
+    const [updatedPekerja] = await db.update(pekerjaTable)
+      .set({ deleted: true })
       .where(eq(pekerjaTable.id, id))
       .returning();
 
-    if (!deletedPekerja) {
+    if (!updatedPekerja) {
+
       res.status(404).json({ error: "Pekerja tidak ditemukan." }); return;
     }
     
