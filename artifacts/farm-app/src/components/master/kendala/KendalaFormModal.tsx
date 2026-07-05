@@ -68,7 +68,7 @@ export function KendalaFormModal({ isOpen, onClose, defaultType }: KendalaFormMo
               <ShieldAlert className="h-5 w-5" />
             </div>
             <div className="text-left">
-              <SheetTitle className="text-base font-black tracking-tight">Tambah Kendala</SheetTitle>
+              <SheetTitle className="text-base font-black tracking-tight">Tambah OPT</SheetTitle>
               <p className="text-[10px] font-bold text-muted-foreground tracking-wider uppercase">Master Data</p>
             </div>
           </div>
@@ -79,7 +79,7 @@ export function KendalaFormModal({ isOpen, onClose, defaultType }: KendalaFormMo
           {/* INPUT NAMA KENDALA */}
           <div className="space-y-1.5">
             <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-              <Tag className="h-3.5 w-3.5" /> Nama Kendala
+              <Tag className="h-3.5 w-3.5" /> Nama OPT
             </label>
             <Input 
               placeholder="Misal: Kutu Kebul / Bercak Daun" 
@@ -94,15 +94,15 @@ export function KendalaFormModal({ isOpen, onClose, defaultType }: KendalaFormMo
           {/* PILIHAN JENIS (Hama / Penyakit) */}
           <div className="space-y-1.5">
             <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-              <Layers className="h-3.5 w-3.5" /> Jenis Kendala
+              <Layers className="h-3.5 w-3.5" /> Jenis OPT
             </label>
             <select 
               value={kendalaType} 
               onChange={e => setKendalaType(e.target.value as "Hama" | "Penyakit")}
               className="w-full h-12 rounded-xl border border-border/60 bg-background px-4 text-sm font-semibold outline-none focus:border-foreground/40 shadow-sm cursor-pointer"
             >
-              <option value="Hama">Hama (Serangga, Hewan)</option>
-              <option value="Penyakit">Penyakit (Jamur, Virus, Bakteri)</option>
+              <option value="Hama">Hama</option>
+              <option value="Penyakit">Penyakit</option>
             </select>
           </div>
 
