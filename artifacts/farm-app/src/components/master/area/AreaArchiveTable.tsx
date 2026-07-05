@@ -59,7 +59,7 @@ export function AreaArchiveTable({ areas, allSiklus, searchQuery }: AreaArchiveT
                 Nama Area
               </th>
               <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground border-r border-border/40 w-1/3">
-                Komoditas / Tanaman
+                Siklus Tanaman
               </th>
               <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground border-r border-border/40">
                 Tanggal Tanam
