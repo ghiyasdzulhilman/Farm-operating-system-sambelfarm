@@ -64,7 +64,7 @@ export function PekerjaAtributPanel({ atribut, searchQuery }: PekerjaAtributPane
     switch(tagType) {
       case "role": return { icon: Briefcase, color: "text-primary", bg: "bg-primary/10", title: "Jabatan / Role" };
       case "jenis_tenaga": return { icon: Clock, color: "text-emerald-600", bg: "bg-emerald-500/10", title: "Sistem Kerja" };
-      case "status": return { icon: Activity, color: "text-amber-600", bg: "bg-amber-500/10", title: "Status Pekerja" };
+      case "status": return { icon: Activity, color: "text-amber-600", bg: "bg-amber-500/10", title: "Status" };
     }
   };
 
