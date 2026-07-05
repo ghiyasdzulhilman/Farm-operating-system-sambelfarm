@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Plus, Leaf, Wrench } from "lucide-react";
+import { Search, Plus, HardHat, Sprout } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -57,7 +57,7 @@ export function KategoriManager() {
               activeTab === "perawatan" ? "bg-background text-primary shadow-sm border border-border/40" : "text-muted-foreground hover:text-foreground"
             )}
           >
-            <Leaf className="h-3.5 w-3.5" /> Perawatan
+            <Sprout className="h-3.5 w-3.5" /> Perawatan
           </button>
           <button
             onClick={() => { setActiveTab("operasional"); setSearchQuery(""); }}
@@ -66,7 +66,7 @@ export function KategoriManager() {
               activeTab === "operasional" ? "bg-background text-primary shadow-sm border border-border/40" : "text-muted-foreground hover:text-foreground"
             )}
           >
-            <Wrench className="h-3.5 w-3.5" /> Operasional
+            <HardHat className="h-3.5 w-3.5" /> Operasional
           </button>
         </div>
       </div>
