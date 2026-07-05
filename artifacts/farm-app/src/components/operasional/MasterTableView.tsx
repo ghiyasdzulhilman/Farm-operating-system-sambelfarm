@@ -36,7 +36,11 @@ export function MasterTableView({
   }, [dropdownOptions]);
 
   const workerOptions = useMemo(() => {
-    return (dropdownOptions?.petugas || []).map((p: any) => ({ label: p.name, value: p.id }));
+    return (dropdownOptions?.petugas || []).map((p: any) => ({ 
+      // 🚀 FIX: Kalau benderanya true, tambahkan teks (Nonaktif) di belakang namanya
+      label: p.deleted ? `${p.name} (Nonaktif)` : p.name, 
+      value: p.id 
+    }));
   }, [dropdownOptions]);
 
   const kategoriOptions = useMemo(() => {
@@ -320,26 +324,19 @@ export function MasterTableView({
       },
     },
 
-       {
+    {
       id: "pekerja",
       header: "Tim kebun",
       cell: ({ row }) => {
         const item = row.original;
-        // Ambil array ID Pekerja dari metaEkstra, fallback ke array kosong
         const currentWorkerIds = Array.isArray(item.metaEkstra?.pekerjaIds) ? item.metaEkstra.pekerjaIds : [];
 
-        // 💡 FIX: Deteksi ID yang udah dihapus dari master data
-        // Kita bikin duplikat 'options' khusus buat baris ini aja
-        const dynamicWorkerOptions = [...workerOptions];
-
+        // 💡 Failsafe: Jaga-jaga buat data jadul yang terlanjur kena hard-delete
+        const safeOptions = [...workerOptions];
         currentWorkerIds.forEach(workerId => {
-          // Cek apakah ID pekerja ini masih ada di daftar pekerja aktif?
-          const isStillActive = dynamicWorkerOptions.some(opt => opt.value === workerId);
-          
-          // Kalau nggak ketemu (berarti pekerjanya udah dihapus), 
-          // kita suntik label dadakan berupa strip "-" biar UI nggak nampilin UUID
-          if (!isStillActive) {
-            dynamicWorkerOptions.push({ label: "-", value: workerId });
+          const isExist = safeOptions.some(opt => opt.value === workerId);
+          if (!isExist) {
+            safeOptions.push({ label: "(Pekerja Terhapus)", value: workerId });
           }
         });
 
@@ -348,7 +345,7 @@ export function MasterTableView({
             <EditableCell
               value={currentWorkerIds} 
               type="multi-select"
-              options={dynamicWorkerOptions} // 👈 Pakai option yang udah dimanipulasi ini
+              options={safeOptions} 
               placeholder="Pilih tim"
               onSave={(nextIds: string[]) => {
                 updateMutation.mutate({ id: item.id, module: item.module, payload: { pekerjaIds: nextIds } });
@@ -358,7 +355,6 @@ export function MasterTableView({
         );
       },
     },
-
 
    {
       id: "status",
