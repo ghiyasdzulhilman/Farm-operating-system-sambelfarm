@@ -109,9 +109,9 @@ export function ProdukFormModal({ isOpen, onClose, defaultType }: ProdukFormModa
   return (
     <Sheet open={isOpen} onOpenChange={(val) => { if (!val) onClose(); }}>
       <SheetContent 
-        side="top" 
-        className="mx-auto max-w-md rounded-b-[2rem] border-x-0 border-t-0 p-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl shadow-[0_16px_40px_rgba(0,0,0,0.12)] z-[100] max-h-[90vh] flex flex-col"
-        >
+       side="top" 
+       className="mx-auto max-w-md rounded-b-[2rem] border-x-0 border-t-0 p-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl shadow-[0_16px_40px_rgba(0,0,0,0.12)] z-[100] max-h-[90vh] flex flex-col pb-10"
+       >
 
         <SheetHeader className="px-6 py-4 flex flex-row items-center justify-between border-b border-border pr-12 shrink-0">
           <div className="flex items-center gap-3">
@@ -237,7 +237,7 @@ export function ProdukFormModal({ isOpen, onClose, defaultType }: ProdukFormModa
         </div>
 
         {/* FOOTER ACTIONS (Shrink-0 biar ukurannya ga kegencet) */}
-      <div className="flex items-center justify-end gap-3 px-6 py-4 bg-background border-t border-border/50 shrink-0">
+      <div className="flex items-center justify-end gap-3 px-6 pt-4 pb-2 shrink-0">
 
           <Button 
             variant="ghost" 
