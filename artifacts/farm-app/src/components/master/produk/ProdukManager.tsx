@@ -9,7 +9,7 @@ import { ProdukList } from "./ProdukList";
 import { ProdukFormModal } from "./ProdukFormModal";
 
 // Kamus kategori produk sesuai standar sebelumnya
-const TAB_OPTIONS = ["Semua", "Pupuk", "Pestisida", "Herbisida", "Fungisida", "Lainnya"];
+const TAB_OPTIONS = ["Semua", "Pupuk", "Insektisida", "Herbisida", "Fungisida", "Lainnya"];
 
 export function ProdukManager() {
   // 1. STATE KONTROL UI
