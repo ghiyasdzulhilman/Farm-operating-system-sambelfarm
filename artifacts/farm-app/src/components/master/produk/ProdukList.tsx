@@ -40,28 +40,36 @@ export function ProdukList({ produk, activeTab, searchQuery }: ProdukListProps) 
     },
   });
 
-    // 2. MUTASI HAPUS
+      // 2. MUTASI HAPUS (Versi Anti-Crash)
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const res = await fetch(`/api/produk/${id}`, { method: "DELETE" });
       
-      // ✅ FIX: Cek tipe data dari server persis kayak trik lu di KendalaList
-      const contentType = res.headers.get("content-type");
+      // 🚀 Trik Paling Aman: Baca response sebagai teks mentah dulu
+      const text = await res.text();
       
+      let data;
+      try {
+        // Coba jadikan JSON. Kalau responsnya kosong (text == ""), jadikan object kosong {}
+        data = text ? JSON.parse(text) : {}; 
+      } catch (error) {
+        // Kalau gagal di-parse (berarti server ngirim teks biasa / HTML error), tampung teksnya
+        data = { error: text };
+      }
+
+      // Cek status HTTP-nya (kalau 400 atau 500, lempar error ke toast)
       if (!res.ok) {
-        const errText = contentType?.includes("application/json") 
-          ? (await res.json()).error 
-          : await res.text();
-        throw new Error(errText || "Produk tidak bisa dihapus, kemungkinan masih dipakai di data perawatan.");
+        throw new Error(data.error || "Produk tidak bisa dihapus, kemungkinan masih dipakai di data perawatan.");
       }
       
-      return contentType?.includes("application/json") ? await res.json() : { success: true };
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["produk-master-list"] });
       toast({ title: "Dihapus", description: "Produk berhasil dihapus dari database." });
     },
     onError: (err: any) => {
+      // ⚠️ Pesan FK restrict (karena masih kepakai di perawatan) bakal muncul di sini
       toast({ variant: "destructive", title: "Gagal Menghapus", description: err.message });
     }
   });
