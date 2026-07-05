@@ -617,15 +617,26 @@ router.delete("/notion/kategori/:id", async (req, res): Promise<void> => {
       res.status(404).json({ error: "Kategori tidak ditemukan." }); return;
     }
     res.json({ success: true, message: "Berhasil dihapus", data: deletedKategori });
-  } catch (err: any) {
-    // 🚀 FIX: Tangkap error 23503 kalau kategori lagi dipakai
-    if (err.code === '23503') { 
+    } catch (err: any) {
+    // 💡 Tampilkan error asli di terminal Replit biar gampang di-debug kalau ada apa-apa
+    console.error("[DB ERROR KATEGORI]:", err);
+
+    // 🚀 FIX: Deteksi kebal (Mengecek kode ATAU isi pesan error dari database)
+    const errorString = String(err).toLowerCase();
+    const isForeignKeyError = 
+      err.code === '23503' || 
+      errorString.includes('foreign key constraint') || 
+      errorString.includes('23503');
+
+    if (isForeignKeyError) { 
       res.status(400).json({ error: "Gagal dihapus! Kategori ini sudah dipakai di riwayat operasional atau perawatan." });
       return;
     }
+    
     res.status(500).json({ error: "Gagal menghapus kategori." });
   }
 });
+
 
 // ==========================================
 // 10. ENDPOINT MANAGEMENT SIKLUS TANAM
