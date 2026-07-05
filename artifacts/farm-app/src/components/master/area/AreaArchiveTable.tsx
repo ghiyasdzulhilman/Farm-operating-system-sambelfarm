@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Leaf, CalendarDays, Map, Activity, Clock } from "lucide-react";
+import { Leaf, CalendarDays, Activity, Clock, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AreaArchiveTableProps {
@@ -87,7 +87,7 @@ export function AreaArchiveTable({ areas, allSiklus, searchQuery }: AreaArchiveT
                   {/* Kolom 1: Area */}
                   <td className="px-4 py-3 align-middle">
                     <div className="flex items-center gap-2 text-sm font-bold text-foreground">
-                      <Map className="h-4 w-4 text-muted-foreground/50 group-hover:text-primary transition-colors" />
+                      <MapPin className="h-4 w-4 text-muted-foreground/50 group-hover:text-primary transition-colors" />
                       {row.areaName}
                     </div>
                   </td>
