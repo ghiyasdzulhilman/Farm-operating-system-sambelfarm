@@ -64,13 +64,14 @@ export function KendalaFormModal({ isOpen, onClose, defaultType }: KendalaFormMo
       >
         <SheetHeader className="px-6 py-4 flex flex-row items-center justify-between border-b border-border pr-12">
           <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-muted p-2 text-foreground shadow-sm border border-border/50">
-              <ShieldAlert className="h-5 w-5" />
-            </div>
-            <div className="text-left">
-              <SheetTitle className="text-base font-black tracking-tight">Tambah OPT</SheetTitle>
-              <p className="text-[10px] font-bold text-muted-foreground tracking-wider uppercase">Master Data</p>
-            </div>
+            <div className="rounded-xl bg-primary/10 p-2 text-primary shadow-sm">
+             <ShieldAlert className="h-5 w-5" />
+              </div>
+               <div className="text-left">
+                <SheetTitle className="text-base font-black tracking-tight">Tambah OPT</SheetTitle>
+                 <p className="text-[10px] font-bold text-primary tracking-wider uppercase">Master Data</p>
+                  </div>
+
           </div>
         </SheetHeader>
 
@@ -86,7 +87,7 @@ export function KendalaFormModal({ isOpen, onClose, defaultType }: KendalaFormMo
               value={newName} 
               onChange={e => setNewName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSubmit()} 
-              className="h-12 rounded-xl bg-background border border-border/60 focus-visible:ring-1 focus-visible:ring-foreground/30 shadow-sm text-sm font-medium px-4"
+              className="h-12 rounded-xl bg-background border border-input focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm text-sm font-medium px-4"
               autoFocus
             />
           </div>
@@ -99,8 +100,8 @@ export function KendalaFormModal({ isOpen, onClose, defaultType }: KendalaFormMo
             <select 
               value={kendalaType} 
               onChange={e => setKendalaType(e.target.value as "Hama" | "Penyakit")}
-              className="w-full h-12 rounded-xl border border-border/60 bg-background px-4 text-sm font-semibold outline-none focus:border-foreground/40 shadow-sm cursor-pointer"
-            >
+              className="w-full h-12 rounded-xl border border-input bg-background px-4 text-sm font-semibold outline-none focus:border-primary/50 shadow-sm cursor-pointer"
+             >
               <option value="Hama">Hama</option>
               <option value="Penyakit">Penyakit</option>
             </select>
