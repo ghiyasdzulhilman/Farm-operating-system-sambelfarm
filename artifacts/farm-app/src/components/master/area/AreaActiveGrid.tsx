@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Leaf, Trash2, Settings2, Plus, Loader2 } from "lucide-react";
+import { MapPin, Trash2, Settings2, Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
@@ -75,7 +75,7 @@ export function AreaActiveGrid({ areas, allSiklus, searchQuery }: AreaActiveGrid
               <div className="flex items-center justify-between bg-muted/10 p-4 border-b border-border/40">
                 <span className="text-sm font-black flex items-center gap-2">
                   <div className="rounded-full bg-primary/10 p-1.5 text-primary">
-                    <Leaf className="h-4 w-4" />
+                    <MapPin className="h-4 w-4" />
                   </div>
                   {cleanName}
                 </span>
