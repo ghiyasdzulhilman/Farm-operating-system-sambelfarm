@@ -40,13 +40,22 @@ export function ProdukList({ produk, activeTab, searchQuery }: ProdukListProps) 
     },
   });
 
-  // 2. MUTASI HAPUS
+    // 2. MUTASI HAPUS
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const res = await fetch(`/api/produk/${id}`, { method: "DELETE" });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Produk tidak bisa dihapus, kemungkinan masih dipakai di data perawatan.");
-      return json;
+      
+      // ✅ FIX: Cek tipe data dari server persis kayak trik lu di KendalaList
+      const contentType = res.headers.get("content-type");
+      
+      if (!res.ok) {
+        const errText = contentType?.includes("application/json") 
+          ? (await res.json()).error 
+          : await res.text();
+        throw new Error(errText || "Produk tidak bisa dihapus, kemungkinan masih dipakai di data perawatan.");
+      }
+      
+      return contentType?.includes("application/json") ? await res.json() : { success: true };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["produk-master-list"] });
@@ -54,7 +63,7 @@ export function ProdukList({ produk, activeTab, searchQuery }: ProdukListProps) 
     },
     onError: (err: any) => {
       toast({ variant: "destructive", title: "Gagal Menghapus", description: err.message });
-    },
+    }
   });
 
   // 3. LOGIKA FILTERING DATA
