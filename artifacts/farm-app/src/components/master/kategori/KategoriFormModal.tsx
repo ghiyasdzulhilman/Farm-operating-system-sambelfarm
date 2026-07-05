@@ -74,10 +74,10 @@ export function KategoriFormModal({ isOpen, onClose, defaultModule }: KategoriFo
           {/* INPUT NAMA KATEGORI */}
           <div className="space-y-1.5">
             <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-              <Tag className="h-3.5 w-3.5" /> Nama Aktivitas
+              <Tag className="h-3.5 w-3.5" /> Nama Kategori
             </label>
             <Input 
-              placeholder="Misal: Pemupukan NPK" 
+              placeholder="" 
               value={newName} 
               onChange={e => setNewName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSubmit()} 
@@ -89,15 +89,15 @@ export function KategoriFormModal({ isOpen, onClose, defaultModule }: KategoriFo
           {/* PILIHAN MODUL (Perawatan / Operasional) */}
           <div className="space-y-1.5">
             <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-              <Layers className="h-3.5 w-3.5" /> Digunakan Pada Modul
+              <Layers className="h-3.5 w-3.5" /> Pilih Modul
             </label>
             <select 
               value={moduleType} 
               onChange={e => setModuleType(e.target.value as "perawatan" | "operasional")}
               className="w-full h-12 rounded-xl border border-input bg-background px-4 text-sm font-semibold outline-none focus:border-primary/50 shadow-sm cursor-pointer"
             >
-              <option value="perawatan">Modul Perawatan (Tanaman)</option>
-              <option value="operasional">Modul Operasional (Umum/Gudang)</option>
+              <option value="perawatan">Perawatan</option>
+              <option value="operasional">Operasional</option>
             </select>
           </div>
 
