@@ -15,7 +15,7 @@ interface ProdukFormModalProps {
   defaultType: string;
 }
 
-const JENIS_PRODUK_OPTIONS = ["Pupuk", "Pestisida", "Herbisida", "Fungisida", "Lainnya"];
+const JENIS_PRODUK_OPTIONS = ["Pupuk", "Insektisida", "Herbisida", "Fungisida", "Lainnya"];
 
 const SATUAN_PRESET: Record<string, { dasar: string; tampilan: string }> = {
   Solid: { dasar: "gram", tampilan: "kg" },
