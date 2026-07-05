@@ -46,18 +46,16 @@ export function KendalaList({ kendala, activeTab, searchQuery }: KendalaListProp
 
   return (
     <div className="w-full space-y-3 animate-in fade-in duration-300">
-      <div className="flex items-center justify-between pl-1">
-        <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-          Daftar {activeTab} Terdaftar ({filteredKendala.length})
-        </h4>
-      </div>
+      <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground pl-1">
+      Daftar {activeTab} Terdaftar ({filteredKendala.length})
+      </h4>
 
       {/* Grid Layout: 1 Kolom di HP, otomatis 2 Kolom di Desktop */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {filteredKendala.map((item) => (
           <div
             key={item.id}
-            className="flex items-center justify-between rounded-2xl border border-border/50 bg-card p-3.5 shadow-sm hover:border-foreground/20 transition-all duration-200"
+            className="flex items-center justify-between rounded-2xl border border-border/50 bg-card p-3.5 shadow-sm hover:border-primary/30 transition-all duration-200"
           >
             {/* Sektor Kiri: Informasi Objek (Clean & Netral) */}
             <div className="flex items-center gap-3 min-w-0">
