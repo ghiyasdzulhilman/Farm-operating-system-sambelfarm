@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { X, Loader2, Leaf, CheckCircle2, MapPinned } from "lucide-react";
+import { X, Loader2, CheckCircle2, MapPinned, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -64,7 +64,7 @@ export function AreaFormModal({ isOpen, onClose }: AreaFormModalProps) {
         <div className="px-6 py-5">
           <div className="space-y-1.5 text-left">
             <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-              <Leaf className="inline-block h-3.5 w-3.5 mr-1" /> Nama Area / Blok
+              <MapPin className="inline-block h-3.5 w-3.5 mr-1" /> Nama Area / Blok
             </label>
             <Input 
               placeholder="Misal: Blok A, Greenhouse 2..." 
