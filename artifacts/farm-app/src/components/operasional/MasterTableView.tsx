@@ -506,7 +506,7 @@ export function MasterTableView({
       ),
     },
 
-    ], [updateMutation, addAreaMutation, deleteAreaMutation, addPekerjaMutation, deletePekerjaMutation, addKategoriMutation, deleteKategoriMutation, onItemClick, onDeleteClick, areaOptions, workerOptions, kategoriOptions]);
+  ], [updateMutation, addAreaMutation, deleteAreaMutation, addKategoriMutation, deleteKategoriMutation, onItemClick, onDeleteClick, areaOptions, workerOptions, kategoriOptions]);
 
   // 💡 SORTING DATA DARI YANG TERBARU KE TERLAMA (DESCENDING)
   const sortedItems = useMemo(() => {
