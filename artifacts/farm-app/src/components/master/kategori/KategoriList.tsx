@@ -15,10 +15,21 @@ export function KategoriList({ kategori, activeTab, searchQuery }: KategoriListP
   const queryClient = useQueryClient();
 
   // 1. MUTASI HAPUS KATEGORI
+    // 1. MUTASI HAPUS KATEGORI
   const delMutation = useMutation({
-    mutationFn: async (id: string) => 
-      fetch(`/api/notion/kategori/${id}`, { method: "DELETE" }).then((r) => r.json()),
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/notion/kategori/${id}`, { method: "DELETE" });
+      const json = await res.json();
+      
+      // 💡 Cegat di sini! Kalau statusnya bukan 2xx (misal 400 dari backend), lempar errornya
+      if (!res.ok) {
+        throw new Error(json.error || "Terjadi kesalahan saat menghapus data.");
+      }
+      
+      return json;
+    },
     onSuccess: () => {
+
       queryClient.invalidateQueries({ queryKey: ["master-dropdown-options"] });
       toast({ title: "Dihapus", description: "Kategori berhasil dihapus dari database." });
     },
