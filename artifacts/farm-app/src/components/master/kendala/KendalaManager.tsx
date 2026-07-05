@@ -36,7 +36,7 @@ export function KendalaManager() {
               placeholder={`Cari nama ${activeTab.toLowerCase()}...`}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 rounded-xl border border-border/60 bg-muted/20 text-sm outline-none focus:border-foreground/30 focus:bg-background transition-all font-medium"
+              className="w-full pl-9 pr-4 py-2 rounded-xl border border-border/60 bg-muted/20 text-sm outline-none focus:border-primary/50 font-semibold transition-all"
             />
           </div>
 
@@ -56,8 +56,8 @@ export function KendalaManager() {
             className={cn(
               "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all",
               activeTab === "Hama" 
-                ? "bg-background text-foreground shadow-sm border border-border/40" 
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-background text-primary shadow-sm border border-border/40" 
+                 : "text-muted-foreground hover:text-foreground"
             )}
           >
             <Bug className="h-3.5 w-3.5" /> Hama
@@ -67,7 +67,7 @@ export function KendalaManager() {
             className={cn(
               "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all",
               activeTab === "Penyakit" 
-                ? "bg-background text-foreground shadow-sm border border-border/40" 
+               ? "bg-background text-primary shadow-sm border border-border/40" 
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
