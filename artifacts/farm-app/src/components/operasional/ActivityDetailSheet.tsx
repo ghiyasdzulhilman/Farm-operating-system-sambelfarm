@@ -465,7 +465,7 @@ export function ActivityDetailSheet({
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-amber-500" />
                   <h3 className="text-sm font-black uppercase tracking-[0.18em] text-muted-foreground">
-                    Spesifikasi Lahan
+                    Detail Aktivitas
                   </h3>
                 </div>
 
