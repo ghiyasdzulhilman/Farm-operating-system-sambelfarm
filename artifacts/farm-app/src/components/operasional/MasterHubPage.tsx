@@ -54,13 +54,12 @@ const glassCard = "rounded-[1.75rem] border-border/50 bg-card text-card-foregrou
 // 🚀 2. MAIN PAGE COMPONENT
 // ---------------------------------------------------------------------------
 export function MasterHubPage({ onClose }: { onClose?: () => void }) {
-  // Buka Agronomy dan Area secara default
-  const [activeModule, setActiveModule] = useState<string>("agronomy");
-  const [activeChild, setActiveChild] = useState<string>("area");
+  
+  const [activeModule, setActiveModule] = useState<string>("");
+  const [activeChild, setActiveChild] = useState<string>("");
   
     return (
-    // 💡 Tambahin pb-32 (padding-bottom super tebal) biar gampang digeser sampai mentok bawah
-    <div className="mx-auto w-full max-w-7xl px-4 py-6 pb-32 md:px-6">
+    <div className="mx-auto w-full max-w-7xl px-4 py-6 pb-48 md:px-6">
       
       {/* HEADER */}
 
