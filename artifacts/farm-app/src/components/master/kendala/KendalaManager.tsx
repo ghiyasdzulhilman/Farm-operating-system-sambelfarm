@@ -45,7 +45,7 @@ export function KendalaManager() {
             onClick={() => setIsModalOpen(true)}
             className="rounded-xl font-bold bg-primary text-primary-foreground gap-1.5 shrink-0"
           >
-            <Plus className="h-4 w-4" /> Kendala
+            <Plus className="h-4 w-4" /> OPT
           </Button>
         </div>
 
