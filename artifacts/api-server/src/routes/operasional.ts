@@ -617,7 +617,12 @@ router.delete("/notion/kategori/:id", async (req, res): Promise<void> => {
       res.status(404).json({ error: "Kategori tidak ditemukan." }); return;
     }
     res.json({ success: true, message: "Berhasil dihapus", data: deletedKategori });
-  } catch (err) {
+  } catch (err: any) {
+    // 🚀 FIX: Tangkap error 23503 kalau kategori lagi dipakai
+    if (err.code === '23503') { 
+      res.status(400).json({ error: "Gagal dihapus! Kategori ini sudah dipakai di riwayat operasional atau perawatan." });
+      return;
+    }
     res.status(500).json({ error: "Gagal menghapus kategori." });
   }
 });
