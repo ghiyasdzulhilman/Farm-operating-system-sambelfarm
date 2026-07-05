@@ -144,7 +144,7 @@ router.patch("/produk/:id", async (req, res): Promise<void> => {
 });
 
 // ==========================================
-// 4. DELETE PRODUK — TANGKAP FK RESTRICT
+// 4. DELETE PRODUK — TANGKAP FK RESTRICT & HAPUS STOK AWAL
 // ==========================================
 router.delete("/produk/:id", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
@@ -152,22 +152,33 @@ router.delete("/produk/:id", async (req, res): Promise<void> => {
 
   const { id } = req.params;
   try {
-    const [deleted] = await db.delete(produkMasterTable)
-      .where(eq(produkMasterTable.id, id))
-      .returning();
+    // 💡 Pakai transaction: Hapus log stok dulu, baru hapus produknya
+    const deletedData = await db.transaction(async (tx) => {
+      // 1. Bersihkan riwayat stok yang nyangkut (stok awal)
+      await tx.delete(stockMovementTable).where(eq(stockMovementTable.produkId, id));
+      
+      // 2. Baru hajar produk master-nya
+      const [deleted] = await tx.delete(produkMasterTable)
+        .where(eq(produkMasterTable.id, id))
+        .returning();
+        
+      return deleted;
+    });
 
-    if (!deleted) {
+    if (!deletedData) {
       res.status(404).json({ error: "Produk tidak ditemukan." }); return;
     }
 
-    res.json({ success: true, message: "Produk berhasil dihapus.", data: deleted });
+    res.json({ success: true, message: "Produk berhasil dihapus.", data: deletedData });
   } catch (err: any) {
     if (err.code === '23503') {
+      // Kalau masih masuk sini, berarti beneran udah nyangkut di tabel perawatan
       res.status(400).json({ error: "Produk tidak bisa dihapus karena masih dipakai di data perawatan. Nonaktifkan saja produk ini." });
       return;
     }
     res.status(500).json({ error: "Gagal menghapus produk." });
   }
 });
+
 
 export default router;
