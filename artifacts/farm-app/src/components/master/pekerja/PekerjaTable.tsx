@@ -18,20 +18,26 @@ export function PekerjaTable({ pekerja, atribut, searchQuery }: PekerjaTableProp
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // 1. FILTER DATA BERDASARKAN PENCARIAN
+    // 1. FILTER DATA BERDASARKAN PENCARIAN & STATUS DELETE
   const filteredPekerja = useMemo(() => {
     return pekerja.filter((p) => 
+      !p.deleted && // 🚀 FIX: Sembunyikan pekerja yang udah di-soft delete
       p.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [pekerja, searchQuery]);
 
-  // 2. MUTASI UNTUK INLINE EDIT ATRIBUT (Langsung Tembak API)
+    // 2. MUTASI UNTUK INLINE EDIT ATRIBUT (Langsung Tembak API)
   const editPekerjaMutation = useMutation({
-    mutationFn: async ({ id, payload }: { id: string, payload: any }) => fetch(`/api/notion/pekerja/${id}`, { 
-      method: "PATCH", 
-      headers: { "Content-Type": "application/json" }, 
-      body: JSON.stringify(payload) 
-    }).then(r => r.json()),
+    mutationFn: async ({ id, payload }: { id: string, payload: any }) => {
+      const res = await fetch(`/api/notion/pekerja/${id}`, { 
+        method: "PATCH", 
+        headers: { "Content-Type": "application/json" }, 
+        body: JSON.stringify(payload) 
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Gagal memperbarui atribut.");
+      return json;
+    },
     onSuccess: () => { 
       queryClient.invalidateQueries({ queryKey: ["master-dropdown-options"] }); 
       toast({ title: "Tersimpan", description: "Atribut berhasil diperbarui." }); 
@@ -41,12 +47,19 @@ export function PekerjaTable({ pekerja, atribut, searchQuery }: PekerjaTableProp
     }
   });
 
-  // 3. MUTASI HAPUS PEKERJA
+  // 3. MUTASI HAPUS PEKERJA (SOFT DELETE)
   const delPekerjaMutation = useMutation({
-    mutationFn: async (id: string) => fetch(`/api/notion/pekerja/${id}`, { method: "DELETE" }).then(r => r.json()),
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/notion/pekerja/${id}`, { method: "DELETE" });
+      const json = await res.json();
+      
+      // 🚀 FIX: Lempar error manual kalau response dari server bukan 200 OK
+      if (!res.ok) throw new Error(json.error || "Gagal menghapus pekerja.");
+      return json;
+    },
     onSuccess: () => { 
       queryClient.invalidateQueries({ queryKey: ["master-dropdown-options"] }); 
-      toast({ title: "Dihapus", description: "berhasil dihapus." }); 
+      toast({ title: "Dihapus", description: "Pekerja berhasil dihapus." }); 
     },
     onError: (err: any) => {
       toast({ variant: "destructive", title: "Gagal Menghapus", description: err.message });
