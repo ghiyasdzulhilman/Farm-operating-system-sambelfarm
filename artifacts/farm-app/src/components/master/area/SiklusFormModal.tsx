@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { X, Loader2, Sprout, AlertTriangle, CalendarDays, CheckCircle2 } from "lucide-react";
+import { X, Loader2, Leaf, AlertTriangle, CalendarDays, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -65,7 +65,7 @@ export function SiklusFormModal({ isOpen, onClose, areaId, areaName, currentCycl
         <SheetHeader className="px-6 py-4 flex flex-row items-center justify-between border-b border-border">
           <div className="flex items-center gap-3">
             <div className="rounded-xl bg-primary/10 p-2 text-primary shadow-sm">
-              <Sprout className="h-5 w-5" />
+              <Leaf className="h-5 w-5" />
             </div>
             <div className="text-left">
               <SheetTitle className="text-base font-black tracking-tight">Kelola Siklus Tanam</SheetTitle>
