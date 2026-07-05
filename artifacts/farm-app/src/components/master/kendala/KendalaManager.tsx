@@ -49,15 +49,15 @@ export function KendalaManager() {
           </Button>
         </div>
 
-        {/* 🧭 TOGGLE NAVIGATION (TAB MONOCHROME - NOTION STYLE) */}
-        <div className="flex gap-2 p-1 bg-muted/30 rounded-xl w-fit border border-border/40">
+       {/* 🧭 TOGGLE NAVIGATION (TAB KONSISTEN & MONOKROM) */}
+        <div className="flex gap-2 p-1 bg-muted/40 rounded-xl w-fit border border-border/40">
           <button
             onClick={() => { setActiveTab("Hama"); setSearchQuery(""); }}
             className={cn(
-              "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all",
+              "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all",
               activeTab === "Hama" 
-                ? "bg-background text-foreground shadow-sm border border-border/60" 
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                ? "bg-background text-foreground shadow-sm border border-border/40" 
+                : "text-muted-foreground hover:text-foreground"
             )}
           >
             <Bug className="h-3.5 w-3.5" /> Hama
@@ -65,16 +65,15 @@ export function KendalaManager() {
           <button
             onClick={() => { setActiveTab("Penyakit"); setSearchQuery(""); }}
             className={cn(
-              "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all",
+              "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all",
               activeTab === "Penyakit" 
-                ? "bg-background text-foreground shadow-sm border border-border/60" 
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                ? "bg-background text-foreground shadow-sm border border-border/40" 
+                : "text-muted-foreground hover:text-foreground"
             )}
           >
             <Activity className="h-3.5 w-3.5" /> Penyakit
           </button>
         </div>
-      </div>
 
       {/* 📦 BAGIAN B: DAFTAR KENDALA */}
       {isLoading ? (
