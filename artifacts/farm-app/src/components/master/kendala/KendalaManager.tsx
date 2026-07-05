@@ -74,6 +74,7 @@ export function KendalaManager() {
             <Activity className="h-3.5 w-3.5" /> Penyakit
           </button>
         </div>
+        </div>
 
       {/* 📦 BAGIAN B: DAFTAR KENDALA */}
       {isLoading ? (
