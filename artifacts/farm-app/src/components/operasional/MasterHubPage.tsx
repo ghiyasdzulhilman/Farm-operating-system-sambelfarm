@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { AreaManager } from "@/components/master/area/AreaManager";
 import { PekerjaManager } from "@/components/master/pekerja/PekerjaManager"; 
+import { KategoriManager } from "@/components/master/kategori/KategoriManager";
 
 // ---------------------------------------------------------------------------
 // 📂 1. DICTIONARY DOMAIN MASTER
@@ -162,6 +163,9 @@ export function MasterHubPage({ onClose }: { onClose?: () => void }) {
       {/* 🚀 PEKERJA MANAGER */}
       {activeChild === "pekerja" && <PekerjaManager />}
 
+      {/* 🚀 KATEGORI AKTIVITAS MANAGER */}
+      {activeChild === "kategori" && <KategoriManager />}
+
       {activeChild === "panen" && (
         <div className="p-8 text-center text-muted-foreground border border-dashed rounded-3xl">Modul Panen (Coming Soon)</div>
       )}
@@ -176,55 +180,8 @@ export function MasterHubPage({ onClose }: { onClose?: () => void }) {
 }
 
 // ---------------------------------------------------------------------------
-// 📦 3. KOMPONEN PENGELOLA (AREA, PEKERJA, KATEGORI)
+// 📦 3. KOMPONEN PENGELOLA (AREA, PEKERJA, KATEGORI) DIUBAH MENJADI MODULAR
 // ---------------------------------------------------------------------------
-function KategoriManager({ data }: { data: any[] }) {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [newName, setNewName] = useState("");
-  const [moduleType, setModuleType] = useState("perawatan");
-
-  const addMutation = useMutation({
-    mutationFn: async () => fetch("/api/notion/kategori", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: newName, module: moduleType }) }).then(r => r.json()),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["master-dropdown-options"] }); setNewName(""); toast({ title: "Sukses", description: "Kategori ditambahkan." }); },
-  });
-
-  const delMutation = useMutation({
-    mutationFn: async (id: string) => fetch(`/api/notion/kategori/${id}`, { method: "DELETE" }).then(r => r.json()),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["master-dropdown-options"] }); toast({ title: "Dihapus", description: "Kategori dihapus." }); },
-  });
-
-  return (
-    <Card className={glassCard}>
-      <h3 className="text-lg font-black mb-4">Daftar Kategori</h3>
-      <div className="flex flex-col sm:flex-row gap-2 mb-6">
-        <input type="text" placeholder="Nama Kategori" value={newName} onChange={e => setNewName(e.target.value)} className="flex-1 rounded-xl border border-border/60 bg-muted/30 px-4 py-2 text-sm outline-none focus:border-primary/50" />
-        <div className="flex gap-2">
-          <select value={moduleType} onChange={e => setModuleType(e.target.value)} className="rounded-xl border border-border/60 bg-muted/30 px-3 py-2 text-sm outline-none font-bold uppercase tracking-wider">
-            <option value="perawatan">Perawatan</option>
-            <option value="operasional">Operasional</option>
-          </select>
-          <Button onClick={() => newName.trim() && addMutation.mutate()} disabled={addMutation.isPending} className="rounded-xl font-bold shrink-0">
-            {addMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4"/>}
-          </Button>
-        </div>
-      </div>
-      <div className="space-y-2">
-        {data.map((item) => (
-          <div key={item.id} className="flex items-center justify-between rounded-xl border border-border/40 bg-muted/10 p-3">
-            <div>
-              <span className="text-sm font-bold block">{item.name}</span>
-              <span className="text-[10px] font-black uppercase tracking-widest text-primary">{item.module}</span>
-            </div>
-            <Button variant="ghost" size="icon" onClick={() => delMutation.mutate(item.id)} disabled={delMutation.isPending} className="h-8 w-8 text-destructive hover:bg-destructive/10">
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        ))}
-      </div>
-    </Card>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // 📦 4. KOMPONEN PENGELOLA HAMA & PENYAKIT (KENDALA)
