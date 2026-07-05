@@ -94,7 +94,7 @@ export function KendalaFormModal({ isOpen, onClose, defaultType }: KendalaFormMo
           {/* PILIHAN JENIS (Hama / Penyakit) */}
           <div className="space-y-1.5">
             <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-              <Layers className="h-3.5 w-3.5" /> Jenis OPT
+              <Layers className="h-3.5 w-3.5" /> Kategori
             </label>
             <select 
               value={kendalaType} 
