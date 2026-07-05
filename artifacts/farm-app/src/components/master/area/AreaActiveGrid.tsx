@@ -105,7 +105,7 @@ export function AreaActiveGrid({ areas, allSiklus, searchQuery }: AreaActiveGrid
                   <div className="space-y-2 w-full">
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
-                        🌱 Siklus Aktif
+                        Siklus Aktif
                       </span>
                       <span className="text-[11px] font-bold text-muted-foreground">
                         {calculateHST(currentCycle.tanggalPindahTanam)} HST
