@@ -468,6 +468,7 @@ router.delete("/notion/areas/:id", async (req, res): Promise<void> => {
   }
 });
 
+
 // ==========================================
 // 7. ENDPOINT ADD, EDIT, & DELETE MASTER PEKERJA
 // ==========================================
@@ -475,7 +476,6 @@ router.post("/notion/pekerja", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
-  // 💡 PERBAIKAN: Tangkap ID Relasi, bukan teks manual lama
   const { nama, kontak, roleId, jenisTenagaKerjaId, statusId } = req.body;
   
   if (!nama || typeof nama !== "string" || nama.trim() === "") {
@@ -517,6 +517,7 @@ router.patch("/notion/pekerja/:id", async (req, res): Promise<void> => {
       res.status(400).json({ error: "Tidak ada data yang diupdate." }); return;
     }
 
+    // 🚀 FIX: Mengembalikan fungsi update atribut yang benar
     const [updatedPekerja] = await db.update(pekerjaTable)
       .set(cleanPayload)
       .where(eq(pekerjaTable.id, id))
@@ -536,19 +537,18 @@ router.delete("/notion/pekerja/:id", async (req, res): Promise<void> => {
   if (!id) { res.status(400).json({ error: "ID pekerja wajib disertakan." }); return; }
 
   try {
-    
-    // 🚀 UBAH JADI UPDATE BENDERA, JANGAN DIHAPUS BARISNYA
+    // 🚀 UBAH JADI UPDATE BENDERA SOFT DELETE
     const [updatedPekerja] = await db.update(pekerjaTable)
       .set({ deleted: true })
       .where(eq(pekerjaTable.id, id))
       .returning();
 
     if (!updatedPekerja) {
-
       res.status(404).json({ error: "Pekerja tidak ditemukan." }); return;
     }
     
-    res.json({ success: true, message: "Pekerja berhasil dihapus.", data: deletedPekerja });
+    // 🚀 FIX: Variabel sudah benar pakai updatedPekerja
+    res.json({ success: true, message: "Pekerja berhasil dihapus.", data: updatedPekerja });
   } catch (err) {
     res.status(500).json({ error: "Gagal menghapus pekerja." });
   }
