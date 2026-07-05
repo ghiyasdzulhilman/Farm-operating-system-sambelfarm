@@ -320,31 +320,45 @@ export function MasterTableView({
       },
     },
 
-   {
+       {
       id: "pekerja",
       header: "Tim kebun",
       cell: ({ row }) => {
         const item = row.original;
-        // Ambil array ID Pekerja dari metaEkstra, fallback ke string kosong
+        // Ambil array ID Pekerja dari metaEkstra, fallback ke array kosong
         const currentWorkerIds = Array.isArray(item.metaEkstra?.pekerjaIds) ? item.metaEkstra.pekerjaIds : [];
 
+        // 💡 FIX: Deteksi ID yang udah dihapus dari master data
+        // Kita bikin duplikat 'options' khusus buat baris ini aja
+        const dynamicWorkerOptions = [...workerOptions];
+
+        currentWorkerIds.forEach(workerId => {
+          // Cek apakah ID pekerja ini masih ada di daftar pekerja aktif?
+          const isStillActive = dynamicWorkerOptions.some(opt => opt.value === workerId);
+          
+          // Kalau nggak ketemu (berarti pekerjanya udah dihapus), 
+          // kita suntik label dadakan berupa strip "-" biar UI nggak nampilin UUID
+          if (!isStillActive) {
+            dynamicWorkerOptions.push({ label: "-", value: workerId });
+          }
+        });
+
         return (
-          <div className="min-w-[180px]"> {/* 💡 Dilebarin dikit karena ada format "Nama - Jenis" */}
-          <EditableCell
+          <div className="min-w-[180px]">
+            <EditableCell
               value={currentWorkerIds} 
               type="multi-select"
-              options={workerOptions} 
+              options={dynamicWorkerOptions} // 👈 Pakai option yang udah dimanipulasi ini
               placeholder="Pilih tim"
               onSave={(nextIds: string[]) => {
                 updateMutation.mutate({ id: item.id, module: item.module, payload: { pekerjaIds: nextIds } });
               }}
             />
-
           </div>
         );
-
       },
     },
+
 
    {
       id: "status",
