@@ -789,7 +789,7 @@ export function ActivityDetailSheet({
                 <div className="h-2 w-2 rounded-full bg-primary" />
 
                 <h3 className="text-sm font-black uppercase tracking-[0.18em] text-muted-foreground">
-                {item.module === "inspeksi" ? "Catatan Kegiatan" : "Catatan / Detail"}
+                {item.module === "inspeksi" ? "Catatan Kegiatan" : "Catatan"}
                </h3>
               </div>
               
@@ -818,7 +818,7 @@ export function ActivityDetailSheet({
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-primary" />
                 <h3 className="text-sm font-black uppercase tracking-[0.18em] text-muted-foreground">
-                  Pekerja / Tim
+                  Tim Kebun
                 </h3>
               </div>
               <div className="flex flex-wrap gap-2">
