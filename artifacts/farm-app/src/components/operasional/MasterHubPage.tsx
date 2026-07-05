@@ -19,18 +19,19 @@ import { ProdukManager } from "@/components/master/produk/ProdukManager";
 const ERP_MODULES = [
   {
     id: "agronomy",
-    label: "Modul Agronomy",
+    label: "Agronomy",
     icon: Sprout,
     children: [
       { id: "area", label: "Area & Blok", icon: Leaf },
       { id: "pekerja", label: "Karyawan", icon: Users },
       { id: "kategori", label: "Kategori Aktivitas", icon: Database },
+      { id: "produk", label: "Produk & Stok", icon: Package },
       { id: "kendala", label: "Hama & Penyakit", icon: Bug },
     ],
   },
   {
     id: "finance",
-    label: "Modul Finance",
+    label: "Finance",
     icon: Wallet,
     children: [
       { id: "panen", label: "Data Pemanenan", icon: Package },
@@ -39,10 +40,10 @@ const ERP_MODULES = [
   },
   {
     id: "tools",
-    label: "Tools & Gudang",
+    label: "Tools",
     icon: Wrench,
     children: [
-      { id: "produk", label: "Produk & Stok", icon: Package },
+      { id: "weather", label: "Cuaca", icon: Package },
     ],
   },
 ];
