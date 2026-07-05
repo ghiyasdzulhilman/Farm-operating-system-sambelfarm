@@ -69,14 +69,13 @@ export function KendalaList({ kendala, activeTab, searchQuery }: KendalaListProp
                 )}
               </div>
               
-              <div className="flex flex-col min-w-0 text-left">
+        {/* 🚀 FIX: Buat text-align ke tengah vertikal dan hapus baris ID master */}
+              <div className="flex flex-col min-w-0 text-left justify-center">
                 <span className="text-sm font-bold text-foreground truncate">
-                  {item.name}
-                </span>
-                <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/80 mt-0.5">
-                  ID: {item.id.slice(0, 5)}...
+                  {item.nama || item.name} 
                 </span>
               </div>
+
             </div>
 
             {/* Sektor Kanan: Tombol Hapus (Aman di HP) */}
