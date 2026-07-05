@@ -34,7 +34,7 @@ export function PekerjaTable({ pekerja, atribut, searchQuery }: PekerjaTableProp
     }).then(r => r.json()),
     onSuccess: () => { 
       queryClient.invalidateQueries({ queryKey: ["master-dropdown-options"] }); 
-      toast({ title: "Tersimpan", description: "Atribut pekerja berhasil diperbarui." }); 
+      toast({ title: "Tersimpan", description: "Atribut berhasil diperbarui." }); 
     },
     onError: (err: any) => {
       toast({ variant: "destructive", title: "Gagal Update", description: err.message });
@@ -46,7 +46,7 @@ export function PekerjaTable({ pekerja, atribut, searchQuery }: PekerjaTableProp
     mutationFn: async (id: string) => fetch(`/api/notion/pekerja/${id}`, { method: "DELETE" }).then(r => r.json()),
     onSuccess: () => { 
       queryClient.invalidateQueries({ queryKey: ["master-dropdown-options"] }); 
-      toast({ title: "Dihapus", description: "Pekerja berhasil dihapus." }); 
+      toast({ title: "Dihapus", description: "berhasil dihapus." }); 
     },
     onError: (err: any) => {
       toast({ variant: "destructive", title: "Gagal Menghapus", description: err.message });
@@ -61,7 +61,7 @@ export function PekerjaTable({ pekerja, atribut, searchQuery }: PekerjaTableProp
         <div className="flex flex-col">
           <h2 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
             <Users className="h-4 w-4 text-primary" />
-            Daftar Tim Pekerja
+            Daftar Karyawan
           </h2>
           <span className="text-[10px] text-muted-foreground font-medium mt-0.5">
             Menampilkan {filteredPekerja.length} anggota tim aktif
@@ -75,7 +75,7 @@ export function PekerjaTable({ pekerja, atribut, searchQuery }: PekerjaTableProp
           <thead>
             <tr className="border-b border-border/60 bg-muted/50">
               <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground border-r border-border/40 w-[30%]">
-                Nama Pekerja
+                Nama
               </th>
               <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-muted-foreground border-r border-border/40">
                 Jabatan / Role
@@ -97,8 +97,8 @@ export function PekerjaTable({ pekerja, atribut, searchQuery }: PekerjaTableProp
                 <td colSpan={5} className="px-6 py-12 text-center">
                   <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
                     <Activity className="h-8 w-8 opacity-20 mb-2" />
-                    <p className="text-sm font-semibold">Tidak ada data pekerja.</p>
-                    <p className="text-xs opacity-70">Tambahkan pekerja baru atau sesuaikan filter pencarian.</p>
+                    <p className="text-sm font-semibold">Tidak ada data.</p>
+                    <p className="text-xs opacity-70">Tambahkan Karyawan baru atau sesuaikan filter pencarian.</p>
                   </div>
                 </td>
               </tr>
@@ -161,7 +161,7 @@ export function PekerjaTable({ pekerja, atribut, searchQuery }: PekerjaTableProp
                       variant="ghost" 
                       size="icon" 
                       onClick={() => {
-                        if (confirm(`Yakin ingin menghapus pekerja "${item.name}"?`)) {
+                        if (confirm(`Yakin ingin menghapus "${item.name}"?`)) {
                           delPekerjaMutation.mutate(item.id);
                         }
                       }}
