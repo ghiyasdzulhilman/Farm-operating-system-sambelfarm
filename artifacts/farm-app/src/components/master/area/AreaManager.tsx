@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Plus, Leaf, CalendarDays } from "lucide-react";
+import { Search, Plus, MapPin, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -68,7 +68,7 @@ export function AreaManager() {
               activeTab === "aktif" ? "bg-background text-primary shadow-sm border border-border/40" : "text-muted-foreground hover:text-foreground"
             )}
           >
-            <Leaf className="h-3.5 w-3.5" /> Area Aktif
+            <MapPin className="h-3.5 w-3.5" /> Area Aktif
           </button>
           <button
             onClick={() => { setActiveTab("arsip"); setSearchQuery(""); }}
