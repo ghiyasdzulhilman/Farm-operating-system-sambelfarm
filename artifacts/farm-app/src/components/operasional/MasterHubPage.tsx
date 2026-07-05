@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { AreaManager } from "@/components/master/area/AreaManager";
-// import { PekerjaManager } from "./..."; (siapkan buat nanti)
+import { PekerjaManager } from "@/components/master/pekerja/PekerjaManager"; 
 
 // ---------------------------------------------------------------------------
 // 📂 1. DICTIONARY DOMAIN MASTER
@@ -76,7 +76,7 @@ export function MasterHubPage({ onClose }: { onClose?: () => void }) {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr]">
         
-  {/* SIDEBAR CONTAINER */}
+{/* SIDEBAR CONTAINER */}
   <aside className="space-y-4">
   {ERP_MODULES.map((modul) => {
     const IconInduk = modul.icon;
@@ -105,7 +105,7 @@ export function MasterHubPage({ onClose }: { onClose?: () => void }) {
           <ChevronDown className={cn("h-4 w-4 transition-transform duration-300", isModuleExpanded && "rotate-180")} />
         </button>
 
-        {/* DAFTAR ANAK (MUNCUL KALAU INDUK DIKLIK) */}
+  {/* DAFTAR ANAK (MUNCUL KALAU INDUK DIKLIK) */}
         <AnimatePresence>
           {isModuleExpanded && (
             <motion.div 
@@ -144,7 +144,7 @@ export function MasterHubPage({ onClose }: { onClose?: () => void }) {
   })}
 </aside>
 
-        {/* MAIN CONTENT */}
+{/* MAIN CONTENT */}
   <main className="space-y-4 w-full overflow-hidden">
   <AnimatePresence mode="wait">
     <motion.div 
@@ -156,13 +156,12 @@ export function MasterHubPage({ onClose }: { onClose?: () => void }) {
       className="w-full"
     >
       
-      {/* 🚀 COLOKAN MODUL AGRONOMY */}
+      {/* 🚀 AREA MANAGER */}
       {activeChild === "area" && <AreaManager />}
       
-      {/* Placeholder buat anak-anak lainnya (tunggu di-refactor nanti) */}
-      {activeChild === "pekerja" && (
-        <div className="p-8 text-center text-muted-foreground border border-dashed rounded-3xl">Pekerja Manager (Coming Soon)</div>
-      )}
+      {/* 🚀 PEKERJA MANAGER */}
+      {activeChild === "pekerja" && <PekerjaManager />}
+
       {activeChild === "panen" && (
         <div className="p-8 text-center text-muted-foreground border border-dashed rounded-3xl">Modul Panen (Coming Soon)</div>
       )}
@@ -177,213 +176,8 @@ export function MasterHubPage({ onClose }: { onClose?: () => void }) {
 }
 
 // ---------------------------------------------------------------------------
-// 📦 3. KOMPONEN PENGELOLA (PEKERJA, KATEGORI)
+// 📦 3. KOMPONEN PENGELOLA (AREA, PEKERJA, KATEGORI)
 // ---------------------------------------------------------------------------
-
-function PekerjaManager({ data, atribut }: { data: any[], atribut?: any }) {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  
-  // State untuk form Tambah Pekerja
-  const [newName, setNewName] = useState("");
-  const [roleId, setRoleId] = useState("");
-  const [jenisId, setJenisId] = useState("");
-  const [statusId, setStatusId] = useState("");
-
-  // State untuk form Kelola Atribut (Notion-style Tags)
-  const [newTagName, setNewTagName] = useState("");
-  const [tagType, setTagType] = useState("role"); // role | jenis_tenaga | status
-
-  // Ekstrak opsi dari props atribut (Aman dari undefined)
-  const opsiRoles = atribut?.roles || [];
-  const opsiTenaga = atribut?.jenisTenaga || [];
-  const opsiStatuses = atribut?.statuses || [];
-
-  // 1. Mutasi Pekerja
-  const addPekerjaMutation = useMutation({
-    mutationFn: async () => fetch("/api/notion/pekerja", { 
-      method: "POST", 
-      headers: { "Content-Type": "application/json" }, 
-      body: JSON.stringify({ nama: newName, roleId, jenisTenagaKerjaId: jenisId, statusId }) 
-    }).then(r => r.json()),
-    onSuccess: () => { 
-      queryClient.invalidateQueries({ queryKey: ["master-dropdown-options"] }); 
-      setNewName(""); setRoleId(""); setJenisId(""); setStatusId("");
-      toast({ title: "Sukses", description: "Pekerja baru ditambahkan." }); 
-    },
-  });
-
-  const delPekerjaMutation = useMutation({
-    mutationFn: async (id: string) => fetch(`/api/notion/pekerja/${id}`, { method: "DELETE" }).then(r => r.json()),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["master-dropdown-options"] }); toast({ title: "Dihapus", description: "Pekerja berhasil dihapus." }); },
-  });
-
-  // 💡 MUTASI BARU: Untuk Inline Edit Badge
-  const editPekerjaMutation = useMutation({
-    mutationFn: async ({ id, payload }: { id: string, payload: any }) => fetch(`/api/notion/pekerja/${id}`, { 
-      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) 
-    }).then(r => r.json()),
-    onSuccess: () => { 
-      queryClient.invalidateQueries({ queryKey: ["master-dropdown-options"] }); 
-      toast({ title: "Tersimpan", description: "Atribut pekerja berhasil diperbarui." }); 
-    },
-  });
-
-  // 2. Mutasi Atribut (Tag Master)
-  const addTagMutation = useMutation({
-    mutationFn: async () => fetch("/api/notion/pekerja-atribut", { 
-      method: "POST", 
-      headers: { "Content-Type": "application/json" }, 
-      body: JSON.stringify({ namaOption: newTagName, jenisAtribut: tagType }) 
-    }).then(r => r.json()),
-    onSuccess: () => { 
-      queryClient.invalidateQueries({ queryKey: ["master-dropdown-options"] }); 
-      setNewTagName(""); 
-      toast({ title: "Tag Sukses", description: "Opsi baru berhasil ditambahkan." }); 
-    },
-  });
-
-  const delTagMutation = useMutation({
-    mutationFn: async (id: string) => fetch(`/api/notion/pekerja-atribut/${id}`, { method: "DELETE" }).then(r => r.json()),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["master-dropdown-options"] }); toast({ title: "Tag Dihapus", description: "Opsi berhasil dihapus." }); },
-  });
-
-  // Helper untuk mencari nama asli atribut berdasarkan ID-nya
-  const getNamaAtribut = (id: string, list: any[]) => list.find(item => item.id === id)?.name || "-";
-
-  // Filter list atribut yang ditampilkan di sekat kanan berdasarkan dropdown tipe
-  const activeTagList = tagType === "role" ? opsiRoles : (tagType === "jenis_tenaga" ? opsiTenaga : opsiStatuses);
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-      
-      {/* SEKAT KIRI: KELOLA PEKERJA */}
-      <Card className={glassCard}>
-        <div className="flex items-center gap-2 mb-4">
-          <Users className="h-5 w-5 text-primary" />
-          <h3 className="text-lg font-black">Tim Pekerja</h3>
-        </div>
-        
-        {/* Form Tambah Pekerja */}
-        <div className="flex flex-col gap-2 mb-6 p-4 rounded-2xl bg-muted/20 border border-border/50">
-          <input type="text" placeholder="Nama Pekerja" value={newName} onChange={e => setNewName(e.target.value)} className="w-full rounded-xl border border-border/60 bg-background px-4 py-2 text-sm outline-none focus:border-primary/50 font-bold" />
-          
-          <div className="grid grid-cols-3 gap-2">
-            <select value={roleId} onChange={e => setRoleId(e.target.value)} className="w-full rounded-xl border border-border/60 bg-background px-2 py-2 text-[10px] outline-none font-bold uppercase tracking-wider cursor-pointer">
-              <option value="">-- JABATAN --</option>
-              {opsiRoles.map((r: any) => <option key={r.id} value={r.id}>{r.name}</option>)}
-            </select>
-            
-            <select value={jenisId} onChange={e => setJenisId(e.target.value)} className="w-full rounded-xl border border-border/60 bg-background px-2 py-2 text-[10px] outline-none font-bold uppercase tracking-wider cursor-pointer">
-              <option value="">-- SISTEM --</option>
-              {opsiTenaga.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
-            </select>
-            
-            <select value={statusId} onChange={e => setStatusId(e.target.value)} className="w-full rounded-xl border border-border/60 bg-background px-2 py-2 text-[10px] outline-none font-bold uppercase tracking-wider cursor-pointer">
-              <option value="">-- STATUS --</option>
-              {opsiStatuses.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
-          </div>
-          
-          <Button onClick={() => newName.trim() && addPekerjaMutation.mutate()} disabled={addPekerjaMutation.isPending || !newName} className="w-full rounded-xl font-bold mt-1">
-            {addPekerjaMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Tambah Pekerja"}
-          </Button>
-        </div>
-
-        {/* List Pekerja */}
-        <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar pr-1">
-          {data.map((item) => (
-            <div key={item.id} className="flex items-center justify-between rounded-xl border border-border/40 bg-muted/10 p-3 hover:bg-muted/30 transition-colors">
-              <div>
-                <span className="text-sm font-bold block mb-1">{item.name}</span>
-
-            {/* 💡 BADGE INTERAKTIF: Tampilannya kayak label biasa, tapi kalau diklik jadi dropdown! */}
-                <div className="flex flex-wrap gap-1.5 mt-1">
-                  
-            {/* Badge Role */}
-                  <select 
-                    value={item.roleId || ""} 
-                    onChange={(e) => editPekerjaMutation.mutate({ id: item.id, payload: { roleId: e.target.value } })}
-                    className="text-[9px] font-black uppercase tracking-widest text-primary bg-primary/10 px-1.5 py-0.5 rounded outline-none cursor-pointer appearance-none text-center hover:bg-primary/20 transition-colors"
-                  >
-                    <option value="" disabled>-</option>
-                    {opsiRoles.map((r: any) => <option key={r.id} value={r.id}>{r.name}</option>)}
-                  </select>
-
-            {/* Badge Sistem Kerja */}
-                  <select 
-                    value={item.jenisTenagaKerjaId || ""} 
-                    onChange={(e) => editPekerjaMutation.mutate({ id: item.id, payload: { jenisTenagaKerjaId: e.target.value } })}
-                    className="text-[9px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded outline-none cursor-pointer appearance-none text-center hover:bg-emerald-500/20 transition-colors"
-                  >
-                    <option value="" disabled>-</option>
-                    {opsiTenaga.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
-                  </select>
-
-            {/* Badge Status */}
-                  <select 
-                    value={item.statusId || ""} 
-                    onChange={(e) => editPekerjaMutation.mutate({ id: item.id, payload: { statusId: e.target.value } })}
-                    className="text-[9px] font-black uppercase tracking-widest text-amber-600 bg-amber-500/10 px-1.5 py-0.5 rounded outline-none cursor-pointer appearance-none text-center hover:bg-amber-500/20 transition-colors"
-                  >
-                    <option value="" disabled>-</option>
-                    {opsiStatuses.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                  </select>
-
-                </div>
-
-              </div>
-              <Button variant="ghost" size="icon" onClick={() => delPekerjaMutation.mutate(item.id)} disabled={delPekerjaMutation.isPending} className="h-8 w-8 text-destructive hover:bg-destructive/10 shrink-0">
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          ))}
-          {data.length === 0 && <p className="text-center text-xs text-muted-foreground py-4">Belum ada pekerja.</p>}
-        </div>
-      </Card>
-
-      {/* SEKAT KANAN: KELOLA TAG / ATRIBUT (NOTION STYLE) */}
-      <Card className={glassCard}>
-        <div className="flex items-center gap-2 mb-4">
-          <Database className="h-5 w-5 text-amber-500" />
-          <h3 className="text-lg font-black">Kelola Properti</h3>
-        </div>
-
-        {/* Form Tambah Tag */}
-        <div className="flex flex-col gap-2 mb-6 p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20">
-          <select value={tagType} onChange={e => setTagType(e.target.value)} className="w-full rounded-xl border border-border/60 bg-background px-3 py-2 text-xs outline-none font-bold uppercase tracking-wider cursor-pointer text-amber-700">
-            <option value="role">Jabatan / Role</option>
-            <option value="jenis_tenaga">Sistem Kerja</option>
-            <option value="status">Status Pekerja</option>
-          </select>
-          
-          <div className="flex gap-2 mt-1">
-            <input type="text" placeholder="Tambah opsi baru..." value={newTagName} onChange={e => setNewTagName(e.target.value)} className="flex-1 rounded-xl border border-border/60 bg-background px-3 py-2 text-sm outline-none focus:border-amber-500/50" />
-            <Button onClick={() => newTagName.trim() && addTagMutation.mutate()} disabled={addTagMutation.isPending || !newTagName} variant="secondary" className="rounded-xl font-bold shrink-0 bg-amber-500/20 text-amber-700 hover:bg-amber-500/30">
-              {addTagMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4"/>}
-            </Button>
-          </div>
-        </div>
-
-        {/* List Tag Aktif */}
-        <div className="space-y-2">
-          <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3 border-b border-border/50 pb-2">Opsi Tersedia</h4>
-          {activeTagList.map((tag: any) => (
-            <div key={tag.id} className="flex items-center justify-between rounded-xl border border-border/40 bg-background p-2 pl-3">
-              <span className="text-sm font-semibold">{tag.name}</span>
-              <Button variant="ghost" size="icon" onClick={() => delTagMutation.mutate(tag.id)} disabled={delTagMutation.isPending} className="h-7 w-7 text-destructive hover:bg-destructive/10">
-                <Trash2 className="h-3 w-3" />
-              </Button>
-            </div>
-          ))}
-          {activeTagList.length === 0 && <p className="text-center text-xs text-muted-foreground py-4">Belum ada opsi untuk kategori ini.</p>}
-        </div>
-      </Card>
-      
-    </div>
-  );
-}
-
 function KategoriManager({ data }: { data: any[] }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
