@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { AreaManager } from "@/components/master/area/AreaManager";
 import { PekerjaManager } from "@/components/master/pekerja/PekerjaManager"; 
 import { KategoriManager } from "@/components/master/kategori/KategoriManager";
+import { KendalaManager } from "@/components/master/kendala/KendalaManager";
 
 // ---------------------------------------------------------------------------
 // 📂 1. DICTIONARY DOMAIN MASTER
@@ -166,6 +167,9 @@ export function MasterHubPage({ onClose }: { onClose?: () => void }) {
       {/* 🚀 KATEGORI AKTIVITAS MANAGER */}
       {activeChild === "kategori" && <KategoriManager />}
 
+      {/* 🚀 KENDALA MASTER */}
+      {activeChild === "kendala" && <KendalaManager />}
+
       {activeChild === "panen" && (
         <div className="p-8 text-center text-muted-foreground border border-dashed rounded-3xl">Modul Panen (Coming Soon)</div>
       )}
@@ -176,93 +180,6 @@ export function MasterHubPage({ onClose }: { onClose?: () => void }) {
 
       </div>
     </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// 📦 3. KOMPONEN PENGELOLA (AREA, PEKERJA, KATEGORI) DIUBAH MENJADI MODULAR
-// ---------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------
-// 📦 4. KOMPONEN PENGELOLA HAMA & PENYAKIT (KENDALA)
-// ---------------------------------------------------------------------------
-function KendalaManager({ data }: { data: any[] }) {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [newName, setNewName] = useState("");
-  const [jenisKendala, setJenisKendala] = useState("Hama");
-
-    const addMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch("/api/notion/kendala", { 
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nama: newName, jenis: jenisKendala }) 
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Gagal menambah data."); // 💡 Lempar error kalau backend nolak
-      return data;
-    },
-    onSuccess: () => { 
-      queryClient.invalidateQueries({ queryKey: ["master-dropdown-options"] }); 
-      setNewName(""); 
-      toast({ title: "Sukses", description: "Data baru ditambahkan." }); 
-    },
-    onError: (err: any) => {
-      // 💡 Tangkap error dan tampilkan notif merah!
-      toast({ variant: "destructive", title: "Gagal Menyimpan", description: err.message });
-    }
-  });
-
-  const delMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetch(`/api/notion/kendala/${id}`, { method: "DELETE" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Gagal menghapus data.");
-      return data;
-    },
-    onSuccess: () => { 
-      queryClient.invalidateQueries({ queryKey: ["master-dropdown-options"] }); 
-      toast({ title: "Dihapus", description: "Data berhasil dihapus." }); 
-    },
-    onError: (err: any) => {
-      toast({ variant: "destructive", title: "Gagal Menghapus", description: err.message });
-    }
-  });
-
-  return (
-    <Card className={glassCard}>
-      <h3 className="text-lg font-black mb-1">Daftar Hama & Penyakit</h3>
-      <p className="text-xs text-muted-foreground mb-6">Kelola daftar kendala lapangan yang sering terjadi untuk mempermudah laporan tim.</p>
-      
-      <div className="flex flex-col md:flex-row gap-2 mb-6">
-        <div className="flex-1 flex gap-2">
-          <select value={jenisKendala} onChange={e => setJenisKendala(e.target.value)} className="rounded-xl border border-border/60 bg-muted/30 px-3 py-2 text-xs outline-none font-bold uppercase tracking-wider text-primary cursor-pointer w-[120px]">
-            <option value="Hama">Hama</option>
-            <option value="Penyakit">Penyakit</option>
-          </select>
-          <input type="text" placeholder="Nama Hama/Penyakit" value={newName} onChange={e => setNewName(e.target.value)} className="flex-1 rounded-xl border border-border/60 bg-muted/30 px-4 py-2 text-sm outline-none focus:border-primary/50 font-bold" />
-        </div>
-        <Button onClick={() => newName.trim() && addMutation.mutate()} disabled={addMutation.isPending} className="rounded-xl font-bold md:w-auto w-full shrink-0">
-          {addMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Plus className="h-4 w-4 mr-1"/> Tambah</>}
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {data.map((item) => (
-          <div key={item.id} className="flex items-center justify-between rounded-xl border border-border/40 bg-muted/10 p-3 hover:bg-muted/30 transition-colors">
-            <div>
-              <span className="text-sm font-bold block">{item.name}</span>
-              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground border border-border/50 bg-background px-1.5 py-0.5 rounded inline-block mt-1">
-                {item.jenis}
-              </span>
-            </div>
-            <Button variant="ghost" size="icon" onClick={() => delMutation.mutate(item.id)} disabled={delMutation.isPending} className="h-8 w-8 text-destructive hover:bg-destructive/10">
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        ))}
-        {data.length === 0 && <p className="text-center text-xs text-muted-foreground py-4 md:col-span-2">Belum ada data hama atau penyakit.</p>}
-      </div>
-    </Card>
   );
 }
 
