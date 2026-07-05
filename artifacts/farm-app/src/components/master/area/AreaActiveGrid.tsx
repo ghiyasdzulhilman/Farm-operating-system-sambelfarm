@@ -36,13 +36,35 @@ export function AreaActiveGrid({ areas, allSiklus, searchQuery }: AreaActiveGrid
     area.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Kalkulator Umur Tanaman (Hari Setelah Tanam / HST) secara realtime
+    // Kalkulator Umur Tanaman (HST) Murni - Kebal Jam & Timezone
   const calculateHST = (dateString: string) => {
-    const today = new Date();
-    const plantDate = new Date(dateString);
-    const diffTime = today.getTime() - plantDate.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays < 0 ? 0 : diffDays;
+    if (!dateString) return 0;
+    
+    try {
+      // 1. Ambil YYYY-MM-DD dari tanggal tanam (buang jam dari database)
+      const tglTanamPart = String(dateString).split(/[T ]/)[0];
+      
+      // 2. Ambil YYYY-MM-DD dari hari ini (lokal browser)
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const tglHariIniPart = `${year}-${month}-${day}`;
+
+      // 3. Bandingkan secara adil (Sama-sama jam 00:00:00 UTC)
+      const plantDate = new Date(`${tglTanamPart}T00:00:00Z`);
+      const todayDate = new Date(`${tglHariIniPart}T00:00:00Z`);
+
+      if (isNaN(plantDate.getTime())) return 0;
+
+      // 4. Hitung selisih hari pakai Math.round (biar pas)
+      const diffTime = todayDate.getTime() - plantDate.getTime();
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+      
+      return diffDays < 0 ? 0 : diffDays;
+    } catch {
+      return 0;
+    }
   };
 
   // Bersihkan embel-embel string dari backend
