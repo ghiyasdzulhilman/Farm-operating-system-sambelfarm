@@ -453,7 +453,6 @@ router.delete("/notion/areas/:id", async (req, res): Promise<void> => {
   if (!id) { res.status(400).json({ error: "ID area wajib disertakan." }); return; }
 
   try {
-    // Ingat: Karena efek cascade di schema, ini akan menghapus riwayat operasional terkait juga
     const [deletedArea] = await db.delete(areasTable)
       .where(eq(areasTable.id, id))
       .returning();
@@ -462,9 +461,27 @@ router.delete("/notion/areas/:id", async (req, res): Promise<void> => {
       res.status(404).json({ error: "Area tidak ditemukan." }); return;
     }
     
-    res.json({ success: true, message: "Area dan riwayat terkait berhasil dihapus.", data: deletedArea });
-  } catch (err) {
-    res.status(500).json({ error: "Gagal menghapus area." });
+    res.json({ success: true, message: "Area berhasil dihapus.", data: deletedArea });
+  } catch (err: any) {
+    // 💡 Tampilkan error asli di terminal Replit untuk keperluan debugging
+    console.error("[DB ERROR HAPUS AREA]:", err);
+
+    // 🚀 FIX: Deteksi apakah error disebabkan oleh Foreign Key Constraint (data masih terikat)
+    const errorString = String(err).toLowerCase();
+    const isForeignKeyError = 
+      err.code === '23503' || 
+      errorString.includes('foreign key constraint') || 
+      errorString.includes('23503');
+
+    if (isForeignKeyError) { 
+      res.status(400).json({ 
+        error: "Gagal dihapus! Area ini masih memiliki riwayat Perawatan atau Operasional yang terikat. Silakan hapus riwayat aktivitas tersebut terlebih dahulu demi keamanan data." 
+      });
+      return;
+    }
+    
+    // Error umum lainnya
+    res.status(500).json({ error: "Gagal menghapus area. Terjadi kesalahan pada server." });
   }
 });
 
