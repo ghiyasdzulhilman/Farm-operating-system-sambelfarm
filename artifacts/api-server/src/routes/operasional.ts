@@ -793,24 +793,37 @@ router.delete("/notion/kendala/:id", async (req, res): Promise<void> => {
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   const { id } = req.params;
-  
   try {
     const [deletedKendala] = await db.delete(kendalaMasterTable)
       .where(eq(kendalaMasterTable.id, id))
       .returning();
 
     if (!deletedKendala) {
-      res.status(404).json({ error: "Kendala tidak ditemukan." }); return;
+      res.status(404).json({ error: "Data kendala tidak ditemukan." }); return;
     }
-    
+
     res.json({ success: true, message: "Berhasil dihapus", data: deletedKendala });
   } catch (err: any) {
-    // 💡 TANGKAP ERROR RELASI (Kalau datanya lagi dipakai di laporan inspeksi)
-    if (err.code === '23503') { 
-      res.status(400).json({ error: "Gagal dihapus! Data ini sedang dipakai di dalam riwayat inspeksi kebun." });
+    // 💡 Tampilkan error asli di terminal Replit biar gampang di-debug
+    console.error("[DB ERROR KENDALA]:", err);
+
+    // 🚀 FIX: Buka bungkus error Drizzle untuk ambil error asli Postgres (err.cause)
+    const dbError = err.cause || err;
+    const errorCode = dbError.code || err.code;
+    const errorString = (String(err) + " " + String(dbError)).toLowerCase();
+
+    const isForeignKeyError = 
+      errorCode === '23503' || 
+      errorString.includes('foreign key constraint') || 
+      errorString.includes('23503') ||
+      errorString.includes('violates foreign key');
+
+    if (isForeignKeyError) { 
+      res.status(400).json({ error: "Gagal dihapus! Hama/Penyakit ini sudah tercatat di dalam riwayat temuan inspeksi lapangan. Silakan hapus atau ubah riwayat inspeksi tersebut terlebih dahulu." });
       return;
     }
-    res.status(500).json({ error: "Gagal menghapus kendala." });
+    
+    res.status(500).json({ error: "Gagal menghapus data kendala. Terjadi kesalahan pada server." });
   }
 });
 
