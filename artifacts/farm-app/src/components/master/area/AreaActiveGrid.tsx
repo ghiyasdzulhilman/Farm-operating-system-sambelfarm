@@ -21,14 +21,23 @@ export function AreaActiveGrid({ areas, allSiklus, searchQuery }: AreaActiveGrid
   const [selectedArea, setSelectedArea] = useState<{ id: string; name: string } | null>(null);
   const [activeCycleForModal, setActiveCycleForModal] = useState<any>(null);
 
-  // Mutasi Hapus Area Master
+    // Mutasi Hapus Area Master
   const delAreaMutation = useMutation({
-    mutationFn: async (id: string) => 
-      fetch(`/api/notion/areas/${id}`, { method: "DELETE" }).then(r => r.json()),
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/notion/areas/${id}`, { method: "DELETE" });
+      const json = await res.json();
+      
+      // 🚀 WAJIB ADA INI BIAR NOTIF MERAHNYA JALAN
+      if (!res.ok) throw new Error(json.error || "Gagal menghapus area.");
+      return json;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["master-dropdown-options"] });
-      toast({ title: "Dihapus", description: "Area & seluruh siklus terkait berhasil dihapus." });
+      toast({ title: "Dihapus", description: "Area berhasil dihapus." });
     },
+    onError: (err: any) => {
+      toast({ variant: "destructive", title: "Akses Ditolak", description: err.message });
+    }
   });
 
   // Filter area aktif berdasarkan input pencarian
