@@ -4,6 +4,17 @@ import { MapPin, Trash2, Settings2, Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
+// 🚀 SUNTIKAN BARU: Import komponen Dialog & Input dari Shadcn UI
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+
 // Import komponen modal manajemen siklus yang akan kita buat nanti
 import { SiklusFormModal } from "./SiklusFormModal";
 
@@ -20,6 +31,10 @@ export function AreaActiveGrid({ areas, allSiklus, searchQuery }: AreaActiveGrid
   // State penampung area mana yang sedang dipilih untuk dikelola siklusnya
   const [selectedArea, setSelectedArea] = useState<{ id: string; name: string } | null>(null);
   const [activeCycleForModal, setActiveCycleForModal] = useState<any>(null);
+
+  // 🚀 SUNTIKAN BARU: State khusus untuk Modal Hapus & Verifikasi Ketik Nama
+  const [areaToDelete, setAreaToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [confirmText, setConfirmText] = useState("");
 
     // Mutasi Hapus Area Master
   const delAreaMutation = useMutation({
@@ -111,23 +126,23 @@ export function AreaActiveGrid({ areas, allSiklus, searchQuery }: AreaActiveGrid
                   {cleanName}
                 </span>
                 
-                <Button 
+             <Button 
                   variant="ghost" 
                   size="icon" 
                   onClick={() => {
-                    if (confirm("⚠️ PERINGATAN KERAS: Menghapus Area ini akan melenyapkan SELURUH riwayat aktivitas dan siklus tanam di dalamnya secara permanen. Lanjutkan?")) {
-                      delAreaMutation.mutate(area.id);
-                    }
+                    // 🚀 SUNTIKAN BARU: Buka modal hapus dan simpan nama areanya
+                    setAreaToDelete({ id: area.id, name: cleanName });
                   }} 
                   disabled={delAreaMutation.isPending} 
                   className="h-8 w-8 text-destructive hover:bg-destructive/10 shrink-0"
                 >
-                  {delAreaMutation.isPending ? (
+                  {delAreaMutation.isPending && areaToDelete?.id === area.id ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <Trash2 className="h-4 w-4" />
                   )}
                 </Button>
+
               </div>
 
               {/* 2. BODY CARD (Informasi Siklus Berjalan) */}
@@ -189,7 +204,7 @@ export function AreaActiveGrid({ areas, allSiklus, searchQuery }: AreaActiveGrid
         })}
       </div>
 
-      {/* RENDER MODAL SECARA REUSABLE (Ditaruh sekali saja di luar perulangan map) */}
+   {/* RENDER MODAL SECARA REUSABLE (Ditaruh sekali saja di luar perulangan map) */}
       {selectedArea && (
         <SiklusFormModal 
           isOpen={selectedArea !== null} 
@@ -199,6 +214,73 @@ export function AreaActiveGrid({ areas, allSiklus, searchQuery }: AreaActiveGrid
           currentCycle={activeCycleForModal}
         />
       )}
+
+      {/* 🚀 SUNTIKAN BARU: MODAL VERIFIKASI HAPUS AREA */}
+      <Dialog 
+        open={areaToDelete !== null} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setAreaToDelete(null);
+            setConfirmText(""); // Reset ketikan saat ditutup
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-red-600 font-bold">Hapus Permanen Area?</DialogTitle>
+            <DialogDescription>
+              Tindakan ini tidak dapat dibatalkan. Menghapus area akan me-reset seluruh histori terkait jika tidak terikat pengaman.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="my-2 space-y-3 rounded-xl bg-red-50 p-3 text-sm border border-red-200">
+            <p className="text-red-800 leading-relaxed">
+              Ketik <span className="font-black select-all underline">{areaToDelete?.name}</span> di bawah ini untuk mengonfirmasi penghapusan:
+            </p>
+            <Input
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              placeholder="Ketik nama area persis di sini..."
+              className="bg-white border-red-300 focus-visible:ring-red-500 font-medium"
+            />
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0 mt-2">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setAreaToDelete(null);
+                setConfirmText("");
+              }}
+            >
+              Batal
+            </Button>
+            
+            <Button 
+              variant="destructive"
+              disabled={confirmText.trim().toLowerCase() !== areaToDelete?.name?.trim().toLowerCase() || delAreaMutation.isPending}
+              onClick={() => {
+                if (areaToDelete) {
+                  delAreaMutation.mutate(areaToDelete.id, {
+                    onSuccess: () => {
+                      setAreaToDelete(null);
+                      setConfirmText("");
+                    }
+                  });
+                }
+              }}
+            >
+              {delAreaMutation.isPending ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Menghapus...
+                </span>
+              ) : (
+                "Hapus Permanen"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
