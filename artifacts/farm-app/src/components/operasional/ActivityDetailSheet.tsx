@@ -858,4 +858,10 @@ export function ActivityDetailSheet({
                 })()}
               </div>
             </section>
-
+            
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
