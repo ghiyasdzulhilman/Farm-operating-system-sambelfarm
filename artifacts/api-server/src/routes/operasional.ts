@@ -462,20 +462,24 @@ router.delete("/notion/areas/:id", async (req, res): Promise<void> => {
     }
     
     res.json({ success: true, message: "Area berhasil dihapus.", data: deletedArea });
-  } catch (err: any) {
+    } catch (err: any) {
     // 💡 Tampilkan error asli di terminal Replit untuk keperluan debugging
     console.error("[DB ERROR HAPUS AREA]:", err);
 
-    // 🚀 FIX: Deteksi apakah error disebabkan oleh Foreign Key Constraint (data masih terikat)
-    const errorString = String(err).toLowerCase();
+    // 🚀 FIX: Buka bungkus error Drizzle untuk ambil error asli Postgres (err.cause)
+    const dbError = err.cause || err;
+    const errorCode = dbError.code || err.code;
+    const errorString = (String(err) + " " + String(dbError)).toLowerCase();
+
     const isForeignKeyError = 
-      err.code === '23503' || 
+      errorCode === '23503' || 
       errorString.includes('foreign key constraint') || 
-      errorString.includes('23503');
+      errorString.includes('23503') ||
+      errorString.includes('violates foreign key');
 
     if (isForeignKeyError) { 
       res.status(400).json({ 
-        error: "Gagal dihapus! Area ini masih memiliki riwayat Perawatan atau Operasional yang terikat. Silakan hapus riwayat aktivitas tersebut terlebih dahulu demi keamanan data." 
+        error: "Gagal dihapus! Area ini masih terikat dengan riwayat aktivitas (Perawatan/Operasional) atau penggunaan Stok Produk. Silakan bersihkan data terkait terlebih dahulu demi keamanan data." 
       });
       return;
     }
