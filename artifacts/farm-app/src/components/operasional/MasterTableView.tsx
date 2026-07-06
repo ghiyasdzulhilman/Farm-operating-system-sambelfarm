@@ -35,11 +35,11 @@ export function MasterTableView({
     return (dropdownOptions?.areas || []).map((a: any) => ({ label: a.name, value: a.id }));
   }, [dropdownOptions]);
 
-  const workerOptions = useMemo(() => {
+    const workerOptions = useMemo(() => {
     return (dropdownOptions?.petugas || []).map((p: any) => ({ 
-      // 🚀 FIX: Kalau benderanya true, tambahkan teks (Nonaktif) di belakang namanya
       label: p.deleted ? `${p.name} (Nonaktif)` : p.name, 
-      value: p.id 
+      value: p.id,
+      deleted: p.deleted // 🚀 SUNTIKAN BARU: Bawa statusnya ke opsi biar bisa difilter di kolom
     }));
   }, [dropdownOptions]);
 
@@ -324,19 +324,26 @@ export function MasterTableView({
       },
     },
 
-    {
+   {
       id: "pekerja",
       header: "Tim kebun",
       cell: ({ row }) => {
         const item = row.original;
         const currentWorkerIds = Array.isArray(item.metaEkstra?.pekerjaIds) ? item.metaEkstra.pekerjaIds : [];
 
-        // 💡 Failsafe: Jaga-jaga buat data jadul yang terlanjur kena hard-delete
-        const safeOptions = [...workerOptions];
+        // 🚀 FIX: LOGIKA FILTER PINTAR
+        // Saring daftar pekerja khusus untuk baris ini aja
+        const dynamicWorkerOptions = workerOptions.filter((opt: any) => {
+          // 1. Tampilkan jika pekerja masih AKTIF (!opt.deleted)
+          // 2. ATAU tampilkan jika pekerja NONAKTIF, TAPI id-nya ada di daftar tugas baris ini
+          return !opt.deleted || currentWorkerIds.includes(opt.value);
+        });
+
+        // 💡 Failsafe: Jaga-jaga buat data jadul yang terlanjur kena hard-delete (hilang permanen)
         currentWorkerIds.forEach(workerId => {
-          const isExist = safeOptions.some(opt => opt.value === workerId);
+          const isExist = dynamicWorkerOptions.some((opt: any) => opt.value === workerId);
           if (!isExist) {
-            safeOptions.push({ label: "(Pekerja Terhapus)", value: workerId });
+            dynamicWorkerOptions.push({ label: "(Pekerja Terhapus)", value: workerId, deleted: true });
           }
         });
 
@@ -345,7 +352,7 @@ export function MasterTableView({
             <EditableCell
               value={currentWorkerIds} 
               type="multi-select"
-              options={safeOptions} 
+              options={dynamicWorkerOptions} // 👈 Pakai opsi yang udah disaring
               placeholder="Pilih tim"
               onSave={(nextIds: string[]) => {
                 updateMutation.mutate({ id: item.id, module: item.module, payload: { pekerjaIds: nextIds } });
