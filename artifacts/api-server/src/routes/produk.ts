@@ -165,20 +165,36 @@ router.delete("/produk/:id", async (req, res): Promise<void> => {
       return deleted;
     });
 
-    if (!deletedData) {
+  if (!deletedData) {
       res.status(404).json({ error: "Produk tidak ditemukan." }); return;
     }
 
     res.json({ success: true, message: "Produk berhasil dihapus.", data: deletedData });
   } catch (err: any) {
-    if (err.code === '23503') {
-      // Kalau masih masuk sini, berarti beneran udah nyangkut di tabel perawatan
-      res.status(400).json({ error: "Produk tidak bisa dihapus karena masih dipakai di data perawatan. Nonaktifkan saja produk ini." });
+    // 💡 Tampilkan error asli di terminal Replit biar gampang di-debug
+    console.error("[DB ERROR HAPUS PRODUK]:", err);
+
+    // 🚀 FIX: Buka bungkus error Drizzle untuk ambil error asli Postgres (err.cause)
+    const dbError = err.cause || err;
+    const errorCode = dbError.code || err.code;
+    const errorString = (String(err) + " " + String(dbError)).toLowerCase();
+
+    const isForeignKeyError = 
+      errorCode === '23503' || 
+      errorString.includes('foreign key constraint') || 
+      errorString.includes('23503') ||
+      errorString.includes('violates foreign key');
+
+    if (isForeignKeyError) {
+      // Kalau masih masuk sini, berarti beneran udah nyangkut di tabel perawatan_produk
+      res.status(400).json({ error: "Produk tidak bisa dihapus karena sudah tercatat di riwayat pemakaian perawatan kebun. Nonaktifkan saja produk ini agar tidak muncul lagi di pilihan." });
       return;
     }
-    res.status(500).json({ error: "Gagal menghapus produk." });
+    
+    res.status(500).json({ error: "Gagal menghapus produk. Terjadi kesalahan pada server." });
   }
 });
+
 
 
 export default router;
