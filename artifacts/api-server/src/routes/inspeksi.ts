@@ -257,12 +257,27 @@ router.get("/notion/all-inspeksi", async (req, res): Promise<void> => {
         .map((t) => `${t.namaKendala}: ${t.catatanKhusus || "Tanpa catatan khusus"}`)
         .join("\n");
 
-      return {
+    return {
         ...inspeksi,
         waktuMulai: toWIBString(inspeksi.waktuMulai as Date),
         waktuSelesai: toWIBString(inspeksi.waktuSelesai as Date),
         hama: daftarHama,
         penyakit: daftarPenyakit,
+        
+        // 🚀 FIX: Suntik metaEkstra ke backend agar dibaca sempurna oleh Detailsheet frontend
+        metaEkstra: {
+          hama: daftarHama,
+          penyakit: daftarPenyakit,
+          waktuMulai: toWIBString(inspeksi.waktuMulai as Date),
+          waktuSelesai: toWIBString(inspeksi.waktuSelesai as Date),
+          durasiKerja: inspeksi.durasiKerja,
+          pekerjaIds: inspeksi.pekerjaIds,
+          phTanah: inspeksi.phTanah,
+          tingkatSerangan: inspeksi.tingkatSerangan,
+          radius: inspeksi.radius,
+          namaSiklus: inspeksi.namaSiklus,
+          tanggalPindahTanam: inspeksi.tanggalPindahTanam,
+        },
 
         keterangan: (() => {
           const adaTemuan = temuanKhusus.length > 0;
