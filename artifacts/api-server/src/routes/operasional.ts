@@ -479,7 +479,7 @@ router.delete("/notion/areas/:id", async (req, res): Promise<void> => {
 
     if (isForeignKeyError) { 
       res.status(400).json({ 
-        error: "Gagal dihapus! Area ini masih terikat dengan riwayat aktivitas (Perawatan/Operasional) atau penggunaan Stok Produk. Silakan bersihkan data terkait terlebih dahulu demi keamanan data." 
+        error: "Gagal dihapus! Area ini masih terikat dengan riwayat aktivitas Perawatan atau penggunaan Stok Produk. Silakan bersihkan data terkait terlebih dahulu demi keamanan data." 
       });
       return;
     }
@@ -645,23 +645,27 @@ router.delete("/notion/kategori/:id", async (req, res): Promise<void> => {
       res.status(404).json({ error: "Kategori tidak ditemukan." }); return;
     }
     res.json({ success: true, message: "Berhasil dihapus", data: deletedKategori });
-      } catch (err: any) {
+    } catch (err: any) {
     // 💡 Tampilkan error asli di terminal Replit biar gampang di-debug kalau ada apa-apa
     console.error("[DB ERROR KATEGORI]:", err);
 
-    // 🚀 FIX: Deteksi kebal (Mengecek kode ATAU isi pesan error dari database)
-    const errorString = String(err).toLowerCase();
+    // 🚀 FIX: Buka bungkus error Drizzle untuk ambil error asli Postgres (err.cause)
+    const dbError = err.cause || err;
+    const errorCode = dbError.code || err.code;
+    const errorString = (String(err) + " " + String(dbError)).toLowerCase();
+
     const isForeignKeyError = 
-      err.code === '23503' || 
+      errorCode === '23503' || 
       errorString.includes('foreign key constraint') || 
-      errorString.includes('23503');
+      errorString.includes('23503') ||
+      errorString.includes('violates foreign key');
 
     if (isForeignKeyError) { 
-      res.status(400).json({ error: "Gagal dihapus! Kategori ini sudah dipakai di riwayat operasional atau perawatan." });
+      res.status(400).json({ error: "Gagal dihapus! Kategori ini sudah dipakai di riwayat operasional atau perawatan. Silakan bersihkan data terkait terlebih dahulu." });
       return;
     }
     
-    res.status(500).json({ error: "Gagal menghapus kategori." });
+    res.status(500).json({ error: "Gagal menghapus kategori. Terjadi kesalahan pada server." });
   }
 });
 
