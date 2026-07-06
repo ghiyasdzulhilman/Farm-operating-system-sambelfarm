@@ -76,7 +76,7 @@ type InspeksiFormValues = z.infer<typeof inspeksiSchema>;
 
 interface DropdownOptions { 
   areas: Array<{ id: string; name: string }>; 
-  petugas: Array<{ id: string; name: string }>; 
+  petugas: Array<{ id: string; name: string; deleted?: boolean }>; // 🚀 FIX: Tambahkan deleted
   kendalaMaster: Array<{ id: string; name: string; jenis: 'hama' | 'penyakit' }>; 
 }
 
@@ -471,13 +471,14 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
                            </div>
                         </div>
 
-                        {/* 4. Pekerja, Status, Catatan Tambahan */}
+                    {/* 4. Pekerja, Status, Catatan Tambahan */}
                         <div className="bg-card p-4 rounded-2xl border border-border shadow-sm space-y-4">
                           <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">4. Tim & Status Penyelesaian</p>
                           <div className="flex flex-wrap gap-2 items-center">
-                            {dropdownOptions?.petugas?.map((item) => {
+                            {dropdownOptions?.petugas?.filter((p) => !p.deleted).map((item) => { // 🚀 FIX: Saring pekerja yang aktif
                               const isSelected = form.watch("pekerjaBroadcast").includes(item.id);
                               return (
+
                               <button key={item.id} type="button" onClick={() => {
                                 const cur = form.getValues("pekerjaBroadcast"); form.setValue("pekerjaBroadcast", isSelected ? cur.filter(id => id !== item.id) : [...cur, item.id]);
                               }} className={`px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all border ${isSelected ? "bg-primary text-primary-foreground border-primary shadow-sm scale-105" : "bg-background text-muted-foreground border-border hover:bg-muted/80 shadow-sm"}`}>{item.name}</button>
@@ -571,13 +572,14 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
                                     <div className="space-y-1"><p className="text-[9px] font-bold text-muted-foreground">Radius(m2)</p><Input type="number" className="h-8 text-[10px] font-bold bg-background border-input" value={form.watch(`radiusPerArea.${areaId}`) || ""} onChange={(e) => form.setValue(`radiusPerArea.${areaId}`, e.target.value)} /></div>
                                   </div>
 
-                                  {/* Pekerja Spesifik */}
+                              {/* Pekerja Spesifik */}
                                   <div className="space-y-1.5 pt-2 border-t border-border/50">
                                     <p className="text-[9px] font-bold text-muted-foreground uppercase">Tim Pekerja Area Ini</p>
                                     <div className="flex flex-wrap gap-1">
-                                      {dropdownOptions?.petugas?.map((item) => {
+                                      {dropdownOptions?.petugas?.filter((p) => !p.deleted).map((item) => { // 🚀 FIX: Saring pekerja yang aktif
                                         const isSelected = form.watch(`pekerjaPerArea.${areaId}`)?.includes(item.id);
                                         return (
+
                                           <button key={item.id} type="button" onClick={() => {
                                             const cur = form.getValues(`pekerjaPerArea.${areaId}`) || []; form.setValue(`pekerjaPerArea.${areaId}`, isSelected ? cur.filter(id => id !== item.id) : [...cur, item.id]);
                                           }} className={`px-2 py-1 rounded-full text-[9px] font-semibold transition-all border ${isSelected ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-border"}`}>{item.name}</button>
