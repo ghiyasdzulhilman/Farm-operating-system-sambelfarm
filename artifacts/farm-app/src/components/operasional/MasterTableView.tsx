@@ -37,7 +37,7 @@ export function MasterTableView({
 
     const workerOptions = useMemo(() => {
     return (dropdownOptions?.petugas || []).map((p: any) => ({ 
-      label: p.deleted ? `${p.name} (Nonaktif)` : p.name, 
+      label: p.deleted ? `${p.name} (Terhapus)` : p.name, 
       value: p.id,
       deleted: p.deleted // 🚀 SUNTIKAN BARU: Bawa statusnya ke opsi biar bisa difilter di kolom
     }));
