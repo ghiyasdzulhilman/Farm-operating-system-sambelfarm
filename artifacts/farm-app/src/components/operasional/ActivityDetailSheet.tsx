@@ -813,7 +813,7 @@ export function ActivityDetailSheet({
               </div>
             </section>
 
-            {/* SEGMEN PEKERJA */}
+      {/* SEGMEN PEKERJA */}
             <section className="mt-6 space-y-3 pb-8">
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-primary" />
@@ -822,16 +822,40 @@ export function ActivityDetailSheet({
                 </h3>
               </div>
               <div className="flex flex-wrap gap-2">
-                {item.workers.map((worker) => (
-                  <Badge key={worker} variant="outline" className="rounded-full px-3 py-1 shadow-sm">
-                    {worker}
-                  </Badge>
-                ))}
+                {/* 🚀 FIX: Mapping ID ke Nama pakai data master terbaru biar status (Nonaktif) ikut muncul */}
+                {(() => {
+                  const workerIds = Array.isArray(item.metaEkstra?.pekerjaIds) ? item.metaEkstra.pekerjaIds : [];
+                  
+                  // Kalau kosong banget
+                  if (workerIds.length === 0 && (!item.workers || item.workers.length === 0)) {
+                    return <span className="text-sm text-muted-foreground italic">Belum ada tim ditugaskan</span>;
+                  }
+
+                  // Kalau master data udah ke-load, kita mapping ID-nya satu per satu
+                  if (workerIds.length > 0 && dropdownOptions?.petugas) {
+                    return workerIds.map((id) => {
+                      const matchedWorker = dropdownOptions.petugas.find((p: any) => p.id === id);
+                      
+                      let label = "(Pekerja Terhapus)";
+                      if (matchedWorker) {
+                        label = matchedWorker.deleted ? `${matchedWorker.name} (Terhapus)` : matchedWorker.name;
+                      }
+                        
+                      return (
+                        <Badge key={id} variant="outline" className={cn("rounded-full px-3 py-1 shadow-sm", matchedWorker?.deleted && "border-dashed text-muted-foreground bg-muted/20")}>
+                          {label}
+                        </Badge>
+                      );
+                    });
+                  }
+
+                  // Fallback: Selama master data lagi loading, tampilin aja bawaan dari feed-nya
+                  return item.workers?.map((worker, index) => (
+                    <Badge key={index} variant="outline" className="rounded-full px-3 py-1 shadow-sm bg-background">
+                      {worker}
+                    </Badge>
+                  ));
+                })()}
               </div>
             </section>
-          </div>
-        </div>
-      </SheetContent>
-    </Sheet>
-  );
-}
+
