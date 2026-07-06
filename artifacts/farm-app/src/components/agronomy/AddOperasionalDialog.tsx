@@ -68,7 +68,7 @@ type OperasionalFormValues = z.infer<typeof operasionalSchema>;
 
 interface DropdownOptions { 
   areas: Array<{ id: string; name: string }>; 
-  petugas: Array<{ id: string; name: string }>; 
+  petugas: Array<{ id: string; name: string; deleted?: boolean }>; // 🚀 FIX: Tambahkan deleted
   kategori: Array<{ id: string; name: string; module: string }>; 
 }
 
@@ -385,10 +385,11 @@ export function AddOperasionalDialog({ onSuccess }: { onSuccess?: () => void }) 
                             )}
                           </div>
                           
-                          <div className="flex flex-wrap gap-2 items-center pt-2 border-t border-border/50 mt-3">
-                            {dropdownOptions?.petugas?.map((item) => {
+                           <div className="flex flex-wrap gap-2 items-center pt-2 border-t border-border/50 mt-3">
+                            {dropdownOptions?.petugas?.filter((p) => !p.deleted).map((item) => { // 🚀 FIX: Saring yang aktif aja
                               const isSelected = form.watch("pekerjaBroadcast").includes(item.id);
                               return (
+
                               <button key={item.id} type="button" onClick={() => {
                                 const cur = form.getValues("pekerjaBroadcast"); form.setValue("pekerjaBroadcast", isSelected ? cur.filter(id => id !== item.id) : [...cur, item.id]);
                               }} className={`px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all border ${isSelected ? "bg-primary text-primary-foreground border-primary shadow-sm scale-105" : "bg-background text-muted-foreground border-border hover:bg-muted/80 shadow-sm"}`}>{item.name}</button>
@@ -464,12 +465,13 @@ export function AddOperasionalDialog({ onSuccess }: { onSuccess?: () => void }) 
                                       </SelectContent>
                                     </Select>
 
-                                    <div className="space-y-1.5 pt-1">
+                                  <div className="space-y-1.5 pt-1">
                                       <p className="text-[9px] font-bold text-muted-foreground uppercase">Tim Pekerja Area Ini</p>
                                       <div className="flex flex-wrap gap-1">
-                                        {dropdownOptions?.petugas?.map((item) => {
+                                        {dropdownOptions?.petugas?.filter((p) => !p.deleted).map((item) => { // 🚀 FIX: Saring yang aktif aja
                                           const isSelected = form.watch(`pekerjaPerArea.${areaId}`)?.includes(item.id);
                                           return (
+
                                             <button key={item.id} type="button" onClick={() => {
                                               const cur = form.getValues(`pekerjaPerArea.${areaId}`) || []; form.setValue(`pekerjaPerArea.${areaId}`, isSelected ? cur.filter(id => id !== item.id) : [...cur, item.id]);
                                             }} className={`px-2 py-1 rounded-full text-[9px] font-semibold transition-all border ${isSelected ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-border"}`}>{item.name}</button>
