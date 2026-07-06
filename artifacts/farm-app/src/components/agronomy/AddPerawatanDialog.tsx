@@ -65,7 +65,7 @@ type PerawatanFormValues = z.infer<typeof perawatanSchema>;
 
 interface DropdownOptions { 
   areas: Array<{ id: string; name: string }>; 
-  petugas: Array<{ id: string; name: string }>; 
+  petugas: Array<{ id: string; name: string; deleted?: boolean }>; // 🚀 FIX: Tambahkan deleted
   kategori: Array<{ id: string; name: string; module: string }>; 
 }
 
@@ -431,13 +431,14 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
                           </div>
                         </div>
 
-                        {/* CARD 3. Pekerja */}
+                     {/* CARD 3. Pekerja */}
                         <div className="bg-card p-4 rounded-2xl border border-border shadow-sm space-y-3">
                           <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">3. Tim Pekerja</p>
                           <div className="flex flex-wrap gap-1.5 items-center">
-                            {dropdownOptions?.petugas?.map((item) => {
+                            {dropdownOptions?.petugas?.filter((p) => !p.deleted).map((item) => { // 🚀 FIX: Saring pekerja yang aktif
                               const isSelected = form.watch("petugasBroadcast").includes(item.id);
                               return (
+
                               <button key={item.id} type="button" onClick={() => {
                                 const cur = form.getValues("petugasBroadcast"); form.setValue("petugasBroadcast", isSelected ? cur.filter(id => id !== item.id) : [...cur, item.id]);
                               }} className={`px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all border ${isSelected ? "bg-primary text-primary-foreground border-primary shadow-sm scale-105" : "bg-background text-muted-foreground border-border hover:bg-muted/80 shadow-sm"}`}>{item.name}</button>
@@ -534,13 +535,14 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
 
    <div className="flex items-center gap-2"><p className="text-[9px] font-bold text-muted-foreground uppercase">Durasi:</p><Input type="number" step="0.1" className="h-7 w-16 text-[10px] font-bold px-1 bg-background border-input" value={form.watch(`durasiKerjaPerArea.${areaId}`) || 0} onChange={(e) => form.setValue(`durasiKerjaPerArea.${areaId}`, Number(e.target.value))} /><span className="text-[9px] font-bold">Jam</span></div>
 
-                                  {/* 👇 SELIPIN KODE PEKERJA SPESIFIK DI SINI 👇 */}
+                                {/* 👇 PEKERJA SPESIFIK 👇 */}
                                   <div className="space-y-1.5 pt-3 border-t border-border/50 mt-3">
                                     <p className="text-[9px] font-bold text-muted-foreground uppercase">Tim Pekerja Area Ini</p>
                                     <div className="flex flex-wrap gap-1">
-                                      {dropdownOptions?.petugas?.map((item) => {
+                                      {dropdownOptions?.petugas?.filter((p) => !p.deleted).map((item) => { // 🚀 FIX: Saring pekerja yang aktif
                                         const isSelected = form.watch(`petugasPerArea.${areaId}`)?.includes(item.id);
                                         return (
+
                                           <button 
                                             key={item.id} 
                                             type="button" 
