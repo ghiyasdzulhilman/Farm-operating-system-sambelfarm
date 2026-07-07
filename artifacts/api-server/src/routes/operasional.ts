@@ -709,11 +709,13 @@ router.post("/notion/siklus-tanam", async (req, res): Promise<void> => {
     return;
   }
 
-  try {
-    // Opsional: Otomatis ubah siklus lama di area yang sama menjadi "Selesai" jika ada siklus baru aktif
+    try {
+    // 🚀 matikan fitur auto selesai, agar satu area bisa banyak siklus
+    /*
     await db.update(siklusTanamTable)
       .set({ status: "Selesai/Panen" })
       .where(and(eq(siklusTanamTable.areaId, areaId), eq(siklusTanamTable.status, "Aktif")));
+    */
 
     const [newSiklus] = await db.insert(siklusTanamTable)
       .values({
@@ -726,9 +728,12 @@ router.post("/notion/siklus-tanam", async (req, res): Promise<void> => {
 
     res.status(201).json({ success: true, data: newSiklus });
   } catch (err) {
+    // 💡 Biasakan kasih console.error biar gampang debug di terminal Replit
+    console.error("[DB ERROR POST SIKLUS]:", err);
     res.status(500).json({ error: "Gagal menambahkan siklus tanam baru." });
   }
 });
+
 
 // ==========================================
 // 11. ENDPOINT PEKERJA ATRIBUT MASTER (NEW 🚀)
