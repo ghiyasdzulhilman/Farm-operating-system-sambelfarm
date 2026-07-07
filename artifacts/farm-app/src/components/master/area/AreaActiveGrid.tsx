@@ -106,8 +106,8 @@ export function AreaActiveGrid({ areas, allSiklus, searchQuery }: AreaActiveGrid
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredAreas.map((area) => {
-          // Cari apakah area ini punya siklus yang statusnya masih berjalan (Aktif)
-          const currentCycle = allSiklus.find(
+          // 🚀 FIX: Gunakan .filter() supaya bisa menangkap SEMUA siklus yang Aktif (bukan cuma 1)
+          const activeCycles = allSiklus.filter(
             (c: any) => c.areaId === area.id && c.status === "Aktif"
           );
           const cleanName = getCleanAreaName(area.name);
@@ -126,82 +126,75 @@ export function AreaActiveGrid({ areas, allSiklus, searchQuery }: AreaActiveGrid
                   {cleanName}
                 </span>
                 
-             <Button 
+                {/* Tombol hapus area tetap aman pakai modal verifikasi atau confirm lu */}
+                <Button 
                   variant="ghost" 
                   size="icon" 
-                  onClick={() => {
-                    // 🚀 SUNTIKAN BARU: Buka modal hapus dan simpan nama areanya
-                    setAreaToDelete({ id: area.id, name: cleanName });
-                  }} 
+                  onClick={() => setAreaToDelete({ id: area.id, name: cleanName })} 
                   disabled={delAreaMutation.isPending} 
                   className="h-8 w-8 text-destructive hover:bg-destructive/10 shrink-0"
                 >
-                  {delAreaMutation.isPending && areaToDelete?.id === area.id ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Trash2 className="h-4 w-4" />
-                  )}
+                  <Trash2 className="h-4 w-4" />
                 </Button>
-
               </div>
 
-              {/* 2. BODY CARD (Informasi Siklus Berjalan) */}
-              <div className="p-4 flex-1 flex flex-col justify-center min-h-[100px]">
-{currentCycle ? (
-                  <div className="space-y-2 w-full">
-                    {/* Baris 1: Nama Tanaman & Umur (HST) sejajar */}
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-base font-black text-primary leading-tight">
-                        {currentCycle.namaSiklus}
-                      </p>
-                      <span className="text-[11px] font-bold text-muted-foreground shrink-0 mt-0.5">
-                        {calculateHST(currentCycle.tanggalPindahTanam)} HST
-                      </span>
-                    </div>
-                    
-                    {/* Baris 2 & 3: Tanggal Tanam lalu disusul Badge Aktif di bawahnya */}
-                    <div className="flex flex-col items-start gap-2 pt-0.5">
-                      <p className="text-xs text-muted-foreground">
-                        Tanam: {new Date(currentCycle.tanggalPindahTanam).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </p>
-                      <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded w-fit">
-                        Siklus Aktif
-                      </span>
-                    </div>
+              {/* 2. BODY CARD (Informasi Siklus Berjalan - BISA BANYAK!) */}
+              <div className="p-4 flex-1 flex flex-col justify-center min-h-[100px] gap-3">
+                {activeCycles.length > 0 ? (
+                  <div className="space-y-3 w-full divide-y divide-border/40">
+                    {/* 🚀 FIX: Looping semua tanaman aktif di area ini */}
+                    {activeCycles.map((cycle: any, idx: number) => (
+                      <div key={cycle.id || idx} className={idx > 0 ? "pt-3 space-y-2" : "space-y-2"}>
+                        {/* Baris 1: Nama Tanaman & Umur (HST) sejajar */}
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-base font-black text-primary leading-tight">
+                            {cycle.namaSiklus}
+                          </p>
+                          <span className="text-[11px] font-bold text-muted-foreground shrink-0 mt-0.5">
+                            {calculateHST(cycle.tanggalPindahTanam)} HST
+                          </span>
+                        </div>
+                        
+                        {/* Baris 2: Tanggal Tanam & Badge */}
+                        <div className="flex flex-col items-start gap-2 pt-0.5">
+                          <p className="text-xs text-muted-foreground">
+                            Tanam: {new Date(cycle.tanggalPindahTanam).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </p>
+                          <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded w-fit">
+                            Siklus Aktif
+                          </span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 ) : (
-
                   <p className="text-xs text-center font-medium text-muted-foreground/70 py-2">
                     Belum ada siklus berjalan di area ini.
                   </p>
                 )}
               </div>
 
-              {/* 3. BOTTOM BUTTONS (Pemicu Akses Kontrol) */}
+              {/* 3. BOTTOM BUTTONS (Tombol Selalu BISA TAMBAH LAGI) */}
               <div className="p-4 pt-0">
-                {currentCycle ? (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => handleOpenSiklus(area, currentCycle)}
-                    className="w-full h-9 text-xs rounded-xl border-border hover:bg-muted/50 font-bold gap-1.5"
-                  >
-                    <Settings2 className="h-3.5 w-3.5" /> Kelola Siklus
-                  </Button>
-                ) : (
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => handleOpenSiklus(area, null)}
-                    className="w-full h-9 text-xs font-bold text-muted-foreground hover:text-primary rounded-xl border border-dashed border-border/85 hover:bg-primary/5 bg-muted/10 gap-1.5"
-                  >
-                    <Plus className="h-3.5 w-3.5" /> Mulai Siklus Tanam
-                  </Button>
-                )}
+                <Button 
+                  variant={activeCycles.length > 0 ? "outline" : "ghost"} 
+                  size="sm" 
+                  // 🚀 FIX: Kita kirim status apakah udah ada siklus atau belum ke modal
+                  onClick={() => handleOpenSiklus(area, activeCycles.length > 0 ? activeCycles[0] : null)}
+                  className={`w-full h-9 text-xs font-bold rounded-xl gap-1.5 ${
+                    activeCycles.length > 0 
+                      ? "border-border hover:bg-muted/50 text-primary" 
+                      : "text-muted-foreground hover:text-primary border border-dashed border-border/85 hover:bg-primary/5 bg-muted/10"
+                  }`}
+                >
+                  <Plus className="h-3.5 w-3.5" /> 
+                  {activeCycles.length > 0 ? "Tambah Komoditas Tanam" : "Mulai Siklus Tanam"}
+                </Button>
               </div>
             </div>
           );
         })}
+
       </div>
 
    {/* RENDER MODAL SECARA REUSABLE (Ditaruh sekali saja di luar perulangan map) */}
