@@ -75,17 +75,19 @@ export function SiklusFormModal({ isOpen, onClose, areaId, areaName, currentCycl
           
         </SheetHeader>
 
-        <div className="px-6 py-5 space-y-5 text-left max-h-[70vh] overflow-y-auto">
+      <div className="px-6 py-5 space-y-5 text-left max-h-[70vh] overflow-y-auto">
           
+          {/* 🚀 SUNTIKAN BARU: Info bahwa ini adalah penambahan siklus baru di area yang sama */}
           {currentCycle && (
-             <div className="bg-amber-500/10 text-amber-700 p-3.5 rounded-2xl border border-amber-500/20 text-[11px] font-medium leading-relaxed shadow-sm flex gap-3">
-              <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
+             <div className="bg-emerald-500/10 text-emerald-700 p-3.5 rounded-2xl border border-emerald-500/20 text-[11px] font-medium leading-relaxed shadow-sm flex gap-3">
+              <Leaf className="h-5 w-5 shrink-0 mt-0.5 text-emerald-600" />
               <p>
-                Saat ini terdapat tanaman <strong>{currentCycle.namaSiklus}</strong> yang sedang aktif. 
-                Menyimpan data ini otomatis mengakhiri dan mengarsipkan tanaman tersebut.
+                Area ini sudah memiliki tanaman aktif. Menambahkan data di bawah ini akan membuat <strong>komoditas baru berjalan berdampingan (Polikultur)</strong> di lahan yang sama.
               </p>
             </div>
           )}
+
+          <div className="space-y-4 pt-1">
 
           <div className="space-y-4 pt-1">
             <div className="space-y-1.5">
