@@ -88,8 +88,6 @@ export function SiklusFormModal({ isOpen, onClose, areaId, areaName, currentCycl
           )}
 
           <div className="space-y-4 pt-1">
-
-          <div className="space-y-4 pt-1">
             <div className="space-y-1.5">
               <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
                 Nama Komoditas / Tanaman
