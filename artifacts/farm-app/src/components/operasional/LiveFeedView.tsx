@@ -1,12 +1,11 @@
 import { useMemo } from "react";
 import { 
-  Sprout, HardHat, Bug, Banknote, ChevronRight, ChevronDown, MapPin, CalendarClock, Trash2 
+  Sprout, HardHat, Bug, Banknote, ChevronRight, ChevronDown, MapPin, CalendarClock, Trash2, GripVertical 
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { AgronomyItem } from "@/types/operasional";
 
-// Perpanjang tipe bawaan agar mengenali metaEkstra dari backend tanpa error TS
 type RichAgronomyItem = AgronomyItem & {
   metaEkstra?: Record<string, any>;
 };
@@ -16,7 +15,7 @@ interface LiveFeedViewProps {
   onItemClick: (item: RichAgronomyItem) => void;
   feedMode?: "time" | "area"; 
   onStatusChange?: (id: string, status: string) => void; 
-  onDelete?: (id: string, module: string) => void; // 👈 Tambahin baris ini
+  onDelete?: (id: string, module: string) => void; 
 }
 
 export function LiveFeedView({ 
@@ -27,7 +26,6 @@ export function LiveFeedView({
   onDelete 
 }: LiveFeedViewProps) {
   
-  // 🧠 LOGIKA GROUPING DINAMIS (WAKTU vs AREA PIVOT)
   const groupedFeed = useMemo(() => {
     if (feedMode === "time") {
       const labels = ["Hari ini", "Kemarin", "Riwayat Lama"];
@@ -38,7 +36,6 @@ export function LiveFeedView({
       })).filter(group => group.items.length > 0);
     } 
     
-    // Mode "area": Kumpulkan semua aktivitas berdasarkan LabaRugiId / Nama Area
     const areaMap = new Map<string, RichAgronomyItem[]>();
     items.forEach(item => {
       const areaName = item.area || "Area Tanpa Blok";
@@ -47,7 +44,7 @@ export function LiveFeedView({
     });
 
     return Array.from(areaMap.entries())
-      .sort((a, b) => a[0].localeCompare(b[0])) // Urutkan nama area A-Z
+      .sort((a, b) => a[0].localeCompare(b[0])) 
       .map(([label, groupItems]) => ({
         label,
         icon: <MapPin className="h-4 w-4 mr-2 inline-block text-primary" />,
@@ -57,44 +54,53 @@ export function LiveFeedView({
 
   if (items.length === 0) {
     return (
-      <div className="py-12 text-center text-muted-foreground font-bold text-sm border border-border/60 rounded-3xl bg-card shadow-sm">
+      <div className="py-12 text-center text-muted-foreground font-medium text-sm border border-border/60 rounded-3xl bg-card/50 backdrop-blur-sm shadow-sm">
         Tidak ada aktivitas ditemukan.
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {groupedFeed.map((group) => (
-        <div key={group.label} className="space-y-3">
-          <div className="flex items-center justify-between border-b border-border/40 pb-2">
-            <h2 className="text-sm font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center">
+        <div key={group.label} className="space-y-3.5">
+          
+          {/* ✨ HEADER GRUP: Tipografi dihaluskan, tidak lagi 'font-black' */}
+          <div className="flex items-center justify-between border-b border-border/40 pb-2.5 px-1">
+            <h2 className="text-[13px] font-bold uppercase tracking-wider text-muted-foreground/80 flex items-center">
               {group.icon}
               {group.label}
             </h2>
-            <span className="text-xs font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+            <span className="text-[11px] font-semibold text-muted-foreground bg-muted/60 px-2.5 py-0.5 rounded-full border border-border/40">
               {group.items.length} log
             </span>
           </div>
 
           <div className="space-y-3">
-              {group.items.map((item) => {
-              // 1. LOGIKA WARNA & IKON
+            {group.items.map((item) => {
+              // 1. LOGIKA WARNA & IKON MODUL (Sinkron dengan palet modern kita)
               let RenderIcon = <Sprout className="h-4 w-4" />;
-              let iconColorClass = "bg-emerald-500/10 text-emerald-600";
+              let iconColorClass = "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20";
               
               if (item.module === "operasional") {
                 RenderIcon = <HardHat className="h-4 w-4" />;
-                iconColorClass = "bg-blue-500/10 text-blue-600";
+                iconColorClass = "bg-teal-500/10 text-teal-600 border border-teal-500/20"; // ✨ Pakai Teal biar konsisten
               } else if (item.module === "inspeksi") {
                 RenderIcon = <Bug className="h-4 w-4" />;
-                iconColorClass = "bg-red-500/10 text-red-600";
+                iconColorClass = "bg-rose-500/10 text-rose-600 border border-rose-500/20"; // ✨ Pakai Rose untuk alert
               } else if (item.module === "finance") {
                 RenderIcon = <Banknote className="h-4 w-4" />;
-                iconColorClass = item.category === "Pengeluaran" ? "bg-red-500/10 text-red-600" : "bg-emerald-500/10 text-emerald-600";
+                iconColorClass = item.category === "Pengeluaran" 
+                  ? "bg-rose-500/10 text-rose-600 border border-rose-500/20" 
+                  : "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20";
               }
 
-              // 2. LOGIKA FORMAT JADWAL 
+              // ✨ 2. LOGIKA WARNA STATUS DOT (Biar user tahu status tanpa swipe)
+              let statusDot = "bg-slate-400";
+              if (item.status === "Selesai" || item.status === "Sudah ditangani") statusDot = "bg-emerald-500";
+              else if (item.status === "Dalam proses" || item.status === "Sedang ditangani") statusDot = "bg-amber-500";
+
+              // 3. LOGIKA FORMAT JADWAL 
               const startDate = new Date(item.rawDate);
               const endDate = item.metaEkstra?.waktuSelesai ? new Date(item.metaEkstra.waktuSelesai) : null;
               
@@ -103,91 +109,99 @@ export function LiveFeedView({
               
               const startDStr = formatDate(startDate);
               const startTStr = formatTime(startDate);
-              let scheduleDisplay = `${startDStr} | ${startTStr}`;
+              let scheduleDisplay = `${startDStr} • ${startTStr}`; // ✨ Pakai bullet agar lebih rapi dari pipe |
               
               if (endDate) {
                 const endDStr = formatDate(endDate);
                 const endTStr = formatTime(endDate);
                 scheduleDisplay = startDStr === endDStr 
-                  ? `${startDStr} | ${startTStr} - ${endTStr}` 
-                  : `${startDStr} - ${endDStr} | ${startTStr} - ${endTStr}`;
+                  ? `${startDStr} • ${startTStr} - ${endTStr}` 
+                  : `${startDStr} - ${endDStr} • ${startTStr} - ${endTStr}`;
               }
 
               return (
-                // CONTAINER UTAMA (Menyembunyikan konten yang meluber)
-                <div key={item.id} className="group relative w-full overflow-hidden rounded-3xl border border-border/60 bg-card shadow-sm transition-all hover:shadow-md">
+                <div key={item.id} className="group relative w-full overflow-hidden rounded-[1.25rem] border border-border/50 bg-card/80 backdrop-blur-sm shadow-[0_4px_16px_-4px_rgba(0,0,0,0.03)] transition-all duration-300 hover:shadow-[0_8px_24px_-4px_rgba(0,0,0,0.06)] hover:border-border">
                   
-                  {/* CONTAINER SWIPE NATIVE (Bisa digeser ke kiri/kanan di HP) */}
                   <div className="flex w-full overflow-x-auto snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
 
                     {/* 🌟 MUKA KARTU (Tampilan Depan) */}
                     <div 
-                      className="w-full shrink-0 snap-center p-4 cursor-pointer bg-card"
+                      className="w-full shrink-0 snap-center p-4 cursor-pointer bg-transparent transition-colors hover:bg-muted/10"
                       onClick={() => onItemClick(item)}
                     >
-                      {/* HEADER: Ikon, Modul, dan Jam Sejajar */}
-                                            <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <div className={cn("flex h-7 w-7 items-center justify-center rounded-lg", iconColorClass)}>
+                      {/* HEADER: Ikon, Kategori, Nominal & Waktu Relatif */}
+                      <div className="flex items-center justify-between gap-2 mb-2.5">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <div className={cn("relative flex h-8 w-8 items-center justify-center rounded-xl shadow-sm", iconColorClass)}>
                             {RenderIcon}
-                            {item.isPendingStaging && <span className="absolute -left-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-background bg-amber-500 animate-pulse" />}
+                            {item.isPendingStaging && <span className="absolute -left-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-background bg-amber-500 animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.6)]" />}
                           </div>
-                          {/* 🚀 PERBAIKAN WARNA TEKS MODUL (Pakai text-muted-foreground biar abu-abu netral) */}
-                          <Badge variant="secondary" className="rounded-full bg-muted/60 text-muted-foreground px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+                          
+                          <Badge variant="secondary" className="rounded-lg bg-muted/70 text-muted-foreground px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider border border-border/30">
                             {item.category}
                           </Badge>
+
                           {item.module === "finance" && item.metaEkstra?.nominal && (
-                             <Badge variant="outline" className="rounded-full bg-emerald-500/10 text-emerald-700 border-emerald-500/20 px-2 py-0 text-[10px] font-mono">
-                               Rp {(item.metaEkstra.nominal).toLocaleString('id-ID')}
-                             </Badge>
+                            <Badge variant="outline" className="rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 px-2 py-0.5 text-[11px] font-mono font-bold">
+                              Rp {(item.metaEkstra.nominal).toLocaleString('id-ID')}
+                            </Badge>
                           )}
                         </div>
-                        <span className="text-[10px] font-bold text-muted-foreground/60 tracking-wide">
-                          {item.time}
-                        </span>
+
+                        {/* Waktu Relatif & Status Dot */}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className={cn("h-2 w-2 rounded-full", statusDot)} title={`Status: ${item.status}`} />
+                          <span className="text-[11px] font-medium text-muted-foreground/80 tracking-tight">
+                            {item.time}
+                          </span>
+                        </div>
                       </div>
 
-                    {/* TENGAH: Judul, Area & Panah */}
-                      <div className="flex items-center justify-between">
-                        <div className="min-w-0 flex-1 pr-4">
-                          <h3 className="mt-2 text-base font-black tracking-tight truncate pr-4">{item.title}</h3>
+                      {/* TENGAH: Judul, Area & Grip Hint */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1 pr-1">
+                          {/* ✨ Judul pakai font-bold (bukan font-black) dan text-sm/text-base */}
+                          <h3 className="text-[15px] font-bold text-foreground tracking-tight leading-snug truncate">
+                            {item.title}
+                          </h3>
                           
-                          {/* 🚀 TAMBAHAN ICON MAP-PIN DI SAMPING NAMA AREA */}
-                          <div className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground truncate">
-                            <MapPin className="h-3.5 w-3.5 shrink-0" />
+                          <div className="mt-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground/80 truncate">
+                            <MapPin className="h-3.5 w-3.5 shrink-0 text-primary/70" />
                             <span className="truncate">
                               {item.namaSiklus && item.namaSiklus !== "-" ? `${item.area} - ${item.namaSiklus}` : item.area}
                             </span>
                           </div>
-
                         </div>
-                        <div className="shrink-0 rounded-full bg-muted/40 p-1.5 transition-colors">
-                           <ChevronRight className="h-4 w-4 text-muted-foreground" />
+
+                        {/* ✨ SWIPE AFFORDANCE HINT: Ikon Grip + Chevron yang memberi tahu kartu bisa digeser */}
+                        <div className="flex items-center gap-0.5 shrink-0 self-center text-muted-foreground/40 group-hover:text-muted-foreground/80 transition-colors">
+                          <GripVertical className="h-4 w-4 hidden md:inline-block" title="Geser ke kiri untuk aksi" />
+                          <ChevronRight className="h-4 w-4" />
                         </div>
                       </div>
 
                       {/* BAWAH: Jadwal */}
-                      <div className="mt-2 flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground">
-                        <CalendarClock className="h-3.5 w-3.5 text-primary/70 shrink-0" />
-                        <span className="bg-muted/40 px-2 py-0.5 rounded-md">{scheduleDisplay}</span>
-                       </div>
+                      <div className="mt-3 flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground/90 pt-2 border-t border-border/30">
+                        <CalendarClock className="h-3.5 w-3.5 text-primary/80 shrink-0" />
+                        <span className="truncate font-mono">{scheduleDisplay}</span>
+                      </div>
 
                     </div>
 
                     {/* 🌟 AREA BELAKANG (Muncul Pas Di-Swipe Kiri) */}
-                    <div className="flex shrink-0 snap-center items-center justify-end gap-3 bg-muted/20 px-5 border-l border-border/40">
+                    <div className="flex shrink-0 snap-center items-center justify-end gap-2.5 bg-muted/40 px-5 border-l border-border/50">
                       
-                      {/* DROPDOWN STATUS TERSORONG */}
+                      {/* DROPDOWN STATUS TERSORONG (Sinkron dengan warna Slate/Amber/Emerald) */}
                       <div className="relative inline-block">
                         <select
                           value={item.status}
                           onChange={(e) => onStatusChange?.(item.id, e.target.value)}
                           disabled={item.isPendingStaging}
                           className={cn(
-                            "appearance-none rounded-2xl px-4 py-2.5 pr-9 text-[11px] font-bold uppercase tracking-wider outline-none cursor-pointer border transition-all shadow-sm",
-                            (item.status === "Selesai" || item.status === "Sudah ditangani") ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700" :
-                            (item.status === "Dalam proses" || item.status === "Sedang ditangani") ? "border-amber-500/20 bg-amber-500/10 text-amber-700" :
-                            "border-muted-foreground/30 bg-background text-foreground",
+                            "appearance-none rounded-xl px-3.5 py-2 pr-8 text-[11px] font-bold uppercase tracking-wider outline-none cursor-pointer border transition-all shadow-sm",
+                            (item.status === "Selesai" || item.status === "Sudah ditangani") ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400" :
+                            (item.status === "Dalam proses" || item.status === "Sedang ditangani") ? "border-amber-500/30 bg-amber-500/15 text-amber-700 dark:text-amber-400" :
+                            "border-slate-500/30 bg-slate-500/15 text-slate-700 dark:text-slate-400",
                             item.isPendingStaging && "opacity-50 cursor-not-allowed"
                           )}
                         >
@@ -205,16 +219,16 @@ export function LiveFeedView({
                             </>
                           )}
                         </select>
-                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none opacity-60" />
+                        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none opacity-70" />
                       </div>
 
                       {/* TOMBOL HAPUS */}
                       <button 
                         onClick={() => onDelete?.(item.id, item.module)}
-                        className="flex h-10 w-10 items-center justify-center rounded-2xl bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                        className="flex h-9 w-9 items-center justify-center rounded-xl bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground transition-all shadow-sm hover:scale-105"
                         title="Hapus"
                       >
-                        <Trash2 className="h-5 w-5" />
+                        <Trash2 className="h-4 w-4" />
                       </button>
 
                     </div>
