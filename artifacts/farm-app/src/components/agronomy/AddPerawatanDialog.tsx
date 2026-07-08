@@ -411,17 +411,43 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
                                           ))}
                                         </SelectContent>
                                       </Select>
-                                      <div className="flex items-center gap-1">
-                                        <Input
-                                          type="number" step="0.01" placeholder="Jumlah"
-                                          className="h-9 text-xs bg-background border-input rounded-lg focus-visible:ring-primary/20"
-                                          value={form.watch(`logProduk.${index}.kuantitasPemakaian`) || ""}
-                                          onChange={(e) => form.setValue(`logProduk.${index}.kuantitasPemakaian`, Number(e.target.value))}
-                                        />
-                                        {selectedProduk && (
-                                          <span className="text-[9px] font-bold text-muted-foreground shrink-0">{selectedProduk.satuanDasar}</span>
-                                        )}
-                                      </div>
+  {(() => {
+  // 🚀 1. Ambil info stok dan kuantitas dari form
+  const stokTerkini = selectedProduk?.stokSaatIni ?? null;
+  const currentQty = form.watch(`logProduk.${index}.kuantitasPemakaian`) || 0;
+  
+  // 🚀 2. Deteksi status stok
+  const isHabis = stokTerkini === 0;
+  const isOverStock = stokTerkini !== null && currentQty > stokTerkini;
+  const isRedAlert = isHabis || isOverStock;
+
+  return (
+    <div className={`flex items-center border rounded-lg px-2 bg-background transition-colors ${
+      isRedAlert ? "border-destructive bg-destructive/5 text-destructive" : "border-input"
+    }`}>
+      <Input
+        type="number" step="0.01"
+        className={`h-9 text-xs bg-transparent border-0 rounded-none focus-visible:ring-0 px-1 text-right font-bold w-20 ${
+          isRedAlert ? "text-destructive font-black" : ""
+        } placeholder:text-muted-foreground/60 placeholder:font-normal placeholder:text-[10px] ${
+          isHabis ? "placeholder:text-destructive/70 placeholder:font-bold" : ""
+        }`}
+        /* 🚀 3. KUNCI UTAMA: Placeholder Dinamis ala Bayangan */
+        placeholder={isHabis ? "Habis!" : (stokTerkini !== null ? `Sisa ${stokTerkini}` : "Jumlah")}
+        value={form.watch(`logProduk.${index}.kuantitasPemakaian`) || ""}
+        onChange={(e) => form.setValue(`logProduk.${index}.kuantitasPemakaian`, Number(e.target.value))}
+      />
+      {selectedProduk && (
+        <span className={`text-[9px] font-bold ml-1 shrink-0 select-none ${
+          isRedAlert ? "text-destructive font-black" : "text-muted-foreground"
+        }`}>
+          {selectedProduk.satuanDasar}
+        </span>
+      )}
+    </div>
+  );
+})()}
+
                                     </div>
                                     <Button type="button" variant="ghost" size="icon" className="h-9 w-9 text-destructive hover:bg-destructive/10 shrink-0 rounded-lg" onClick={() => removeProduk(index)}><Trash2 className="h-4 w-4" /></Button>
                                   </motion.div>
@@ -579,12 +605,47 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
                                               ))}
                                             </SelectContent>
                                           </Select>
-                                          <Input
-                                            type="number" step="0.01" className="h-8 text-[10px] bg-background border-input w-16" placeholder="Jml"
-                                            value={prod.kuantitasPemakaian || ""}
-                                            onChange={(e) => { const arr = [...(form.getValues(`produkPerArea.${areaId}`) || [])]; arr[idx] = { ...arr[idx], kuantitasPemakaian: Number(e.target.value) }; form.setValue(`produkPerArea.${areaId}`, arr); }}
-                                          />
-                                          {selectedProduk && <span className="text-[8px] font-bold text-muted-foreground shrink-0">{selectedProduk.satuanDasar}</span>}
+ {(() => {
+  // 🚀 1. Ambil info stok untuk mini-form override ini
+  const stokTerkini = selectedProduk?.stokSaatIni ?? null;
+  const currentQty = prod.kuantitasPemakaian || 0;
+  
+  // 🚀 2. Deteksi status stok
+  const isHabis = stokTerkini === 0;
+  const isOverStock = stokTerkini !== null && currentQty > stokTerkini;
+  const isRedAlert = isHabis || isOverStock;
+
+  return (
+    <div className={`flex items-center border rounded-md px-1.5 bg-background transition-colors ${
+      isRedAlert ? "border-destructive bg-destructive/5 text-destructive" : "border-input"
+    }`}>
+      <Input
+        type="number" step="0.01"
+        className={`h-8 text-[10px] bg-transparent border-0 rounded-none focus-visible:ring-0 px-1 text-right font-bold w-14 ${
+          isRedAlert ? "text-destructive font-black" : ""
+        } placeholder:text-muted-foreground/60 placeholder:font-normal placeholder:text-[9px] ${
+          isHabis ? "placeholder:text-destructive/70 placeholder:font-bold" : ""
+        }`}
+        /* 🚀 3. Placeholder Dinamis di Form Override */
+        placeholder={isHabis ? "Habis!" : (stokTerkini !== null ? `Sisa ${stokTerkini}` : "Jml")}
+        value={prod.kuantitasPemakaian || ""}
+        onChange={(e) => { 
+          const arr = [...(form.getValues(`produkPerArea.${areaId}`) || [])]; 
+          arr[idx] = { ...arr[idx], kuantitasPemakaian: Number(e.target.value) }; 
+          form.setValue(`produkPerArea.${areaId}`, arr); 
+        }}
+      />
+      {selectedProduk && (
+        <span className={`text-[8px] font-bold ml-1 shrink-0 select-none ${
+          isRedAlert ? "text-destructive font-black" : "text-muted-foreground"
+        }`}>
+          {selectedProduk.satuanDasar}
+        </span>
+      )}
+    </div>
+  );
+})()}
+
                                           <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive rounded-md" onClick={() => { const arr = [...(form.getValues(`produkPerArea.${areaId}`) || [])]; arr.splice(idx, 1); form.setValue(`produkPerArea.${areaId}`, arr); }}><Trash2 className="h-3.5 w-3.5" /></Button>
                                         </div>
                                       );
