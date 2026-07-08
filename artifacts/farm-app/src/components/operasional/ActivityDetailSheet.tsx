@@ -253,44 +253,45 @@ export function ActivityDetailSheet({
     }
   };
 
+    // ✨ 1. FROSTED GLASS CONTAINER: Latar transparan dengan blur tinggi & soft shadow ala Apple
   return (
-<Sheet open={!!item} onOpenChange={(open) => {
-  if (!open) {
-    setIsDirty(false);
-    setEditedProducts([]);
-    onClose();
-  }
-}}>
+    <Sheet open={!!item} onOpenChange={(open) => {
+      if (!open) {
+        setIsDirty(false);
+        setEditedProducts([]);
+        onClose();
+      }
+    }}>
       
       <SheetContent
         side="right"
-        className="w-full border-l border-border/60 bg-background p-0 sm:max-w-[520px] [&>button]:hidden"
+        className="w-full border-l border-border/50 bg-background/85 backdrop-blur-2xl p-0 sm:max-w-[540px] shadow-[-10px_0_40px_rgba(0,0,0,0.08)] transition-all duration-300 [&>button]:hidden"
         onOpenAutoFocus={(e) => e.preventDefault()} 
       >
         <div className="flex h-full flex-col">
 
           {/* HEADER PREMIUM DENGAN STATUS & TOMBOL KEMBALI */}
-          <SheetHeader className="border-b border-border/60 px-4 py-3">
+          {/* ✨ 2. TOP BAR: Background subtle muted/30, border lebih halus, dan padding lebih bernafas (px-6 py-3.5) */}
+          <SheetHeader className="border-b border-border/40 bg-muted/30 backdrop-blur-md px-6 py-3.5">
             <div className="flex items-center justify-between gap-3 w-full">
               
-{/* DROPDOWN STATUS DINAMIS DI KIRI */}
-  <div className="relative inline-block shrink-0">
-  <select
-    value={item.status}
-    onChange={(e) => onStatusChange?.(item.id, e.target.value)}
-    disabled={item.isPendingStaging}
-    className={cn(
-      "relative z-10 appearance-none rounded-full pl-3 pr-8 text-[11px] font-bold uppercase tracking-wider outline-none cursor-pointer border transition-all shadow-sm max-w-[130px] truncate",
-      "h-[34px]", // Paksa tinggi sama dengan tombol kembali
-      (item.status === "Selesai" || item.status === "Sudah ditangani")
-        ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20"
-        : (item.status === "Dalam proses" || item.status === "Sedang ditangani")
-          ? "border-amber-500/20 bg-amber-500/10 text-amber-700 hover:bg-amber-500/20"
-          : "border-muted-foreground/20 bg-muted/20 text-muted-foreground hover:bg-muted/40",
-      item.isPendingStaging && "opacity-50 cursor-not-allowed",
-    )}
-  >
-
+              {/* DROPDOWN STATUS DINAMIS DI KIRI */}
+              <div className="relative inline-block shrink-0">
+                <select
+                  value={item.status}
+                  onChange={(e) => onStatusChange?.(item.id, e.target.value)}
+                  disabled={item.isPendingStaging}
+                  className={cn(
+                    "relative z-10 appearance-none rounded-full pl-3.5 pr-8 text-[11px] font-bold uppercase tracking-wider outline-none cursor-pointer border transition-all shadow-sm max-w-[140px] truncate",
+                    "h-[34px]",
+                    (item.status === "Selesai" || item.status === "Sudah ditangani")
+                      ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/25"
+                      : (item.status === "Dalam proses" || item.status === "Sedang ditangani")
+                        ? "border-amber-500/30 bg-amber-500/15 text-amber-700 dark:text-amber-400 hover:bg-amber-500/25"
+                        : "border-border/60 bg-muted/40 text-muted-foreground hover:bg-muted/60",
+                    item.isPendingStaging && "opacity-50 cursor-not-allowed",
+                  )}
+                >
                   {/* 💡 Fix: Opsi disesuaikan dengan jenis modul */}
                   {item.module === "inspeksi" ? (
                     <>
@@ -306,32 +307,32 @@ export function ActivityDetailSheet({
                     </>
                   )}
                 </select>
-                {/* 💡 BUGFIX: Tambahkan 'z-10' juga pada icon panah agar tidak terkubur di bawah select */}
-                <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none opacity-60 z-10" />
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none opacity-70 z-10" />
               </div>
 
-{/* TOMBOL KEMBALI BESAR & NYAMAN DI KANAN (JEMPOL KANAN) */}
-<button 
-  onClick={() => {
-    setIsDirty(false);
-    setEditedProducts([]);
-    onClose();
-  }}
-  className="flex items-center gap-2 h-[34px] pl-4 pr-1.5 rounded-full bg-primary/10 hover:bg-primary/20 border border-primary/20 transition-all group"
->
-
-  <span className="text-[11px] font-bold uppercase tracking-widest text-primary transition-colors">
-    Kembali
-  </span>
-  <div className="bg-primary rounded-full p-1.5 shadow-sm group-hover:scale-105 transition-transform text-primary-foreground">
-    <ArrowRight className="h-4 w-4" />
-  </div>
-</button>
+              {/* ✨ 3. TOMBOL KEMBALI TAKTIL: Efek scale lembut dan shadow proporsional saat di-hover/active */}
+              <button 
+                onClick={() => {
+                  setIsDirty(false);
+                  setEditedProducts([]);
+                  onClose();
+                }}
+                className="flex items-center gap-2 h-[34px] pl-4 pr-1.5 rounded-full bg-primary/10 hover:bg-primary/20 border border-primary/30 transition-all duration-200 shadow-[0_2px_10px_rgba(0,0,0,0.03)] hover:shadow-sm hover:scale-[1.02] active:scale-[0.98] group"
+              >
+                <span className="text-[11px] font-bold uppercase tracking-widest text-primary transition-colors">
+                  Kembali
+                </span>
+                <div className="bg-primary rounded-full p-1.5 shadow-sm group-hover:scale-105 transition-transform text-primary-foreground">
+                  <ArrowRight className="h-4 w-4" />
+                </div>
+              </button>
 
             </div>
           </SheetHeader>
 
-          <div className="flex-1 overflow-y-auto px-5 py-5 custom-scrollbar text-left">
+          {/* ✨ 4. BODY WRAPPER: Padding horizontal diperlebar ke px-6 biar konten di dalam tidak sumpek */}
+          <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar text-left">
+
             {/* KARTU IDENTITAS UTAMA (JUDUL INLINE EDIT) */}
             <div className="rounded-3xl bg-gradient-to-br from-primary/10 to-transparent p-5 border border-primary/10">
               <div className="flex items-start justify-between gap-4">
