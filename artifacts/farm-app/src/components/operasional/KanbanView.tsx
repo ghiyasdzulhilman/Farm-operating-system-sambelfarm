@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { 
   Sprout, Banknote, MapPin, 
   HardHat, Bug, Trash2, 
-  CircleDashed, Timer, CheckCircle2 // 🚀 Ikon Status Baru
+  Calendar, Timer, Inbox // ✨ Ganti dengan Ikon Baru yang Konsisten
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AgronomyItem } from "@/types/operasional";
@@ -25,12 +25,12 @@ export function KanbanView({
   onDelete
 }: KanbanViewProps) {
   
-  const columns = [
+    const columns = [
     {
       id: "todo",
       title: "Belum Dikerjakan",
-      dotColor: "bg-blue-500",
-      bgHeader: "bg-blue-500/10 text-blue-700",
+      dotColor: "bg-slate-500", // ✨ Sinkron ke Slate
+      bgHeader: "bg-slate-500/10 text-slate-700", // ✨ Sinkron ke Slate
       validStatuses: ["Belum dikerjakan", "Baru ditemukan"]
     },
     {
@@ -96,12 +96,12 @@ export function KanbanView({
                   iconBg = item.category === "Pengeluaran" ? "bg-red-500/10 text-red-600 border-red-500/20" : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20";
                 }
 
-                // 2. Tentukan Ikon & Warna Status
-                let StatusIcon = CircleDashed;
-                let statusColor = "text-blue-500";
+              // 2. Tentukan Ikon & Warna Status (Sinkron dengan SummaryHeader)
+                let StatusIcon = Calendar; // ✨ Default pakai Calendar
+                let statusColor = "text-slate-500"; // ✨ Default pakai Slate
                 
                 if (item.status === "Selesai" || item.status === "Sudah ditangani") {
-                  StatusIcon = CheckCircle2;
+                  StatusIcon = Inbox; // ✨ Ganti jadi Inbox
                   statusColor = "text-emerald-500";
                 } else if (item.status === "Dalam proses" || item.status === "Sedang ditangani") {
                   StatusIcon = Timer;
