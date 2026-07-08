@@ -267,9 +267,11 @@ export function ActivityDetailSheet({
       
       <SheetContent
         side="right"
-        className="w-full border-l border-border/50 bg-background/85 backdrop-blur-2xl p-0 sm:max-w-[540px] shadow-[-10px_0_40px_rgba(0,0,0,0.08)] transition-all duration-300 [&>button]:hidden"
+        /* ✨ Kita samakan DNA-nya: pakai bg-card/80 & backdrop-blur-md biar terang dan konsisten ala kaca bening */
+        className="w-full border-l border-border/40 bg-card/80 backdrop-blur-md p-0 sm:max-w-[540px] shadow-[-10px_0_40px_rgba(0,0,0,0.08)] transition-all duration-300 [&>button]:hidden"
         onOpenAutoFocus={(e) => e.preventDefault()} 
       >
+
         <div className="flex h-full flex-col">
 
           {/* HEADER PREMIUM DENGAN STATUS & TOMBOL KEMBALI */}
