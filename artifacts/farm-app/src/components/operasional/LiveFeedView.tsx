@@ -82,9 +82,9 @@ export function LiveFeedView({
               let RenderIcon = <Sprout className="h-4 w-4" />;
               let iconColorClass = "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20";
               
-              if (item.module === "operasional") {
+             if (item.module === "operasional") {
                 RenderIcon = <HardHat className="h-4 w-4" />;
-                iconColorClass = "bg-teal-500/10 text-teal-600 border border-teal-500/20"; // ✨ Pakai Teal biar konsisten
+                iconColorClass = "bg-indigo-500/10 text-indigo-600 border border-indigo-500/20"; // ✨ Indigo: Kontras tegas dari Hijau/Rose
               } else if (item.module === "inspeksi") {
                 RenderIcon = <Bug className="h-4 w-4" />;
                 iconColorClass = "bg-rose-500/10 text-rose-600 border border-rose-500/20"; // ✨ Pakai Rose untuk alert
