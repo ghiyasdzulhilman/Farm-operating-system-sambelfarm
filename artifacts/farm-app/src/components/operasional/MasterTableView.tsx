@@ -510,7 +510,7 @@ export function MasterTableView({
       id: "actions",
       header: "",
       cell: ({ row }) => (
-        { /* ✨ Smart Opacity: opacity-30 pas normal biar ga merah semarak, menyala pas di-hover */
+        /* ✨ Smart Opacity: opacity-30 pas normal biar ga merah semarak, menyala pas di-hover */
         <Button 
           variant="ghost" 
           size="sm" 
