@@ -228,18 +228,23 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
       data: recordsCreated 
     });
 
-    } catch (err: any) {
+  } catch (err: any) {
     console.error("[DB ERROR ADD PERAWATAN]:", err);
     console.error("[CAUSE]:", err.cause);
     if (typeof err.message === 'string' && err.message.startsWith('STOK_TIDAK_CUKUP:')) {
+      const produkId = err.message.split(':')[1];
+      
+      // 🚀 CARI NAMA PRODUK KE DB BIAR PESAN ERROR HUMAN-READABLE
+      const [produkGagal] = await db
+        .select({ nama: produkMasterTable.nama })
+        .from(produkMasterTable)
+        .where(eq(produkMasterTable.id, produkId));
+        
+      const namaProduk = produkGagal ? produkGagal.nama : `ID ${produkId}`;
 
-      res.status(400).json({ error: `Stok tidak cukup untuk produk ID ${err.message.split(':')[1]}.` });
+      res.status(400).json({ error: `Stok tidak cukup untuk produk "${namaProduk}".` });
       return;
     }
-    // Pesan dari validasi harga=0 / kuantitas<=0 / produk tidak ditemukan sudah human-readable,
-    // aman diteruskan langsung ke response.
-    res.status(400).json({ error: err instanceof Error ? err.message : "Internal Server Error" });
-  }
 });
 
 
@@ -498,12 +503,23 @@ router.patch("/notion/perawatan/:id", async (req, res): Promise<void> => {
       res.status(404).json({ error: "Data perawatan tidak ditemukan." });
       return;
     }
-    console.error("[DB ERROR EDIT PERAWATAN]:", err);
+        console.error("[DB ERROR EDIT PERAWATAN]:", err);
     console.error("[CAUSE]:", err.cause);
     if (typeof err.message === 'string' && err.message.startsWith('STOK_TIDAK_CUKUP:')) {
-      res.status(400).json({ error: `Stok tidak cukup untuk produk ID ${err.message.split(':')[1]}.` });
+      const produkId = err.message.split(':')[1];
+      
+      // 🚀 CARI NAMA PRODUK KE DB BIAR PESAN ERROR HUMAN-READABLE
+      const [produkGagal] = await db
+        .select({ nama: produkMasterTable.nama })
+        .from(produkMasterTable)
+        .where(eq(produkMasterTable.id, produkId));
+        
+      const namaProduk = produkGagal ? produkGagal.nama : `ID ${produkId}`;
+
+      res.status(400).json({ error: `Stok tidak cukup untuk produk "${namaProduk}".` });
       return;
     }
+
     res.status(400).json({ error: err instanceof Error ? err.message : "Internal Server Error" });
   }
 });
