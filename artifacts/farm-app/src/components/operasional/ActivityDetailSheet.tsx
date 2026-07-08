@@ -715,11 +715,16 @@ export function ActivityDetailSheet({
 
                             className="w-full appearance-none rounded-xl bg-background border border-border/50 px-3 py-2 text-xs font-bold outline-none"
                           >
-                            <option value="" disabled>Pilih Produk...</option>
-                            {produkOptions?.data?.map((p: any) => (
-                              <option key={p.id} value={p.id}>{p.nama}</option>
-                            ))}
-                          </select>
+<option value="" disabled>Pilih Produk...</option>
+  {produkOptions?.data
+    ?.filter((p: any) => p.isActive !== false || p.id === prod.produkId)
+    .map((p: any) => (
+      <option key={p.id} value={p.id}>
+        {p.nama} {p.isActive === false ? "(Nonaktif)" : ""}
+      </option>
+    ))}
+</select>
+
                           <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground opacity-50 pointer-events-none" />
                         </div>
 
