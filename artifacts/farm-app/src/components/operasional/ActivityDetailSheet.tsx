@@ -335,9 +335,20 @@ export function ActivityDetailSheet({
           {/* ✨ 4. BODY WRAPPER: Padding horizontal diperlebar ke px-6 biar konten di dalam tidak sumpek */}
           <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar text-left">
 
-                        {/* ✨ 1. NOTION-STYLE PAGE TITLE (Besar, bersih, nyatu dengan background) */}
+          {/* ✨ 1. NOTION-STYLE PAGE TITLE (Besar, bersih, nyatu dengan background) */}
             <div className="mb-6 mt-2 group relative">
+              
+              {/* ✨ "Hari ini" / "Kemarin" dipindah ke atas sebagai Eyebrow Meta */}
+              {item.dateLabel !== "Riwayat Lama" && (
+                <div className="mb-2">
+                  <Badge variant="outline" className={cn("text-[10px] px-2 py-0.5 rounded-full font-bold tracking-widest uppercase shadow-sm", item.dateLabel === "Hari ini" ? "border-primary/40 text-primary bg-primary/5" : "text-muted-foreground border-border/50 bg-muted/20")}>
+                    {item.dateLabel}
+                  </Badge>
+                </div>
+              )}
+
               {activeField === "title" ? (
+
                 <input
                   autoFocus
                   type="text"
@@ -366,7 +377,7 @@ export function ActivityDetailSheet({
             {/* ✨ 2. NOTION-STYLE PROPERTIES (Metadata vertikal yang rapi) */}
             <div className="flex flex-col gap-2.5 mb-10 border-b border-border/40 pb-6">
               
-              {/* Property: Waktu & Siklus */}
+           {/* Property: Waktu (Bersih, tanpa badge) */}
               <div className="flex items-center min-h-[32px] hover:bg-muted/40 rounded-md px-1.5 -ml-1.5 transition-colors group">
                 <div className="w-[140px] shrink-0 text-[13px] font-medium text-muted-foreground flex items-center gap-2">
                   <CalendarDays className="h-4 w-4 opacity-70" /> Waktu
@@ -375,26 +386,54 @@ export function ActivityDetailSheet({
                   <span>{formatTanggalLengkap(item.rawDate)}</span>
                   <span className="text-muted-foreground/40 text-[10px]">●</span>
                   <span>{item.time}</span>
-                  
-                  {item.dateLabel !== "Riwayat Lama" && (
-                    <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 rounded-sm font-bold", item.dateLabel === "Hari ini" ? "border-primary/50 text-primary bg-primary/5" : "text-muted-foreground")}>
-                      {item.dateLabel}
-                    </Badge>
-                  )}
-                  {calculateHST() && (
-                    <Badge variant="secondary" className="text-[10px] bg-emerald-500/10 text-emerald-700 px-1.5 py-0 border-emerald-500/20 rounded-sm font-bold">
-                      {calculateHST()}
-                    </Badge>
-                  )}
                 </div>
               </div>
 
-              {/* Property: Area */}
+              {/* Property: Area & HST */}
               <div className="flex items-center min-h-[32px] hover:bg-muted/40 rounded-md px-1.5 -ml-1.5 transition-colors group">
                 <div className="w-[140px] shrink-0 text-[13px] font-medium text-muted-foreground flex items-center gap-2">
                   <MapPin className="h-4 w-4 opacity-70" /> Area
                 </div>
-                <div className="flex-1">
+                {/* ✨ Container flex ditambahkan di sini biar dropdown area dan badge HST sejajar horizontal */}
+                <div className="flex-1 flex items-center gap-2 flex-wrap">
+                  
+                  {item.module === "perawatan" ? (
+                    <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground">
+                      <Lock className="h-3 w-3 opacity-60" />
+                      {item.metaEkstra?.namaSiklus ? `${item.area} - ${item.metaEkstra.namaSiklus}` : item.area}
+                    </span>
+                  ) : (
+                    <div className="relative inline-flex max-w-full group/select">
+                      <select
+                        value={item.areaId || ""}
+                        onChange={(e) => onStatusChange?.(item.id, { areaId: e.target.value })}
+                        className="appearance-none bg-transparent hover:bg-primary/10 rounded-md pr-7 pl-2 py-0.5 -ml-2 text-[13px] font-medium text-foreground outline-none cursor-pointer transition-colors z-10 truncate max-w-[250px]"
+                      >
+                        <option value="" disabled>Pilih Area...</option>
+                        {dropdownOptions?.areas?.map((a: any) => {
+                          const isCurrentArea = a.id === item.areaId;
+                          const displayLabel = (isCurrentArea && item.metaEkstra?.namaSiklus) 
+                            ? `${item.area} - ${item.metaEkstra.namaSiklus}` 
+                            : a.name;
+                          return (
+                            <option key={a.id} value={a.id}>{displayLabel}</option>
+                          );
+                        })}
+                      </select>
+                      <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50 pointer-events-none z-10 transition-colors group-hover/select:text-foreground" />
+                    </div>
+                  )}
+
+                  {/* ✨ BADGE HST PINDAH KE SINI: Menempel rapi di samping nama siklus */}
+                  {calculateHST() && (
+                    <Badge variant="secondary" className="text-[10px] bg-emerald-500/10 text-emerald-700 px-1.5 py-0 border-emerald-500/20 rounded-sm font-bold shrink-0">
+                      {calculateHST()}
+                    </Badge>
+                  )}
+
+                </div>
+              </div>
+
                   {item.module === "perawatan" ? (
                     <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground">
                       <Lock className="h-3 w-3 opacity-60" />
