@@ -389,10 +389,11 @@ export function MasterTableView({
 
     {
       id: "tanggal",
-      header: "Tanggal (Mulai - Selesai)",
+      /* ✨ Kita ubah dari string biasa jadi JSX Function yang dipaksa w-full text-center */
+      header: () => <div className="w-full text-center">Tanggal (Mulai - Selesai)</div>,
       cell: ({ row }) => {
         const item = row.original;
-        
+  
         // 🚀 BACA LANGSUNG SEBAGAI STRING (Split di huruf T)
         const startDate = item.metaEkstra?.waktuMulai ? item.metaEkstra.waktuMulai.split(/[T ]/)[0] : "";
         const endDate = item.metaEkstra?.waktuSelesai ? item.metaEkstra.waktuSelesai.split(/[T ]/)[0] : "";
