@@ -333,130 +333,121 @@ export function ActivityDetailSheet({
           {/* ✨ 4. BODY WRAPPER: Padding horizontal diperlebar ke px-6 biar konten di dalam tidak sumpek */}
           <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar text-left">
 
-            {/* KARTU IDENTITAS UTAMA (JUDUL INLINE EDIT) */}
-            <div className="rounded-3xl bg-gradient-to-br from-primary/10 to-transparent p-5 border border-primary/10">
-              <div className="flex items-start justify-between gap-4">
-                <div className="w-full">
-                  <div className="flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
-                    <span>{item.time}</span>
-                    <span>•</span>
-                    <span className="text-foreground">{formatTanggalLengkap(item.rawDate)}</span>
-                    {item.dateLabel !== "Riwayat Lama" && (
-                      <>
-                        <span>•</span>
-                        <span className={item.dateLabel === "Hari ini" ? "text-primary" : ""}>
-                          {item.dateLabel}
-                        </span>
-                      </>
-                    )}
-
-                  {/* 💡 TAMPILKAN NAMA TANAMAN HISTORIS DARI SIKLUS ID */}
-                    {item.metaEkstra?.namaSiklus && (
-                      <>
-                        <span className="text-border/40 font-light">|</span>
-                        <span className="text-primary bg-primary/10 px-1.5 py-0.5 rounded flex items-center gap-1 font-bold tracking-normal">
-                           {item.metaEkstra.namaSiklus}
-                        </span>
-                      </>
-                    )}
-
-                   {/* 💡 HST PINDAH KE SINI, HANYA MUNCUL JIKA ADA DATANYA */}
-                    {calculateHST() && (
-                      <>
-                        <span className="text-border/40 font-light">|</span>
-                        <span className="text-primary bg-primary/10 px-1.5 py-0.5 rounded flex items-center gap-1 font-bold tracking-normal">
-                        {calculateHST()}
-                        </span>
-                      </>
-                    )}
-
-                  </div>
-                  
-                  {/* 💡 JUDUL: Tap untuk Edit */}
-
-                  {activeField === "title" ? (
-                    <input
-                      autoFocus
-                      type="text"
-                      value={localValue}
-                      onChange={(e) => setLocalValue(e.target.value)}
-                      onBlur={() => handleInlineSave("title")}
-                      onKeyDown={(e) => e.key === "Enter" && handleInlineSave("title")}
-                      className="mt-2 w-full bg-transparent text-2xl font-black tracking-tight text-foreground border-b border-primary/50 outline-none pb-1"
-                    />
-                  ) : (
-                    <h2 
-                      onClick={() => { setActiveField("title"); setLocalValue(item.title); }}
-                      className="mt-2 text-2xl font-black tracking-tight cursor-pointer hover:bg-muted/40 rounded transition-colors w-full"
-                    >
-                      {item.title}
-                    </h2>
-                  )}
-
+                        {/* ✨ 1. NOTION-STYLE PAGE TITLE (Besar, bersih, nyatu dengan background) */}
+            <div className="mb-6 mt-2 group relative">
+              {activeField === "title" ? (
+                <input
+                  autoFocus
+                  type="text"
+                  value={localValue}
+                  onChange={(e) => setLocalValue(e.target.value)}
+                  onBlur={() => handleInlineSave("title")}
+                  onKeyDown={(e) => e.key === "Enter" && handleInlineSave("title")}
+                  className="w-full bg-transparent text-3xl sm:text-4xl font-black tracking-tight text-foreground border-b-2 border-primary/50 outline-none pb-1 placeholder:text-muted-foreground/30"
+                  placeholder="Ketik judul aktivitas..."
+                />
+              ) : (
+                <div 
+                  onClick={() => { setActiveField("title"); setLocalValue(item.title); }}
+                  className="flex items-center gap-3 cursor-pointer group-hover:bg-muted/40 rounded-xl p-1 -ml-1 transition-colors w-fit border-b border-dashed border-transparent hover:border-primary/30"
+                >
+                  <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-foreground">
+                    {item.title}
+                  </h1>
+                  <span className="opacity-0 group-hover:opacity-100 text-muted-foreground/40 transition-opacity">
+                    <Edit3 className="h-5 w-5" />
+                  </span>
                 </div>
-                <div className="rounded-3xl bg-background/80 backdrop-blur-sm p-3 shadow-sm border border-border/40 shrink-0">
-                  <CalendarDays className="h-5 w-5 text-primary" />
-                </div>
-              </div>
+              )}
+            </div>
+
+            {/* ✨ 2. NOTION-STYLE PROPERTIES (Metadata vertikal yang rapi) */}
+            <div className="flex flex-col gap-2.5 mb-10 border-b border-border/40 pb-6">
               
-             {/* 💡 JAJARAN BADGE INTERAKTIF BARU (FIX LEBAR DINAMIS) */}
-              <div className="mt-4 flex flex-wrap gap-2 items-center">
-                
- {/* 1. Badge Area (perawatan dikunci) & Tanaman Historis */}
-{item.module === "perawatan" ? (
-  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted text-muted-foreground text-[11px] font-bold uppercase tracking-wider max-w-[160px] truncate">
-    <Lock className="h-3 w-3 shrink-0" />
-    <span className="truncate">
-      {item.metaEkstra?.namaSiklus ? `${item.area} - ${item.metaEkstra.namaSiklus}` : item.area}
-    </span>
-  </div>
-) : (
-  <div className="relative inline-flex shadow-sm max-w-full">
-    <select
-      value={item.areaId || ""}
-      onChange={(e) => onStatusChange?.(item.id, { areaId: e.target.value })}
-      className="appearance-none max-w-[130px] sm:max-w-[160px] truncate bg-primary text-primary-foreground border border-primary hover:bg-primary/90 rounded-full pl-3 pr-7 py-1 text-[11px] font-bold uppercase tracking-wider outline-none cursor-pointer transition-colors z-10"
-    >
-      <option value="" disabled>PILIH AREA</option>
-      {dropdownOptions?.areas?.map((a: any) => {
-        const isCurrentArea = a.id === item.areaId;
-        const displayLabel = (isCurrentArea && item.metaEkstra?.namaSiklus) 
-          ? `${item.area} - ${item.metaEkstra.namaSiklus}` 
-          : a.name;
-        return (
-          <option key={a.id} value={a.id}>
-            {displayLabel}
-          </option>
-        );
-      })}
-    </select>
-    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-primary-foreground pointer-events-none z-10" />
-  </div>
-)}
-
-
-              {/* 2. Badge Kategori (Sembunyikan khusus untuk Inspeksi karena tidak ada di schema DB) */}
-                {item.module !== "inspeksi" && (
-                  <div className="relative inline-flex shadow-sm max-w-full">
-                    <select
-                      value={item.module === "perawatan" ? (item.tagCategoryId || item.metaEkstra?.tagCategoryId || "") : (item.kategoriId || item.metaEkstra?.kategoriId || "")}
-                      onChange={(e) => {
-
-                      const field = item.module === "perawatan" ? "tagCategoryId" : "kategoriId";
-                      onStatusChange?.(item.id, { [field]: e.target.value });
-                    }}
-                    className="appearance-none max-w-[140px] sm:max-w-[170px] truncate bg-primary text-primary-foreground border border-primary hover:bg-primary/90 rounded-full pl-3 pr-7 py-1 text-[11px] font-bold uppercase tracking-wider outline-none cursor-pointer transition-colors z-10"
-                  >
-
-                    <option value="" disabled>PILIH KATEGORI</option>
-                    {dropdownOptions?.kategori?.filter((k: any) => k.module === item.module).map((k: any) => (
-                      <option key={k.id} value={k.id}>{k.name}</option>
-                    ))}
-                  </select>
-              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-primary-foreground pointer-events-none z-10" />
+              {/* Property: Waktu & Siklus */}
+              <div className="flex items-center min-h-[32px] hover:bg-muted/40 rounded-md px-1.5 -ml-1.5 transition-colors group">
+                <div className="w-[140px] shrink-0 text-[13px] font-medium text-muted-foreground flex items-center gap-2">
+                  <CalendarDays className="h-4 w-4 opacity-70" /> Waktu
                 </div>
-                )}
+                <div className="flex-1 flex flex-wrap items-center gap-2 text-[13px] font-medium text-foreground">
+                  <span>{formatTanggalLengkap(item.rawDate)}</span>
+                  <span className="text-muted-foreground/40 text-[10px]">●</span>
+                  <span>{item.time}</span>
+                  
+                  {item.dateLabel !== "Riwayat Lama" && (
+                    <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 rounded-sm font-bold", item.dateLabel === "Hari ini" ? "border-primary/50 text-primary bg-primary/5" : "text-muted-foreground")}>
+                      {item.dateLabel}
+                    </Badge>
+                  )}
+                  {calculateHST() && (
+                    <Badge variant="secondary" className="text-[10px] bg-emerald-500/10 text-emerald-700 px-1.5 py-0 border-emerald-500/20 rounded-sm font-bold">
+                      {calculateHST()}
+                    </Badge>
+                  )}
+                </div>
               </div>
+
+              {/* Property: Area */}
+              <div className="flex items-center min-h-[32px] hover:bg-muted/40 rounded-md px-1.5 -ml-1.5 transition-colors group">
+                <div className="w-[140px] shrink-0 text-[13px] font-medium text-muted-foreground flex items-center gap-2">
+                  <MapPin className="h-4 w-4 opacity-70" /> Area
+                </div>
+                <div className="flex-1">
+                  {item.module === "perawatan" ? (
+                    <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground">
+                      <Lock className="h-3 w-3 opacity-60" />
+                      {item.metaEkstra?.namaSiklus ? `${item.area} - ${item.metaEkstra.namaSiklus}` : item.area}
+                    </span>
+                  ) : (
+                    <div className="relative inline-flex max-w-full group/select">
+                      <select
+                        value={item.areaId || ""}
+                        onChange={(e) => onStatusChange?.(item.id, { areaId: e.target.value })}
+                        className="appearance-none bg-transparent hover:bg-primary/10 rounded-md pr-7 pl-2 py-0.5 -ml-2 text-[13px] font-medium text-foreground outline-none cursor-pointer transition-colors z-10 truncate max-w-[250px]"
+                      >
+                        <option value="" disabled>Pilih Area...</option>
+                        {dropdownOptions?.areas?.map((a: any) => {
+                          const isCurrentArea = a.id === item.areaId;
+                          const displayLabel = (isCurrentArea && item.metaEkstra?.namaSiklus) 
+                            ? `${item.area} - ${item.metaEkstra.namaSiklus}` 
+                            : a.name;
+                          return (
+                            <option key={a.id} value={a.id}>{displayLabel}</option>
+                          );
+                        })}
+                      </select>
+                      <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50 pointer-events-none z-10 transition-colors group-hover/select:text-foreground" />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Property: Kategori (Hide di Inspeksi) */}
+              {item.module !== "inspeksi" && (
+                <div className="flex items-center min-h-[32px] hover:bg-muted/40 rounded-md px-1.5 -ml-1.5 transition-colors group">
+                  <div className="w-[140px] shrink-0 text-[13px] font-medium text-muted-foreground flex items-center gap-2">
+                    <Briefcase className="h-4 w-4 opacity-70" /> Kategori
+                  </div>
+                  <div className="flex-1">
+                    <div className="relative inline-flex max-w-full group/select">
+                      <select
+                        value={item.module === "perawatan" ? (item.tagCategoryId || item.metaEkstra?.tagCategoryId || "") : (item.kategoriId || item.metaEkstra?.kategoriId || "")}
+                        onChange={(e) => {
+                          const field = item.module === "perawatan" ? "tagCategoryId" : "kategoriId";
+                          onStatusChange?.(item.id, { [field]: e.target.value });
+                        }}
+                        className="appearance-none bg-transparent hover:bg-primary/10 rounded-md pr-7 pl-2 py-0.5 -ml-2 text-[13px] font-medium text-foreground outline-none cursor-pointer transition-colors z-10 truncate max-w-[250px]"
+                      >
+                        <option value="" disabled>Pilih Kategori...</option>
+                        {dropdownOptions?.kategori?.filter((k: any) => k.module === item.module).map((k: any) => (
+                          <option key={k.id} value={k.id}>{k.name}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50 pointer-events-none z-10 transition-colors group-hover/select:text-foreground" />
+                    </div>
+                  </div>
+                </div>
+              )}
 
             </div>
 
