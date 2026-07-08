@@ -412,9 +412,9 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
                                         </SelectContent>
                                       </Select>
   {(() => {
-  // 🚀 1. Ambil info stok dan kuantitas dari form
+  // 🚀 1. Ambil info stok untuk mini-form override ini
   const stokTerkini = selectedProduk?.stokSaatIni ?? null;
-  const currentQty = form.watch(`logProduk.${index}.kuantitasPemakaian`) || 0;
+  const currentQty = prod.kuantitasPemakaian || 0;
   
   // 🚀 2. Deteksi status stok
   const isHabis = stokTerkini === 0;
@@ -422,23 +422,27 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
   const isRedAlert = isHabis || isOverStock;
 
   return (
-    <div className={`flex items-center border rounded-lg px-2 bg-background transition-colors ${
+    <div className={`flex items-center border rounded-md px-1.5 bg-background transition-colors ${
       isRedAlert ? "border-destructive bg-destructive/5 text-destructive" : "border-input"
     }`}>
-      <Input
+      {/* 💡 UBAH <Input> jadi <input> biasa juga di sini */}
+      <input
         type="number" step="0.01"
-        className={`h-9 text-xs bg-transparent border-0 rounded-none focus-visible:ring-0 px-1 text-right font-bold w-20 ${
-          isRedAlert ? "text-destructive font-black" : ""
-        } placeholder:text-muted-foreground/60 placeholder:font-normal placeholder:text-[10px] ${
+        className={`h-8 text-[10px] bg-transparent outline-none px-1 text-right font-bold w-14 ${
+          isRedAlert ? "text-destructive font-black" : "text-foreground"
+        } placeholder:text-muted-foreground/60 placeholder:font-normal placeholder:text-[9px] ${
           isHabis ? "placeholder:text-destructive/70 placeholder:font-bold" : ""
         }`}
-        /* 🚀 3. KUNCI UTAMA: Placeholder Dinamis ala Bayangan */
-        placeholder={isHabis ? "Habis!" : (stokTerkini !== null ? `Sisa ${stokTerkini}` : "Jumlah")}
-        value={form.watch(`logProduk.${index}.kuantitasPemakaian`) || ""}
-        onChange={(e) => form.setValue(`logProduk.${index}.kuantitasPemakaian`, Number(e.target.value))}
+        placeholder={isHabis ? "Habis!" : (stokTerkini !== null ? `Sisa ${stokTerkini}` : "Jml")}
+        value={prod.kuantitasPemakaian || ""}
+        onChange={(e) => { 
+          const arr = [...(form.getValues(`produkPerArea.${areaId}`) || [])]; 
+          arr[idx] = { ...arr[idx], kuantitasPemakaian: Number(e.target.value) }; 
+          form.setValue(`produkPerArea.${areaId}`, arr); 
+        }}
       />
       {selectedProduk && (
-        <span className={`text-[9px] font-bold ml-1 shrink-0 select-none ${
+        <span className={`text-[8px] font-bold ml-1 shrink-0 select-none ${
           isRedAlert ? "text-destructive font-black" : "text-muted-foreground"
         }`}>
           {selectedProduk.satuanDasar}
@@ -619,14 +623,14 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
     <div className={`flex items-center border rounded-md px-1.5 bg-background transition-colors ${
       isRedAlert ? "border-destructive bg-destructive/5 text-destructive" : "border-input"
     }`}>
-      <Input
+      {/* 💡 UBAH <Input> jadi <input> biasa juga di sini */}
+      <input
         type="number" step="0.01"
-        className={`h-8 text-[10px] bg-transparent border-0 rounded-none focus-visible:ring-0 px-1 text-right font-bold w-14 ${
-          isRedAlert ? "text-destructive font-black" : ""
+        className={`h-8 text-[10px] bg-transparent outline-none px-1 text-right font-bold w-14 ${
+          isRedAlert ? "text-destructive font-black" : "text-foreground"
         } placeholder:text-muted-foreground/60 placeholder:font-normal placeholder:text-[9px] ${
           isHabis ? "placeholder:text-destructive/70 placeholder:font-bold" : ""
         }`}
-        /* 🚀 3. Placeholder Dinamis di Form Override */
         placeholder={isHabis ? "Habis!" : (stokTerkini !== null ? `Sisa ${stokTerkini}` : "Jml")}
         value={prod.kuantitasPemakaian || ""}
         onChange={(e) => { 
