@@ -374,10 +374,10 @@ export function ActivityDetailSheet({
               )}
             </div>
 
-            {/* ✨ 2. NOTION-STYLE PROPERTIES (Metadata vertikal yang rapi) */}
+         {/* ✨ 2. NOTION-STYLE PROPERTIES (Metadata vertikal yang rapi) */}
             <div className="flex flex-col gap-2.5 mb-10 border-b border-border/40 pb-6">
               
-           {/* Property: Waktu (Bersih, tanpa badge) */}
+              {/* Property: Waktu */}
               <div className="flex items-center min-h-[32px] hover:bg-muted/40 rounded-md px-1.5 -ml-1.5 transition-colors group">
                 <div className="w-[140px] shrink-0 text-[13px] font-medium text-muted-foreground flex items-center gap-2">
                   <CalendarDays className="h-4 w-4 opacity-70" /> Waktu
@@ -394,9 +394,7 @@ export function ActivityDetailSheet({
                 <div className="w-[140px] shrink-0 text-[13px] font-medium text-muted-foreground flex items-center gap-2">
                   <MapPin className="h-4 w-4 opacity-70" /> Area
                 </div>
-                {/* ✨ Container flex ditambahkan di sini biar dropdown area dan badge HST sejajar horizontal */}
                 <div className="flex-1 flex items-center gap-2 flex-wrap">
-                  
                   {item.module === "perawatan" ? (
                     <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground">
                       <Lock className="h-3 w-3 opacity-60" />
@@ -424,46 +422,16 @@ export function ActivityDetailSheet({
                     </div>
                   )}
 
-                  {/* ✨ BADGE HST PINDAH KE SINI: Menempel rapi di samping nama siklus */}
+                  {/* ✨ BADGE HST */}
                   {calculateHST() && (
                     <Badge variant="secondary" className="text-[10px] bg-emerald-500/10 text-emerald-700 px-1.5 py-0 border-emerald-500/20 rounded-sm font-bold shrink-0">
                       {calculateHST()}
                     </Badge>
                   )}
-
                 </div>
               </div>
 
-                  {item.module === "perawatan" ? (
-                    <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground">
-                      <Lock className="h-3 w-3 opacity-60" />
-                      {item.metaEkstra?.namaSiklus ? `${item.area} - ${item.metaEkstra.namaSiklus}` : item.area}
-                    </span>
-                  ) : (
-                    <div className="relative inline-flex max-w-full group/select">
-                      <select
-                        value={item.areaId || ""}
-                        onChange={(e) => onStatusChange?.(item.id, { areaId: e.target.value })}
-                        className="appearance-none bg-transparent hover:bg-primary/10 rounded-md pr-7 pl-2 py-0.5 -ml-2 text-[13px] font-medium text-foreground outline-none cursor-pointer transition-colors z-10 truncate max-w-[250px]"
-                      >
-                        <option value="" disabled>Pilih Area...</option>
-                        {dropdownOptions?.areas?.map((a: any) => {
-                          const isCurrentArea = a.id === item.areaId;
-                          const displayLabel = (isCurrentArea && item.metaEkstra?.namaSiklus) 
-                            ? `${item.area} - ${item.metaEkstra.namaSiklus}` 
-                            : a.name;
-                          return (
-                            <option key={a.id} value={a.id}>{displayLabel}</option>
-                          );
-                        })}
-                      </select>
-                      <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50 pointer-events-none z-10 transition-colors group-hover/select:text-foreground" />
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Property: Kategori (Hide di Inspeksi) */}
+              {/* Property: Kategori */}
               {item.module !== "inspeksi" && (
                 <div className="flex items-center min-h-[32px] hover:bg-muted/40 rounded-md px-1.5 -ml-1.5 transition-colors group">
                   <div className="w-[140px] shrink-0 text-[13px] font-medium text-muted-foreground flex items-center gap-2">
