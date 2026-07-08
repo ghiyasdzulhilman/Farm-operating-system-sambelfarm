@@ -244,9 +244,9 @@ export function AgronomyHubPage() {
     );
   }
 
-  return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6 space-y-6 text-left">
-      <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+    return (
+    <div className="mx-auto w-full max-w-7xl py-6 space-y-6 text-left animate-in fade-in duration-300">
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div className="space-y-3">
           <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-blue-600 shadow-[0_2px_10px_rgb(59,130,246,0.1)] border border-blue-100/50">
           <Leaf className="h-3.5 w-3.5" />
