@@ -412,9 +412,9 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
                                         </SelectContent>
                                       </Select>
   {(() => {
-  // 🚀 1. Ambil info stok untuk mini-form override ini
+  // 🚀 1. Ambil info stok dan kuantitas dari form (BUKAN dari prod!)
   const stokTerkini = selectedProduk?.stokSaatIni ?? null;
-  const currentQty = prod.kuantitasPemakaian || 0;
+  const currentQty = form.watch(`logProduk.${index}.kuantitasPemakaian`) || 0;
   
   // 🚀 2. Deteksi status stok
   const isHabis = stokTerkini === 0;
@@ -422,27 +422,23 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
   const isRedAlert = isHabis || isOverStock;
 
   return (
-    <div className={`flex items-center border rounded-md px-1.5 bg-background transition-colors ${
+    <div className={`flex items-center border rounded-lg px-2 bg-background transition-colors ${
       isRedAlert ? "border-destructive bg-destructive/5 text-destructive" : "border-input"
     }`}>
-      {/* 💡 UBAH <Input> jadi <input> biasa juga di sini */}
+      {/* 💡 Input polos tanpa class bawaan Shadcn */}
       <input
         type="number" step="0.01"
-        className={`h-8 text-[10px] bg-transparent outline-none px-1 text-right font-bold w-14 ${
+        className={`h-9 text-xs bg-transparent outline-none px-1 text-right font-bold w-20 ${
           isRedAlert ? "text-destructive font-black" : "text-foreground"
-        } placeholder:text-muted-foreground/60 placeholder:font-normal placeholder:text-[9px] ${
+        } placeholder:text-muted-foreground/60 placeholder:font-normal placeholder:text-[10px] ${
           isHabis ? "placeholder:text-destructive/70 placeholder:font-bold" : ""
         }`}
-        placeholder={isHabis ? "Habis!" : (stokTerkini !== null ? `Sisa ${stokTerkini}` : "Jml")}
-        value={prod.kuantitasPemakaian || ""}
-        onChange={(e) => { 
-          const arr = [...(form.getValues(`produkPerArea.${areaId}`) || [])]; 
-          arr[idx] = { ...arr[idx], kuantitasPemakaian: Number(e.target.value) }; 
-          form.setValue(`produkPerArea.${areaId}`, arr); 
-        }}
+        placeholder={isHabis ? "Habis!" : (stokTerkini !== null ? `Sisa ${stokTerkini}` : "Jumlah")}
+        value={form.watch(`logProduk.${index}.kuantitasPemakaian`) || ""}
+        onChange={(e) => form.setValue(`logProduk.${index}.kuantitasPemakaian`, Number(e.target.value))}
       />
       {selectedProduk && (
-        <span className={`text-[8px] font-bold ml-1 shrink-0 select-none ${
+        <span className={`text-[9px] font-bold ml-1 shrink-0 select-none ${
           isRedAlert ? "text-destructive font-black" : "text-muted-foreground"
         }`}>
           {selectedProduk.satuanDasar}
@@ -451,6 +447,7 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
     </div>
   );
 })()}
+
 
                                     </div>
                                     <Button type="button" variant="ghost" size="icon" className="h-9 w-9 text-destructive hover:bg-destructive/10 shrink-0 rounded-lg" onClick={() => removeProduk(index)}><Trash2 className="h-4 w-4" /></Button>
