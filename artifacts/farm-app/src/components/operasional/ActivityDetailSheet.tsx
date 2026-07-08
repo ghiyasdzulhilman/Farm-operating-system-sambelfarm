@@ -728,25 +728,47 @@ export function ActivityDetailSheet({
                           <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground opacity-50 pointer-events-none" />
                         </div>
 
-                        {/* Input Gram/Dosis */}
-                        <div className="flex items-center bg-background border border-border/50 rounded-xl px-2 w-[100px]">
-                          <input
-                            type="number"
-                            min="0"
-                            value={prod.kuantitasPemakaian || ""}
-           
-  onChange={(e) => {
-  const newProds = [...editedProducts];
-  newProds[index] = { ...newProds[index], kuantitasPemakaian: parseFloat(e.target.value) || 0 };
-  setEditedProducts(newProds);
-  setIsDirty(true);
-}}
+ {/* Input Gram/Dosis + Panduan Sisa Stok */}
+{(() => {
+  // 🚀 1. Cari data produk master untuk mendapatkan sisa stok terkini di gudang
+  const selectedMaster = produkOptions?.data?.find((p: any) => p.id === prod.produkId);
+  const stokTerkini = selectedMaster?.stokSaatIni ?? null;
+  
+  // 🚀 2. Cek apakah angka yang diketik melebihi stok yang ada
+  const isOverStock = stokTerkini !== null && prod.kuantitasPemakaian > stokTerkini;
 
-                            className="w-full bg-transparent text-xs font-bold outline-none py-2 text-right"
-                            placeholder="0"
-                          />
-                          <span className="text-[10px] font-bold text-muted-foreground ml-1">{prod.satuanDasar || "gram"}</span>
-                        </div>
+  return (
+    <div className={cn(
+      "flex items-center bg-background border rounded-xl px-2.5 w-[140px] transition-colors shrink-0",
+      isOverStock ? "border-destructive bg-destructive/5 text-destructive shadow-sm" : "border-border/50"
+    )}>
+      <input
+        type="number"
+        min="0"
+        value={prod.kuantitasPemakaian || ""}
+        onChange={(e) => {
+          const newProds = [...editedProducts];
+          newProds[index] = { ...newProds[index], kuantitasPemakaian: parseFloat(e.target.value) || 0 };
+          setEditedProducts(newProds);
+          setIsDirty(true);
+        }}
+        className={cn(
+          "w-full bg-transparent text-xs font-black outline-none py-2 text-right",
+          isOverStock && "text-destructive"
+        )}
+        placeholder="0"
+      />
+      {/* 🚀 3. Tampilkan format panduan: / [Stok] [Satuan] */}
+      <span className={cn(
+        "text-[10px] font-bold ml-1.5 shrink-0 select-none whitespace-nowrap",
+        isOverStock ? "text-destructive font-black" : "text-muted-foreground"
+      )}>
+        {stokTerkini !== null ? `/ ${stokTerkini} ` : ""}
+        {prod.satuanDasar || selectedMaster?.satuanDasar || "gram"}
+      </span>
+    </div>
+  );
+})()}
 
                         {/* Tombol Hapus Baris */}
                         <Button 
