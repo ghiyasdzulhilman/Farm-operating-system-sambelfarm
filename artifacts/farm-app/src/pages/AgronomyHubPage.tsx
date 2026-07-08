@@ -235,35 +235,55 @@ export function AgronomyHubPage() {
     });
   }, [feedData, activeModule, activeFilter]);
 
-  if (isLoading) {
+    if (isLoading) {
     return (
-      <div className="flex h-[60vh] w-full flex-col items-center justify-center gap-4 text-muted-foreground">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-sm font-bold uppercase tracking-widest">Memuat Database Kebun...</p>
+      <div className="mx-auto w-full max-w-7xl py-6 space-y-6 animate-in fade-in duration-500">
+        {/* Skeleton Header */}
+        <div className="flex justify-between items-end">
+          <div className="space-y-3 w-1/3">
+            <div className="h-6 w-32 animate-pulse rounded-full bg-muted/60" />
+            <div className="h-10 w-3/4 animate-pulse rounded-xl bg-muted/60" />
+          </div>
+          <div className="h-12 w-48 animate-pulse rounded-2xl bg-muted/60 hidden md:block" />
+        </div>
+        
+        {/* Skeleton Summary & Filter */}
+        <div className="h-24 w-full animate-pulse rounded-[1.5rem] bg-muted/60" />
+        <div className="h-32 w-full animate-pulse rounded-[1.5rem] bg-muted/60" />
+        
+        {/* Skeleton Layout Utama */}
+        <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_280px]">
+          <div className="h-[500px] animate-pulse rounded-[1.5rem] bg-muted/60" />
+          <div className="space-y-4">
+            <div className="h-48 animate-pulse rounded-[1.5rem] bg-muted/60" />
+            <div className="h-48 animate-pulse rounded-[1.5rem] bg-muted/60" />
+          </div>
+        </div>
       </div>
     );
   }
 
     return (
     <div className="mx-auto w-full max-w-7xl py-6 space-y-6 text-left animate-in fade-in duration-300">
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div className="space-y-3">
-          <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-blue-600 shadow-[0_2px_10px_rgb(59,130,246,0.1)] border border-blue-100/50">
-          <Leaf className="h-3.5 w-3.5" />
-          Agronomy Hub
+     <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div className="space-y-2">
+          {/* Badge lebih soft, gaya pill modern */}
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-[11px] font-semibold tracking-wide text-primary border border-primary/10">
+            <Leaf className="h-3.5 w-3.5" />
+            <span>Agronomy Hub</span>
           </div>
-          <h1 className="text-3xl font-black tracking-tight md:text-4xl">Pusat Aktivitas</h1>
+          {/* Typografi lebih elegan */}
+          <h1 className="text-3xl font-bold tracking-tight md:text-4xl">Pusat Aktivitas</h1>
         </div>
 
         <div className="w-full md:w-auto pt-2 md:pt-0">
           <Button 
-            className="w-full h-12 rounded-xl bg-primary px-6 font-bold text-primary-foreground shadow-md transition-all active:scale-95 md:w-auto md:hover:scale-[1.02]"
+            className="w-full h-12 rounded-2xl bg-primary px-6 font-semibold text-primary-foreground shadow-[0_8px_24px_-6px_rgba(var(--primary-color-rgb,0,0,0),0.3)] transition-all duration-300 active:scale-95 hover:-translate-y-0.5 hover:shadow-[0_12px_30px_-6px_rgba(var(--primary-color-rgb,0,0,0),0.4)] md:w-auto"
             onClick={() => setShowMasterHub(true)}
           >
             <Database className="mr-2 h-5 w-5" /> Master Control Center
           </Button>
         </div>
-
       </div>
 
       <SummaryHeader feedData={feedData} meta={meta} />
@@ -350,37 +370,40 @@ export function AgronomyHubPage() {
           )}
       </div>
 
-        <aside className="space-y-4">
-          <div className="rounded-[1.5rem] bg-white p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100/60">
+                <aside className="space-y-5">
+          {/* Kartu Snapshot - Glassmorphism & Soft Shadow */}
+          <div className="rounded-[1.5rem] border border-border/40 bg-card/60 backdrop-blur-md p-5 shadow-[0_12px_30px_-4px_rgba(0,0,0,0.06)] transition-all duration-500 hover:shadow-[0_16px_40px_-4px_rgba(0,0,0,0.08)] hover:bg-card/80">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Snapshot</p>
-                <h3 className="mt-1 text-lg font-black tracking-tight">Ringkasan Cepat</h3>
+                <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/80">Snapshot</p>
+                <h3 className="mt-1 text-lg font-bold tracking-tight">Ringkasan Cepat</h3>
               </div>
-              <div className="rounded-2xl bg-primary/10 p-3 text-primary"><TrendingUp className="h-5 w-5" /></div>
+              <div className="rounded-2xl bg-primary/10 p-3 text-primary shadow-[inset_0_1px_4px_rgba(255,255,255,0.4)]"><TrendingUp className="h-5 w-5" /></div>
             </div>
-            <div className="mt-4 space-y-3">
+            <div className="mt-5 space-y-3">
               <InfoRow label="Total Aktivitas" value={`${feedData.length}`} />
               <InfoRow label="Aktivitas Tertunda" value={`${feedData.filter((i) => i.status === "Belum dikerjakan").length}`} />
               <InfoRow label="Data Terakhir Load" value={new Date(meta.lastSynced).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} />
             </div>
           </div>
 
-          <div className="rounded-[1.5rem] bg-white p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100/60">
+          {/* Kartu Shortcut */}
+          <div className="rounded-[1.5rem] border border-border/40 bg-card/60 backdrop-blur-md p-5 shadow-[0_12px_30px_-4px_rgba(0,0,0,0.06)] transition-all duration-500 hover:shadow-[0_16px_40px_-4px_rgba(0,0,0,0.08)] hover:bg-card/80">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Shortcut</p>
-                <h3 className="mt-1 text-lg font-black tracking-tight">Aksi Cepat</h3>
+                <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/80">Shortcut</p>
+                <h3 className="mt-1 text-lg font-bold tracking-tight">Aksi Cepat</h3>
               </div>
-              <div className="rounded-2xl bg-muted p-3 text-muted-foreground"><MoreHorizontal className="h-5 w-5" /></div>
+              <div className="rounded-2xl bg-muted/50 p-3 text-muted-foreground border border-border/50"><MoreHorizontal className="h-5 w-5" /></div>
             </div>
-            <div className="mt-4 grid gap-2">
+            <div className="mt-5 grid gap-3">
               <ShortcutButton icon={Sprout} label="Tambah Perawatan" />
               <ShortcutButton icon={Leaf} label="Tambah Inspeksi" />
               <ShortcutButton icon={Wrench} label="Tambah Operasional" />
             </div>
           </div>
         </aside>
+
       </div>
 
     <ActivityDetailSheet 
@@ -412,24 +435,25 @@ export function AgronomyHubPage() {
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 px-4 py-3">
-      <span className="text-sm font-medium text-slate-500">{label}</span>
-      <span className="text-sm font-black text-slate-700">{value}</span>
+    <div className="flex items-center justify-between rounded-2xl bg-muted/40 border border-border/30 px-4 py-3 transition-colors hover:bg-muted/60">
+      <span className="text-[13px] font-medium text-muted-foreground">{label}</span>
+      <span className="text-[13px] font-bold text-foreground">{value}</span>
     </div>
   );
 }
 
 function ShortcutButton({ icon: Icon, label }: { icon: any; label: string }) {
   return (
-    <button className="group flex w-full items-center justify-between rounded-2xl border border-slate-100/60 bg-white px-4 py-3 text-left shadow-[0_2px_10px_rgb(0,0,0,0.02)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgb(0,0,0,0.06)]">
+    <button className="group flex w-full items-center justify-between rounded-2xl border border-border/40 bg-background/50 px-4 py-3 text-left shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_20px_-4px_rgba(0,0,0,0.06)] hover:bg-background">
       <div className="flex items-center gap-3">
-        <div className="rounded-xl bg-blue-50 p-2 text-blue-500 transition-colors group-hover:bg-blue-100 group-hover:text-blue-600">
+        <div className="rounded-xl bg-primary/10 p-2.5 text-primary transition-all duration-300 group-hover:scale-110 group-hover:bg-primary group-hover:text-primary-foreground group-hover:shadow-md">
           <Icon className="h-4 w-4" />
         </div>
-        <span className="text-sm font-bold text-slate-700">{label}</span>
+        <span className="text-[13px] font-semibold text-foreground/90">{label}</span>
       </div>
-      <ChevronRight className="h-4 w-4 text-slate-400 transition-transform group-hover:translate-x-1 group-hover:text-blue-500" />
+      <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform duration-300 group-hover:translate-x-1 group-hover:text-primary" />
     </button>
   );
 }
+
 
