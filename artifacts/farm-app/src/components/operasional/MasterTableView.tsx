@@ -623,11 +623,13 @@ export function MasterTableView({
       <div className="w-full overflow-x-auto">
         <table className="w-full min-w-[900px] border-collapse">
 
-          <thead>
+           <thead>
             {table.getHeaderGroups().map(headerGroup => (
-              <tr key={headerGroup.id} className="border-b bg-muted/50">
+              /* ✨ 1. Header Row: Warna lebih lembut dan kontras rapi */
+              <tr key={headerGroup.id} className="border-b border-border/40 bg-muted/60 backdrop-blur-sm">
                 {headerGroup.headers.map(header => (
-                  <th key={header.id} className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-muted-foreground whitespace-nowrap border-r last:border-r-0">
+                  /* ✨ 2. Hapus 'border-r last:border-r-0' biar bebas garis vertikal kaku */
+                  <th key={header.id} className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground/90 whitespace-nowrap">
                     {flexRender(header.column.columnDef.header, header.getContext())}
                   </th>
                 ))}
@@ -643,9 +645,11 @@ export function MasterTableView({
               </tr>
             ) : (
               table.getRowModel().rows.map(row => (
-                <tr key={row.id} className="border-b hover:bg-muted/20 transition-colors group divide-x">
+                /* ✨ 3. Table Row: Hapus 'divide-x', pertajam border-b, dan naikkan hover ke 'bg-muted/40' */
+                <tr key={row.id} className="border-b border-border/40 hover:bg-muted/40 transition-all duration-200 group">
                   {row.getVisibleCells().map(cell => (
-                    <td key={cell.id} className="px-2 py-1 align-middle text-sm">
+                    /* ✨ 4. Table Cell: Padding sedikit diperlebar (px-3 py-1.5) biar teks ga nempel antar kolom */
+                    <td key={cell.id} className="px-3 py-1.5 align-middle text-sm">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}
@@ -653,6 +657,7 @@ export function MasterTableView({
               ))
             )}
           </tbody>
+
         </table>
       </div>
     </div>
