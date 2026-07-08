@@ -38,9 +38,10 @@ export function FilterControls({
     <div className="mt-6 space-y-4">
       
       {/* 🌟 1. BENTO DECK: SOFT UI MODULES */}
-      {/* Ditambahkan py-3 dan px-2 agar bayangan Soft UI punya ruang dan tidak terpotong */}
-      <div className="flex gap-3 overflow-x-auto py-3 px-2 -mx-2 custom-scrollbar snap-x">
+      {/* px-2 dan -mx-2 dihapus agar sejajar sempurna (presisi) dengan Command Bar di bawahnya */}
+      <div className="flex gap-3 overflow-x-auto py-3 custom-scrollbar snap-x">
         {MODULES.map((module) => {
+
           const Icon = MODULE_ICONS[module.key] || Layers;
           const isActive = activeModule === module.key;
           
