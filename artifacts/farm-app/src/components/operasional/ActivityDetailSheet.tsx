@@ -17,6 +17,8 @@ import {
   Plus,
   Trash2,
   Save,
+  MapPin,
+  Edit3,
   Banknote,
 } from "lucide-react";
 
