@@ -927,7 +927,7 @@ export function ActivityDetailSheet({
                   ));
                 })()}
               </div>
-            </section>
+                        </section>
             
           </div>
         </div>
@@ -935,3 +935,4 @@ export function ActivityDetailSheet({
     </Sheet>
   );
 }
+
