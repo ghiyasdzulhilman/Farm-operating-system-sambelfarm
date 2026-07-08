@@ -728,7 +728,7 @@ export function ActivityDetailSheet({
                           <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground opacity-50 pointer-events-none" />
                         </div>
 
- {/* Input Gram/Dosis + Panduan Sisa Stok */}
+ {/* Input Gram/Dosis dengan Preview Sisa Stok (Placeholder) */}
 {(() => {
   // 🚀 1. Cari data produk master untuk mendapatkan sisa stok terkini di gudang
   const selectedMaster = produkOptions?.data?.find((p: any) => p.id === prod.produkId);
@@ -739,7 +739,7 @@ export function ActivityDetailSheet({
 
   return (
     <div className={cn(
-      "flex items-center bg-background border rounded-xl px-2.5 w-[140px] transition-colors shrink-0",
+      "flex items-center bg-background border rounded-xl px-2.5 w-[120px] transition-colors shrink-0",
       isOverStock ? "border-destructive bg-destructive/5 text-destructive shadow-sm" : "border-border/50"
     )}>
       <input
@@ -753,17 +753,18 @@ export function ActivityDetailSheet({
           setIsDirty(true);
         }}
         className={cn(
-          "w-full bg-transparent text-xs font-black outline-none py-2 text-right",
-          isOverStock && "text-destructive"
+          "w-full bg-transparent text-xs font-bold outline-none py-2 text-right",
+          // 💡 Kunci Wajah Placeholder: warna abu tipis & font normal saat belum diketik
+          "placeholder:text-muted-foreground/60 placeholder:font-normal placeholder:text-[11px]",
+          isOverStock && "text-destructive font-black"
         )}
-        placeholder="0"
+        /* 🚀 3. KUNCI UTAMA: Teks sisa stok dijadikan placeholder dinamis */
+        placeholder={stokTerkini !== null ? `Sisa ${stokTerkini}` : "0"}
       />
-      {/* 🚀 3. Tampilkan format panduan: / [Stok] [Satuan] */}
       <span className={cn(
-        "text-[10px] font-bold ml-1.5 shrink-0 select-none whitespace-nowrap",
+        "text-[10px] font-bold ml-1.5 shrink-0 select-none",
         isOverStock ? "text-destructive font-black" : "text-muted-foreground"
       )}>
-        {stokTerkini !== null ? `/ ${stokTerkini} ` : ""}
         {prod.satuanDasar || selectedMaster?.satuanDasar || "gram"}
       </span>
     </div>
