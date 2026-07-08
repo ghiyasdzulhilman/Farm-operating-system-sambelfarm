@@ -245,17 +245,64 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
     if (isStepValid) setStep((prev) => prev + 1);
   };
 
-  // 👇 MANIPULATOR PAYLOAD OTOMATIS SEBELUM SUBMIT 👇
+    // 👇 MANIPULATOR PAYLOAD OTOMATIS SEBELUM SUBMIT 👇
   function onSubmit(values: InspeksiFormValues) {
-    saveInspeksi.mutate(
-      buildAreaOverridePayload({
-        values,
-        areaIds: values.areaIds,
-        overriddenAreas,
-        modeKeys: INSPEKSI_MODE_KEYS,
-        fields: INSPEKSI_OVERRIDE_FIELDS,
-      }),
-    );
+    const hasOverrides = Object.keys(overriddenAreas).length > 0;
+    
+    // 1. Biarkan helper membuatkan kerangka dasar (berguna buat area yang gak di-override)
+    const basePayload = buildAreaOverridePayload({
+      values,
+      areaIds: values.areaIds,
+      overriddenAreas,
+      modeKeys: INSPEKSI_MODE_KEYS,
+      fields: INSPEKSI_OVERRIDE_FIELDS,
+    });
+
+    // 🚀 2. FIX: SELAMATKAN DATA ASLI JIKA ADA OVERRIDE (SPESIFIK)
+    if (hasOverrides) {
+      basePayload.modeWaktu = "spesifik";
+      basePayload.modeKendala = "spesifik";
+      basePayload.modeAngka = "spesifik";
+      basePayload.modePekerja = "spesifik";
+      basePayload.modeAtribut = "spesifik";
+      basePayload.modeCatatan = "spesifik";
+
+      // Kosongkan dulu untuk dibangun ulang dengan presisi
+      basePayload.waktuMulaiPerArea = {};
+      basePayload.waktuSelesaiPerArea = {};
+      basePayload.durasiKerjaPerArea = {};
+      basePayload.kendalaPerArea = {};
+      basePayload.temuanPerArea = {};
+      basePayload.phTanahPerArea = {};
+      basePayload.tingkatSeranganPerArea = {};
+      basePayload.radiusPerArea = {};
+      basePayload.pekerjaPerArea = {};
+      basePayload.statusPerArea = {};
+      basePayload.keteranganPerArea = {};
+
+      // Looping semua area. Jika di-override, ambil data asli dari form. Jika tidak, tarik dari broadcast.
+      values.areaIds.forEach((areaId) => {
+        const isOvr = overriddenAreas[areaId];
+
+        basePayload.waktuMulaiPerArea[areaId] = isOvr ? values.waktuMulaiPerArea[areaId] : values.waktuMulaiBroadcast;
+        basePayload.waktuSelesaiPerArea[areaId] = isOvr ? values.waktuSelesaiPerArea[areaId] : values.waktuSelesaiBroadcast;
+        basePayload.durasiKerjaPerArea[areaId] = isOvr ? values.durasiKerjaPerArea[areaId] : values.durasiKerjaBroadcast;
+        
+        basePayload.kendalaPerArea[areaId] = isOvr ? (values.kendalaPerArea[areaId] || []) : values.kendalaBroadcast;
+        basePayload.temuanPerArea[areaId] = isOvr ? (values.temuanPerArea[areaId] || {}) : values.temuanBroadcast;
+        
+        basePayload.phTanahPerArea[areaId] = isOvr ? values.phTanahPerArea[areaId] : values.phTanahBroadcast;
+        basePayload.tingkatSeranganPerArea[areaId] = isOvr ? values.tingkatSeranganPerArea[areaId] : values.tingkatSeranganBroadcast;
+        basePayload.radiusPerArea[areaId] = isOvr ? values.radiusPerArea[areaId] : values.radiusBroadcast;
+        
+        basePayload.pekerjaPerArea[areaId] = isOvr ? (values.pekerjaPerArea[areaId] || []) : values.pekerjaBroadcast;
+        basePayload.statusPerArea[areaId] = isOvr ? values.statusPerArea[areaId] : values.statusBroadcast;
+        basePayload.keteranganPerArea[areaId] = isOvr ? values.keteranganPerArea[areaId] : values.keteranganBroadcast;
+      });
+    }
+
+    // 3. Tembak mutasinya
+    saveInspeksi.mutate(basePayload);
   }
 
   // --- HELPER UNTUK OVERRIDE ---
