@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { Filter, LayoutGrid, List, TableProperties, ChevronDown, ChevronUp } from "lucide-react";
+import { LayoutGrid, List, TableProperties, Layers, Sprout, HardHat, Wallet, Bug } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AgronomyItem, ModuleKey, ViewKey } from "@/types/operasional";
 
@@ -8,146 +7,123 @@ interface FilterProps {
   activeView: ViewKey; setActiveView: (v: ViewKey) => void;
   activeModule: ModuleKey; setActiveModule: (m: ModuleKey) => void;
   activeFilter: string; setActiveFilter: (f: string) => void;
-  // 🚀 PROPS BARU UNTUK FILTER SIKLUS
   filterSiklus: "aktif" | "selesai"; 
   setFilterSiklus: (val: "aktif" | "selesai") => void;
 }
 
 const FILTERS = ["Hari ini", "Kemarin", "Selesai", "Dalam proses", "Belum dikerjakan"];
 
+// 🚀 Mapping Icon Baru untuk setiap Modul
+const MODULE_ICONS: Record<string, any> = {
+  all: Layers,
+  perawatan: Sprout,
+  inspeksi: Bug,
+  operasional: HardHat,
+  finance: Wallet,
+};
+
 export function FilterControls({ 
   feedData, activeView, setActiveView, activeModule, setActiveModule, activeFilter, setActiveFilter,
   filterSiklus, setFilterSiklus 
 }: FilterProps) {
-
-  // 🧠 STATE UNTUK BUKA/TUTUP FILTER
-  const [showFilters, setShowFilters] = useState(false);
   
   const MODULES: Array<{ key: ModuleKey; label: string; count: number; hint: string }> = [
-    { key: "all", label: "Semua", count: feedData.length, hint: "Gabungan aktivitas" },
-    { key: "perawatan", label: "Perawatan", count: feedData.filter(i => i.module === "perawatan").length, hint: "Treatment" },
-    { key: "inspeksi", label: "Inspeksi", count: feedData.filter(i => i.module === "inspeksi").length, hint: "Observasi" },
-    { key: "operasional", label: "Operasional", count: feedData.filter(i => i.module === "operasional").length, hint: "Task & log" },
-    { key: "finance", label: "Finance", count: feedData.filter(i => i.module === "finance").length, hint: "Cashflow" },
+    { key: "all", label: "Semua", count: feedData.length, hint: "Total aktivitas" },
+    { key: "perawatan", label: "Perawatan", count: feedData.filter(i => i.module === "perawatan").length, hint: "Nutrisi & obat" },
+    { key: "inspeksi", label: "Inspeksi", count: feedData.filter(i => i.module === "inspeksi").length, hint: "Observasi hama" },
+    { key: "operasional", label: "Operasional", count: feedData.filter(i => i.module === "operasional").length, hint: "Tugas harian" },
+    { key: "finance", label: "Finance", count: feedData.filter(i => i.module === "finance").length, hint: "Catatan biaya" },
   ];
 
   return (
-    <div className="mt-6 rounded-[1.5rem] border border-border/40 bg-card p-4 shadow-[0_8px_30px_rgba(0,0,0,0.04)] transition-all duration-300">
+    <div className="mt-6 space-y-4">
       
-      {/* 🌟 BARIS ATAS: TOMBOL FILTER & TOGGLE VIEW (MINIMALIS) */}
-      <div className="flex items-center justify-between gap-3">
-        
-        {/* 🚀 KELOMPOK KIRI: TOMBOL FILTER & TOGGLE SIKLUS */}
-        <div className="flex items-center gap-2">
-          {/* Tombol Buka/Tutup Filter */}
-          <button 
-            onClick={() => setShowFilters(!showFilters)}
-            className={cn(
-              "flex items-center gap-1.5 rounded-2xl px-3 py-2 text-xs font-bold transition-all duration-300 border shrink-0",
-              showFilters 
-                ? "bg-primary/10 text-primary border-primary/20 shadow-sm" 
-                : "bg-muted/30 text-muted-foreground border-transparent hover:bg-muted/50"
-            )}
-          >
-            <Filter className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">{showFilters ? "Tutup" : "Filter"}</span>
-          </button>
+      {/* 🌟 1. BENTO DECK: SLIDER MODUL UTAMA */}
+      <div className="flex gap-3 overflow-x-auto pb-3 pt-1 custom-scrollbar snap-x">
+        {MODULES.map((module) => {
+          const Icon = MODULE_ICONS[module.key] || Layers;
+          const isActive = activeModule === module.key;
+          
+          return (
+            <button 
+              key={module.key} 
+              onClick={() => setActiveModule(module.key)}
+              className={cn(
+                "snap-start relative flex min-w-[130px] shrink-0 flex-col justify-between rounded-[1.25rem] border p-3.5 text-left transition-all duration-300",
+                isActive 
+                  ? "border-primary bg-primary text-primary-foreground shadow-[0_8px_20px_rgba(0,0,0,0.15)] -translate-y-1 scale-[1.02]" 
+                  : "border-border/40 bg-card text-foreground shadow-[0_4px_15px_rgba(0,0,0,0.03)] hover:-translate-y-0.5 hover:border-primary/30"
+              )}
+            >
+              <div className="flex items-start justify-between w-full">
+                <div className={cn("rounded-xl p-2 transition-colors", isActive ? "bg-primary-foreground/20" : "bg-muted/50")}>
+                  <Icon className="h-[18px] w-[18px]" />
+                </div>
+                <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-bold shadow-sm", isActive ? "bg-background text-primary" : "bg-muted text-muted-foreground border border-border/50")}>
+                  {module.count}
+                </span>
+              </div>
+              <div className="mt-5">
+                <p className="text-[13px] font-black tracking-tight">{module.label}</p>
+                <p className={cn("mt-0.5 text-[9px] font-medium tracking-wide", isActive ? "text-primary-foreground/80" : "text-muted-foreground")}>
+                  {module.hint}
+                </p>
+              </div>
+            </button>
+          );
+        })}
+      </div>
 
-          {/* 🚀 UI TOMBOL SIKLUS (Gaya iOS Segmented Control - Semantic) */}
-          <div className="flex bg-muted/30 p-1 rounded-xl border border-border/40 shrink-0">
-            <button
-              onClick={() => setFilterSiklus("aktif")}
-              className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all duration-300 ${
-                filterSiklus === "aktif" 
-                  ? "bg-background shadow-sm text-primary border border-border/50" 
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Aktif
-            </button>
-            <button
-              onClick={() => setFilterSiklus("selesai")}
-              className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all duration-300 ${
-                filterSiklus === "selesai" 
-                  ? "bg-background shadow-sm text-primary border border-border/50" 
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Selesai
-            </button>
+      {/* 🌟 2. COMMAND BAR: SIKLUS, FILTER TANGGAL & VIEWS */}
+      <div className="flex flex-col gap-3 rounded-[1.25rem] border border-border/50 bg-card p-2 shadow-[0_4px_15px_rgba(0,0,0,0.02)] sm:flex-row sm:items-center sm:justify-between">
+        
+        {/* KIRI: Slider Filter & Siklus */}
+        <div className="flex flex-1 items-center gap-2 overflow-x-auto pb-1 sm:pb-0 custom-scrollbar pr-2">
+          
+          {/* Toggle Siklus */}
+          <div className="flex shrink-0 items-center rounded-xl bg-muted/30 p-1 border border-border/40">
+            <button onClick={() => setFilterSiklus("aktif")}
+              className={cn("px-3 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all duration-300",
+                filterSiklus === "aktif" ? "bg-background shadow-sm text-primary border border-border/50" : "text-muted-foreground hover:text-foreground"
+              )}>Aktif</button>
+            <button onClick={() => setFilterSiklus("selesai")}
+              className={cn("px-3 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all duration-300",
+                filterSiklus === "selesai" ? "bg-background shadow-sm text-primary border border-border/50" : "text-muted-foreground hover:text-foreground"
+              )}>Selesai</button>
           </div>
+
+          <div className="h-6 w-px shrink-0 bg-border/50 mx-1 hidden sm:block" />
+
+          {/* Quick Filters */}
+          {FILTERS.map((item) => (
+            <button key={item} onClick={() => setActiveFilter(item)}
+              className={cn("shrink-0 rounded-lg px-3 py-1.5 text-[11px] font-bold transition-all duration-300",
+                activeFilter === item 
+                  ? "bg-primary/10 text-primary border border-primary/20 shadow-sm" 
+                  : "bg-transparent text-muted-foreground hover:bg-muted/50 border border-transparent"
+              )}>
+              {item}
+            </button>
+          ))}
         </div>
 
-        {/* View Options (Gaya iOS Segmented Control - Semantic) */}
-        <div className="rounded-xl bg-muted/30 p-1 flex items-center gap-1 border border-border/40">
-          <button 
-            onClick={() => setActiveView("kanban")}
-            title="Kanban View"
-            className={cn("rounded-lg p-2 transition-all duration-300", activeView === "kanban" ? "bg-background text-primary shadow-sm border border-border/50" : "text-muted-foreground hover:text-foreground")}
-          >
+        {/* KANAN: Views Toggle */}
+        <div className="flex shrink-0 items-center gap-1 rounded-xl bg-muted/30 p-1 border border-border/40">
+          <button onClick={() => setActiveView("kanban")} title="Kanban View"
+            className={cn("rounded-lg p-2 transition-all duration-300", activeView === "kanban" ? "bg-background text-primary shadow-sm border border-border/50" : "text-muted-foreground hover:text-foreground")}>
             <LayoutGrid className="h-4 w-4" />
           </button>
-          <button 
-            onClick={() => setActiveView("feed")}
-            title="Feed View"
-            className={cn("rounded-lg p-2 transition-all duration-300", activeView === "feed" ? "bg-background text-primary shadow-sm border border-border/50" : "text-muted-foreground hover:text-foreground")}
-          >
+          <button onClick={() => setActiveView("feed")} title="Feed View"
+            className={cn("rounded-lg p-2 transition-all duration-300", activeView === "feed" ? "bg-background text-primary shadow-sm border border-border/50" : "text-muted-foreground hover:text-foreground")}>
             <List className="h-4 w-4" />
           </button>
-          <button 
-            onClick={() => setActiveView("table")}
-            title="Table View"
-            className={cn("rounded-lg p-2 transition-all duration-300", activeView === "table" ? "bg-background text-primary shadow-sm border border-border/50" : "text-muted-foreground hover:text-foreground")}
-          >
+          <button onClick={() => setActiveView("table")} title="Table View"
+            className={cn("rounded-lg p-2 transition-all duration-300", activeView === "table" ? "bg-background text-primary shadow-sm border border-border/50" : "text-muted-foreground hover:text-foreground")}>
             <TableProperties className="h-4 w-4" />
           </button>
         </div>
+
       </div>
-
-      {/* 🌟 BARIS BAWAH: KONTEN FILTER YANG BISA DI-HIDE */}
-      {showFilters && (
-        <div className="mt-5 pt-4 border-t border-border/40 space-y-4">
-          
-          {/* Slider Modul */}
-          <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
-            {MODULES.map((module) => (
-              <button key={module.key} onClick={() => setActiveModule(module.key)}
-                className={cn("min-w-[110px] shrink-0 rounded-2xl border px-3 py-2.5 text-left transition-all duration-300",
-                  activeModule === module.key 
-                    ? "border-primary/30 bg-primary/10 shadow-sm scale-[0.98]" 
-                    : "border-border/40 bg-muted/20 hover:bg-muted/40 hover:-translate-y-0.5"
-                )}>
-                <div className="flex items-center justify-between gap-2">
-                  <p className={cn("text-[13px] font-black tracking-tight", activeModule === module.key ? "text-primary" : "text-foreground")}>
-                    {module.label}
-                  </p>
-                  <span className={cn("rounded-full px-1.5 py-0.5 text-[9px] font-bold", activeModule === module.key ? "bg-background text-primary shadow-sm" : "bg-background text-muted-foreground border border-border/50")}>
-                    {module.count}
-                  </span>
-                </div>
-                <p className={cn("mt-0.5 text-[10px] font-medium", activeModule === module.key ? "text-primary/70" : "text-muted-foreground")}>
-                  {module.hint}
-                </p>
-              </button>
-            ))}
-          </div>
-
-          {/* Slider Status/Tanggal */}
-          <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
-            {FILTERS.map((item) => (
-              <button key={item} onClick={() => setActiveFilter(item)}
-                className={cn("whitespace-nowrap rounded-xl px-4 py-2 text-[11px] font-bold transition-all duration-300",
-                  activeFilter === item 
-                    ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20 hover:bg-primary/90" 
-                    : "bg-muted/30 text-muted-foreground hover:bg-muted/60"
-                )}>
-                {item}
-              </button>
-            ))}
-          </div>
-          
-        </div>
-      )}
 
     </div>
   );
