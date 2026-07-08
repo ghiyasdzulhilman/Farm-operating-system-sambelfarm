@@ -510,7 +510,7 @@ export function MasterTableView({
       id: "actions",
       header: "",
       cell: ({ row }) => (
-        /* ✨ Smart Opacity: opacity-30 pas normal biar ga merah semarak, menyala pas di-hover */
+        { /* ✨ Smart Opacity: opacity-30 pas normal biar ga merah semarak, menyala pas di-hover */
         <Button 
           variant="ghost" 
           size="sm" 
@@ -567,7 +567,7 @@ export function MasterTableView({
     <div className="w-full max-w-full rounded-3xl border border-border/60 bg-card shadow-sm overflow-hidden text-left">
       
   return (
-    /* ✨ 1. Glassmorphism Wrapper: rounded-[1.5rem], backdrop-blur, dan soft shadow ala Bento Deck */
+   { /* ✨ 1. Glassmorphism Wrapper: rounded-[1.5rem], backdrop-blur, dan soft shadow ala Bento Deck */
     <div className="w-full max-w-full rounded-[1.5rem] border border-border/50 bg-card/80 backdrop-blur-md shadow-[0_8px_30px_-4px_rgba(0,0,0,0.05)] overflow-hidden text-left transition-all duration-300">
       
       {/* 💡 HEADER FILTER KOLOM PREMIUM */}
