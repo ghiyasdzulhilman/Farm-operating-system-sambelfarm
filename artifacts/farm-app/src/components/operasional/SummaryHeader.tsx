@@ -1,4 +1,4 @@
-import { Activity, ShieldCheck, Timer, Inbox } from "lucide-react";
+import { Clipboard, Inbox, Timer, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AgronomyItem } from "@/types/operasional";
 
@@ -10,23 +10,25 @@ export function SummaryHeader({ feedData, meta }: { feedData: AgronomyItem[], me
 
   return (
     <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-      {/* Prop hoverGlow ditambahkan untuk efek cahaya dinamis sesuai warna ikon */}
+      {/* 1. Aktivitas - Teal & Clipboard */}
       <SummaryCard 
         title="Aktivitas" 
         value={todayCount} 
         detail="hari ini" 
-        icon={Activity} 
-        tint="bg-emerald-500/10 text-emerald-600" 
-        hoverGlow="hover:shadow-[0_16px_40px_-4px_rgba(16,185,129,0.15)] hover:border-emerald-500/30"
+        icon={Clipboard} 
+        tint="bg-teal-500/10 text-teal-600" 
+        hoverGlow="hover:shadow-[0_16px_40px_-4px_rgba(20,184,166,0.15)] hover:border-teal-500/30"
       />
+      {/* 2. Selesai - Emerald & Inbox */}
       <SummaryCard 
         title="Selesai" 
         value={doneCount} 
         detail="sudah ditutup" 
-        icon={ShieldCheck} 
-        tint="bg-sky-500/10 text-sky-600" 
-        hoverGlow="hover:shadow-[0_16px_40px_-4px_rgba(14,165,233,0.15)] hover:border-sky-500/30"
+        icon={Inbox} 
+        tint="bg-emerald-500/10 text-emerald-600" 
+        hoverGlow="hover:shadow-[0_16px_40px_-4px_rgba(16,185,129,0.15)] hover:border-emerald-500/30"
       />
+      {/* 3. Proses - Amber & Timer */}
       <SummaryCard 
         title="Proses" 
         value={progressCount} 
@@ -35,11 +37,12 @@ export function SummaryHeader({ feedData, meta }: { feedData: AgronomyItem[], me
         tint="bg-amber-500/10 text-amber-600" 
         hoverGlow="hover:shadow-[0_16px_40px_-4px_rgba(245,158,11,0.15)] hover:border-amber-500/30"
       />
+      {/* 4. Tertunda - Slate & Calendar */}
       <SummaryCard 
         title="Tertunda" 
         value={todoCount} 
         detail="belum selesai" 
-        icon={Inbox} 
+        icon={Calendar} 
         tint="bg-slate-500/10 text-slate-600" 
         hoverGlow="hover:shadow-[0_16px_40px_-4px_rgba(100,116,139,0.15)] hover:border-slate-500/30"
       />
@@ -52,7 +55,7 @@ function SummaryCard({ title, value, detail, icon: Icon, tint, hoverGlow }: any)
     <div className={cn(
       "group relative rounded-[1.5rem] border border-border/40 bg-card/60 backdrop-blur-md p-5 text-left",
       "shadow-[0_12px_30px_-4px_rgba(0,0,0,0.06)] transition-all duration-500 ease-out hover:-translate-y-0.5",
-      hoverGlow // Terapkan Dynamic Glow dari prop
+      hoverGlow
     )}>
       
       <div className="pr-12">
@@ -61,7 +64,6 @@ function SummaryCard({ title, value, detail, icon: Icon, tint, hoverGlow }: any)
         <p className="mt-1 text-[11px] font-medium tracking-wide text-muted-foreground/80">{detail}</p>
       </div>
 
-      {/* Icon dengan gaya Taktil/3D (inset shadow & inner glow border) */}
       <div className={cn(
         "absolute right-5 top-1/2 -translate-y-1/2 flex h-12 w-12 items-center justify-center rounded-2xl",
         "transition-all duration-500 group-hover:scale-110",
@@ -74,4 +76,3 @@ function SummaryCard({ title, value, detail, icon: Icon, tint, hoverGlow }: any)
     </div>
   );
 }
-
