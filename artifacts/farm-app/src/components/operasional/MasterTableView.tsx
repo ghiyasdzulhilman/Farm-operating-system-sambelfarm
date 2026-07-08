@@ -563,10 +563,10 @@ export function MasterTableView({
     actions: "Hapus",
   };
 
-   { /* ✨ 1. Glassmorphism Wrapper: rounded-[1.5rem], backdrop-blur, dan soft shadow ala Bento Deck */
-  return (
+     return (
+    {/* ✨ 1. Glassmorphism Wrapper: rounded-[1.5rem], backdrop-blur, dan soft shadow ala Bento Deck */}
     <div className="w-full max-w-full rounded-[1.5rem] border border-border/50 bg-card/80 backdrop-blur-md shadow-[0_8px_30px_-4px_rgba(0,0,0,0.05)] overflow-hidden text-left transition-all duration-300">
-      
+
       {/* 💡 HEADER FILTER KOLOM PREMIUM */}
       {/* ✨ 2. Top Bar: Padding lebih bernafas (px-5 py-3) dan border yang halus */}
        <div className="flex items-center justify-between px-5 py-3 border-b border-border/40 bg-muted/30 backdrop-blur-sm">
