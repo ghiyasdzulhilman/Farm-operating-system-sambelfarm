@@ -116,7 +116,6 @@ function sanitizeTemuanBroadcast(kendalaBroadcast: string[], temuanBroadcast: Re
 
 function sanitizeInspeksiPayload(payload: InspeksiFormValues, masterKendalaList: DropdownOptions['kendalaMaster'] = []) {
   const temuanBroadcast = sanitizeTemuanBroadcast(payload.kendalaBroadcast, payload.temuanBroadcast);
-  const temuanPerArea = sanitizeNestedRecordByAllowedKeys(payload.temuanPerArea, payload.kendalaPerArea);
   
   // Format data temuan untuk backend baru (menggunakan kendalaMasterId)
   const formatTemuanBroadcast = Object.entries(temuanBroadcast).map(([id, catatan]) => ({ 
@@ -127,9 +126,13 @@ function sanitizeInspeksiPayload(payload: InspeksiFormValues, masterKendalaList:
   const formatTemuanPerArea: Record<string, Array<{kendalaMasterId: string; catatan: string}>> = {};
 
   payload.areaIds.forEach(id => {
-    formatTemuanPerArea[id] = Object.entries(temuanPerArea[id] || {}).map(([kendalaMasterId, catatan]) => ({ 
-      kendalaMasterId, 
-      catatan 
+    // 🚀 FIX: Loop berdasarkan KENDALA YANG DIPILIH, bukan catatan yang diketik.
+    // Jadi kalau catatannya kosong, hama/penyakitnya tetep aman terkirim!
+    const daftarKendalaArea = payload.kendalaPerArea[id] || [];
+    
+    formatTemuanPerArea[id] = daftarKendalaArea.map((kendalaId) => ({ 
+      kendalaMasterId: kendalaId, 
+      catatan: (payload.temuanPerArea[id] && payload.temuanPerArea[id][kendalaId]) || ""
     }));
   });
 
@@ -151,7 +154,6 @@ function sanitizeInspeksiPayload(payload: InspeksiFormValues, masterKendalaList:
     durasiKerjaPerArea: payload.modeWaktu === "broadcast"
       ? buildBroadcastPerAreaRecord(payload.areaIds, payload.durasiKerjaBroadcast)
       : payload.durasiKerjaPerArea,
-    // Kita udah gak butuh misahin hamaBroadcast/penyakitBroadcast manual karena backend udah handle via JOIN
     temuanBroadcast: formatTemuanBroadcast, 
     temuanPerArea: formatTemuanPerArea,
     tingkatSeranganBroadcast: parseSerangan(payload.tingkatSeranganBroadcast),
