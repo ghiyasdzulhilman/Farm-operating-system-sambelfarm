@@ -245,11 +245,11 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
     if (isStepValid) setStep((prev) => prev + 1);
   };
 
-    // 👇 MANIPULATOR PAYLOAD OTOMATIS SEBELUM SUBMIT 👇
+      // 👇 MANIPULATOR PAYLOAD OTOMATIS SEBELUM SUBMIT 👇
   function onSubmit(values: InspeksiFormValues) {
     const hasOverrides = Object.keys(overriddenAreas).length > 0;
     
-    // 1. Biarkan helper membuatkan kerangka dasar (berguna buat area yang gak di-override)
+    // 1. Biarkan helper membuatkan kerangka dasar
     const basePayload = buildAreaOverridePayload({
       values,
       areaIds: values.areaIds,
@@ -261,7 +261,8 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
     // 🚀 2. FIX: SELAMATKAN DATA ASLI JIKA ADA OVERRIDE (SPESIFIK)
     if (hasOverrides) {
       basePayload.modeWaktu = "spesifik";
-      basePayload.modeKendala = "spesifik";
+      // 🚨 INI BARIS YANG KRUSIAL BIAR BACKEND TAU INI MODE SPESIFIK 🚨
+      basePayload.modeKendala = "spesifik"; 
       basePayload.modeAngka = "spesifik";
       basePayload.modePekerja = "spesifik";
       basePayload.modeAtribut = "spesifik";
@@ -280,7 +281,7 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
       basePayload.statusPerArea = {};
       basePayload.keteranganPerArea = {};
 
-      // Looping semua area. Jika di-override, ambil data asli dari form. Jika tidak, tarik dari broadcast.
+      // Looping semua area
       values.areaIds.forEach((areaId) => {
         const isOvr = overriddenAreas[areaId];
 
@@ -288,6 +289,7 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
         basePayload.waktuSelesaiPerArea[areaId] = isOvr ? values.waktuSelesaiPerArea[areaId] : values.waktuSelesaiBroadcast;
         basePayload.durasiKerjaPerArea[areaId] = isOvr ? values.durasiKerjaPerArea[areaId] : values.durasiKerjaBroadcast;
         
+        // 💡 Mengambil array & object nested secara utuh
         basePayload.kendalaPerArea[areaId] = isOvr ? (values.kendalaPerArea[areaId] || []) : values.kendalaBroadcast;
         basePayload.temuanPerArea[areaId] = isOvr ? (values.temuanPerArea[areaId] || {}) : values.temuanBroadcast;
         
