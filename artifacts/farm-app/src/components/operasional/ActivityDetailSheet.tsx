@@ -267,15 +267,15 @@ export function ActivityDetailSheet({
       
     <SheetContent
         side="right"
-        /* ✨ FIX KACA BENING: Pakai bg-white/75 (light) atau zinc-900/75 (dark) + blur-2xl + border putih tipis */
-        className="w-full border-l border-white/20 dark:border-border/40 bg-white/75 dark:bg-zinc-900/75 backdrop-blur-2xl p-0 sm:max-w-[540px] shadow-[-10px_0_40px_rgba(0,0,0,0.1)] transition-all duration-300 [&>button]:hidden"
+        /* 🚀 JURUS PAMUNGKAS: Pakai ! (important) buat hancurkan warna abu-abu solid bawaan shadcn! */
+        className="w-full !border-l !border-white/40 dark:!border-white/10 !bg-white/80 dark:!bg-slate-900/80 !backdrop-blur-xl p-0 sm:max-w-[540px] !shadow-[-10px_0_40px_rgba(0,0,0,0.12)] transition-all duration-300 [&>button]:hidden"
         onOpenAutoFocus={(e) => e.preventDefault()} 
       >
 
         <div className="flex h-full flex-col">
 
-        {/* HEADER PREMIUM DENGAN STATUS & TOMBOL KEMBALI */}
-          <SheetHeader className="border-b border-border/15 bg-transparent px-6 py-3.5">
+      {/* 🚀 Paksa header jadi 100% transparan biar nyatu sama kaca di bawahnya */}
+          <SheetHeader className="!border-b !border-border/15 !bg-transparent px-6 py-3.5">
             <div className="flex items-center justify-between gap-3 w-full">
               
               {/* DROPDOWN STATUS DINAMIS DI KIRI */}
