@@ -265,14 +265,16 @@ export function ActivityDetailSheet({
       }
     }}>
       
-  <SheetContent
-        side="right"
-        /* ✨ JURUS ANTI-IPHONE ABU-ABU: Kita masukkan [-webkit-backdrop-filter:blur(24px)] dan [backdrop-filter:blur(24px)] murni, serta turunkan opacity warnanya ke !bg-white/30 biar super bening tembus pandang! */
-        className="w-full !border-l border-white/30 !bg-white/30 dark:!bg-zinc-950/30 [backdrop-filter:blur(24px)] [-webkit-backdrop-filter:blur(24px)] p-0 sm:max-w-[540px] shadow-[-10px_0_50px_rgba(0,0,0,0.12)] transition-all duration-300 [&>button]:hidden"
+        <SheetContent
+        side="top"
+        /* ✨ FIX POSISI ATAS: mx-auto (tengah), rounded-b-[2.5rem] (ujung bawah membulat) */
+        className="w-full sm:max-w-[540px] mx-auto rounded-b-[2.5rem] !border-x-0 !border-t-0 !border-b border-white/30 !bg-white/30 dark:!bg-zinc-950/30 [backdrop-filter:blur(24px)] [-webkit-backdrop-filter:blur(24px)] p-0 shadow-[0_20px_60px_rgba(0,0,0,0.15)] transition-all duration-300 [&>button]:hidden"
         onOpenAutoFocus={(e) => e.preventDefault()} 
       >
 
-        <div className="flex h-full flex-col">
+        {/* ✨ FIX TINGGI: max-h-[88vh] memastikan mentok di 88% layar, sisa 12% di bawah murni buat klik area kosong (nutup) */}
+        <div className="flex flex-col max-h-[88vh]">
+
 
       {/* 🚀 Paksa header jadi 100% transparan biar nyatu sama kaca di bawahnya */}
           <SheetHeader className="!border-b !border-border/15 !bg-transparent px-6 py-3.5">
@@ -896,12 +898,18 @@ export function ActivityDetailSheet({
                   ));
                 })()}
               </div>
-                        </section>
+            </section>
             
-          </div>
-        </div>
+           {/* ... penutup segmen tim kebun ... */}
+          </div> {/* penutup div flex-1 overflow-y-auto */}
+        </div>   {/* penutup div flex flex-col */}
+        
+        {/* ✨ INDIKATOR TUTUP (Garis pemanis di bawah) */}
+        <div className="mx-auto my-3 h-1.5 w-12 rounded-full bg-border/40" />
+
       </SheetContent>
     </Sheet>
   );
 }
+
 
