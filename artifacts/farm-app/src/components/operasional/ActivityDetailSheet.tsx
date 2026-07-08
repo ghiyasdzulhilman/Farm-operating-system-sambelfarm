@@ -378,7 +378,7 @@ export function ActivityDetailSheet({
          {/* ✨ 2. NOTION-STYLE PROPERTIES (Metadata vertikal yang rapi) */}
             <div className="flex flex-col gap-2.5 mb-10 border-b border-border/40 pb-6">
               
-              {/* Property: Waktu */}
+            {/* Property: Waktu & HST */}
               <div className="flex items-center min-h-[32px] hover:bg-muted/40 rounded-md px-1.5 -ml-1.5 transition-colors group">
                 <div className="w-[140px] shrink-0 text-[13px] font-medium text-muted-foreground flex items-center gap-2">
                   <CalendarDays className="h-4 w-4 opacity-70" /> Waktu
@@ -387,10 +387,17 @@ export function ActivityDetailSheet({
                   <span>{formatTanggalLengkap(item.rawDate)}</span>
                   <span className="text-muted-foreground/40 text-[10px]">●</span>
                   <span>{item.time}</span>
+                  
+              {/* ✨ BADGE HST : Warna diubah jadi Primary (Teal/Biru Senada) & anti-turun ke bawah */}
+                  {calculateHST() && (
+                    <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20 px-1.5 py-0 rounded-sm font-bold shrink-0 ml-1">
+                      {calculateHST()}
+                    </Badge>
+                  )}
                 </div>
               </div>
 
-              {/* Property: Area & HST */}
+              {/* Property: Area (Bersih tanpa beban HST lagi) */}
               <div className="flex items-center min-h-[32px] hover:bg-muted/40 rounded-md px-1.5 -ml-1.5 transition-colors group">
                 <div className="w-[140px] shrink-0 text-[13px] font-medium text-muted-foreground flex items-center gap-2">
                   <MapPin className="h-4 w-4 opacity-70" /> Area
@@ -421,13 +428,6 @@ export function ActivityDetailSheet({
                       </select>
                       <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50 pointer-events-none z-10 transition-colors group-hover/select:text-foreground" />
                     </div>
-                  )}
-
-                  {/* ✨ BADGE HST */}
-                  {calculateHST() && (
-                    <Badge variant="secondary" className="text-[10px] bg-emerald-500/10 text-emerald-700 px-1.5 py-0 border-emerald-500/20 rounded-sm font-bold shrink-0">
-                      {calculateHST()}
-                    </Badge>
                   )}
                 </div>
               </div>
