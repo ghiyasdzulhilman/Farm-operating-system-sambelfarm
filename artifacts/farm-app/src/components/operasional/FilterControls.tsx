@@ -35,10 +35,11 @@ export function FilterControls({
   ];
 
   return (
-    <div className="mt-6 space-y-5">
+    <div className="mt-6 space-y-4">
       
       {/* 🌟 1. BENTO DECK: SLIDER MODUL UTAMA */}
-      <div className="flex gap-3 overflow-x-auto pb-5 pt-2 px-1 custom-scrollbar snap-x">
+      {/* Perbaikan: Tambah py-4 dan px-2 agar ring/shadow tidak terpotong (clipped) */}
+      <div className="flex gap-3 overflow-x-auto py-4 px-2 -mx-2 custom-scrollbar snap-x">
         {MODULES.map((module) => {
           const Icon = MODULE_ICONS[module.key] || Layers;
           const isActive = activeModule === module.key;
@@ -49,7 +50,6 @@ export function FilterControls({
               onClick={() => setActiveModule(module.key)}
               className={cn(
                 "snap-start relative flex min-w-[130px] shrink-0 flex-col justify-between rounded-[1.25rem] border p-4 text-left transition-all duration-300",
-                // Hapus scale, gunakan ring offset agar presisi ukuran tetap terjaga dan rapi
                 isActive 
                   ? "border-transparent bg-primary text-primary-foreground shadow-md ring-2 ring-primary/20 ring-offset-2 ring-offset-background -translate-y-1" 
                   : "border-border/40 bg-card text-foreground shadow-sm hover:border-primary/40 hover:bg-muted/30"
@@ -75,12 +75,11 @@ export function FilterControls({
       </div>
 
       {/* 🌟 2. COMMAND BAR: SIKLUS, VIEWS & FILTER TANGGAL */}
-      <div className="flex flex-col gap-4 rounded-[1.25rem] border border-border/50 bg-card/60 backdrop-blur-md p-2.5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 rounded-[1.25rem] border border-border/50 bg-card/60 backdrop-blur-md p-3 shadow-sm">
         
-        {/* KIRI: Siklus & View Toggles (Berdampingan) */}
-        <div className="flex shrink-0 items-center gap-3">
-          
-          {/* Toggle Siklus */}
+        {/* BARIS 1: Siklus (Kiri) & Views Toggle (Kanan) */}
+        <div className="flex items-center justify-between">
+          {/* KIRI: Toggle Siklus */}
           <div className="flex items-center rounded-xl bg-muted/40 p-1 border border-border/40">
             <button onClick={() => setFilterSiklus("aktif")}
               className={cn("px-4 py-2 text-[11px] font-semibold rounded-lg transition-all duration-300",
@@ -92,9 +91,7 @@ export function FilterControls({
               )}>Selesai</button>
           </div>
 
-          <div className="h-6 w-px shrink-0 bg-border/50 hidden sm:block" />
-
-          {/* Views Toggle */}
+          {/* KANAN: Views Toggle dipindah ke ujung */}
           <div className="flex items-center gap-1 rounded-xl bg-muted/40 p-1 border border-border/40">
             <button onClick={() => setActiveView("kanban")} title="Kanban View"
               className={cn("rounded-lg p-2 transition-all duration-300", activeView === "kanban" ? "bg-background text-primary shadow-sm border border-border/50" : "text-muted-foreground hover:text-foreground")}>
@@ -111,11 +108,11 @@ export function FilterControls({
           </div>
         </div>
 
-        {/* KANAN: Quick Filters */}
-        <div className="flex flex-1 items-center sm:justify-end gap-2 overflow-x-auto pb-1 sm:pb-0 custom-scrollbar pr-1">
+        {/* BARIS 2: Quick Filters (Hari ini, dll) */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar">
           {FILTERS.map((item) => (
             <button key={item} onClick={() => setActiveFilter(item)}
-              className={cn("shrink-0 rounded-xl px-3.5 py-2 text-[12px] font-medium transition-all duration-300",
+              className={cn("shrink-0 rounded-xl px-4 py-2 text-[12px] font-medium transition-all duration-300",
                 activeFilter === item 
                   ? "bg-primary/10 text-primary border border-primary/20 shadow-sm" 
                   : "bg-transparent text-muted-foreground hover:bg-muted/50 border border-transparent"
