@@ -248,9 +248,9 @@ export function AgronomyHubPage() {
     <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6 space-y-6 text-left">
       <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
         <div className="space-y-3">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground shadow-sm">
-            <Leaf className="h-3.5 w-3.5 text-primary" />
-            Agronomy Hub
+          <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-blue-600 shadow-[0_2px_10px_rgb(59,130,246,0.1)] border border-blue-100/50">
+          <Leaf className="h-3.5 w-3.5" />
+          Agronomy Hub
           </div>
           <h1 className="text-3xl font-black tracking-tight md:text-4xl">Pusat Aktivitas</h1>
         </div>
@@ -351,7 +351,7 @@ export function AgronomyHubPage() {
       </div>
 
         <aside className="space-y-4">
-          <div className="rounded-3xl border border-border/60 bg-card p-4 shadow-sm">
+          <div className="rounded-[1.5rem] bg-white p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100/60">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Snapshot</p>
@@ -366,7 +366,7 @@ export function AgronomyHubPage() {
             </div>
           </div>
 
-          <div className="rounded-3xl border border-border/60 bg-card p-4 shadow-sm">
+          <div className="rounded-[1.5rem] bg-white p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100/60">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Shortcut</p>
@@ -412,21 +412,24 @@ export function AgronomyHubPage() {
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between rounded-2xl bg-muted/30 px-4 py-3">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="text-sm font-bold">{value}</span>
+    <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 px-4 py-3">
+      <span className="text-sm font-medium text-slate-500">{label}</span>
+      <span className="text-sm font-black text-slate-700">{value}</span>
     </div>
   );
 }
 
 function ShortcutButton({ icon: Icon, label }: { icon: any; label: string }) {
   return (
-    <button className="flex items-center justify-between rounded-2xl border border-border/60 bg-card px-4 py-3 text-left shadow-sm transition-all hover:bg-muted/20 w-full">
+    <button className="group flex w-full items-center justify-between rounded-2xl border border-slate-100/60 bg-white px-4 py-3 text-left shadow-[0_2px_10px_rgb(0,0,0,0.02)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgb(0,0,0,0.06)]">
       <div className="flex items-center gap-3">
-        <div className="rounded-2xl bg-primary/10 p-2 text-primary"><Icon className="h-4 w-4" /></div>
-        <span className="text-sm font-semibold">{label}</span>
+        <div className="rounded-xl bg-blue-50 p-2 text-blue-500 transition-colors group-hover:bg-blue-100 group-hover:text-blue-600">
+          <Icon className="h-4 w-4" />
+        </div>
+        <span className="text-sm font-bold text-slate-700">{label}</span>
       </div>
-      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+      <ChevronRight className="h-4 w-4 text-slate-400 transition-transform group-hover:translate-x-1 group-hover:text-blue-500" />
     </button>
   );
 }
+
