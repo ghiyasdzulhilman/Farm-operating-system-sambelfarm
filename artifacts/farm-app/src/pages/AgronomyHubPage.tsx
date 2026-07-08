@@ -280,9 +280,9 @@ export function AgronomyHubPage() {
         setFilterSiklus={setFilterSiklus}
       />
 
-
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1.4fr_0.9fr]">
-        <div className="space-y-6 min-w-0">
+<div className="mt-6 grid gap-6 lg:grid-cols-[1fr_280px]">
+  <div className="space-y-6 min-w-0">
+    {/* Konten Feed & Kanban */}
           
 {activeView === "feed" && (
    <LiveFeedView 
