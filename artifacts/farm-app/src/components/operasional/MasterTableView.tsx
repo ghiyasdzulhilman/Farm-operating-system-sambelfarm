@@ -387,7 +387,7 @@ export function MasterTableView({
       },
     },
 
-        {
+    {
       id: "tanggal",
       header: "Tanggal (Mulai - Selesai)",
       cell: ({ row }) => {
@@ -398,9 +398,10 @@ export function MasterTableView({
         const endDate = item.metaEkstra?.waktuSelesai ? item.metaEkstra.waktuSelesai.split(/[T ]/)[0] : "";
 
         return (
-
-          <div className="flex items-center gap-1 min-w-[280px]">
+          /* ✨ Tambahkan 'justify-center' biar tanggal & panah pas di tengah sel */
+          <div className="flex items-center justify-center gap-1 min-w-[280px]">
             <EditableCell
+
               value={startDate}
               type="date"
               className="w-full text-center px-0"
