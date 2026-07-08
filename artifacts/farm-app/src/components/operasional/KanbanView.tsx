@@ -87,7 +87,7 @@ export function KanbanView({
                 
                 if (item.module === "operasional") {
                   RenderIcon = <HardHat className="h-4 w-4" />;
-                  iconBg = "bg-blue-500/10 text-blue-600 border-blue-500/20";
+                  iconBg = "bg-indigo-500/10 text-indigo-600 border border-indigo-500/20"; // ✨ Sinkron ke Indigo
                 } else if (item.module === "inspeksi") {
                   RenderIcon = <Bug className="h-4 w-4" />;
                   iconBg = "bg-red-500/10 text-red-600 border-red-500/20";
