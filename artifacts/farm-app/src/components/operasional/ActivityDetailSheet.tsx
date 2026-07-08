@@ -265,10 +265,10 @@ export function ActivityDetailSheet({
       }
     }}>
       
-      <SheetContent
+    <SheetContent
         side="right"
-        /* ✨ KACA MURNI: Sekarang pas overlay belakangnya udah bening, kombinasi white/75 + blur-2xl ini bakal langsung memantulkan warna tabel di baliknya! */
-        className="w-full border-l border-white/30 dark:border-white/10 bg-white/75 dark:bg-zinc-900/75 backdrop-blur-2xl p-0 sm:max-w-[540px] shadow-[0_0_50px_rgba(0,0,0,0.15)] transition-all duration-300 [&>button]:hidden"
+        /* ✨ FIX KACA MURNI: Turunin opacity jadi white/40 (40%), biarkan blur-2xl yang membiaskan warna belakangnya! */
+        className="w-full border-l border-white/40 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-2xl p-0 sm:max-w-[540px] shadow-[-10px_0_40px_rgba(0,0,0,0.08)] transition-all duration-300 [&>button]:hidden"
         onOpenAutoFocus={(e) => e.preventDefault()} 
       >
 
