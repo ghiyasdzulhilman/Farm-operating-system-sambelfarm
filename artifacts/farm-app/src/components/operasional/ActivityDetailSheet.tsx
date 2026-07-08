@@ -265,18 +265,17 @@ export function ActivityDetailSheet({
       }
     }}>
       
-      <SheetContent
+    <SheetContent
         side="right"
-        /* ✨ Kita samakan DNA-nya: pakai bg-card/80 & backdrop-blur-md biar terang dan konsisten ala kaca bening */
-        className="w-full border-l border-border/40 bg-card/80 backdrop-blur-md p-0 sm:max-w-[540px] shadow-[-10px_0_40px_rgba(0,0,0,0.08)] transition-all duration-300 [&>button]:hidden"
+        /* ✨ FIX KACA BENING: Pakai bg-white/75 (light) atau zinc-900/75 (dark) + blur-2xl + border putih tipis */
+        className="w-full border-l border-white/20 dark:border-border/40 bg-white/75 dark:bg-zinc-900/75 backdrop-blur-2xl p-0 sm:max-w-[540px] shadow-[-10px_0_40px_rgba(0,0,0,0.1)] transition-all duration-300 [&>button]:hidden"
         onOpenAutoFocus={(e) => e.preventDefault()} 
       >
 
         <div className="flex h-full flex-col">
 
-          {/* HEADER PREMIUM DENGAN STATUS & TOMBOL KEMBALI */}
-          {/* ✨ 2. TOP BAR: Background subtle muted/30, border lebih halus, dan padding lebih bernafas (px-6 py-3.5) */}
-          <SheetHeader className="border-b border-border/40 bg-muted/30 backdrop-blur-md px-6 py-3.5">
+        {/* HEADER PREMIUM DENGAN STATUS & TOMBOL KEMBALI */}
+          <SheetHeader className="border-b border-border/15 bg-transparent px-6 py-3.5">
             <div className="flex items-center justify-between gap-3 w-full">
               
               {/* DROPDOWN STATUS DINAMIS DI KIRI */}
