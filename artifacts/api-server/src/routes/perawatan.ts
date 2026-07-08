@@ -228,7 +228,7 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
       data: recordsCreated 
     });
 
-  } catch (err: any) {
+    } catch (err: any) {
     console.error("[DB ERROR ADD PERAWATAN]:", err);
     console.error("[CAUSE]:", err.cause);
     if (typeof err.message === 'string' && err.message.startsWith('STOK_TIDAK_CUKUP:')) {
@@ -245,6 +245,9 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
       res.status(400).json({ error: `Stok tidak cukup untuk produk "${namaProduk}".` });
       return;
     }
+
+    res.status(400).json({ error: err instanceof Error ? err.message : "Internal Server Error" });
+  }
 });
 
 
