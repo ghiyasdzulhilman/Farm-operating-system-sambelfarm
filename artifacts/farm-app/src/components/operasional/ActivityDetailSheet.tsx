@@ -265,10 +265,10 @@ export function ActivityDetailSheet({
       }
     }}>
       
-    <SheetContent
+  <SheetContent
         side="right"
-        /* ✨ FIX KACA MURNI: Turunin opacity jadi white/40 (40%), biarkan blur-2xl yang membiaskan warna belakangnya! */
-        className="w-full border-l border-white/40 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-2xl p-0 sm:max-w-[540px] shadow-[-10px_0_40px_rgba(0,0,0,0.08)] transition-all duration-300 [&>button]:hidden"
+        /* ✨ JURUS ANTI-IPHONE ABU-ABU: Kita masukkan [-webkit-backdrop-filter:blur(24px)] dan [backdrop-filter:blur(24px)] murni, serta turunkan opacity warnanya ke !bg-white/30 biar super bening tembus pandang! */
+        className="w-full !border-l border-white/30 !bg-white/30 dark:!bg-zinc-950/30 [backdrop-filter:blur(24px)] [-webkit-backdrop-filter:blur(24px)] p-0 sm:max-w-[540px] shadow-[-10px_0_50px_rgba(0,0,0,0.12)] transition-all duration-300 [&>button]:hidden"
         onOpenAutoFocus={(e) => e.preventDefault()} 
       >
 
