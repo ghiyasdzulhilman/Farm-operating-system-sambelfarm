@@ -725,8 +725,8 @@ export function ActivityDetailSheet({
     ))}
 </select>
 
-                          <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground opacity-50 pointer-events-none" />
-                        </div>
+<ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground opacity-50 pointer-events-none" />
+</div>
 
  {/* Input Gram/Dosis dengan Preview Sisa Stok (Placeholder) */}
 {(() => {
@@ -734,8 +734,17 @@ export function ActivityDetailSheet({
   const selectedMaster = produkOptions?.data?.find((p: any) => p.id === prod.produkId);
   const stokTerkini = selectedMaster?.stokSaatIni ?? null;
   
-  // 🚀 2. Cek apakah angka yang diketik melebihi stok yang ada
-  const isOverStock = stokTerkini !== null && prod.kuantitasPemakaian > stokTerkini;
+  // 🚀 2. Ambil dosis histori (JIKA ini adalah baris data lama yang sudah pernah di-save)
+  const historyProd = item?.metaEkstra?.logProduk?.[index];
+  const dosisTersimpan = (historyProd && historyProd.produkId === prod.produkId) 
+    ? historyProd.kuantitasPemakaian 
+    : 0;
+
+  // 🚀 3. Batas kuota asli = Stok di gudang + Dosis yang dulu sudah di-booking di form ini
+  const maxAllowed = stokTerkini !== null ? stokTerkini + dosisTersimpan : null;
+  
+  // 🚀 4. MERAH HANYA MUNCUL kalau inputan SEKARANG melebihi batas kuota tersebut!
+  const isOverStock = maxAllowed !== null && prod.kuantitasPemakaian > maxAllowed;
 
   return (
     <div className={cn(
@@ -758,7 +767,7 @@ export function ActivityDetailSheet({
           "placeholder:text-muted-foreground/60 placeholder:font-normal placeholder:text-[11px]",
           isOverStock && "text-destructive font-black"
         )}
-        /* 🚀 3. KUNCI UTAMA: Teks sisa stok dijadikan placeholder dinamis */
+        /* 🚀 Teks sisa stok dijadikan placeholder dinamis (tetap nampilin murni sisa gudang) */
         placeholder={stokTerkini !== null ? `Sisa ${stokTerkini}` : "0"}
       />
       <span className={cn(
