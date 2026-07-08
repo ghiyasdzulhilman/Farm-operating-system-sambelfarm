@@ -23,20 +23,21 @@ export function SummaryHeader({ feedData, meta }: { feedData: AgronomyItem[], me
 // Sub-komponen tetap di dalam file ini aja biar rapi
 function SummaryCard({ title, value, detail, icon: Icon, tint }: any) {
   return (
-    <div className="group relative rounded-2xl border border-border/50 bg-card p-4 shadow-sm transition-all duration-200 hover:border-primary/30 hover:shadow-md">
+    <div className="group relative rounded-[1.5rem] border border-slate-100/60 bg-white p-5 shadow-[0_4px_20px_rgb(0,0,0,0.03)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)]">
       
       {/* Kasih 'pr-12' (padding kanan) biar teks ga nabrak icon */}
       <div className="pr-12">
-        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{title}</p>
-        <p className="mt-1.5 text-2xl font-black tracking-tight transition-colors group-hover:text-primary">{value}</p>
-        <p className="mt-1 text-xs font-medium text-muted-foreground">{detail}</p>
+        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{title}</p>
+        <p className="mt-1.5 text-2xl font-black tracking-tight text-slate-800">{value}</p>
+        <p className="mt-1 text-xs font-medium text-slate-400">{detail}</p>
       </div>
 
       {/* Icon di-lock posisinya secara absolut di kanan tengah */}
-      <div className={cn("absolute right-4 top-1/2 -translate-y-1/2 flex h-11 w-11 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-105", tint)}>
+      <div className={cn("absolute right-5 top-1/2 -translate-y-1/2 flex h-12 w-12 items-center justify-center rounded-2xl transition-transform duration-300 group-hover:scale-110", tint)}>
         <Icon className="h-5 w-5" />
       </div>
       
     </div>
   );
 }
+
