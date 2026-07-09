@@ -283,8 +283,8 @@ export function ActivityDetailSheet({
       
       <SheetContent
         side="top"
-        /* ✨ RACIKAN LITE: Opacity 85%, Blur 8px, Shadow kecil, dan tambah will-change-transform biar GPU Android gak ngos-ngosan */
-        className="w-full sm:max-w-[540px] mx-auto rounded-b-[2.5rem] !border-x-0 !border-t-0 !border-b border-border/40 !bg-white/85 dark:!bg-zinc-950/85 [backdrop-filter:blur(8px)] [-webkit-backdrop-filter:blur(8px)] p-0 shadow-[0_10px_25px_rgba(0,0,0,0.08)] transition-transform duration-300 will-change-transform [&>button]:hidden"
+        /* 🚀 FIX MUTLAK 60 FPS: Hapus semua backdrop-filter & opacity! Kita pakai Solid White/Dark dengan bayangan tegas. GPU Android langsung rebahan! */
+        className="w-full sm:max-w-[540px] mx-auto rounded-b-[2.5rem] !border-x-0 !border-t-0 !border-b border-border/40 bg-white dark:bg-zinc-950 p-0 shadow-[0_20px_50px_rgba(0,0,0,0.15)] transition-transform duration-300 will-change-transform [&>button]:hidden"
         onOpenAutoFocus={(e) => e.preventDefault()} 
       >
 
