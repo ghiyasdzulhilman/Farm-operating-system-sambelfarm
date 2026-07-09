@@ -78,14 +78,20 @@ export function ActivityDetailSheet({
   const [editedProducts, setEditedProducts] = useState<Array<{ produkId: string; kuantitasPemakaian: number; namaProduk?: string; satuanDasar?: string }>>([]);
   const [isDirty, setIsDirty] = useState(false);
 
-  // 💡 Sinkronisasi otomatis: Saat sheet dibuka, salin array logProduk dari database ke state lokal
-  useEffect(() => {
-  if (item?.module === "perawatan" && item.metaEkstra?.logProduk) {
-    setEditedProducts(item.metaEkstra.logProduk.map((p: any) => ({ ...p }))); // clone tiap objek
+// 💡 Sinkronisasi otomatis: Saat sheet dibuka, salin array logProduk dari database ke state lokal
+// 🚀 FIX BUG: dependency diganti ke `incomingItem` (bukan `item` turunan).
+// `item` = incomingItem || cachedItem, dan cachedItem bikin nilainya tetap "ada" selama transisi tutup,
+// jadi kalau item yang sama dibuka lagi, referensinya IDENTIK dengan sebelum ditutup —
+// React skip effect ini karena dependency dianggap tidak berubah, padahal editedProducts
+// sudah kadung dikosongkan manual saat sheet ditutup. `incomingItem` selalu null saat tertutup,
+// jadi transisi null -> objek SELALU dianggap perubahan, effect pasti jalan ulang.
+useEffect(() => {
+  if (incomingItem?.module === "perawatan" && incomingItem.metaEkstra?.logProduk) {
+    setEditedProducts(incomingItem.metaEkstra.logProduk.map((p: any) => ({ ...p }))); // clone tiap objek
   } else {
     setEditedProducts([]);
   }
-}, [item]);
+}, [incomingItem]);
 
   // 💡 Fetch Opsi Master Produk dari backend
     const { data: produkOptions } = useQuery({
