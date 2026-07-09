@@ -692,16 +692,6 @@ export function ActivityDetailSheet({
   );
 })()}
                   
-{/* Bagian Detail Text — hanya tampil kalau ada isinya */}
-{getDetailKendala() && (
-  <div className="text-sm text-destructive whitespace-pre-wrap leading-relaxed font-medium">
-    {getDetailKendala()}
-  </div>
-)}
-</div>
-</section>
-)}
-
             {/* 💡 SEGMEN BARU: RINCIAN BAHAN & DOSIS (KHUSUS PERAWATAN) */}
             {item.module === "perawatan" && (
               <section className="mt-6 space-y-3">
