@@ -498,7 +498,7 @@ export function ActivityDetailSheet({
                   {item.module === "operasional" && (
                     <>
                     {/* WIDGET 1: Prioritas (Segmented Control ala iOS / Linear) */}
-                      <div className="rounded-3xl border border-border/40 bg-card/60 backdrop-blur-md p-4 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.04)] flex flex-col justify-between min-h-[105px]">
+                      <div className="rounded-3xl border border-border/40 bg-card p-4 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.04)] flex flex-col justify-between min-h-[105px]">
                         <div className="flex items-center gap-2 text-muted-foreground/80">
                           <Zap className="h-4 w-4 opacity-70" />
                           <span className="text-[11px] font-bold uppercase tracking-widest">Prioritas</span>
@@ -603,7 +603,7 @@ export function ActivityDetailSheet({
                   </h3>
                 </div>
 
-                <div className="rounded-3xl border border-border/40 bg-card/60 backdrop-blur-md p-3 sm:p-4 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.03)] flex flex-col gap-3">
+                <div className="rounded-3xl border border-border/40 bg-card p-3 sm:p-4 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.03)] flex flex-col gap-3">
                   
                   {/* Baris Tanggal Range */}
                   <div className="flex items-center justify-between gap-2 sm:gap-4 group/date">
@@ -889,9 +889,9 @@ export function ActivityDetailSheet({
                       return (
                         // 🚀 Desain Kapsul Organik: Ada ikon profil mini di dalam badge
                         <div key={id} className={cn(
-                          "flex items-center gap-2 rounded-full border border-border/40 bg-card/60 backdrop-blur-sm px-3 py-1.5 text-[12px] font-medium shadow-[0_2px_10px_-2px_rgba(0,0,0,0.02)] transition-all hover:bg-muted/60 hover:-translate-y-0.5", 
+                         "flex items-center gap-2 rounded-full border border-border/40 bg-card px-3 py-1.5 text-[12px] font-medium shadow-[0_2px_10px_-2px_rgba(0,0,0,0.02)] transition-all hover:bg-muted/60 hover:-translate-y-0.5", 
                           matchedWorker?.deleted && "border-dashed text-muted-foreground/60 bg-muted/20 shadow-none hover:-translate-y-0"
-                        )}>
+                           )}>
                           <div className={cn("flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary", matchedWorker?.deleted && "bg-muted text-muted-foreground")}>
                             <Users className="h-[10px] w-[10px]" />
                           </div>
