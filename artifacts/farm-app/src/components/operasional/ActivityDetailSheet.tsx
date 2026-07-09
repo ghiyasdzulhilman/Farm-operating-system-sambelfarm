@@ -788,11 +788,13 @@ export function ActivityDetailSheet({
                </h3>
               </div>
               
-              {/* Kotak Catatan Utama (Bisa Di-edit untuk semua modul) */}
+          {/* Kotak Catatan Utama (Borderless ala Notion) */}
               <div 
                 onClick={() => { if(activeField !== "catatan") { setActiveField("catatan"); setLocalValue(getCleanCatatan()); } }}
-                className="rounded-3xl border border-border/60 bg-muted/20 p-4 text-sm leading-6 text-foreground min-h-[120px] cursor-pointer hover:bg-muted/40 transition-colors"
+                // 🚀 Hapus border dan bg tebal. Ganti dengan hover:bg-muted/30 yang sangat halus
+                className="group/notes w-full text-[14px] leading-relaxed text-foreground/90 min-h-[120px] cursor-pointer transition-all hover:bg-muted/30 rounded-2xl p-3 -mx-3"
               >
+
                 {activeField === "catatan" ? (
                   <textarea 
                     autoFocus 
@@ -831,25 +833,36 @@ export function ActivityDetailSheet({
                     return workerIds.map((id) => {
                       const matchedWorker = dropdownOptions.petugas.find((p: any) => p.id === id);
                       
-                      let label = "(Pekerja Terhapus)";
+                    let label = "(Pekerja Terhapus)";
                       if (matchedWorker) {
                         label = matchedWorker.deleted ? `${matchedWorker.name} (Terhapus)` : matchedWorker.name;
                       }
                         
                       return (
-                        <Badge key={id} variant="outline" className={cn("rounded-full px-3 py-1 shadow-sm", matchedWorker?.deleted && "border-dashed text-muted-foreground bg-muted/20")}>
-                          {label}
-                        </Badge>
+                        // 🚀 Desain Kapsul Organik: Ada ikon profil mini di dalam badge
+                        <div key={id} className={cn(
+                          "flex items-center gap-2 rounded-full border border-border/40 bg-card/60 backdrop-blur-sm px-3 py-1.5 text-[12px] font-medium shadow-[0_2px_10px_-2px_rgba(0,0,0,0.02)] transition-all hover:bg-muted/60 hover:-translate-y-0.5", 
+                          matchedWorker?.deleted && "border-dashed text-muted-foreground/60 bg-muted/20 shadow-none hover:-translate-y-0"
+                        )}>
+                          <div className={cn("flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary", matchedWorker?.deleted && "bg-muted text-muted-foreground")}>
+                            <Users className="h-[10px] w-[10px]" />
+                          </div>
+                          <span className="truncate max-w-[120px]">{label}</span>
+                        </div>
                       );
                     });
                   }
 
-                  // Fallback: Selama master data lagi loading, tampilin aja bawaan dari feed-nya
+                  // Fallback: Selama master data lagi loading
                   return item.workers?.map((worker, index) => (
-                    <Badge key={index} variant="outline" className="rounded-full px-3 py-1 shadow-sm bg-background">
-                      {worker}
-                    </Badge>
+                    <div key={index} className="flex items-center gap-2 rounded-full border border-border/40 bg-card/60 px-3 py-1.5 text-[12px] font-medium shadow-[0_2px_10px_-2px_rgba(0,0,0,0.02)]">
+                      <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary">
+                        <Users className="h-[10px] w-[10px]" />
+                      </div>
+                      <span className="truncate max-w-[120px]">{worker}</span>
+                    </div>
                   ));
+
                 })()}
               </div>
             </section>
