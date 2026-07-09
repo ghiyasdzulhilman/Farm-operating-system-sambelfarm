@@ -50,7 +50,7 @@ interface ActivityDetailSheetProps {
 }
 
 export function ActivityDetailSheet({
-  item,
+  item: incomingItem, // ✨ 1. Ubah nama parameter jadi 'incomingItem'
   onClose,
   onStatusChange,
   onProdukChange,
@@ -58,8 +58,19 @@ export function ActivityDetailSheet({
   isUpdatingProduk = false,
 }: ActivityDetailSheetProps) {
 
+  // ✨ 2. JURUS CACHE: Simpan "arwah" data terakhir biar nggak langsung hilang pas ditutup
+  const [cachedItem, setCachedItem] = useState<AgronomyItem | null>(null);
+
+  useEffect(() => {
+    if (incomingItem) {
+      setCachedItem(incomingItem);
+    }
+  }, [incomingItem]);
+
+  // ✨ 3. Tentukan data yang dipakai: Kalau data asli hilang (lagi proses nutup), pakai data cache!
+  const item = incomingItem || cachedItem;
+
   // 💡 State untuk mendeteksi elemen mana yang lagi di-tap (inline edit)
- 
   const [activeField, setActiveField] = useState<string | null>(null);
   const [localValue, setLocalValue] = useState<string>("");
   
@@ -259,9 +270,10 @@ export function ActivityDetailSheet({
     }
   };
 
-    // ✨ 1. FROSTED GLASS CONTAINER: Latar transparan dengan blur tinggi & soft shadow ala Apple
+  // ✨ 1. FROSTED GLASS CONTAINER: Latar transparan dengan blur tinggi & soft shadow ala Apple
   return (
-    <Sheet open={!!item} onOpenChange={(open) => {
+    /* 🚀 Ganti open={!!item} jadi open={!!incomingItem}. Ini kunci utama biar animasinya gak kedip! */
+    <Sheet open={!!incomingItem} onOpenChange={(open) => {
       if (!open) {
         setIsDirty(false);
         setEditedProducts([]);
