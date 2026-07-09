@@ -279,90 +279,6 @@ export function ActivityDetailSheet({
         {/* ✨ FIX TINGGI: max-h-[88vh] memastikan mentok di 88% layar, sisa 12% di bawah murni buat klik area kosong (nutup) */}
         <div className="flex flex-col max-h-[88vh]">
 
-
-         {/* ✨ TOP BAR BARU: Sangat bersih, konsisten ala Kanban View & Apple iOS */}
-          <SheetHeader className="!border-b !border-border/15 !bg-transparent px-6 py-3.5">
-            <div className="flex items-center justify-between gap-3 w-full">
-              
-              {/* KIRI: IKON STATUS DENGAN INVISIBLE SELECT TRICK ALA KANBAN VIEW */}
-              {(() => {
-                // 1. Tentukan Ikon & Warna berdasarkan status item saat ini
-                let StatusIcon = Calendar;
-                let statusColor = "text-slate-500 bg-slate-500/10 border-slate-500/20";
-                let statusLabel = "Belum Dikerjakan";
-                
-                if (item.status === "Selesai" || item.status === "Sudah ditangani") {
-                  StatusIcon = Inbox;
-                  statusColor = "text-emerald-600 bg-emerald-500/15 border-emerald-500/30 dark:text-emerald-400";
-                  statusLabel = item.status;
-                } else if (item.status === "Dalam proses" || item.status === "Sedang ditangani") {
-                  StatusIcon = Timer;
-                  statusColor = "text-amber-600 bg-amber-500/15 border-amber-500/30 dark:text-amber-400";
-                  statusLabel = item.status;
-                } else {
-                  statusLabel = item.status;
-                }
-
-                return (
-                  <div className="flex items-center gap-2">
-                    {/* Wadah Ikon yang Bisa Di-tap (Invisible Select) */}
-                    <div 
-                      className={cn(
-                        "relative flex items-center justify-center p-2 rounded-xl border shadow-sm transition-all hover:scale-105 active:scale-95 cursor-pointer",
-                        statusColor,
-                        item.isPendingStaging && "opacity-50 cursor-not-allowed"
-                      )}
-                      title="Tap untuk ubah status"
-                    >
-                      <StatusIcon className="h-4 w-4" strokeWidth={2.5} />
-                      
-                      {/* Select Transparan yang Menumpuk di Atas Ikon */}
-                      <select
-                        value={item.status}
-                        onChange={(e) => onStatusChange?.(item.id, e.target.value)}
-                        disabled={item.isPendingStaging}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer appearance-none z-10"
-                      >
-                        {item.module === "inspeksi" ? (
-                          <>
-                            <option value="Baru ditemukan">Baru ditemukan</option>
-                            <option value="Sedang ditangani">Sedang ditangani</option>
-                            <option value="Sudah ditangani">Sudah ditangani</option>
-                          </>
-                        ) : (
-                          <>
-                            <option value="Belum dikerjakan">Belum dikerjakan</option>
-                            <option value="Dalam proses">Dalam proses</option>
-                            <option value="Selesai">Selesai</option>
-                          </>
-                        )}
-                      </select>
-                    </div>
-
-                    {/* Teks Status Halus di Samping Ikon (Opsional, biar mandor tau statusnya apa) */}
-                    <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider select-none">
-                      {statusLabel}
-                    </span>
-                  </div>
-                );
-              })()}
-
-              {/* KANAN: TOMBOL TUTUP DENGAN IKON X (CLOSE) */}
-              <button 
-                onClick={() => {
-                  setIsDirty(false);
-                  setEditedProducts([]);
-                  onClose();
-                }}
-                className="flex items-center justify-center h-8 w-8 rounded-full bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground border border-border/40 transition-all duration-200 shadow-sm hover:scale-105 active:scale-95"
-                title="Tutup (Esc)"
-              >
-                <X className="h-4 w-4" strokeWidth={2.5} />
-              </button>
-
-            </div>
-          </SheetHeader>
-
           {/* ✨ 4. BODY WRAPPER: Padding horizontal diperlebar ke px-6 biar konten di dalam tidak sumpek */}
           <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar text-left">
 
@@ -928,16 +844,79 @@ export function ActivityDetailSheet({
               </div>
             </section>
             
-           {/* ... penutup segmen tim kebun ... */}
-          </div> {/* penutup div flex-1 overflow-y-auto */}
-        </div>   {/* penutup div flex flex-col */}
-        
-        {/* ✨ INDIKATOR TUTUP (Garis pemanis di bawah) */}
-        <div className="mx-auto my-3 h-1.5 w-12 rounded-full bg-border/40" />
+        {/* ... penutup segmen tim kebun ... */}
+          </div> {/* penutup div flex-1 overflow-y-auto px-6 py-6 ... */}
+          
+          {/* ✨ BOTTOM ACTION BAR: Status (Kiri), Garis (Tengah), X (Kanan) */}
+          <div className="shrink-0 px-6 pb-5 pt-3 flex items-center justify-between relative border-t border-white/10 dark:border-white/5">
+            
+            {/* KIRI: IKON STATUS MURNI (Tanpa Teks) */}
+            {(() => {
+              let StatusIcon = Calendar;
+              let statusColor = "text-slate-500 bg-slate-500/10 border-slate-500/20";
+              
+              if (item.status === "Selesai" || item.status === "Sudah ditangani") {
+                StatusIcon = Inbox;
+                statusColor = "text-emerald-600 bg-emerald-500/15 border-emerald-500/30 dark:text-emerald-400";
+              } else if (item.status === "Dalam proses" || item.status === "Sedang ditangani") {
+                StatusIcon = Timer;
+                statusColor = "text-amber-600 bg-amber-500/15 border-amber-500/30 dark:text-amber-400";
+              }
 
+              return (
+                <div 
+                  className={cn(
+                    "relative flex items-center justify-center h-10 w-10 rounded-full border shadow-sm transition-all hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md",
+                    statusColor,
+                    item.isPendingStaging && "opacity-50 cursor-not-allowed"
+                  )}
+                  title="Ubah Status"
+                >
+                  <StatusIcon className="h-5 w-5" strokeWidth={2.5} />
+                  <select
+                    value={item.status}
+                    onChange={(e) => onStatusChange?.(item.id, e.target.value)}
+                    disabled={item.isPendingStaging}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer appearance-none z-10"
+                  >
+                    {item.module === "inspeksi" ? (
+                      <>
+                        <option value="Baru ditemukan">Baru ditemukan</option>
+                        <option value="Sedang ditangani">Sedang ditangani</option>
+                        <option value="Sudah ditangani">Sudah ditangani</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value="Belum dikerjakan">Belum dikerjakan</option>
+                        <option value="Dalam proses">Dalam proses</option>
+                        <option value="Selesai">Selesai</option>
+                      </>
+                    )}
+                  </select>
+                </div>
+              );
+            })()}
+
+            {/* TENGAH: GARIS INDIKATOR DRAG/TUTUP (Ngambang di tengah absolut) */}
+            <div className="absolute left-1/2 -translate-x-1/2 bottom-3 h-1.5 w-12 rounded-full bg-border/50" />
+
+            {/* KANAN: IKON X (CLOSE) */}
+            <button 
+              onClick={() => {
+                setIsDirty(false);
+                setEditedProducts([]);
+                onClose();
+              }}
+              className="flex items-center justify-center h-10 w-10 rounded-full bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground border border-border/40 transition-all duration-200 shadow-sm hover:scale-105 active:scale-95 backdrop-blur-md"
+              title="Tutup"
+            >
+              <X className="h-5 w-5" strokeWidth={2.5} />
+            </button>
+            
+          </div>
+
+        </div>   {/* penutup div flex flex-col max-h-[88vh] ... */}
       </SheetContent>
     </Sheet>
   );
 }
-
-
