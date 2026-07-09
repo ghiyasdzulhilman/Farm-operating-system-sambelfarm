@@ -167,8 +167,8 @@ export function SettingsPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr]">
         
-              {/* SIDEBAR CONTAINER */}
-        <aside className="space-y-2"> {/* 💡 Jarak dikembalikan ke space-y-2 biar mepet rapi */}
+      {/* SIDEBAR CONTAINER */}
+        <aside className="space-y-2"> 
           
           {/* 🚀 TOMBOL MASTER DATA (SUPABASE) - MENYATU DENGAN LIST */}
           <button 
@@ -196,21 +196,17 @@ export function SettingsPage() {
                 className={cn("group flex w-full items-center gap-3 rounded-2xl p-4 transition-all duration-300", 
                   isActive ? "bg-primary text-primary-foreground shadow-sm" : "hover:bg-primary/5 text-muted-foreground")}
               >
-
-                  /* AUDIT WARNA: Teks list menu side diubah biar adaptif */
-                  className={cn("group flex w-full items-center gap-3 rounded-2xl p-4 transition-all duration-300", 
-                    isActive ? "bg-primary text-primary-foreground shadow-sm" : "hover:bg-primary/5 text-muted-foreground")}>
-                  <div className={cn("rounded-xl p-2 transition-colors", isActive ? "bg-primary-foreground/20 text-white" : "bg-muted text-muted-foreground")}>
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <div className="text-left">
-                    <p className={cn("text-sm font-black", isActive && "text-white")}>{domain.label}</p>
-                    <p className={cn("text-[10px]", isActive ? "text-white/80" : "text-muted-foreground/60")}>{domain.schemas.length} Schemas</p>
-                  </div>
-                  {isActive && <ChevronRight className="ml-auto h-4 w-4" />}
-                </button>
-              );
-            })}
+                <div className={cn("rounded-xl p-2 transition-colors", isActive ? "bg-primary-foreground/20 text-white" : "bg-muted text-muted-foreground")}>
+                  <Icon className="h-5 w-5" />
+                </div>
+                <div className="text-left">
+                  <p className={cn("text-sm font-black", isActive && "text-white")}>{domain.label}</p>
+                  <p className={cn("text-[10px]", isActive ? "text-white/80" : "text-muted-foreground/60")}>{domain.schemas.length} Schemas</p>
+                </div>
+                {isActive && <ChevronRight className="ml-auto h-4 w-4" />}
+              </button>
+            );
+          })}
           
           {/* SAKLAR TRIPLE KENDALI WARNA */}
           <ColorControl />
