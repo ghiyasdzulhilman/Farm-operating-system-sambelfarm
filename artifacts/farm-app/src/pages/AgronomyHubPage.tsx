@@ -369,41 +369,6 @@ export function AgronomyHubPage() {
             />
           )}
       </div>
-
-                <aside className="space-y-5">
-          {/* Kartu Snapshot - Glassmorphism & Soft Shadow */}
-          <div className="rounded-[1.5rem] border border-border/40 bg-card/60 backdrop-blur-md p-5 shadow-[0_12px_30px_-4px_rgba(0,0,0,0.06)] transition-all duration-500 hover:shadow-[0_16px_40px_-4px_rgba(0,0,0,0.08)] hover:bg-card/80">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/80">Snapshot</p>
-                <h3 className="mt-1 text-lg font-bold tracking-tight">Ringkasan Cepat</h3>
-              </div>
-              <div className="rounded-2xl bg-primary/10 p-3 text-primary shadow-[inset_0_1px_4px_rgba(255,255,255,0.4)]"><TrendingUp className="h-5 w-5" /></div>
-            </div>
-            <div className="mt-5 space-y-3">
-              <InfoRow label="Total Aktivitas" value={`${feedData.length}`} />
-              <InfoRow label="Aktivitas Tertunda" value={`${feedData.filter((i) => i.status === "Belum dikerjakan").length}`} />
-              <InfoRow label="Data Terakhir Load" value={new Date(meta.lastSynced).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} />
-            </div>
-          </div>
-
-          {/* Kartu Shortcut */}
-          <div className="rounded-[1.5rem] border border-border/40 bg-card/60 backdrop-blur-md p-5 shadow-[0_12px_30px_-4px_rgba(0,0,0,0.06)] transition-all duration-500 hover:shadow-[0_16px_40px_-4px_rgba(0,0,0,0.08)] hover:bg-card/80">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/80">Shortcut</p>
-                <h3 className="mt-1 text-lg font-bold tracking-tight">Aksi Cepat</h3>
-              </div>
-              <div className="rounded-2xl bg-muted/50 p-3 text-muted-foreground border border-border/50"><MoreHorizontal className="h-5 w-5" /></div>
-            </div>
-            <div className="mt-5 grid gap-3">
-              <ShortcutButton icon={Sprout} label="Tambah Perawatan" />
-              <ShortcutButton icon={Leaf} label="Tambah Inspeksi" />
-              <ShortcutButton icon={Wrench} label="Tambah Operasional" />
-            </div>
-          </div>
-        </aside>
-
       </div>
 
     <ActivityDetailSheet 
@@ -422,7 +387,7 @@ export function AgronomyHubPage() {
   }}
 />
 
-      {/* 💡 OVERLAY MASTER HUB (MUNCUL KALAU TOMBOL RIWAYAT DIKLIK) */}
+      {/* 💡 OVERLAY MASTER HUB */}
       {showMasterHub && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-background/95 backdrop-blur-sm">
           <MasterHubPage onClose={() => setShowMasterHub(false)} />
@@ -433,27 +398,5 @@ export function AgronomyHubPage() {
   );
 }
 
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between rounded-2xl bg-muted/40 border border-border/30 px-4 py-3 transition-colors hover:bg-muted/60">
-      <span className="text-[13px] font-medium text-muted-foreground">{label}</span>
-      <span className="text-[13px] font-bold text-foreground">{value}</span>
-    </div>
-  );
-}
-
-function ShortcutButton({ icon: Icon, label }: { icon: any; label: string }) {
-  return (
-    <button className="group flex w-full items-center justify-between rounded-2xl border border-border/40 bg-background/50 px-4 py-3 text-left shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_20px_-4px_rgba(0,0,0,0.06)] hover:bg-background">
-      <div className="flex items-center gap-3">
-        <div className="rounded-xl bg-primary/10 p-2.5 text-primary transition-all duration-300 group-hover:scale-110 group-hover:bg-primary group-hover:text-primary-foreground group-hover:shadow-md">
-          <Icon className="h-4 w-4" />
-        </div>
-        <span className="text-[13px] font-semibold text-foreground/90">{label}</span>
-      </div>
-      <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform duration-300 group-hover:translate-x-1 group-hover:text-primary" />
-    </button>
-  );
-}
 
 
