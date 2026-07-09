@@ -650,29 +650,47 @@ export function ActivityDetailSheet({
               </section>
             )}
  
-          {/* 💡 SEGMEN BARU: CATATAN TEMUAN (KHUSUS INSPEKSI) */}
-            {item.module === "inspeksi" && (
-              <section className="mt-6 space-y-3">
-                  <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-destructive shadow-[0_0_8px_rgba(239,68,68,0.6)]" />
-                  <h3 className="text-[12px] font-bold uppercase tracking-[0.18em] text-muted-foreground/80">
-                    Catatan Temuan
-                  </h3>
-                </div>
+{/* 💡 CATATAN TEMUAN (KHUSUS INSPEKSI) */}
+ {item.module === "inspeksi" && (() => {
+  const hasFindings = !!(item.metaEkstra.hama?.length || item.metaEkstra.penyakit?.length);
+  return (
+    <section className="mt-6 space-y-3">
+      <div className="flex items-center gap-2">
+        <div className={cn("h-2 w-2 rounded-full", hasFindings ? "bg-destructive" : "bg-primary")} />
+        <h3 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/80">
+          Catatan Temuan
+        </h3>
+      </div>
 
-                <div className="rounded-3xl border border-destructive/20 bg-destructive/5 p-4 shadow-sm">
-                  {/* Bagian Badge Hama & Penyakit */}
-  <div className="flex flex-wrap gap-1.5 mb-4 pb-4 border-b border-destructive/10">
-  {(Array.isArray(item.metaEkstra.hama) ? item.metaEkstra.hama : []).map((h: string) => (
-    <span key={h} className="text-[10px] font-bold rounded-full px-2.5 py-1 bg-red-500/10 text-red-600 border border-red-500/20">{h}</span>
-  ))}
-  {(Array.isArray(item.metaEkstra.penyakit) ? item.metaEkstra.penyakit : []).map((p: string) => (
-    <span key={p} className="text-[10px] font-bold rounded-full px-2.5 py-1 bg-orange-500/10 text-orange-600 border border-orange-500/20">{p}</span>
-  ))}
-  {(!item.metaEkstra.hama?.length && !item.metaEkstra.penyakit?.length) && (
-    <span className="text-[10px] font-bold rounded-full px-2.5 py-1 bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">Tanaman Aman Terkendali</span>
-  )}
-</div>
+      {/* 🚀 Garis aksen kiri, tanpa card/bg/shadow. Tinggi otomatis ngikutin konten karena border ada di container flex-col. */}
+      <div className={cn(
+        "border-l-2 pl-4 flex flex-col gap-3",
+        hasFindings ? "border-destructive/30" : "border-primary/30"
+      )}>
+        <div className="flex flex-wrap gap-1.5">
+          {(Array.isArray(item.metaEkstra.hama) ? item.metaEkstra.hama : []).map((h: string) => (
+            <span key={h} className="text-[10px] font-bold rounded-full px-2.5 py-1 bg-red-500/10 text-red-600/90 border border-red-500/15">{h}</span>
+          ))}
+          {(Array.isArray(item.metaEkstra.penyakit) ? item.metaEkstra.penyakit : []).map((p: string) => (
+            <span key={p} className="text-[10px] font-bold rounded-full px-2.5 py-1 bg-orange-500/10 text-orange-600/90 border border-orange-500/15">{p}</span>
+          ))}
+          {!hasFindings && (
+            <span className="text-[10px] font-bold rounded-full px-2.5 py-1 bg-primary/10 text-primary border border-primary/20">Tanaman Aman Terkendali</span>
+          )}
+        </div>
+
+        {getDetailKendala() && (
+          <div className={cn(
+            "text-sm whitespace-pre-wrap leading-relaxed font-medium",
+            hasFindings ? "text-destructive/90" : "text-foreground/80"
+          )}>
+            {getDetailKendala()}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+})()}
                   
 {/* Bagian Detail Text — hanya tampil kalau ada isinya */}
 {getDetailKendala() && (
