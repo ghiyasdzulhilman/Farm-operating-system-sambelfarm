@@ -336,19 +336,21 @@ export function ActivityDetailSheet({
          {/* ✨ 2. NOTION-STYLE PROPERTIES (Metadata vertikal yang rapi) */}
             <div className="flex flex-col gap-2.5 mb-10 border-b border-border/40 pb-6">
               
-            {/* Property: Waktu & HST */}
-              <div className="flex items-center min-h-[32px] hover:bg-muted/40 rounded-md px-1.5 -ml-1.5 transition-colors group">
-                <div className="w-[140px] shrink-0 text-[13px] font-medium text-muted-foreground flex items-center gap-2">
-                  <CalendarDays className="h-4 w-4 opacity-70" /> Waktu
+           {/* Property: Waktu & HST */}
+              <div className="flex items-center min-h-[34px] group">
+                {/* 🚀 Selaraskan: gap-2.5, opacity-50, text-muted-foreground/80 */}
+                <div className="w-[140px] shrink-0 text-[13px] font-medium text-muted-foreground/80 flex items-center gap-2.5">
+                  <CalendarDays className="h-4 w-4 opacity-50" /> Waktu
                 </div>
-                <div className="flex-1 flex flex-wrap items-center gap-2 text-[13px] font-medium text-foreground">
+                {/* 🚀 Selaraskan: text-foreground/90 */}
+                <div className="flex-1 flex flex-wrap items-center gap-2 text-[13px] font-medium text-foreground/90 hover:bg-muted/50 rounded-lg px-2 py-1 -ml-2 transition-all w-fit cursor-default">
                   <span>{formatTanggalLengkap(item.rawDate)}</span>
-                  <span className="text-muted-foreground/40 text-[10px]">●</span>
+                  <span className="text-muted-foreground/30 text-[10px]">●</span>
                   <span>{item.time}</span>
                   
-              {/* ✨ BADGE HST : Warna diubah jadi Primary (Teal/Biru Senada) & anti-turun ke bawah */}
+                  {/* ✨ BADGE HST : Tetap dipertahankan dengan warna tema */}
                   {calculateHST() && (
-                    <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20 px-1.5 py-0 rounded-sm font-bold shrink-0 ml-1">
+                    <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20 px-1.5 py-0 rounded-sm font-bold shrink-0 ml-1 shadow-sm">
                       {calculateHST()}
                     </Badge>
                   )}
