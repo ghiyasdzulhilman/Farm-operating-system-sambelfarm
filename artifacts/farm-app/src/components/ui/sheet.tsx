@@ -21,8 +21,9 @@ const SheetOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SheetPrimitive.Overlay
     className={cn(
-      /* ✨ Ganti ke bg-black/25 + blur tipis biar tabel di belakangnya tetep keliatan jelas! */
-      "fixed inset-0 z-50 bg-black/25 backdrop-blur-[2px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      // 🚀 FIX PERFORMA: buang backdrop-blur full-screen yang animate bareng slide-in.
+      // Opacity dinaikkan sedikit (25% -> 35%) buat kompensasi hilangnya efek blur secara visual.
+      "fixed inset-0 z-50 bg-black/35 will-change-[opacity] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className
     )}
     {...props}
