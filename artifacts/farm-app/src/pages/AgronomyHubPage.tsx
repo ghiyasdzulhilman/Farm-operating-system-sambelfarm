@@ -13,7 +13,6 @@ import { LiveFeedView } from "@/components/operasional/LiveFeedView";
 import { ActivityDetailSheet } from "@/components/operasional/ActivityDetailSheet";
 import { MasterTableView } from "@/components/operasional/MasterTableView";
 import { KanbanView } from "@/components/operasional/KanbanView";
-import { MasterHubPage } from "@/components/operasional/MasterHubPage"; 
 import type { AgronomyItem, ModuleKey, ViewKey } from "@/types/operasional";
 import { useToast } from "@/hooks/use-toast";
 
@@ -31,7 +30,6 @@ export function AgronomyHubPage() {
   // 🚀 1. TAMBAHIN STATE BARU BUAT FILTER SIKLUS (Default-nya "aktif")
   const [filterSiklus, setFilterSiklus] = useState<"aktif" | "selesai">("aktif"); 
   const [selectedItem, setSelectedItem] = useState<AgronomyItem | null>(null);
-  const [showMasterHub, setShowMasterHub] = useState(false);
 
   // =====================================================================
   // 1. FETCH DATA (LANGSUNG DARI 3 ENDPOINT SUPABASE + MASTER PEKERJA)
@@ -275,15 +273,6 @@ export function AgronomyHubPage() {
           {/* Typografi lebih elegan */}
           <h1 className="text-3xl font-bold tracking-tight md:text-4xl">Pusat Aktivitas</h1>
         </div>
-
-        <div className="w-full md:w-auto pt-2 md:pt-0">
-          <Button 
-            className="w-full h-12 rounded-2xl bg-primary px-6 font-semibold text-primary-foreground shadow-[0_8px_24px_-6px_rgba(var(--primary-color-rgb,0,0,0),0.3)] transition-all duration-300 active:scale-95 hover:-translate-y-0.5 hover:shadow-[0_12px_30px_-6px_rgba(var(--primary-color-rgb,0,0,0),0.4)] md:w-auto"
-            onClick={() => setShowMasterHub(true)}
-          >
-            <Database className="mr-2 h-5 w-5" /> Master Control Center
-          </Button>
-        </div>
       </div>
 
       <SummaryHeader feedData={feedData} meta={meta} />
@@ -386,14 +375,6 @@ export function AgronomyHubPage() {
     return updateProdukMutation.mutateAsync({ id, logProduk });
   }}
 />
-
-      {/* 💡 OVERLAY MASTER HUB */}
-      {showMasterHub && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-background/95 backdrop-blur-sm">
-          <MasterHubPage onClose={() => setShowMasterHub(false)} />
-        </div>
-      )}
-
     </div>
   );
 }
