@@ -497,7 +497,7 @@ export function ActivityDetailSheet({
                {/* 2. WIDGET MODUL OPERASIONAL (Spatial UI Style) */}
                   {item.module === "operasional" && (
                     <>
-                      {/* WIDGET 1: Prioritas (Pill Dropdown Interaktif) */}
+                    {/* WIDGET 1: Prioritas (Segmented Control ala iOS / Linear) */}
                       <div className="rounded-3xl border border-border/40 bg-card/60 backdrop-blur-md p-4 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.04)] flex flex-col justify-between min-h-[105px]">
                         <div className="flex items-center gap-2 text-muted-foreground/80">
                           <Zap className="h-4 w-4 opacity-70" />
@@ -505,32 +505,36 @@ export function ActivityDetailSheet({
                         </div>
                         
                         {(() => {
-                          // Ambil nilai prioritas dan tentukan warna otomatis
                           const prioValue = ["Low", "Medium", "High"].find(
                             (p) => p.toLowerCase() === (item.metaEkstra.prioritas || "Medium").toLowerCase()
                           ) || "Medium";
-                          
-                          let prioColor = "text-amber-600 bg-amber-500/10 border-amber-500/20"; // Medium
-                          if (prioValue === "High") prioColor = "text-destructive bg-destructive/10 border-destructive/20"; // High
-                          if (prioValue === "Low") prioColor = "text-blue-600 bg-blue-500/10 border-blue-500/20"; // Low
 
                           return (
-                            <div className="relative mt-3 group/prio">
-                              {/* Tampilan Visual Pill/Kapsul */}
-                              <div className={cn("inline-flex items-center justify-between w-[120px] rounded-xl border px-3 py-1.5 shadow-[inset_0_1px_4px_rgba(255,255,255,0.4)] transition-all group-hover/prio:brightness-95", prioColor)}>
-                                <span className="text-[13px] font-bold tracking-wide">{prioValue}</span>
-                                <ChevronDown className="h-3.5 w-3.5 opacity-60" />
-                              </div>
-                              {/* Invisible Select: Berjalan di latar belakang saat diklik */}
-                              <select 
-                                value={prioValue}
-                                onChange={(e) => onStatusChange?.(item.id, { prioritas: e.target.value })}
-                                className="absolute inset-0 w-[120px] h-full opacity-0 cursor-pointer appearance-none z-10"
-                              >
-                                <option value="High">High</option>
-                                <option value="Medium">Medium</option>
-                                <option value="Low">Low</option>
-                              </select>
+                            <div className="mt-3 flex items-center bg-muted/40 p-1 rounded-xl border border-border/50 w-full relative">
+                              {["Low", "Medium", "High"].map((level) => {
+                                const isActive = prioValue === level;
+                                
+                                // Tentukan warna nyala untuk masing-masing level
+                                let activeClass = "text-muted-foreground hover:text-foreground hover:bg-muted/50";
+                                if (isActive) {
+                                  if (level === "High") activeClass = "bg-destructive text-destructive-foreground shadow-sm shadow-destructive/20";
+                                  else if (level === "Medium") activeClass = "bg-amber-500 text-white shadow-sm shadow-amber-500/20";
+                                  else if (level === "Low") activeClass = "bg-blue-500 text-white shadow-sm shadow-blue-500/20";
+                                }
+
+                                return (
+                                  <button
+                                    key={level}
+                                    onClick={() => onStatusChange?.(item.id, { prioritas: level })}
+                                    className={cn(
+                                      "flex-1 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-300",
+                                      activeClass
+                                    )}
+                                  >
+                                    {level}
+                                  </button>
+                                );
+                              })}
                             </div>
                           );
                         })()}
