@@ -494,43 +494,64 @@ export function ActivityDetailSheet({
                     </>
                   )}
 
-               {/* 2. KOTAK-KOTAK UNTUK MODUL OPERASIONAL */}
+               {/* 2. WIDGET MODUL OPERASIONAL (Spatial UI Style) */}
                   {item.module === "operasional" && (
                     <>
-                      {/* CARD 1: Prioritas (Value disamakan dengan Form Input: Low, Medium, High) */}
-                      <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm relative">
-                        <div className="mb-1 flex items-center gap-2 text-muted-foreground">
-                          <Zap className="h-4 w-4" />
-                          <span className="text-xs font-bold uppercase">Prioritas</span>
+                      {/* WIDGET 1: Prioritas (Pill Dropdown Interaktif) */}
+                      <div className="rounded-3xl border border-border/40 bg-card/60 backdrop-blur-md p-4 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.04)] flex flex-col justify-between min-h-[105px]">
+                        <div className="flex items-center gap-2 text-muted-foreground/80">
+                          <Zap className="h-4 w-4 opacity-70" />
+                          <span className="text-[11px] font-bold uppercase tracking-widest">Prioritas</span>
                         </div>
-                        <select 
-                          value={
-                            ["Low", "Medium", "High"].find(
-                              (p) => p.toLowerCase() === (item.metaEkstra.prioritas || "Medium").toLowerCase()
-                            ) || "Medium"
-                          }
-                          onChange={(e) => onStatusChange?.(item.id, { prioritas: e.target.value })}
-                          className="w-full bg-transparent text-sm font-black uppercase tracking-wider outline-none cursor-pointer appearance-none relative z-10"
-                        >
-                          <option value="High">HIGH</option>
-                          <option value="Medium">MEDIUM</option>
-                          <option value="Low">LOW</option>
-                        </select>
-                        <ChevronDown className="absolute right-3 top-1/2 mt-2 -translate-y-1/2 h-4 w-4 text-muted-foreground opacity-50 pointer-events-none" />
+                        
+                        {(() => {
+                          // Ambil nilai prioritas dan tentukan warna otomatis
+                          const prioValue = ["Low", "Medium", "High"].find(
+                            (p) => p.toLowerCase() === (item.metaEkstra.prioritas || "Medium").toLowerCase()
+                          ) || "Medium";
+                          
+                          let prioColor = "text-amber-600 bg-amber-500/10 border-amber-500/20"; // Medium
+                          if (prioValue === "High") prioColor = "text-destructive bg-destructive/10 border-destructive/20"; // High
+                          if (prioValue === "Low") prioColor = "text-blue-600 bg-blue-500/10 border-blue-500/20"; // Low
+
+                          return (
+                            <div className="relative mt-3 group/prio">
+                              {/* Tampilan Visual Pill/Kapsul */}
+                              <div className={cn("inline-flex items-center justify-between w-[120px] rounded-xl border px-3 py-1.5 shadow-[inset_0_1px_4px_rgba(255,255,255,0.4)] transition-all group-hover/prio:brightness-95", prioColor)}>
+                                <span className="text-[13px] font-bold tracking-wide">{prioValue}</span>
+                                <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+                              </div>
+                              {/* Invisible Select: Berjalan di latar belakang saat diklik */}
+                              <select 
+                                value={prioValue}
+                                onChange={(e) => onStatusChange?.(item.id, { prioritas: e.target.value })}
+                                className="absolute inset-0 w-[120px] h-full opacity-0 cursor-pointer appearance-none z-10"
+                              >
+                                <option value="High">High</option>
+                                <option value="Medium">Medium</option>
+                                <option value="Low">Low</option>
+                              </select>
+                            </div>
+                          );
+                        })()}
                       </div>
 
-{/* CARD 2: Durasi Kerja (Read-Only) */}
-<div className="rounded-2xl border border-border/40 bg-muted/40 p-3 shadow-sm select-none">
-  <div className="mb-1 flex items-center gap-2 text-muted-foreground/70">
-    <Clock3 className="h-4 w-4 opacity-70" />
-    <span className="text-xs font-bold uppercase tracking-wider">Durasi Kerja</span>
-  </div>
-  <p className="text-sm font-black text-muted-foreground">
-    {item.metaEkstra.durasiKerja ? `${item.metaEkstra.durasiKerja} Jam` : "0 Jam"}
-  </p>
-</div>
- </>
-)}
+                      {/* WIDGET 2: Durasi Kerja (Angka Besar & Bersih) */}
+                      <div className="rounded-3xl border border-border/30 bg-muted/30 p-4 shadow-[inset_0_1px_4px_rgba(255,255,255,0.2)] flex flex-col justify-between min-h-[105px] select-none">
+                        <div className="flex items-center gap-2 text-muted-foreground/70">
+                          <Clock3 className="h-4 w-4 opacity-70" />
+                          <span className="text-[11px] font-bold uppercase tracking-widest">Durasi Kerja</span>
+                        </div>
+                        <div className="mt-2 flex items-baseline gap-1.5">
+                          <span className="text-3xl font-bold tracking-tight text-foreground/90">
+                            {item.metaEkstra.durasiKerja || "0"}
+                          </span>
+                          <span className="text-[13px] font-semibold text-muted-foreground/70 mb-1">Jam</span>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
 
 {/* 3. KOTAK UNTUK MODUL PERAWATAN — Durasi & Total Biaya */}
       {item.module === "perawatan" && (
