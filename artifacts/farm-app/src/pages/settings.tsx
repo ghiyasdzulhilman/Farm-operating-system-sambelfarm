@@ -211,8 +211,7 @@ export function SettingsPage() {
                 </button>
               );
             })}
-          </div>
-
+          
           {/* SAKLAR TRIPLE KENDALI WARNA */}
           <ColorControl />
         </aside>
