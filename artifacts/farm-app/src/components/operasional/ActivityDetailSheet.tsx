@@ -283,8 +283,8 @@ export function ActivityDetailSheet({
       
       <SheetContent
         side="top"
-        /* 🚀 FIX MUTLAK 60 FPS: Hapus semua backdrop-filter & opacity! Kita pakai Solid White/Dark dengan bayangan tegas. GPU Android langsung rebahan! */
-        className="w-full sm:max-w-[540px] mx-auto rounded-b-[2.5rem] !border-x-0 !border-t-0 !border-b border-border/40 bg-white dark:bg-zinc-950 p-0 shadow-[0_20px_50px_rgba(0,0,0,0.15)] transition-transform duration-300 will-change-transform [&>button]:hidden"
+        /* 🚀 MODE PERFORMA: Buang transisi manual, pakai shadow standar, dan PAKSA durasi animasi bawaan jadi sangat cepat (!duration-200) */
+        className="w-full sm:max-w-[540px] mx-auto rounded-b-[2.5rem] !border-x-0 !border-t-0 !border-b border-border/40 bg-white dark:bg-zinc-950 p-0 shadow-lg !duration-200 [&>button]:hidden"
         onOpenAutoFocus={(e) => e.preventDefault()} 
       >
 
