@@ -423,8 +423,8 @@ export function ActivityDetailSheet({
             {item.metaEkstra && Object.keys(item.metaEkstra).length > 0 && (item.module === "inspeksi" || item.module === "operasional" || item.module === "perawatan") && (
               <section className="mt-6 space-y-3">
                 <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-amber-500" />
-                  <h3 className="text-sm font-black uppercase tracking-[0.18em] text-muted-foreground">
+                  <div className="h-2 w-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]" />
+                  <h3 className="text-[12px] font-bold uppercase tracking-[0.18em] text-muted-foreground/80">
                     Detail Aktivitas
                   </h3>
                 </div>
@@ -651,9 +651,9 @@ export function ActivityDetailSheet({
           {/* 💡 SEGMEN BARU: CATATAN TEMUAN (KHUSUS INSPEKSI) */}
             {item.module === "inspeksi" && (
               <section className="mt-6 space-y-3">
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-destructive" />
-                  <h3 className="text-sm font-black uppercase tracking-[0.18em] text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-destructive shadow-[0_0_8px_rgba(239,68,68,0.6)]" />
+                  <h3 className="text-[12px] font-bold uppercase tracking-[0.18em] text-muted-foreground/80">
                     Catatan Temuan
                   </h3>
                 </div>
@@ -687,11 +687,12 @@ export function ActivityDetailSheet({
               <section className="mt-6 space-y-3">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-emerald-500" />
-                    <h3 className="text-sm font-black uppercase tracking-[0.18em] text-muted-foreground">
+                    <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
+                    <h3 className="text-[12px] font-bold uppercase tracking-[0.18em] text-muted-foreground/80">
                       Bahan & Dosis
                     </h3>
                   </div>
+
                 </div>
 
                 <div className="rounded-3xl border border-emerald-500/20 bg-emerald-500/5 p-4 shadow-sm flex flex-col gap-3">
@@ -826,13 +827,13 @@ export function ActivityDetailSheet({
 
             {/* SEGMEN CATATAN UMUM (INLINE EDIT) */}
             <section className="mt-6 space-y-3">
-              <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-primary" />
-
-                <h3 className="text-sm font-black uppercase tracking-[0.18em] text-muted-foreground">
-                {item.module === "inspeksi" ? "Catatan Kegiatan" : "Catatan"}
-               </h3>
+                <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary),0.6)]" />
+                <h3 className="text-[12px] font-bold uppercase tracking-[0.18em] text-muted-foreground/80">
+                  {item.module === "inspeksi" ? "Catatan Kegiatan" : "Catatan"}
+                </h3>
               </div>
+
               
           {/* Kotak Catatan Utama (Borderless ala Notion) */}
               <div 
@@ -858,12 +859,13 @@ export function ActivityDetailSheet({
 
       {/* SEGMEN PEKERJA */}
             <section className="mt-6 space-y-3 pb-8">
-              <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-primary" />
-                <h3 className="text-sm font-black uppercase tracking-[0.18em] text-muted-foreground">
+                <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary),0.6)]" />
+                <h3 className="text-[12px] font-bold uppercase tracking-[0.18em] text-muted-foreground/80">
                   Tim Kebun
                 </h3>
               </div>
+
               <div className="flex flex-wrap gap-2">
                 {/* 🚀 FIX: Mapping ID ke Nama pakai data master terbaru biar status (Nonaktif) ikut muncul */}
                 {(() => {
