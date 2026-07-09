@@ -47,6 +47,8 @@ import { PEKERJA_SCHEMA } from "@/config/schemas/pekerja.config";
 import { INSPEKSI_SCHEMA } from "@/config/schemas/inspeksi.config";
 import { OPERASIONAL_SCHEMA } from "@/config/schemas/operasional.config";
 
+import { MasterHubPage } from "@/pages/MasterHubPage"; 
+
 // ---------------------------------------------------------------------------
 // 📂 1. ARCHITECTURE & DICTIONARY
 // ---------------------------------------------------------------------------
@@ -138,6 +140,7 @@ const glassCard = "rounded-[1.75rem] border-border/50 bg-card text-card-foregrou
 export function SettingsPage() {
   const [activeDomain, setActiveDomain] = useState<DomainType>("agronomy");
   const [expandedSchema, setExpandedSchema] = useState<string | null>(null);
+  const [showMasterHub, setShowMasterHub] = useState(false);
 
   const { data: dbList, isFetching: isRefreshing, refetch: refresh } = useListDatabases({ query: { queryKey: getListDatabasesQueryKey() } });
   useGetNotionConnectionStatus({ query: { queryKey: getGetNotionConnectionStatusQueryKey() } });
@@ -164,14 +167,42 @@ export function SettingsPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr]">
         
-        {/* SIDEBAR CONTAINER */}
-        <aside className="space-y-4">
+      {/* SIDEBAR CONTAINER */}
+        <aside className="space-y-6"> {/* 💡 Jarak antar elemen diganti jadi 6 biar lega */}
+          
+          {/* 🚀 KARTU TRIGGER MASTER HUB (SUPABASE) */}
+          <div className="rounded-[1.75rem] border border-primary/20 bg-primary/5 p-4 shadow-sm transition-all duration-300 hover:border-primary/40 hover:bg-primary/10">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="rounded-xl bg-primary/20 p-2.5 text-primary">
+                <Database className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-foreground">PostgreSQL Master</h3>
+                <p className="text-[10px] font-medium text-muted-foreground">Supabase Control Center</p>
+              </div>
+            </div>
+            <Button 
+              onClick={() => setShowMasterHub(true)}
+              className="w-full rounded-xl bg-primary font-bold text-primary-foreground shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg"
+            >
+              Buka Master Hub
+            </Button>
+          </div>
+
           <div className="space-y-2">
+            {/* 💡 LABEL PEMISAH UTK SINKRONISASI NOTION LAMA */}
+            <div className="px-2 mb-3">
+              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
+                Notion Sync (Legacy)
+              </span>
+            </div>
+
             {DOMAINS.map((domain) => {
               const Icon = domain.icon;
               const isActive = activeDomain === domain.id;
               return (
                 <button key={domain.id} onClick={() => { setActiveDomain(domain.id); setExpandedSchema(null); }}
+
                   /* AUDIT WARNA: Teks list menu side diubah biar adaptif */
                   className={cn("group flex w-full items-center gap-3 rounded-2xl p-4 transition-all duration-300", 
                     isActive ? "bg-primary text-primary-foreground shadow-sm" : "hover:bg-primary/5 text-muted-foreground")}>
@@ -192,7 +223,7 @@ export function SettingsPage() {
           <ColorControl />
         </aside>
 
-        {/* MAIN CONTENT */}
+          {/* MAIN CONTENT */}
         <main className="space-y-4">
           <AnimatePresence mode="wait">
             <motion.div key={activeDomain} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className="space-y-3">
@@ -209,6 +240,14 @@ export function SettingsPage() {
           </AnimatePresence>
         </main>
       </div>
+
+      {/* 🚀 OVERLAY MASTER HUB */}
+      {showMasterHub && (
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-background/95 backdrop-blur-md">
+          <MasterHubPage onClose={() => setShowMasterHub(false)} />
+        </div>
+      )}
+
     </div>
   );
 }
