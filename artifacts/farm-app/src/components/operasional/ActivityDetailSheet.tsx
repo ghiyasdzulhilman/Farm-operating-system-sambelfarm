@@ -699,148 +699,137 @@ useEffect(() => {
   );
 })()}
                   
-            {/* 💡 SEGMEN BARU: RINCIAN BAHAN & DOSIS (KHUSUS PERAWATAN) */}
-            {item.module === "perawatan" && (
-              <section className="mt-6 space-y-3">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
-                    <h3 className="text-[12px] font-bold uppercase tracking-[0.18em] text-muted-foreground/80">
-                      Bahan & Dosis
-                    </h3>
-                  </div>
-
-                </div>
-
-                <div className="rounded-3xl border border-emerald-500/20 bg-emerald-500/5 p-4 shadow-sm flex flex-col gap-3">
-                  {editedProducts.length === 0 ? (
-                    <div className="text-sm text-muted-foreground italic text-center py-2">Belum ada produk yang digunakan.</div>
-                  ) : (
-                    editedProducts.map((prod, index) => (
-                      <div key={index} className="flex gap-2 items-center">
-                        {/* Dropdown Pilih Produk */}
-                        <div className="relative flex-1">
-             <select
-                            value={prod.produkId || ""}
-                            onChange={(e) => {
-                              const newProds = [...editedProducts];
-                              const selectedMaster = produkOptions?.data?.find((p: any) => p.id === e.target.value);
-                              newProds[index] = { 
-                                ...newProds[index], 
-                                produkId: e.target.value,
-                                namaProduk: selectedMaster?.nama,
-                                satuanDasar: selectedMaster?.satuanDasar
-                              };
-                              setEditedProducts(newProds);
-                              setIsDirty(true);
-                            }}
-
-                            className="w-full appearance-none rounded-xl bg-background border border-border/50 px-3 py-2 text-xs font-bold outline-none"
-                          >
-<option value="" disabled>Pilih Produk...</option>
-  {produkOptions?.data
-    ?.filter((p: any) => p.isActive !== false || p.id === prod.produkId)
-    .map((p: any) => (
-      <option key={p.id} value={p.id}>
-        {p.nama} {p.isActive === false ? "(Nonaktif)" : ""}
-      </option>
-    ))}
-</select>
-
-<ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground opacity-50 pointer-events-none" />
-</div>
-
- {/* Input Gram/Dosis dengan Preview Sisa Stok (Placeholder) */}
-{(() => {
-  // 🚀 1. Cari data produk master untuk mendapatkan sisa stok terkini di gudang
-  const selectedMaster = produkOptions?.data?.find((p: any) => p.id === prod.produkId);
-  const stokTerkini = selectedMaster?.stokSaatIni ?? null;
-  
-  // 🚀 2. Ambil dosis histori (JIKA ini adalah baris data lama yang sudah pernah di-save)
-  const historyProd = item?.metaEkstra?.logProduk?.[index];
-  const dosisTersimpan = (historyProd && historyProd.produkId === prod.produkId) 
-    ? historyProd.kuantitasPemakaian 
-    : 0;
-
-  // 🚀 3. Batas kuota asli = Stok di gudang + Dosis yang dulu sudah di-booking di form ini
-  const maxAllowed = stokTerkini !== null ? stokTerkini + dosisTersimpan : null;
-  
-  // 🚀 4. MERAH HANYA MUNCUL kalau inputan SEKARANG melebihi batas kuota tersebut!
-  const isOverStock = maxAllowed !== null && prod.kuantitasPemakaian > maxAllowed;
-
-  return (
-    <div className={cn(
-      "flex items-center bg-background border rounded-xl px-2.5 w-[120px] transition-colors shrink-0",
-      isOverStock ? "border-destructive bg-destructive/5 text-destructive shadow-sm" : "border-border/50"
-    )}>
-      <input
-        type="number"
-        min="0"
-        value={prod.kuantitasPemakaian || ""}
-        onChange={(e) => {
-          const newProds = [...editedProducts];
-          newProds[index] = { ...newProds[index], kuantitasPemakaian: parseFloat(e.target.value) || 0 };
-          setEditedProducts(newProds);
-          setIsDirty(true);
-        }}
-        className={cn(
-          "w-full bg-transparent text-xs font-bold outline-none py-2 text-right",
-          // 💡 Kunci Wajah Placeholder: warna abu tipis & font normal saat belum diketik
-          "placeholder:text-muted-foreground/60 placeholder:font-normal placeholder:text-[11px]",
-          isOverStock && "text-destructive font-black"
-        )}
-        /* 🚀 Teks sisa stok dijadikan placeholder dinamis (tetap nampilin murni sisa gudang) */
-        placeholder={stokTerkini !== null ? `Sisa ${stokTerkini}` : "0"}
-      />
-      <span className={cn(
-        "text-[10px] font-bold ml-1.5 shrink-0 select-none",
-        isOverStock ? "text-destructive font-black" : "text-muted-foreground"
-      )}>
-        {prod.satuanDasar || selectedMaster?.satuanDasar || "gram"}
-      </span>
+            
+{/* 💡 SEGMEN BAHAN & DOSIS (KHUSUS PERAWATAN) */}
+{item.module === "perawatan" && (
+  <section className="mt-6 space-y-3">
+    <div className="flex items-center gap-2">
+      <div className="h-2 w-2 rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary),0.6)]" />
+      <h3 className="text-[12px] font-bold uppercase tracking-[0.18em] text-muted-foreground/80">
+        Bahan & Dosis
+      </h3>
     </div>
-  );
-})()}
 
-                        {/* Tombol Hapus Baris */}
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8 shrink-0 text-destructive hover:bg-destructive/10"
-                          onClick={() => { setEditedProducts(editedProducts.filter((_, i) => i !== index)); setIsDirty(true); }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))
-                  )}
+    <div className="rounded-3xl border border-border/40 bg-card p-4 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.04)] flex flex-col">
+      {editedProducts.length === 0 ? (
+        <div className="text-sm text-muted-foreground italic text-center py-2">Belum ada produk yang digunakan.</div>
+      ) : (
+        <div className="flex flex-col divide-y divide-border/30">
+          {editedProducts.map((prod, index) => (
+            <div key={index} className="flex gap-2 items-center py-3 first:pt-0 last:pb-0">
+              {/* Dropdown Pilih Produk */}
+              <div className="relative flex-1">
+                <select
+                  value={prod.produkId || ""}
+                  onChange={(e) => {
+                    const newProds = [...editedProducts];
+                    const selectedMaster = produkOptions?.data?.find((p: any) => p.id === e.target.value);
+                    newProds[index] = { 
+                      ...newProds[index], 
+                      produkId: e.target.value,
+                      namaProduk: selectedMaster?.nama,
+                      satuanDasar: selectedMaster?.satuanDasar
+                    };
+                    setEditedProducts(newProds);
+                    setIsDirty(true);
+                  }}
+                  className="w-full appearance-none rounded-xl bg-background border border-border/50 px-3 py-2 text-[13px] font-semibold outline-none"
+                >
+                  <option value="" disabled>Pilih Produk...</option>
+                  {produkOptions?.data
+                    ?.filter((p: any) => p.isActive !== false || p.id === prod.produkId)
+                    .map((p: any) => (
+                      <option key={p.id} value={p.id}>
+                        {p.nama} {p.isActive === false ? "(Nonaktif)" : ""}
+                      </option>
+                    ))}
+                </select>
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground opacity-50 pointer-events-none" />
+              </div>
 
-                  {/* Tombol Tambah Baris */}
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="w-full mt-1 border-dashed border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10"
-   onClick={() => { setEditedProducts([...editedProducts, { produkId: "", kuantitasPemakaian: 0 }]); setIsDirty(true); }}
-                  >
-                    <Plus className="h-4 w-4 mr-2" /> Tambah Produk
-                  </Button>
+              {/* Input Gram/Dosis dengan Preview Sisa Stok (Placeholder) */}
+              {(() => {
+                const selectedMaster = produkOptions?.data?.find((p: any) => p.id === prod.produkId);
+                const stokTerkini = selectedMaster?.stokSaatIni ?? null;
+                const historyProd = item?.metaEkstra?.logProduk?.[index];
+                const dosisTersimpan = (historyProd && historyProd.produkId === prod.produkId) 
+                  ? historyProd.kuantitasPemakaian 
+                  : 0;
+                const maxAllowed = stokTerkini !== null ? stokTerkini + dosisTersimpan : null;
+                const isOverStock = maxAllowed !== null && prod.kuantitasPemakaian > maxAllowed;
 
-  {/* Tombol Simpan (Trigger Transaksi Reverse & Reapply) */}
- <Button 
-  disabled={isUpdatingProduk}
-  onClick={async () => {
-    try {
-      await onProdukChange?.(item.id, editedProducts);
-      setIsDirty(false);
-    } catch {}
-  }}
->
-  {isUpdatingProduk ? "Menyimpan..." : <><Save className="h-4 w-4 mr-2" /> Simpan Racikan Produk</>}
-</Button>
+                return (
+                  <div className={cn(
+                    "flex items-center bg-background border rounded-xl px-2.5 w-[120px] transition-colors shrink-0",
+                    isOverStock ? "border-destructive bg-destructive/5 text-destructive shadow-sm" : "border-border/50"
+                  )}>
+                    <input
+                      type="number"
+                      min="0"
+                      value={prod.kuantitasPemakaian || ""}
+                      onChange={(e) => {
+                        const newProds = [...editedProducts];
+                        newProds[index] = { ...newProds[index], kuantitasPemakaian: parseFloat(e.target.value) || 0 };
+                        setEditedProducts(newProds);
+                        setIsDirty(true);
+                      }}
+                      className={cn(
+                        "w-full bg-transparent text-[13px] font-semibold outline-none py-2 text-right",
+                        "placeholder:text-muted-foreground/60 placeholder:font-normal placeholder:text-[11px]",
+                        isOverStock && "text-destructive font-black"
+                      )}
+                      placeholder={stokTerkini !== null ? `Sisa ${stokTerkini}` : "0"}
+                    />
+                    <span className={cn(
+                      "text-[10px] font-bold ml-1.5 shrink-0 select-none",
+                      isOverStock ? "text-destructive font-black" : "text-muted-foreground"
+                    )}>
+                      {prod.satuanDasar || selectedMaster?.satuanDasar || "gram"}
+                    </span>
+                  </div>
+                );
+              })()}
 
-                </div>
-              </section>
-            )}
+              {/* Tombol Hapus Baris */}
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8 shrink-0 text-destructive hover:bg-destructive/10"
+                onClick={() => { setEditedProducts(editedProducts.filter((_, i) => i !== index)); setIsDirty(true); }}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Tombol Tambah Baris */}
+      <Button 
+        variant="outline" 
+        size="sm" 
+        className="w-full mt-3 border-dashed border-primary/30 text-primary hover:bg-primary/10"
+        onClick={() => { setEditedProducts([...editedProducts, { produkId: "", kuantitasPemakaian: 0 }]); setIsDirty(true); }}
+      >
+        <Plus className="h-4 w-4 mr-2" /> Tambah Produk
+      </Button>
+
+      {/* Tombol Simpan (Trigger Transaksi Reverse & Reapply) */}
+      <Button 
+        disabled={isUpdatingProduk}
+        className="mt-2"
+        onClick={async () => {
+          try {
+            await onProdukChange?.(item.id, editedProducts);
+            setIsDirty(false);
+          } catch {}
+        }}
+      >
+        {isUpdatingProduk ? "Menyimpan..." : <><Save className="h-4 w-4 mr-2" /> Simpan Racikan Produk</>}
+      </Button>
+    </div>
+  </section>
+)}
 
             {/* SEGMEN CATATAN UMUM (INLINE EDIT) */}
             <section className="mt-6 space-y-3">
