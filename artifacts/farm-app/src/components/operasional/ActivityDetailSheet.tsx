@@ -20,6 +20,10 @@ import {
   MapPin,
   Edit3,
   Banknote,
+  X,
+  Calendar,
+  Timer,
+  Inbox
 } from "lucide-react";
 
 import {
@@ -276,60 +280,84 @@ export function ActivityDetailSheet({
         <div className="flex flex-col max-h-[88vh]">
 
 
-      {/* 🚀 Paksa header jadi 100% transparan biar nyatu sama kaca di bawahnya */}
+         {/* ✨ TOP BAR BARU: Sangat bersih, konsisten ala Kanban View & Apple iOS */}
           <SheetHeader className="!border-b !border-border/15 !bg-transparent px-6 py-3.5">
             <div className="flex items-center justify-between gap-3 w-full">
               
-              {/* DROPDOWN STATUS DINAMIS DI KIRI */}
-              <div className="relative inline-block shrink-0">
-                <select
-                  value={item.status}
-                  onChange={(e) => onStatusChange?.(item.id, e.target.value)}
-                  disabled={item.isPendingStaging}
-                  className={cn(
-                    "relative z-10 appearance-none rounded-full pl-3.5 pr-8 text-[11px] font-bold uppercase tracking-wider outline-none cursor-pointer border transition-all shadow-sm max-w-[140px] truncate",
-                    "h-[34px]",
-                    (item.status === "Selesai" || item.status === "Sudah ditangani")
-                      ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/25"
-                      : (item.status === "Dalam proses" || item.status === "Sedang ditangani")
-                        ? "border-amber-500/30 bg-amber-500/15 text-amber-700 dark:text-amber-400 hover:bg-amber-500/25"
-                        : "border-border/60 bg-muted/40 text-muted-foreground hover:bg-muted/60",
-                    item.isPendingStaging && "opacity-50 cursor-not-allowed",
-                  )}
-                >
-                  {/* 💡 Fix: Opsi disesuaikan dengan jenis modul */}
-                  {item.module === "inspeksi" ? (
-                    <>
-                      <option value="Baru ditemukan">Baru ditemukan</option>
-                      <option value="Sedang ditangani">Sedang ditangani</option>
-                      <option value="Sudah ditangani">Sudah ditangani</option>
-                    </>
-                  ) : (
-                    <>
-                      <option value="Belum dikerjakan">Belum dikerjakan</option>
-                      <option value="Dalam proses">Dalam proses</option>
-                      <option value="Selesai">Selesai</option>
-                    </>
-                  )}
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none opacity-70 z-10" />
-              </div>
+              {/* KIRI: IKON STATUS DENGAN INVISIBLE SELECT TRICK ALA KANBAN VIEW */}
+              {(() => {
+                // 1. Tentukan Ikon & Warna berdasarkan status item saat ini
+                let StatusIcon = Calendar;
+                let statusColor = "text-slate-500 bg-slate-500/10 border-slate-500/20";
+                let statusLabel = "Belum Dikerjakan";
+                
+                if (item.status === "Selesai" || item.status === "Sudah ditangani") {
+                  StatusIcon = Inbox;
+                  statusColor = "text-emerald-600 bg-emerald-500/15 border-emerald-500/30 dark:text-emerald-400";
+                  statusLabel = item.status;
+                } else if (item.status === "Dalam proses" || item.status === "Sedang ditangani") {
+                  StatusIcon = Timer;
+                  statusColor = "text-amber-600 bg-amber-500/15 border-amber-500/30 dark:text-amber-400";
+                  statusLabel = item.status;
+                } else {
+                  statusLabel = item.status;
+                }
 
-              {/* ✨ 3. TOMBOL KEMBALI TAKTIL: Efek scale lembut dan shadow proporsional saat di-hover/active */}
+                return (
+                  <div className="flex items-center gap-2">
+                    {/* Wadah Ikon yang Bisa Di-tap (Invisible Select) */}
+                    <div 
+                      className={cn(
+                        "relative flex items-center justify-center p-2 rounded-xl border shadow-sm transition-all hover:scale-105 active:scale-95 cursor-pointer",
+                        statusColor,
+                        item.isPendingStaging && "opacity-50 cursor-not-allowed"
+                      )}
+                      title="Tap untuk ubah status"
+                    >
+                      <StatusIcon className="h-4 w-4" strokeWidth={2.5} />
+                      
+                      {/* Select Transparan yang Menumpuk di Atas Ikon */}
+                      <select
+                        value={item.status}
+                        onChange={(e) => onStatusChange?.(item.id, e.target.value)}
+                        disabled={item.isPendingStaging}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer appearance-none z-10"
+                      >
+                        {item.module === "inspeksi" ? (
+                          <>
+                            <option value="Baru ditemukan">Baru ditemukan</option>
+                            <option value="Sedang ditangani">Sedang ditangani</option>
+                            <option value="Sudah ditangani">Sudah ditangani</option>
+                          </>
+                        ) : (
+                          <>
+                            <option value="Belum dikerjakan">Belum dikerjakan</option>
+                            <option value="Dalam proses">Dalam proses</option>
+                            <option value="Selesai">Selesai</option>
+                          </>
+                        )}
+                      </select>
+                    </div>
+
+                    {/* Teks Status Halus di Samping Ikon (Opsional, biar mandor tau statusnya apa) */}
+                    <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider select-none">
+                      {statusLabel}
+                    </span>
+                  </div>
+                );
+              })()}
+
+              {/* KANAN: TOMBOL TUTUP DENGAN IKON X (CLOSE) */}
               <button 
                 onClick={() => {
                   setIsDirty(false);
                   setEditedProducts([]);
                   onClose();
                 }}
-                className="flex items-center gap-2 h-[34px] pl-4 pr-1.5 rounded-full bg-primary/10 hover:bg-primary/20 border border-primary/30 transition-all duration-200 shadow-[0_2px_10px_rgba(0,0,0,0.03)] hover:shadow-sm hover:scale-[1.02] active:scale-[0.98] group"
+                className="flex items-center justify-center h-8 w-8 rounded-full bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground border border-border/40 transition-all duration-200 shadow-sm hover:scale-105 active:scale-95"
+                title="Tutup (Esc)"
               >
-                <span className="text-[11px] font-bold uppercase tracking-widest text-primary transition-colors">
-                  Kembali
-                </span>
-                <div className="bg-primary rounded-full p-1.5 shadow-sm group-hover:scale-105 transition-transform text-primary-foreground">
-                  <ArrowRight className="h-4 w-4" />
-                </div>
+                <X className="h-4 w-4" strokeWidth={2.5} />
               </button>
 
             </div>
