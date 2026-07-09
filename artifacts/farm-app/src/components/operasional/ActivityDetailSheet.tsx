@@ -355,15 +355,15 @@ export function ActivityDetailSheet({
                 </div>
               </div>
 
-              {/* Property: Area (Bersih tanpa beban HST lagi) */}
-              <div className="flex items-center min-h-[32px] hover:bg-muted/40 rounded-md px-1.5 -ml-1.5 transition-colors group">
-                <div className="w-[140px] shrink-0 text-[13px] font-medium text-muted-foreground flex items-center gap-2">
-                  <MapPin className="h-4 w-4 opacity-70" /> Area
+            {/* Property: Area */}
+              <div className="flex items-center min-h-[34px] group">
+                <div className="w-[140px] shrink-0 text-[13px] font-medium text-muted-foreground/80 flex items-center gap-2.5">
+                  <MapPin className="h-4 w-4 opacity-50" /> Area
                 </div>
                 <div className="flex-1 flex items-center gap-2 flex-wrap">
                   {item.module === "perawatan" ? (
-                    <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground">
-                      <Lock className="h-3 w-3 opacity-60" />
+                    <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-foreground/90">
+                      <Lock className="h-3 w-3 opacity-40" />
                       {item.metaEkstra?.namaSiklus ? `${item.area} - ${item.metaEkstra.namaSiklus}` : item.area}
                     </span>
                   ) : (
@@ -371,20 +371,18 @@ export function ActivityDetailSheet({
                       <select
                         value={item.areaId || ""}
                         onChange={(e) => onStatusChange?.(item.id, { areaId: e.target.value })}
-                        className="appearance-none bg-transparent hover:bg-primary/10 rounded-md pr-7 pl-2 py-0.5 -ml-2 text-[13px] font-medium text-foreground outline-none cursor-pointer transition-colors z-10 truncate max-w-[250px]"
+                        // 🚀 Notion Style: Transparan, tanpa background mencolok, text rapi
+                        className="appearance-none bg-transparent hover:bg-muted/50 rounded-lg pr-7 pl-2 py-1 -ml-2 text-[13px] font-medium text-foreground/90 outline-none cursor-pointer transition-all z-10 truncate max-w-[250px]"
                       >
                         <option value="" disabled>Pilih Area...</option>
                         {dropdownOptions?.areas?.map((a: any) => {
                           const isCurrentArea = a.id === item.areaId;
                           const displayLabel = (isCurrentArea && item.metaEkstra?.namaSiklus) 
-                            ? `${item.area} - ${item.metaEkstra.namaSiklus}` 
-                            : a.name;
-                          return (
-                            <option key={a.id} value={a.id}>{displayLabel}</option>
-                          );
+                            ? `${item.area} - ${item.metaEkstra.namaSiklus}` : a.name;
+                          return <option key={a.id} value={a.id}>{displayLabel}</option>;
                         })}
                       </select>
-                      <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50 pointer-events-none z-10 transition-colors group-hover/select:text-foreground" />
+                      <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/30 pointer-events-none z-10 transition-all group-hover/select:text-foreground/70" />
                     </div>
                   )}
                 </div>
@@ -392,9 +390,9 @@ export function ActivityDetailSheet({
 
               {/* Property: Kategori */}
               {item.module !== "inspeksi" && (
-                <div className="flex items-center min-h-[32px] hover:bg-muted/40 rounded-md px-1.5 -ml-1.5 transition-colors group">
-                  <div className="w-[140px] shrink-0 text-[13px] font-medium text-muted-foreground flex items-center gap-2">
-                    <Briefcase className="h-4 w-4 opacity-70" /> Kategori
+                <div className="flex items-center min-h-[34px] group mt-1">
+                  <div className="w-[140px] shrink-0 text-[13px] font-medium text-muted-foreground/80 flex items-center gap-2.5">
+                    <Briefcase className="h-4 w-4 opacity-50" /> Kategori
                   </div>
                   <div className="flex-1">
                     <div className="relative inline-flex max-w-full group/select">
@@ -404,14 +402,14 @@ export function ActivityDetailSheet({
                           const field = item.module === "perawatan" ? "tagCategoryId" : "kategoriId";
                           onStatusChange?.(item.id, { [field]: e.target.value });
                         }}
-                        className="appearance-none bg-transparent hover:bg-primary/10 rounded-md pr-7 pl-2 py-0.5 -ml-2 text-[13px] font-medium text-foreground outline-none cursor-pointer transition-colors z-10 truncate max-w-[250px]"
+                        className="appearance-none bg-transparent hover:bg-muted/50 rounded-lg pr-7 pl-2 py-1 -ml-2 text-[13px] font-medium text-foreground/90 outline-none cursor-pointer transition-all z-10 truncate max-w-[250px]"
                       >
                         <option value="" disabled>Pilih Kategori...</option>
                         {dropdownOptions?.kategori?.filter((k: any) => k.module === item.module).map((k: any) => (
                           <option key={k.id} value={k.id}>{k.name}</option>
                         ))}
                       </select>
-                      <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50 pointer-events-none z-10 transition-colors group-hover/select:text-foreground" />
+                      <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/30 pointer-events-none z-10 transition-all group-hover/select:text-foreground/70" />
                     </div>
                   </div>
                 </div>
