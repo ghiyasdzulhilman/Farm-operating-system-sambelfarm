@@ -680,13 +680,14 @@ export function ActivityDetailSheet({
         </div>
 
         {getDetailKendala() && (
-          <div className={cn(
-            "text-sm whitespace-pre-wrap leading-relaxed font-medium",
-            hasFindings ? "text-destructive/90" : "text-foreground/80"
-          )}>
-            {getDetailKendala()}
-          </div>
-        )}
+  <div className={cn(
+    "text-sm whitespace-pre-wrap leading-relaxed font-normal",
+    hasFindings ? "text-destructive/90" : "text-foreground/80"
+  )}>
+    {getDetailKendala()}
+  </div>
+)}
+
       </div>
     </section>
   );
