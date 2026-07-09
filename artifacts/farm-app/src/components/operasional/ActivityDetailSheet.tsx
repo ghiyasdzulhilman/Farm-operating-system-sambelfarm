@@ -283,8 +283,8 @@ export function ActivityDetailSheet({
       
       <SheetContent
         side="top"
-        /* 🚀 MODE PERFORMA: Buang transisi manual, pakai shadow standar, dan PAKSA durasi animasi bawaan jadi sangat cepat (!duration-200) */
-        className="w-full sm:max-w-[540px] mx-auto rounded-b-[2.5rem] !border-x-0 !border-t-0 !border-b border-border/40 bg-white dark:bg-zinc-950 p-0 shadow-lg !duration-200 [&>button]:hidden"
+        /* 🚀 MODE PERFORMA: */
+        className="w-full sm:max-w-[540px] mx-auto rounded-b-[2.5rem] !border-x-0 !border-t-0 !border-b border-border/40 bg-white dark:bg-zinc-950 p-0 shadow-lg !duration-200 [&>button]:hidden will-change-transform [transform:translateZ(0)]"
         onOpenAutoFocus={(e) => e.preventDefault()} 
       >
 
