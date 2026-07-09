@@ -167,41 +167,35 @@ export function SettingsPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr]">
         
-      {/* SIDEBAR CONTAINER */}
-        <aside className="space-y-6"> {/* 💡 Jarak antar elemen diganti jadi 6 biar lega */}
+              {/* SIDEBAR CONTAINER */}
+        <aside className="space-y-2"> {/* 💡 Jarak dikembalikan ke space-y-2 biar mepet rapi */}
           
-          {/* 🚀 KARTU TRIGGER MASTER HUB (SUPABASE) */}
-          <div className="rounded-[1.75rem] border border-primary/20 bg-primary/5 p-4 shadow-sm transition-all duration-300 hover:border-primary/40 hover:bg-primary/10">
-            <div className="mb-4 flex items-center gap-3">
-              <div className="rounded-xl bg-primary/20 p-2.5 text-primary">
-                <Database className="h-5 w-5" />
-              </div>
-              <div>
-                <h3 className="text-sm font-black text-foreground">PostgreSQL Master</h3>
-                <p className="text-[10px] font-medium text-muted-foreground">Supabase Control Center</p>
-              </div>
+          {/* 🚀 TOMBOL MASTER DATA (SUPABASE) - MENYATU DENGAN LIST */}
+          <button 
+            onClick={() => setShowMasterHub(true)}
+            className="group flex w-full items-center gap-3 rounded-2xl p-4 transition-all duration-300 hover:bg-primary/5 text-muted-foreground"
+          >
+            <div className="rounded-xl p-2 bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+              <Database className="h-5 w-5" />
             </div>
-            <Button 
-              onClick={() => setShowMasterHub(true)}
-              className="w-full rounded-xl bg-primary font-bold text-primary-foreground shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg"
-            >
-              Buka Master Hub
-            </Button>
-          </div>
-
-          <div className="space-y-2">
-            {/* 💡 LABEL PEMISAH UTK SINKRONISASI NOTION LAMA */}
-            <div className="px-2 mb-3">
-              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
-                Notion Sync (Legacy)
-              </span>
+            <div className="text-left">
+              <p className="text-sm font-black text-foreground group-hover:text-primary transition-colors">Master Data</p>
+              <p className="text-[10px] text-muted-foreground/60">PostgreSQL Supabase</p>
             </div>
+            <ChevronRight className="ml-auto h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity text-primary duration-300" />
+          </button>
 
-            {DOMAINS.map((domain) => {
-              const Icon = domain.icon;
-              const isActive = activeDomain === domain.id;
-              return (
-                <button key={domain.id} onClick={() => { setActiveDomain(domain.id); setExpandedSchema(null); }}
+          {/* LANGSUNG LOOPING MENU NOTION DI BAWAHNYA */}
+          {DOMAINS.map((domain) => {
+            const Icon = domain.icon;
+            const isActive = activeDomain === domain.id;
+            return (
+              <button 
+                key={domain.id} 
+                onClick={() => { setActiveDomain(domain.id); setExpandedSchema(null); }}
+                className={cn("group flex w-full items-center gap-3 rounded-2xl p-4 transition-all duration-300", 
+                  isActive ? "bg-primary text-primary-foreground shadow-sm" : "hover:bg-primary/5 text-muted-foreground")}
+              >
 
                   /* AUDIT WARNA: Teks list menu side diubah biar adaptif */
                   className={cn("group flex w-full items-center gap-3 rounded-2xl p-4 transition-all duration-300", 
