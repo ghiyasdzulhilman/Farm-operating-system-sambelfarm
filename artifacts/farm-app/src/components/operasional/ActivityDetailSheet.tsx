@@ -561,39 +561,38 @@ export function ActivityDetailSheet({
 
 {/* 3. KOTAK UNTUK MODUL PERAWATAN — Durasi & Total Biaya */}
       {item.module === "perawatan" && (
-        <>
-          <div className="rounded-2xl border border-border/40 bg-muted/40 p-3 shadow-sm select-none">
-            <div className="flex items-center gap-2 text-muted-foreground/70 mb-1">
-              <Clock3 className="h-4 w-4 opacity-70" />
-              <span className="text-xs font-bold uppercase tracking-wider">Durasi Kerja</span>
-            </div>
-            <p className="text-lg font-black text-muted-foreground">
-              {item.metaEkstra.durasiKerja ? `${item.metaEkstra.durasiKerja} Jam` : "0 Jam"}
-            </p>
-          </div>
+  <>
+    {/* 🔒 Durasi Kerja — read-only, pola locked identik dengan Inspeksi & Operasional */}
+    <div className="rounded-3xl border border-border/30 bg-muted/30 p-3.5 shadow-[inset_0_1px_4px_rgba(255,255,255,0.2)] select-none">
+      <div className="flex items-center gap-2 text-muted-foreground/70 mb-1">
+        <Clock3 className="h-4 w-4 opacity-70" />
+        <span className="text-[11px] font-bold uppercase tracking-widest">Durasi Kerja</span>
+      </div>
+      <p className="text-lg font-black text-muted-foreground">
+        {item.metaEkstra.durasiKerja ? `${item.metaEkstra.durasiKerja} Jam` : "0 Jam"}
+      </p>
+    </div>
 
-          {/* 💡 KOTAK BARU: Total Biaya (Live Calculator) */}
-           <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-3 shadow-sm select-none transition-colors">
-            <div className="flex items-center gap-2 text-emerald-600/80 mb-1">
-              <Banknote className="h-4 w-4" />
-              <span className="text-xs font-bold uppercase tracking-wider">
-                {isDirty ? "Estimasi" : "Total Biaya"}
-              </span>
-            </div>
-            <p className="text-lg font-black text-emerald-700 truncate">
-              {formatRupiah(totalBiayaRacikan)}
-            </p>
-            {isDirty && (
-              <p className="text-[9px] text-emerald-600/70 mt-1">Harga saat ini</p>
-            )}
-          </div>
-
-        </>
+    {/* 💰 Total Biaya — card netral, pola sama dengan box editable Inspeksi (bukan emerald lagi) */}
+    <div className="rounded-3xl border border-border/40 bg-card p-3.5 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.04)] select-none">
+      <div className="flex items-center gap-2 text-muted-foreground/80 mb-1">
+        <Banknote className="h-4 w-4 opacity-70" />
+        <span className="text-[11px] font-bold uppercase tracking-widest">
+          {isDirty ? "Estimasi" : "Total Biaya"}
+        </span>
+      </div>
+      <p className="text-lg font-black text-foreground truncate">
+        {formatRupiah(totalBiayaRacikan)}
+      </p>
+      {isDirty && (
+        <p className="text-[10px] text-muted-foreground/70 mt-1">Harga saat ini</p>
       )}
-
-                </div>
-              </section>
-            )}
+    </div>
+  </>
+      )}
+      </div>
+      </section>
+      )}
 
           {/* 💡 SEGMEN JADWAL PELAKSANAAN (SPATIAL UI STYLE - FIXED MOBILE OVERFLOW) */}
             {item.metaEkstra && Object.keys(item.metaEkstra).length > 0 && (
