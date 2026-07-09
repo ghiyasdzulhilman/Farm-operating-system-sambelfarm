@@ -433,21 +433,21 @@ export function ActivityDetailSheet({
                   {/* 1. KOTAK-KOTAK UNTUK MODUL INSPEKSI */}
                   {item.module === "inspeksi" && (
                     <>
-                      {/* pH Tanah */}
-                      <div 
-                        onClick={() => { if(activeField !== "phTanah") { setActiveField("phTanah"); setLocalValue(String(item.metaEkstra.phTanah || "")); } }}
-                        className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm cursor-pointer hover:bg-muted/40 transition-colors"
-                      >
-                        <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                          <Thermometer className="h-4 w-4" />
-                          <span className="text-xs font-bold uppercase">pH Tanah</span>
-                        </div>
-                        {activeField === "phTanah" ? (
-                          <input autoFocus type="number" step="0.1" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("phTanah")} onKeyDown={(e) => e.key === "Enter" && handleInlineSave("phTanah")} className="w-full bg-transparent text-lg font-black text-foreground outline-none border-b border-primary/30 p-0" />
-                        ) : (
-                          <p className="text-lg font-black text-foreground">{item.metaEkstra.phTanah || "-"}</p>
-                        )}
-                      </div>
+  {/* pH Tanah */}
+  <div 
+  onClick={() => { if(activeField !== "phTanah") { setActiveField("phTanah"); setLocalValue(String(item.metaEkstra.phTanah || "")); } }}
+  className="rounded-3xl border border-border/40 bg-card p-3.5 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.04)] cursor-pointer hover:bg-muted/40 transition-colors"
+>
+  <div className="flex items-center gap-2 text-muted-foreground/80 mb-1">
+    <Thermometer className="h-4 w-4 opacity-70" />
+    <span className="text-[11px] font-bold uppercase tracking-widest">pH Tanah</span>
+  </div>
+  {activeField === "phTanah" ? (
+    <input autoFocus type="number" step="0.1" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("phTanah")} onKeyDown={(e) => e.key === "Enter" && handleInlineSave("phTanah")} className="w-full bg-transparent text-lg font-black text-foreground outline-none border-b border-primary/30 p-0" />
+  ) : (
+    <p className="text-lg font-black text-foreground">{item.metaEkstra.phTanah || "-"}</p>
+  )}
+</div>
 
                       {/* Tingkat Serangan */}
                       <div 
@@ -482,15 +482,16 @@ export function ActivityDetailSheet({
                       </div>
 
                     {/* 🔒 KOTAK KE-4: Durasi Kerja (Kunci Menjadi Read-Only) */}
-                      <div className="rounded-2xl border border-border/40 bg-muted/40 p-3 shadow-sm select-none">
-                        <div className="flex items-center gap-2 text-muted-foreground/70 mb-1">
-                          <Clock3 className="h-4 w-4 opacity-70" />
-                          <span className="text-xs font-bold uppercase tracking-wider">Durasi Kerja</span>
-                        </div>
-                        <p className="text-lg font-black text-muted-foreground">
-                          {item.metaEkstra.durasiKerja ? `${item.metaEkstra.durasiKerja} Jam` : "0 Jam"}
-                        </p>
-                      </div>
+  <div className="rounded-3xl border border-border/30 bg-muted/30 p-3.5 shadow-[inset_0_1px_4px_rgba(255,255,255,0.2)] select-none">
+  <div className="flex items-center gap-2 text-muted-foreground/70 mb-1">
+    <Clock3 className="h-4 w-4 opacity-70" />
+    <span className="text-[11px] font-bold uppercase tracking-widest">Durasi Kerja</span>
+  </div>
+  <p className="text-lg font-black text-muted-foreground">
+    {item.metaEkstra.durasiKerja ? `${item.metaEkstra.durasiKerja} Jam` : "0 Jam"}
+  </p>
+</div>
+
                     </>
                   )}
 
@@ -660,17 +661,17 @@ export function ActivityDetailSheet({
 
                 <div className="rounded-3xl border border-destructive/20 bg-destructive/5 p-4 shadow-sm">
                   {/* Bagian Badge Hama & Penyakit */}
-                  <div className="flex flex-wrap gap-1.5 mb-4 pb-4 border-b border-destructive/10">
-                    {(Array.isArray(item.metaEkstra.hama) ? item.metaEkstra.hama : []).map((h: string) => (
-                      <Badge key={h} variant="destructive" className="text-[10px] rounded-md px-2 py-0.5 bg-red-500/80">{h}</Badge>
-                    ))}
-                    {(Array.isArray(item.metaEkstra.penyakit) ? item.metaEkstra.penyakit : []).map((p: string) => (
-                      <Badge key={p} variant="destructive" className="text-[10px] rounded-md px-2 py-0.5 bg-orange-500/80">{p}</Badge>
-                    ))}
-                    {(!item.metaEkstra.hama?.length && !item.metaEkstra.penyakit?.length) && (
-                      <span className="text-xs font-bold text-emerald-600 bg-emerald-500/10 px-2 py-1 rounded-md">Tanaman Aman Terkendali</span>
-                    )}
-                  </div>
+  <div className="flex flex-wrap gap-1.5 mb-4 pb-4 border-b border-destructive/10">
+  {(Array.isArray(item.metaEkstra.hama) ? item.metaEkstra.hama : []).map((h: string) => (
+    <span key={h} className="text-[10px] font-bold rounded-full px-2.5 py-1 bg-red-500/10 text-red-600 border border-red-500/20">{h}</span>
+  ))}
+  {(Array.isArray(item.metaEkstra.penyakit) ? item.metaEkstra.penyakit : []).map((p: string) => (
+    <span key={p} className="text-[10px] font-bold rounded-full px-2.5 py-1 bg-orange-500/10 text-orange-600 border border-orange-500/20">{p}</span>
+  ))}
+  {(!item.metaEkstra.hama?.length && !item.metaEkstra.penyakit?.length) && (
+    <span className="text-[10px] font-bold rounded-full px-2.5 py-1 bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">Tanaman Aman Terkendali</span>
+  )}
+</div>
                   
 {/* Bagian Detail Text — hanya tampil kalau ada isinya */}
 {getDetailKendala() && (
