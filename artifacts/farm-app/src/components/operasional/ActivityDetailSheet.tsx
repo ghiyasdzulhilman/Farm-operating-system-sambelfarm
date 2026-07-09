@@ -593,7 +593,7 @@ export function ActivityDetailSheet({
               </section>
             )}
 
-         {/* 💡 SEGMEN JADWAL PELAKSANAAN (SPATIAL UI STYLE) */}
+          {/* 💡 SEGMEN JADWAL PELAKSANAAN (SPATIAL UI STYLE - FIXED MOBILE OVERFLOW) */}
             {item.metaEkstra && Object.keys(item.metaEkstra).length > 0 && (
               <section className="mt-6 space-y-3">
                 <div className="flex items-center gap-2">
@@ -603,21 +603,24 @@ export function ActivityDetailSheet({
                   </h3>
                 </div>
 
-                <div className="rounded-3xl border border-border/40 bg-card/60 backdrop-blur-md p-4 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.03)] flex flex-col gap-3.5">
+                <div className="rounded-3xl border border-border/40 bg-card/60 backdrop-blur-md p-3 sm:p-4 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.03)] flex flex-col gap-3">
                   
                   {/* Baris Tanggal Range */}
-                  <div className="flex items-center justify-between gap-4 group/date">
-                    <div className="flex items-center gap-2 w-20 shrink-0 text-muted-foreground/70 group-hover/date:text-foreground/80 transition-colors">
-                      <CalendarDays className="h-4 w-4" />
-                      <span className="text-[10px] font-bold tracking-widest uppercase">Tanggal</span>
+                  <div className="flex items-center justify-between gap-2 sm:gap-4 group/date">
+                    {/* 🚀 Lebar label diperkecil di mobile (w-[70px]) */}
+                    <div className="flex items-center gap-1.5 w-[70px] sm:w-20 shrink-0 text-muted-foreground/70 group-hover/date:text-foreground/80 transition-colors">
+                      <CalendarDays className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                      <span className="text-[9px] sm:text-[10px] font-bold tracking-widest uppercase">Tanggal</span>
                     </div>
-                    <div className="flex items-center gap-2.5 flex-1 bg-muted/40 p-1.5 rounded-[1rem] border border-border/50 shadow-[inset_0_1px_4px_rgba(0,0,0,0.02)]">
-                      <div className="flex-1 bg-background/80 hover:bg-background rounded-xl px-2 py-1.5 transition-colors border border-transparent hover:border-border/60 shadow-sm hover:shadow-md cursor-pointer relative">
-                        <input type="date" value={formatDateValue(item.metaEkstra?.waktuMulai)} onChange={(e) => handleDateTimeSave('waktuMulai', 'date', e.target.value)} className="w-full bg-transparent text-[13px] font-semibold text-foreground/90 outline-none cursor-pointer text-center relative z-10" />
+                    {/* 🚀 Tambah min-w-0 agar tidak mendobrak layar */}
+                    <div className="flex items-center gap-1 sm:gap-2.5 flex-1 min-w-0 bg-muted/40 p-1 sm:p-1.5 rounded-[1rem] border border-border/50 shadow-[inset_0_1px_4px_rgba(0,0,0,0.02)]">
+                      <div className="flex-1 min-w-0 bg-background/80 hover:bg-background rounded-xl px-1 sm:px-2 py-1.5 transition-colors border border-transparent hover:border-border/60 shadow-sm hover:shadow-md cursor-pointer relative">
+                        {/* 🚀 Teks lebih kecil di mobile (text-[11px]) */}
+                        <input type="date" value={formatDateValue(item.metaEkstra?.waktuMulai)} onChange={(e) => handleDateTimeSave('waktuMulai', 'date', e.target.value)} className="w-full bg-transparent text-[11px] sm:text-[13px] font-semibold text-foreground/90 outline-none cursor-pointer text-center relative z-10 min-w-0" />
                       </div>
-                      <ArrowRight className="h-4 w-4 text-muted-foreground/40 shrink-0" strokeWidth={2.5} />
-                      <div className="flex-1 bg-background/80 hover:bg-background rounded-xl px-2 py-1.5 transition-colors border border-transparent hover:border-border/60 shadow-sm hover:shadow-md cursor-pointer relative">
-                        <input type="date" value={formatDateValue(item.metaEkstra?.waktuSelesai)} onChange={(e) => handleDateTimeSave('waktuSelesai', 'date', e.target.value)} className="w-full bg-transparent text-[13px] font-semibold text-foreground/90 outline-none cursor-pointer text-center relative z-10" />
+                      <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground/40 shrink-0" strokeWidth={2.5} />
+                      <div className="flex-1 min-w-0 bg-background/80 hover:bg-background rounded-xl px-1 sm:px-2 py-1.5 transition-colors border border-transparent hover:border-border/60 shadow-sm hover:shadow-md cursor-pointer relative">
+                        <input type="date" value={formatDateValue(item.metaEkstra?.waktuSelesai)} onChange={(e) => handleDateTimeSave('waktuSelesai', 'date', e.target.value)} className="w-full bg-transparent text-[11px] sm:text-[13px] font-semibold text-foreground/90 outline-none cursor-pointer text-center relative z-10 min-w-0" />
                       </div>
                     </div>
                   </div>
@@ -625,18 +628,18 @@ export function ActivityDetailSheet({
                   <div className="h-px w-full bg-border/40" />
                   
                   {/* Baris Waktu/Jam Range */}
-                  <div className="flex items-center justify-between gap-4 group/time">
-                    <div className="flex items-center gap-2 w-20 shrink-0 text-muted-foreground/70 group-hover/time:text-foreground/80 transition-colors">
-                      <Clock3 className="h-4 w-4" />
-                      <span className="text-[10px] font-bold tracking-widest uppercase">Waktu</span>
+                  <div className="flex items-center justify-between gap-2 sm:gap-4 group/time">
+                    <div className="flex items-center gap-1.5 w-[70px] sm:w-20 shrink-0 text-muted-foreground/70 group-hover/time:text-foreground/80 transition-colors">
+                      <Clock3 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                      <span className="text-[9px] sm:text-[10px] font-bold tracking-widest uppercase">Waktu</span>
                     </div>
-                    <div className="flex items-center gap-2.5 flex-1 bg-muted/40 p-1.5 rounded-[1rem] border border-border/50 shadow-[inset_0_1px_4px_rgba(0,0,0,0.02)]">
-                      <div className="flex-1 bg-background/80 hover:bg-background rounded-xl px-2 py-1.5 transition-colors border border-transparent hover:border-border/60 shadow-sm hover:shadow-md cursor-pointer relative">
-                        <input type="time" value={formatTimeValue(item.metaEkstra?.waktuMulai)} onChange={(e) => handleDateTimeSave('waktuMulai', 'time', e.target.value)} className="w-full bg-transparent text-[13px] font-semibold text-foreground/90 outline-none cursor-pointer text-center relative z-10" />
+                    <div className="flex items-center gap-1 sm:gap-2.5 flex-1 min-w-0 bg-muted/40 p-1 sm:p-1.5 rounded-[1rem] border border-border/50 shadow-[inset_0_1px_4px_rgba(0,0,0,0.02)]">
+                      <div className="flex-1 min-w-0 bg-background/80 hover:bg-background rounded-xl px-1 sm:px-2 py-1.5 transition-colors border border-transparent hover:border-border/60 shadow-sm hover:shadow-md cursor-pointer relative">
+                        <input type="time" value={formatTimeValue(item.metaEkstra?.waktuMulai)} onChange={(e) => handleDateTimeSave('waktuMulai', 'time', e.target.value)} className="w-full bg-transparent text-[11px] sm:text-[13px] font-semibold text-foreground/90 outline-none cursor-pointer text-center relative z-10 min-w-0" />
                       </div>
-                      <ArrowRight className="h-4 w-4 text-muted-foreground/40 shrink-0" strokeWidth={2.5} />
-                      <div className="flex-1 bg-background/80 hover:bg-background rounded-xl px-2 py-1.5 transition-colors border border-transparent hover:border-border/60 shadow-sm hover:shadow-md cursor-pointer relative">
-                        <input type="time" value={formatTimeValue(item.metaEkstra?.waktuSelesai)} onChange={(e) => handleDateTimeSave('waktuSelesai', 'time', e.target.value)} className="w-full bg-transparent text-[13px] font-semibold text-foreground/90 outline-none cursor-pointer text-center relative z-10" />
+                      <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground/40 shrink-0" strokeWidth={2.5} />
+                      <div className="flex-1 min-w-0 bg-background/80 hover:bg-background rounded-xl px-1 sm:px-2 py-1.5 transition-colors border border-transparent hover:border-border/60 shadow-sm hover:shadow-md cursor-pointer relative">
+                        <input type="time" value={formatTimeValue(item.metaEkstra?.waktuSelesai)} onChange={(e) => handleDateTimeSave('waktuSelesai', 'time', e.target.value)} className="w-full bg-transparent text-[11px] sm:text-[13px] font-semibold text-foreground/90 outline-none cursor-pointer text-center relative z-10 min-w-0" />
                       </div>
                     </div>
                   </div>
