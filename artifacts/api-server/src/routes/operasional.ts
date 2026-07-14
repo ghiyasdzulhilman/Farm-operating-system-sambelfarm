@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { getAuth } from "@clerk/express";
-import { eq, and, aliasedTable } from "drizzle-orm"; // 💡 Tambahkan aliasedTable
+import { eq, and, aliasedTable, inArray } from "drizzle-orm"; 
+
 import { 
   db, 
   areasTable, 
@@ -293,16 +294,12 @@ router.get("/notion/all-operasional", async (req, res): Promise<void> => {
         waktuMulai: operasionalTable.waktuMulai,
         waktuSelesai: operasionalTable.waktuSelesai,
         durasiKerja: operasionalTable.durasiKerja,
-        pekerjaIds: operasionalTable.pekerjaIds,
+        // pekerjaIds: DIHAPUS DARI SINI
         status: operasionalTable.status,
         prioritas: operasionalTable.prioritas,
-        
-       // 💡 AMBIL DATA RELASI BARU
         jenisTenagaKerjaId: operasionalTable.jenisTenagaKerjaId,
         jenisTenagaKerjaName: jenisTenagaAttr.namaOption, 
         catatan: operasionalTable.catatan,
-        
-        // 🚀 SEKARANG KITA TARIK JUGA NAMA SIKLUSNYA BIAR UI TAU INI TANAMAN APA
         siklusId: operasionalTable.siklusId,
         namaSiklus: siklusTanamTable.namaSiklus,
         tanggalPindahTanam: siklusTanamTable.tanggalPindahTanam,
@@ -311,19 +308,49 @@ router.get("/notion/all-operasional", async (req, res): Promise<void> => {
       .from(operasionalTable)
       .leftJoin(areasTable, eq(operasionalTable.areaId, areasTable.id)) 
       .leftJoin(kategoriTable, eq(operasionalTable.kategoriId, kategoriTable.id))
-      // 💡 JOIN KE TABEL MASTER ATRIBUT
       .leftJoin(jenisTenagaAttr, eq(operasionalTable.jenisTenagaKerjaId, jenisTenagaAttr.id))
-      // 🚀 SIMPLE JOIN LANGSUNG KE SIKLUS ID, GAK PERLU CEK STATUS AKTIF/ENGGAK!
       .leftJoin(siklusTanamTable, eq(operasionalTable.siklusId, siklusTanamTable.id));
 
+    // 🚀 NEW: STRATEGI TARIK DATA PEKERJA (RELASIONAL)
+    // 1. Kumpulkan semua ID operasional yang didapat
+    const operasionalIds = data.map(d => d.id);
+    
+    // 2. Map penampung untuk pekerja
+    const pekerjaMap = new Map<string, string[]>();
+
+    // 3. Jika ada operasional, query tabel junction-nya
+    if (operasionalIds.length > 0) {
+      const pekerjaRelations = await db
+        .select({
+          operasionalId: operasionalPekerjaTable.operasionalId,
+          pekerjaId: operasionalPekerjaTable.pekerjaId
+        })
+        .from(operasionalPekerjaTable)
+        .where(inArray(operasionalPekerjaTable.operasionalId, operasionalIds));
+
+      // 4. Kelompokkan pekerjaId berdasarkan operasionalId
+      pekerjaRelations.forEach(rel => {
+        if (!pekerjaMap.has(rel.operasionalId)) {
+          pekerjaMap.set(rel.operasionalId, []);
+        }
+        pekerjaMap.get(rel.operasionalId)!.push(rel.pekerjaId);
+      });
+    }
+
+    // 5. Gabungkan kembali array pekerjaIds ke data asli
+    const dataWithPekerja = data.map(item => ({
+      ...item,
+      pekerjaIds: pekerjaMap.get(item.id) || []
+    }));
+
     // 🚀 3. FILTER DATANYA SEBELUM DIKIRIM KE FRONTEND
-    let filteredData = data;
+    let filteredData = dataWithPekerja; // Gunakan data yang sudah ada pekerjanya
+    
     if (statusSiklus === "selesai") {
-      // Hanya ambil catatan yang masa tanamnya sudah beres
-      filteredData = data.filter(item => item.statusSiklus === "Selesai/Panen");
+      // 🚀 UBAH JADI 'Selesai' SESUAI SCHEMA BARU
+      filteredData = dataWithPekerja.filter(item => item.statusSiklus === "Selesai");
     } else {
-      // Default: Ambil yang masih 'Aktif' ATAU yang nggak punya siklus (null)
-      filteredData = data.filter(item => item.statusSiklus === "Aktif" || !item.statusSiklus);
+      filteredData = dataWithPekerja.filter(item => item.statusSiklus === "Aktif" || !item.statusSiklus);
     }
 
         // 🚀 SERIALIZE KE FORMAT WIB STRING SEBELUM DIKIRIM
