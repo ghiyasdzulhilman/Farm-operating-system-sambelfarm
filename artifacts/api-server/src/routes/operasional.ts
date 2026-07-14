@@ -11,7 +11,11 @@ import {
   kategoriTable,
   siklusTanamTable,
   pekerjaAtributMasterTable,
-  kendalaMasterTable
+  kendalaMasterTable,
+  // 🚀 TAMBAHAN BARU
+  operasionalPekerjaTable,
+  perawatanPekerjaTable,
+  inspeksiPekerjaTable
 } from "@workspace/db";
 
 const router: IRouter = Router();
@@ -215,21 +219,36 @@ router.post("/notion/add-operasional", async (req, res): Promise<void> => {
         )
         .limit(1);
 
-      // Simpan Data Induk Operasional
-      const [insertedOperasional] = await db.insert(operasionalTable).values({
-        namaPekerjaan: namaPekerjaan,
-        areaId: currentAreaId,
-        siklusId: activeCycle ? activeCycle.id : null, // 🚀 SUNTIKAN SIKLUS ID
-        kategoriId: kategoriStr || null,
-        waktuMulai: parseWIB(waktuMulaiStr) ?? new Date(),
-        waktuSelesai: parseWIB(waktuSelesaiStr),
-        durasiKerja: Number(durasiNum ?? 0),
-        pekerjaIds: pekerjaArray || [],
-        status: statusStr || "Belum dikerjakan",
-        prioritas: prioritasStr || "Medium",
-        jenisTenagaKerjaId: jenisStr || null,
-        catatan: catatanStr || null,
-      }).returning();
+     // 🚀 UBAH JADI TRANSACTION: Simpan Data Induk lalu Simpan Relasi Pekerja
+      const insertedOperasional = await db.transaction(async (tx) => {
+    // 1. Insert ke tabel induk (TANPA pekerjaIds)
+        const [inserted] = await tx.insert(operasionalTable).values({
+          namaPekerjaan: namaPekerjaan,
+          areaId: currentAreaId,
+          siklusId: activeCycle ? activeCycle.id : null, 
+          kategoriId: kategoriStr || null,
+          waktuMulai: parseWIB(waktuMulaiStr) ?? new Date(),
+          waktuSelesai: parseWIB(waktuSelesaiStr),
+          durasiKerja: Number(durasiNum ?? 0),
+          // pekerjaIds: DIHAPUS DARI SINI
+          status: statusStr || "Belum dikerjakan",
+          prioritas: prioritasStr || "Medium",
+          jenisTenagaKerjaId: jenisStr || null,
+          catatan: catatanStr || null,
+        }).returning();
+
+        // 2. Jika ada pekerja, insert ke tabel junction (operasionalPekerjaTable)
+        if (pekerjaArray && pekerjaArray.length > 0) {
+          const pekerjaInsertData = pekerjaArray.map((pekerjaId: string) => ({
+            operasionalId: inserted.id,
+            pekerjaId: pekerjaId
+          }));
+          
+          await tx.insert(operasionalPekerjaTable).values(pekerjaInsertData);
+        }
+
+        return inserted;
+      });
 
       recordsCreated.push({
         id: insertedOperasional.id,
