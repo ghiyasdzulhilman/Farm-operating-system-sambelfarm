@@ -426,24 +426,70 @@ if (cleanPayload.areaId) {
   cleanPayload.siklusId = activeCycle ? activeCycle.id : null;
 }
 
+// 💡 EKSTRAK pekerjaIds SEBELUM MASUK KE LOGIKA UPDATE
+const { pekerjaIds, ...mainPayload } = cleanPayload;
+
 if (module === "operasional") {
-  // 🚀 AMAN: Hanya ijinkan kolom yang sah milik operasionalTable
-  const allowed = ["namaPekerjaan", "areaId", "siklusId", "waktuMulai", "waktuSelesai", "durasiKerja", "kategoriId", "prioritas", "jenisTenagaKerjaId", "pekerjaIds", "status", "catatan"];
-  const filteredPayload = Object.fromEntries(Object.entries(cleanPayload).filter(([k]) => allowed.includes(k)));
+  // 🚀 HAPUS pekerjaIds DARI ALLOWED
+  const allowed = ["namaPekerjaan", "areaId", "siklusId", "waktuMulai", "waktuSelesai", "durasiKerja", "kategoriId", "prioritas", "jenisTenagaKerjaId", "status", "catatan"];
+  const filteredPayload = Object.fromEntries(Object.entries(mainPayload).filter(([k]) => allowed.includes(k)));
 
-  result = await db.update(operasionalTable)
-    .set(filteredPayload)
-    .where(eq(operasionalTable.id, id))
-    .returning();
+  result = await db.transaction(async (tx) => {
+    let updatedRecord = [];
+    
+    // 1. Update tabel utama JIKA ada perubahan di luar pekerja
+    if (Object.keys(filteredPayload).length > 0) {
+      updatedRecord = await tx.update(operasionalTable)
+        .set(filteredPayload)
+        .where(eq(operasionalTable.id, id))
+        .returning();
+    } else {
+      // Kalau yg di-edit CUMA pekerja, ambil record lamanya biar variabel result gak kosong
+      updatedRecord = await tx.select().from(operasionalTable).where(eq(operasionalTable.id, id));
+    }
+
+    // 2. Sinkronisasi Relasi Pekerja (Junction Table)
+    if (pekerjaIds !== undefined) {
+      // Hapus semua relasi pekerja yang lama untuk operasional ini
+      await tx.delete(operasionalPekerjaTable).where(eq(operasionalPekerjaTable.operasionalId, id));
+      
+      // Insert relasi baru jika array tidak kosong
+      if (Array.isArray(pekerjaIds) && pekerjaIds.length > 0) {
+        const insertData = pekerjaIds.map((pId: string) => ({ operasionalId: id, pekerjaId: pId }));
+        await tx.insert(operasionalPekerjaTable).values(insertData);
+      }
+    }
+    return updatedRecord;
+  });
+
 } else if (module === "inspeksi") {
-  // 🚀 AMAN: Hanya ijinkan kolom yang sah milik inspeksiTable
-  const allowed = ["kegiatan", "areaId", "siklusId", "waktuMulai", "waktuSelesai", "durasiKerja", "phTanah", "tingkatSerangan", "radius", "status", "pekerjaIds", "keterangan"];
-  const filteredPayload = Object.fromEntries(Object.entries(cleanPayload).filter(([k]) => allowed.includes(k)));
+  // 🚀 HAPUS pekerjaIds DARI ALLOWED
+  const allowed = ["kegiatan", "areaId", "siklusId", "waktuMulai", "waktuSelesai", "durasiKerja", "phTanah", "tingkatSerangan", "radius", "status", "keterangan"];
+  const filteredPayload = Object.fromEntries(Object.entries(mainPayload).filter(([k]) => allowed.includes(k)));
 
-  result = await db.update(inspeksiTable)
-    .set(filteredPayload)
-    .where(eq(inspeksiTable.id, id))
-    .returning();
+  result = await db.transaction(async (tx) => {
+    let updatedRecord = [];
+    
+    if (Object.keys(filteredPayload).length > 0) {
+      updatedRecord = await tx.update(inspeksiTable)
+        .set(filteredPayload)
+        .where(eq(inspeksiTable.id, id))
+        .returning();
+    } else {
+      updatedRecord = await tx.select().from(inspeksiTable).where(eq(inspeksiTable.id, id));
+    }
+
+    // Sinkronisasi Relasi Pekerja
+    if (pekerjaIds !== undefined) {
+      await tx.delete(inspeksiPekerjaTable).where(eq(inspeksiPekerjaTable.inspeksiId, id));
+      
+      if (Array.isArray(pekerjaIds) && pekerjaIds.length > 0) {
+        const insertData = pekerjaIds.map((pId: string) => ({ inspeksiId: id, pekerjaId: pId }));
+        await tx.insert(inspeksiPekerjaTable).values(insertData);
+      }
+    }
+    return updatedRecord;
+  });
 }
       
       else {
