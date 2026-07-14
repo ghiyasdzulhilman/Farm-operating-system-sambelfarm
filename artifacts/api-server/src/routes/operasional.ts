@@ -801,13 +801,14 @@ router.post("/notion/siklus-tanam", async (req, res): Promise<void> => {
     return;
   }
 
-  try {
+    try {
     // Opsional: Otomatis ubah siklus lama di area yang sama menjadi "Selesai" jika ada siklus baru aktif
     await db.update(siklusTanamTable)
-      .set({ status: "Selesai/Panen" })
+      .set({ status: "Selesai" }) // 🚀 SESUAIKAN DENGAN CONSTRAINT SCHEMA BARU
       .where(and(eq(siklusTanamTable.areaId, areaId), eq(siklusTanamTable.status, "Aktif")));
 
     const [newSiklus] = await db.insert(siklusTanamTable)
+
       .values({
         areaId,
         namaSiklus,
