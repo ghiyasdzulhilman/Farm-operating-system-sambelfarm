@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { getAuth } from "@clerk/express";
-import { eq, and, aliasedTable } from "drizzle-orm"; // 💡 Tambah aliasedTable
+import { eq, and, aliasedTable, inArray } from "drizzle-orm"; // 🚀 Tambah inArray
 import { 
   db, 
   areasTable, 
@@ -12,7 +12,8 @@ import {
   pekerjaAtributMasterTable,  
   inspeksiTable,           
   inspeksiTemuanTable,     
-  kendalaMasterTable     
+  kendalaMasterTable,
+  inspeksiPekerjaTable // 🚀 TAMBAHAN BARU
 } from "@workspace/db";
 
 const router: IRouter = Router();
@@ -132,35 +133,45 @@ router.post("/notion/add-inspeksi", async (req, res): Promise<void> => {
         )
         .limit(1);
 
-      // Simpan Data Induk Inspeksi
-      const [insertedInspeksi] = await db.insert(inspeksiTable).values({
-        kegiatan: kegiatan,
-        areaId: currentAreaId,
-        siklusId: activeCycle ? activeCycle.id : null, // 🚀 SUNTIKAN SIKLUS ID
-        
-        // 🚀 SUNTIKAN ZONA WAKTU WIB
-        waktuMulai: parseWIB(waktuMulaiStr) ?? new Date(),
-        waktuSelesai: parseWIB(waktuSelesaiStr),
-        
-        durasiKerja: Number(durasiNum ?? 0),
-        phTanah: phVal ? Number(phVal) : null,
-        tingkatSerangan: seranganVal ? Number(seranganVal) : null,
-        radius: radiusVal ? Number(radiusVal) : null,
-        status: statusStr || "Baru ditemukan",
-        pekerjaIds: petugasArray || [],
-        keterangan: catatanStr || null,
-      }).returning();
+        // 🚀 UBAH JADI TRANSACTION: Simpan Induk, Temuan, dan Relasi Pekerja
+      const insertedInspeksi = await db.transaction(async (tx) => {
+        // 1. Simpan Data Induk Inspeksi (Tanpa pekerjaIds)
+        const [newInspeksi] = await tx.insert(inspeksiTable).values({
+          kegiatan: kegiatan,
+          areaId: currentAreaId,
+          siklusId: activeCycle ? activeCycle.id : null,
+          waktuMulai: parseWIB(waktuMulaiStr) ?? new Date(),
+          waktuSelesai: parseWIB(waktuSelesaiStr),
+          durasiKerja: Number(durasiNum ?? 0),
+          phTanah: phVal ? Number(phVal) : null,
+          tingkatSerangan: seranganVal ? Number(seranganVal) : null,
+          radius: radiusVal ? Number(radiusVal) : null,
+          status: statusStr || "Baru ditemukan",
+          // pekerjaIds: DIHAPUS DARI SINI
+          keterangan: catatanStr || null,
+        }).returning();
 
-      // Simpan Detail Temuan Hama/Penyakit (Jika Ada)
-      if (temuanArray && temuanArray.length > 0) {
-        const dataTemuan = temuanArray.map((t) => ({
-          inspeksiId: insertedInspeksi.id,
-          kendalaMasterId: t.kendalaMasterId, // 👈 Langsung pakai ID yang dikirim frontend
-          catatanKhusus: t.catatan || null,
-        }));
+        // 2. Simpan Detail Temuan Hama/Penyakit (Jika Ada)
+        if (temuanArray && temuanArray.length > 0) {
+          const dataTemuan = temuanArray.map((t) => ({
+            inspeksiId: newInspeksi.id,
+            kendalaMasterId: t.kendalaMasterId, 
+            catatanKhusus: t.catatan || null,
+          }));
+          await tx.insert(inspeksiTemuanTable).values(dataTemuan);
+        }
 
-        await db.insert(inspeksiTemuanTable).values(dataTemuan);
-      }
+        // 🚀 3. Simpan Relasi Pekerja ke Tabel Junction
+        if (petugasArray && petugasArray.length > 0) {
+          const pekerjaInsertData = petugasArray.map((pId: string) => ({
+            inspeksiId: newInspeksi.id,
+            pekerjaId: pId
+          }));
+          await tx.insert(inspeksiPekerjaTable).values(pekerjaInsertData);
+        }
+
+        return newInspeksi;
+      });
 
       recordsCreated.push({
         id: insertedInspeksi.id,
@@ -209,7 +220,6 @@ router.get("/notion/all-inspeksi", async (req, res): Promise<void> => {
         tingkatSerangan: inspeksiTable.tingkatSerangan,
         radius: inspeksiTable.radius,
         status: inspeksiTable.status,
-        pekerjaIds: inspeksiTable.pekerjaIds,
         keterangan: inspeksiTable.keterangan,
         
         // 🚀 TARIK JUGA SIKLUS ID DAN TANGGAL UNTUK UI
@@ -226,15 +236,13 @@ router.get("/notion/all-inspeksi", async (req, res): Promise<void> => {
     // 🚀 3. FILTER DATANYA SEBELUM DI-MAP
     let filteredIndukData = indukData;
     if (statusSiklus === "selesai") {
-      // Hanya ambil catatan yang masa tanamnya sudah beres
-      filteredIndukData = indukData.filter(item => item.statusSiklus === "Selesai/Panen");
+      // 🚀 UBAH JADI 'Selesai' SESUAI SCHEMA BARU
+      filteredIndukData = indukData.filter(item => item.statusSiklus === "Selesai");
     } else {
-      // Default: Ambil yang masih 'Aktif' ATAU yang nggak punya siklus (null)
       filteredIndukData = indukData.filter(item => item.statusSiklus === "Aktif" || !item.statusSiklus);
     }
 
-    // 2. Ambil semua data temuan dan JOIN ke master kendala untuk dapet nama & jenis
-    // (Pastikan kendalaMasterTable dan inspeksiTemuanTable di-import di atas!)
+    // 2. Ambil semua data temuan dan JOIN ke master kendala
     const semuaTemuan = await db
       .select({
         inspeksiId: inspeksiTemuanTable.inspeksiId,
@@ -245,8 +253,28 @@ router.get("/notion/all-inspeksi", async (req, res): Promise<void> => {
       .from(inspeksiTemuanTable)
       .leftJoin(kendalaMasterTable, eq(inspeksiTemuanTable.kendalaMasterId, kendalaMasterTable.id));
 
-    // 3. Petakan temuan masuk ke induk inspeksi masing-masing
-    // 🚀 PASTIKAN MAPPING MENGGUNAKAN 'filteredIndukData'
+    // 🚀 2.5 STRATEGI TARIK DATA PEKERJA (RELASIONAL)
+    const inspeksiIds = filteredIndukData.map(d => d.id);
+    const pekerjaMap = new Map<string, string[]>();
+    
+    if (inspeksiIds.length > 0) {
+      const pekerjaRelations = await db
+        .select({
+          inspeksiId: inspeksiPekerjaTable.inspeksiId,
+          pekerjaId: inspeksiPekerjaTable.pekerjaId
+        })
+        .from(inspeksiPekerjaTable)
+        .where(inArray(inspeksiPekerjaTable.inspeksiId, inspeksiIds));
+
+      pekerjaRelations.forEach(rel => {
+        if (!pekerjaMap.has(rel.inspeksiId)) {
+          pekerjaMap.set(rel.inspeksiId, []);
+        }
+        pekerjaMap.get(rel.inspeksiId)!.push(rel.pekerjaId);
+      });
+    }
+
+    // 3. Petakan temuan dan pekerja masuk ke induk inspeksi masing-masing
       const dataMatang = filteredIndukData.map((inspeksi) => {
       const temuanKhusus = semuaTemuan.filter((t) => t.inspeksiId === inspeksi.id);
 
@@ -257,21 +285,24 @@ router.get("/notion/all-inspeksi", async (req, res): Promise<void> => {
         .map((t) => `${t.namaKendala}: ${t.catatanKhusus || "Tanpa catatan khusus"}`)
         .join("\n");
 
-    return {
+      // Tarik pekerja untuk baris inspeksi ini
+      const currentPekerjaIds = pekerjaMap.get(inspeksi.id) || [];
+
+      return {
         ...inspeksi,
+        pekerjaIds: currentPekerjaIds, // 🚀 SUNTIKAN PEKERJA KE OBJEK UTAMA
         waktuMulai: toWIBString(inspeksi.waktuMulai as Date),
         waktuSelesai: toWIBString(inspeksi.waktuSelesai as Date),
         hama: daftarHama,
         penyakit: daftarPenyakit,
         
-        // 🚀 FIX: Suntik metaEkstra ke backend agar dibaca sempurna oleh Detailsheet frontend
         metaEkstra: {
           hama: daftarHama,
           penyakit: daftarPenyakit,
           waktuMulai: toWIBString(inspeksi.waktuMulai as Date),
           waktuSelesai: toWIBString(inspeksi.waktuSelesai as Date),
           durasiKerja: inspeksi.durasiKerja,
-          pekerjaIds: inspeksi.pekerjaIds,
+          pekerjaIds: currentPekerjaIds, // 🚀 SUNTIKAN PEKERJA KE META EKSTRA
           phTanah: inspeksi.phTanah,
           tingkatSerangan: inspeksi.tingkatSerangan,
           radius: inspeksi.radius,
