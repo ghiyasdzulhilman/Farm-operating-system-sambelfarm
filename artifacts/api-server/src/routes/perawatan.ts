@@ -289,7 +289,9 @@ router.get("/notion/all-perawatan", async (req, res): Promise<void> => {
         durasiKerja: perawatanTable.durasiKerja,
         tagCategoryId: perawatanTable.tagCategoryId, 
         tagCategoryName: kategoriTable.name, 
-        
+        status: perawatanTable.status,
+        catatan: perawatanTable.catatan,
+
         // 🚀 TARIK JUGA SIKLUS ID UNTUK UI
         siklusId: perawatanTable.siklusId,
         tanggalPindahTanam: siklusTanamTable.tanggalPindahTanam, // 👈 KOMA SUDAH AMAN
