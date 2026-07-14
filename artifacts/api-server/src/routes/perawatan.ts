@@ -9,7 +9,8 @@ import {
   produkMasterTable,
   kategoriTable,
   siklusTanamTable,
-  adjustStock
+  adjustStock,
+  perawatanPekerjaTable // 🚀 TAMBAHAN BARU
 } from "@workspace/db";
 
 const router: IRouter = Router();
@@ -150,7 +151,8 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
       // termasuk insert perawatanTable-nya, supaya tidak ada "perawatan tanpa produk" nyangkut di DB
       // akibat kegagalan di tengah proses.
       const insertedPerawatan = await db.transaction(async (tx) => {
-        // 1. Simpan Data Induk
+        
+      // 1. Simpan Data Induk (Tanpa pekerjaIds)
         const [newPerawatan] = await tx.insert(perawatanTable).values({
           kegiatan: kegiatan,
           areaId: currentAreaId,
@@ -160,9 +162,18 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
           durasiKerja: Number(durasiKerjaNum ?? 0),
           tagCategoryId: tagCategoryStr || null,
           status: statusStr || "Belum dikerjakan",
-          pekerjaIds: pekerjaIdsArray || [],
+          // pekerjaIds: DIHAPUS DARI SINI
           catatan: catatanStr || null,
         }).returning();
+
+        // 🚀 1.5. Simpan Relasi Pekerja ke Tabel Junction
+        if (pekerjaIdsArray && pekerjaIdsArray.length > 0) {
+          const pekerjaInsertData = pekerjaIdsArray.map((pId: string) => ({
+            perawatanId: newPerawatan.id,
+            pekerjaId: pId
+          }));
+          await tx.insert(perawatanPekerjaTable).values(pekerjaInsertData);
+        }
 
         // 2. Validasi SEMUA produk dulu, sebelum ada mutation stok apapun —
         // supaya tidak ada produk ke-1,2 yang sudah kepotong sebelum produk ke-3 ketahuan gagal.
@@ -278,9 +289,6 @@ router.get("/notion/all-perawatan", async (req, res): Promise<void> => {
         durasiKerja: perawatanTable.durasiKerja,
         tagCategoryId: perawatanTable.tagCategoryId, 
         tagCategoryName: kategoriTable.name, 
-        status: perawatanTable.status,
-        pekerjaIds: perawatanTable.pekerjaIds,
-        catatan: perawatanTable.catatan,
         
         // 🚀 TARIK JUGA SIKLUS ID UNTUK UI
         siklusId: perawatanTable.siklusId,
@@ -296,15 +304,14 @@ router.get("/notion/all-perawatan", async (req, res): Promise<void> => {
 
     // 🚀 3. FILTER DATANYA SEBELUM DI-MAP
     let filteredIndukData = indukData;
-    if (statusSiklus === "selesai") {
-      // Hanya ambil catatan yang masa tanamnya sudah beres
-      filteredIndukData = indukData.filter(item => item.statusSiklus === "Selesai/Panen");
+        if (statusSiklus === "selesai") {
+      // 🚀 UBAH JADI 'Selesai' SESUAI SCHEMA BARU
+      filteredIndukData = indukData.filter(item => item.statusSiklus === "Selesai");
     } else {
-      // Default: Ambil yang masih 'Aktif' ATAU yang nggak punya siklus (null)
       filteredIndukData = indukData.filter(item => item.statusSiklus === "Aktif" || !item.statusSiklus);
     }
 
-        // 2. Ambil semua detail produk racikan + JOIN nama produk dari master
+    // 2. Ambil semua detail produk racikan
     const semuaProduk = await db
       .select({
         perawatanId: perawatanProdukTable.perawatanId,
@@ -318,16 +325,39 @@ router.get("/notion/all-perawatan", async (req, res): Promise<void> => {
       .from(perawatanProdukTable)
       .leftJoin(produkMasterTable, eq(perawatanProdukTable.produkId, produkMasterTable.id));
 
-    const dataMatang = filteredIndukData.map((perawatan) => {
+    // 🚀 2.5 STRATEGI TARIK DATA PEKERJA (RELASIONAL)
+    const perawatanIds = filteredIndukData.map(d => d.id);
+    const pekerjaMap = new Map<string, string[]>();
+    
+    if (perawatanIds.length > 0) {
+      const pekerjaRelations = await db
+        .select({
+          perawatanId: perawatanPekerjaTable.perawatanId,
+          pekerjaId: perawatanPekerjaTable.pekerjaId
+        })
+        .from(perawatanPekerjaTable)
+        .where(inArray(perawatanPekerjaTable.perawatanId, perawatanIds));
+
+      pekerjaRelations.forEach(rel => {
+        if (!pekerjaMap.has(rel.perawatanId)) {
+          pekerjaMap.set(rel.perawatanId, []);
+        }
+        pekerjaMap.get(rel.perawatanId)!.push(rel.pekerjaId);
+      });
+    }
+
+    // 3. Gabung Data (Map Akhir)
+      const dataMatang = filteredIndukData.map((perawatan) => {
       const racikanBahan = semuaProduk.filter((p) => p.perawatanId === perawatan.id);
       const totalBiayaPerawatan = racikanBahan.reduce((sum, p) => sum + (p.totalBiaya ?? 0), 0);
 
       return {
         ...perawatan,
+        pekerjaIds: pekerjaMap.get(perawatan.id) || [], // 🚀 SUNTIKAN PEKERJA KE FRONTEND
         waktuMulai: toWIBString(perawatan.waktuMulai as Date),
         waktuSelesai: toWIBString(perawatan.waktuSelesai as Date),
         logProduk: racikanBahan,
-        totalBiayaProduk: totalBiayaPerawatan, // 🆕 dipakai Step 4 (detail sheet)
+        totalBiayaProduk: totalBiayaPerawatan, 
       };
     });
 
@@ -403,24 +433,25 @@ router.patch("/notion/perawatan/:id", async (req, res): Promise<void> => {
   const { id } = req.params;
   const body = req.body;
 
-  // ⚠️ areaId sengaja TIDAK termasuk allowed fields — keputusan eksplisit: edit area
-  // tidak didukung lewat endpoint ini. Kalau frontend kirim areaId, diabaikan diam-diam
-  // di sini (bukan error) karena UI sudah di-lock terpisah di dua file frontend.
-  const allowedBasicFields = ['kegiatan', 'waktuMulai', 'waktuSelesai', 'durasiKerja', 'tagCategoryId', 'status', 'pekerjaIds', 'catatan'];
+  // 🚀 HAPUS pekerjaIds DARI ALLOWED BASIC FIELDS
+  const allowedBasicFields = ['kegiatan', 'waktuMulai', 'waktuSelesai', 'durasiKerja', 'tagCategoryId', 'status', 'catatan'];
 
   const basicPayload: Record<string, any> = Object.fromEntries(
     Object.entries(body).filter(([key, v]) => allowedBasicFields.includes(key) && v !== undefined)
   );
+  
+  // 🚀 TANGKAP PAYLOAD PEKERJA SECARA TERPISAH
+  const pekerjaFieldDikirim = 'pekerjaIds' in body;
+  const pekerjaIdsBaru = pekerjaFieldDikirim ? (body.pekerjaIds as string[]) : [];
 
   if (basicPayload.waktuMulai) basicPayload.waktuMulai = parseWIB(basicPayload.waktuMulai);
   if (basicPayload.waktuSelesai) basicPayload.waktuSelesai = parseWIB(basicPayload.waktuSelesai);
 
-  // 🔑 KUNCI dari desain kamu: bedakan "field tidak dikirim" vs "field dikirim kosong".
-  // 'logProduk' in body menangkap KEDUANYA benar: array isi, MAUPUN array kosong eksplisit.
   const produkFieldDikirim = 'logProduk' in body && Array.isArray(body.logProduk);
   const produkArray: Array<{ produkId: string; kuantitasPemakaian: number }> = produkFieldDikirim ? body.logProduk : [];
 
-  if (Object.keys(basicPayload).length === 0 && !produkFieldDikirim) {
+  // 💡 JANGAN LUPA TAMBAH CEK PEKERJA DI SINI
+  if (Object.keys(basicPayload).length === 0 && !produkFieldDikirim && !pekerjaFieldDikirim) {
     res.status(400).json({ error: "Tidak ada data valid untuk diupdate." });
     return;
   }
@@ -438,8 +469,19 @@ router.patch("/notion/perawatan/:id", async (req, res): Promise<void> => {
         [updatedPerawatan] = await tx.select().from(perawatanTable).where(eq(perawatanTable.id, id));
       }
 
-      if (!updatedPerawatan) {
+            if (!updatedPerawatan) {
         throw new Error("PERAWATAN_TIDAK_DITEMUKAN");
+      }
+
+      // 🚀 SINKRONISASI RELASI PEKERJA
+      if (pekerjaFieldDikirim) {
+        // Hapus relasi pekerja lama
+        await tx.delete(perawatanPekerjaTable).where(eq(perawatanPekerjaTable.perawatanId, id));
+        // Jika ada array baru, masukkan
+        if (Array.isArray(pekerjaIdsBaru) && pekerjaIdsBaru.length > 0) {
+           const insertPekerja = pekerjaIdsBaru.map(pId => ({ perawatanId: id, pekerjaId: pId }));
+           await tx.insert(perawatanPekerjaTable).values(insertPekerja);
+        }
       }
 
       // 🔒 INI ATURAN INTI KAMU: reverse-reapply CUMA jalan kalau field produk eksplisit dikirim.
