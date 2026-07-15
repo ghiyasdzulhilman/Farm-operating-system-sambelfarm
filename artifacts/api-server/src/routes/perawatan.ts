@@ -199,7 +199,8 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
             }
           }
 
-          // 3. Baru potong stok + insert baris perawatan_produk, satu per satu
+            // 3. Baru potong stok + insert baris perawatan_produk, satu per satu
+          let urutanIndex = 0; // 🚀 Siapkan index urutan
           for (const item of produkArray) {
             const produk = produkMap.get(item.produkId)!;
 
@@ -219,8 +220,10 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
               kuantitasPemakaian: item.kuantitasPemakaian,
               hargaTercatatPerSatuan: produk.hargaPerSatuanDasar,
               totalBiaya,
+              urutan: urutanIndex++, // 🚀 Suntik posisi urutan di sini
             });
           }
+
         }
 
         return newPerawatan;
@@ -323,6 +326,7 @@ router.get("/notion/all-perawatan", async (req, res): Promise<void> => {
         satuanDasar: produkMasterTable.satuanDasar,
         hargaTercatatPerSatuan: perawatanProdukTable.hargaTercatatPerSatuan,
         totalBiaya: perawatanProdukTable.totalBiaya,
+        urutan: perawatanProdukTable.urutan, // 🚀 1. Tarik kolom urutan dari DB
       })
       .from(perawatanProdukTable)
       .leftJoin(produkMasterTable, eq(perawatanProdukTable.produkId, produkMasterTable.id));
@@ -350,7 +354,10 @@ router.get("/notion/all-perawatan", async (req, res): Promise<void> => {
 
       // 3. Gabung Data (Map Akhir)
       const dataMatang = filteredIndukData.map((perawatan) => {
-      const racikanBahan = semuaProduk.filter((p) => p.perawatanId === perawatan.id);
+      // 🚀 2. Filter milik ID ini, LALU URUTKAN berdasarkan kolom urutan
+      const racikanBahan = semuaProduk
+        .filter((p) => p.perawatanId === perawatan.id)
+        .sort((a, b) => (a.urutan ?? 0) - (b.urutan ?? 0)); 
       
       // 🚀 FIX: Paksa kuantitasPemakaian (numeric) jadi Number agar UI tidak error
       const racikanBahanFormatted = racikanBahan.map((p) => ({
@@ -493,58 +500,111 @@ router.patch("/notion/perawatan/:id", async (req, res): Promise<void> => {
         }
       }
 
-      // 🔒 INI ATURAN INTI KAMU: reverse-reapply CUMA jalan kalau field produk eksplisit dikirim.
-      // Field-only update (basicPayload doang) tidak pernah sampai ke blok ini sama sekali.
+     // 🔒 INI ATURAN INTI KAMU: update selektif CUMA jalan kalau field produk eksplisit dikirim.
       if (produkFieldDikirim) {
-        // 1. REVERSE — kembalikan semua stok yang tercatat lama untuk perawatan ini
+        // 1. Snapshot Historis
         const produkLama = await tx
           .select()
           .from(perawatanProdukTable)
           .where(eq(perawatanProdukTable.perawatanId, id));
 
-        for (const row of produkLama) {
+        // Bikin Map biar gampang dicari berdasarkan produkId
+        const mapLama = new Map(produkLama.map((p) => [p.produkId, p]));
+
+        const toDelete: typeof produkLama = [];
+        const toInsert: Array<{ produkId: string; kuantitasPemakaian: number; urutan: number }> = [];
+        const toUpdate: Array<{ produkId: string; kuantitasPemakaian: number; urutan: number; oldData: typeof produkLama[0] }> = [];
+
+        // 2. Pembandingan The Delta Algorithm & Suntik Urutan
+        produkArray.forEach((item, index) => {
+          if (mapLama.has(item.produkId)) {
+            // Ember C: Diubah / Tetap
+            toUpdate.push({ ...item, urutan: index, oldData: mapLama.get(item.produkId)! });
+            mapLama.delete(item.produkId); // Tandai sudah diproses
+          } else {
+            // Ember B: Tambah Baru
+            toInsert.push({ ...item, urutan: index });
+          }
+        });
+
+        // Sisa yang ada di mapLama berarti dihapus dari Frontend
+        for (const [produkId, oldData] of mapLama.entries()) {
+             toDelete.push(oldData); // Ember A: Dihapus
+        }
+
+        // --- EKSEKUSI EMBER A: DIHAPUS (Kembalikan stok penuh & hapus baris) ---
+        for (const item of toDelete) {
           await adjustStock(tx, {
-            produkId: row.produkId,
-            delta: row.kuantitasPemakaian, // kembalikan (positif)
+            produkId: item.produkId,
+            delta: item.kuantitasPemakaian, // kembalikan (positif)
             tipe: "reversal_edit",
             perawatanProdukId: null,
           });
+          await tx.delete(perawatanProdukTable).where(eq(perawatanProdukTable.id, item.id));
         }
 
-        await tx.delete(perawatanProdukTable).where(eq(perawatanProdukTable.perawatanId, id));
+        // --- EKSEKUSI EMBER B: TAMBAH BARU (Potong stok & pakai harga master TERBARU) ---
+        if (toInsert.length > 0) {
+          const insertIds = toInsert.map((p) => p.produkId);
+          const masterRows = await tx.select().from(produkMasterTable).where(inArray(produkMasterTable.id, insertIds));
+          const masterMap = new Map(masterRows.map((p) => [p.id, p]));
 
-        // 2. REAPPLY — proses ulang array baru, identik dengan logika create.
-        // Kalau produkArray kosong ([]), loop ini tidak jalan sama sekali — hasilnya
-        // perawatan itu benar-benar tanpa produk, sesuai niat "kosongkan semua".
-        if (produkArray.length > 0) {
-          const produkIds = produkArray.map((p) => p.produkId);
-          const produkRows = await tx.select().from(produkMasterTable).where(inArray(produkMasterTable.id, produkIds));
-          const produkMap = new Map(produkRows.map((p) => [p.id, p]));
+          for (const item of toInsert) {
+            const master = masterMap.get(item.produkId);
+            if (!master) throw new Error(`Produk dengan ID ${item.produkId} tidak ditemukan.`);
+            if (master.hargaPerSatuanDasar === 0) throw new Error(`Produk "${master.nama}" belum punya harga. Set harga dulu.`);
+            if (item.kuantitasPemakaian <= 0) throw new Error(`Kuantitas pemakaian "${master.nama}" harus lebih dari 0.`);
 
-          for (const item of produkArray) {
-            const produk = produkMap.get(item.produkId);
-            if (!produk) throw new Error(`Produk dengan ID ${item.produkId} tidak ditemukan.`);
-            if (produk.hargaPerSatuanDasar === 0) throw new Error(`Produk "${produk.nama}" belum punya harga. Set harga dulu di Manajemen Produk.`);
-            if (item.kuantitasPemakaian <= 0) throw new Error(`Kuantitas pemakaian "${produk.nama}" harus lebih dari 0.`);
-          }
-
-          for (const item of produkArray) {
-            const produk = produkMap.get(item.produkId)!;
             await adjustStock(tx, {
               produkId: item.produkId,
-              delta: -item.kuantitasPemakaian,
+              delta: -item.kuantitasPemakaian, // potong (negatif)
               tipe: "pemakaian",
               perawatanProdukId: null,
             });
-            const totalBiaya = Math.round(item.kuantitasPemakaian * produk.hargaPerSatuanDasar);
+
+            const totalBiaya = Math.round(item.kuantitasPemakaian * master.hargaPerSatuanDasar);
             await tx.insert(perawatanProdukTable).values({
               perawatanId: id,
               produkId: item.produkId,
-              kuantitasPemakaian: item.kuantitasPemakaian,
-              hargaTercatatPerSatuan: produk.hargaPerSatuanDasar,
+              kuantitasPemakaian: item.kuantitasPemakaian.toString(), 
+              hargaTercatatPerSatuan: master.hargaPerSatuanDasar, // Harga Baru
               totalBiaya,
+              urutan: item.urutan, // 🚀 Suntik posisi urutan
             });
           }
+        }
+
+        // --- EKSEKUSI EMBER C: DIUBAH/TETAP (Hitung selisih stok & pakai HARGA HISTORIS) ---
+        for (const item of toUpdate) {
+          if (item.kuantitasPemakaian <= 0) throw new Error(`Kuantitas pemakaian harus lebih dari 0.`);
+
+          const oldQty = Number(item.oldData.kuantitasPemakaian);
+          const newQty = Number(item.kuantitasPemakaian);
+          const deltaQty = oldQty - newQty; 
+          // Logika adjustStock: positif = masuk gudang (nambah), negatif = keluar gudang (motong)
+          // Jika old=10, new=15. delta = 10-15 = -5 (potong 5 dari gudang).
+          // Jika old=10, new=8. delta = 10-8 = 2 (masukkan 2 ke gudang).
+
+          if (deltaQty !== 0) {
+            await adjustStock(tx, {
+              produkId: item.produkId,
+              delta: deltaQty,
+              tipe: deltaQty > 0 ? "reversal_edit" : "pemakaian", // disamakan tipenya agar log rapi
+              perawatanProdukId: null,
+            });
+          }
+
+          // 🚀 KRUSIAL: Pake harga historis dari oldData, bukan dari produkMaster!
+          const hargaHistoris = Number(item.oldData.hargaTercatatPerSatuan);
+          const totalBiayaBaru = Math.round(hargaHistoris * newQty);
+
+          await tx.update(perawatanProdukTable)
+            .set({
+              kuantitasPemakaian: newQty.toString(),
+              totalBiaya: totalBiayaBaru,
+              urutan: item.urutan // 🚀 Pastikan urutan terbaru tetap terupdate
+            })
+            .where(eq(perawatanProdukTable.id, item.oldData.id));
         }
       }
 
