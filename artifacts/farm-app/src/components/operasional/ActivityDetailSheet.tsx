@@ -110,25 +110,62 @@ useEffect(() => {
     enabled: !!item // Hanya nge-fetch kalau sheet-nya lagi kebuka
   });
 
-// 🚀 KALKULATOR LIVE: Total Biaya Racikan
-    const totalBiayaRacikan = useMemo(() => {
-    // 🔒 Belum diedit: SELALU pakai angka historis dari backend (snapshot hargaTercatatPerSatuan),
-    // jangan pernah hitung ulang dari harga master sekarang — itu bisa drift dari kejadian aslinya.
+    // 🚀 KALKULATOR LIVE: Total Biaya Racikan (SINKRON DENGAN DELTA ALGORITHM BACKEND)
+  const costCalculation = useMemo(() => {
+    // 🔒 Belum diedit: kembalikan angka total murni dari database
     if (!isDirty) {
-      return item?.metaEkstra?.totalBiayaProduk || 0;
+      return {
+        total: item?.metaEkstra?.totalBiayaProduk || 0,
+        label: "Total Biaya",
+        subtext: null
+      };
     }
 
-    // 🧮 Sedang diedit, belum disimpan: ini PERKIRAAN pakai harga master TERKINI,
-    // karena harga final yang akan tersimpan memang ditentukan backend saat submit,
-    // bukan snapshot lama yang sedang ditimpa.
-    if (editedProducts.length === 0) return 0;
-    if (!produkOptions?.data) return 0; // master belum ke-load, jangan tampilkan angka menyesatkan
+    // 🧮 Sedang diedit, tapi dikosongkan semua
+    if (editedProducts.length === 0) {
+      return { total: 0, label: "Estimasi Biaya", subtext: "(tidak ada produk)" };
+    }
+    
+    // Tunggu master data load biar nggak ngaco
+    if (!produkOptions?.data) {
+      return { total: item?.metaEkstra?.totalBiayaProduk || 0, label: "Estimasi Biaya", subtext: "Menghitung..." };
+    }
 
-    return editedProducts.reduce((sum, prod) => {
-      const master = produkOptions.data.find((p: any) => p.id === prod.produkId);
-      const harga = master?.hargaPerSatuanDasar || 0;
-      return sum + (prod.kuantitasPemakaian * harga);
-    }, 0);
+    let hasOld = false;
+    let hasNew = false;
+    let calculatedTotal = 0;
+
+    const historyLog = item?.metaEkstra?.logProduk || [];
+
+    editedProducts.forEach((prod) => {
+      // Cari apakah produk ini ada di riwayat lama (Berdasarkan ID)
+      const historyProd = historyLog.find((p: any) => p.produkId === prod.produkId);
+
+      if (historyProd) {
+        // ⏳ PRODUK LAMA (Ember C): Selalu gunakan harga historis dari database
+        hasOld = true;
+        const hargaHistoris = historyProd.hargaTercatatPerSatuan || 0;
+        calculatedTotal += (prod.kuantitasPemakaian * hargaHistoris);
+      } else {
+        // 🆕 PRODUK BARU (Ember B): Gunakan harga master terkini
+        hasNew = true;
+        const master = produkOptions.data.find((p: any) => p.id === prod.produkId);
+        const hargaMaster = master?.hargaPerSatuanDasar || 0;
+        calculatedTotal += (prod.kuantitasPemakaian * hargaMaster);
+      }
+    });
+
+    // Tentukan label indikator harga agar akurat di UI
+    let subtext = "";
+    if (hasOld && hasNew) subtext = "(harga lama & saat ini)";
+    else if (hasOld) subtext = "(harga lama)";
+    else if (hasNew) subtext = "(harga saat ini)";
+
+    return { 
+      total: calculatedTotal, 
+      label: "Estimasi Biaya", 
+      subtext 
+    };
   }, [isDirty, editedProducts, produkOptions?.data, item]);
 
   // 💡 Helper Format Rupiah
@@ -581,19 +618,21 @@ useEffect(() => {
       </p>
     </div>
 
-    {/* 💰 Total Biaya — card netral, pola sama dengan box editable Inspeksi (bukan emerald lagi) */}
+   {/* 💰 Total Biaya — card netral, pola sama dengan box editable Inspeksi (bukan emerald lagi) */}
     <div className="rounded-3xl border border-border/40 bg-card p-3.5 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.04)] select-none">
       <div className="flex items-center gap-2 text-muted-foreground/80 mb-1">
         <Banknote className="h-4 w-4 opacity-70" />
         <span className="text-[11px] font-bold uppercase tracking-widest">
-          {isDirty ? "Estimasi" : "Total Biaya"}
+          {costCalculation.label}
         </span>
       </div>
       <p className="text-lg font-black text-foreground truncate">
-        {formatRupiah(totalBiayaRacikan)}
+        {formatRupiah(costCalculation.total)}
       </p>
-      {isDirty && (
-        <p className="text-[10px] text-muted-foreground/70 mt-1">Harga saat ini</p>
+      {costCalculation.subtext && (
+        <p className="text-[10px] text-muted-foreground/70 mt-1">
+          {costCalculation.subtext}
+        </p>
       )}
     </div>
   </>
