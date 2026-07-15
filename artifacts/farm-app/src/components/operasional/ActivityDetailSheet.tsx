@@ -110,7 +110,7 @@ useEffect(() => {
     enabled: !!item // Hanya nge-fetch kalau sheet-nya lagi kebuka
   });
 
-    // 🚀 KALKULATOR LIVE: Total Biaya Racikan (SINKRON DENGAN DELTA ALGORITHM BACKEND)
+      // 🚀 KALKULATOR LIVE: Total Biaya Racikan (SINKRON DENGAN DELTA ALGORITHM BACKEND)
   const costCalculation = useMemo(() => {
     // 🔒 Belum diedit: kembalikan angka total murni dari database
     if (!isDirty) {
@@ -131,35 +131,44 @@ useEffect(() => {
       return { total: item?.metaEkstra?.totalBiayaProduk || 0, label: "Estimasi Biaya", subtext: "Menghitung..." };
     }
 
-    let hasOld = false;
-    let hasNew = false;
+    let usesHistoricalPrice = false;
+    let usesCurrentPrice = false;
     let calculatedTotal = 0;
 
     const historyLog = item?.metaEkstra?.logProduk || [];
 
     editedProducts.forEach((prod) => {
-      // Cari apakah produk ini ada di riwayat lama (Berdasarkan ID)
       const historyProd = historyLog.find((p: any) => p.produkId === prod.produkId);
+      const master = produkOptions.data.find((p: any) => p.id === prod.produkId);
+      const hargaMaster = master?.hargaPerSatuanDasar || 0;
 
       if (historyProd) {
-        // ⏳ PRODUK LAMA (Ember C): Selalu gunakan harga historis dari database
-        hasOld = true;
+        // ⏳ PRODUK LAMA (Ember C): Tetap pakai harga historis dari database buat perhitungan
         const hargaHistoris = historyProd.hargaTercatatPerSatuan || 0;
         calculatedTotal += (prod.kuantitasPemakaian * hargaHistoris);
+
+        // 💡 CEK SELISIH HARGA: Label "harga lama" cuma muncul kalau harganya BEDA sama harga master sekarang
+        if (hargaHistoris !== hargaMaster) {
+          usesHistoricalPrice = true;
+        } else {
+          usesCurrentPrice = true; // Kalau sama persis, anggap aja pakai harga saat ini
+        }
       } else {
         // 🆕 PRODUK BARU (Ember B): Gunakan harga master terkini
-        hasNew = true;
-        const master = produkOptions.data.find((p: any) => p.id === prod.produkId);
-        const hargaMaster = master?.hargaPerSatuanDasar || 0;
+        usesCurrentPrice = true;
         calculatedTotal += (prod.kuantitasPemakaian * hargaMaster);
       }
     });
 
-    // Tentukan label indikator harga agar akurat di UI
+    // 🏷️ Tentukan label indikator harga
     let subtext = "";
-    if (hasOld && hasNew) subtext = "(harga lama & saat ini)";
-    else if (hasOld) subtext = "(harga lama)";
-    else if (hasNew) subtext = "(harga saat ini)";
+    if (usesHistoricalPrice && usesCurrentPrice) {
+      subtext = "(harga lama & saat ini)";
+    } else if (usesHistoricalPrice) {
+      subtext = "(harga lama)";
+    } else if (usesCurrentPrice) {
+      subtext = "(harga saat ini)";
+    }
 
     return { 
       total: calculatedTotal, 
