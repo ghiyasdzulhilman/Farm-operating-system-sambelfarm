@@ -12,8 +12,15 @@ router.get("/produk", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
-  try {
-    const data = await db.select().from(produkMasterTable);
+    try {
+    const rawData = await db.select().from(produkMasterTable);
+    
+    // 🚀 FIX: Paksa stokSaatIni (numeric) menjadi Number untuk Frontend
+    const data = rawData.map(item => ({
+      ...item,
+      stokSaatIni: parseFloat(String(item.stokSaatIni)) || 0
+    }));
+
     res.json({ success: true, data });
   } catch (err) {
     res.status(500).json({ error: "Gagal mengambil data produk." });
@@ -73,7 +80,11 @@ router.post("/produk", async (req, res): Promise<void> => {
         });
       }
 
-      return newProduk;
+      // 🚀 FIX: Bongkar newProduk, lalu paksa stokSaatIni jadi Number
+      return {
+        ...newProduk,
+        stokSaatIni: parseFloat(String(newProduk.stokSaatIni)) || 0
+      };
     });
 
     res.status(201).json({ success: true, data: result });
@@ -129,11 +140,19 @@ router.patch("/produk/:id", async (req, res): Promise<void> => {
       .where(eq(produkMasterTable.id, id))
       .returning();
 
-    if (!updated) {
+        if (!updated) {
       res.status(404).json({ error: "Produk tidak ditemukan." }); return;
     }
 
-    res.json({ success: true, data: updated });
+    // 🚀 FIX: Format response balikan setelah edit
+    res.json({ 
+      success: true, 
+      data: {
+        ...updated,
+        stokSaatIni: parseFloat(String(updated.stokSaatIni)) || 0
+      } 
+    });
+
   } catch (err: any) {
     if (err.code === '23505') {
       res.status(400).json({ error: "Nama produk ini sudah terdaftar." });
