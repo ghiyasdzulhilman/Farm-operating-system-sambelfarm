@@ -26,16 +26,29 @@ export async function adjustStock(
     .where(whereClause)
     .returning({ stokSesudah: produkMasterTable.stokSaatIni });
 
-  if (updated.length === 0) {
+    if (updated.length === 0) {
     throw new Error(`STOK_TIDAK_CUKUP:${produkId}`);
   }
 
-  const stokSesudah = updated[0].stokSesudah;
-  const stokSebelum = stokSesudah - delta;
+  // 🚀 FIX FASE 1: Konversi paksa dari String (numeric Postgres) menjadi Number
+  // Pakai String() dulu untuk mencegah TS ngambek kalau type aslinya nggak kebaca
+  const stokSesudahNum = parseFloat(String(updated[0].stokSesudah)) || 0;
+  
+  // Karena stokSesudahNum sekarang 100% Number, kalkulasi matematika ini bebas dari string concatenation
+  const stokSebelumNum = stokSesudahNum - delta;
 
   await tx.insert(stockMovementTable).values({
-    produkId, tipe, delta, stokSebelum, stokSesudah, perawatanProdukId, catatan,
+    produkId, 
+    tipe, 
+    // 💡 BEST PRACTICE: Kita kembalikan jadi String ke DB supaya presisi numeric(18,3) terjaga
+    delta: String(delta), 
+    stokSebelum: String(stokSebelumNum), 
+    stokSesudah: String(stokSesudahNum), 
+    perawatanProdukId, 
+    catatan,
   });
 
-  return stokSesudah;
+  // Return sebagai Number supaya jika ada fungsi lain yang manggil adjustStock, 
+  // mereka gampang memprosesnya tanpa error.
+  return stokSesudahNum; 
 }
