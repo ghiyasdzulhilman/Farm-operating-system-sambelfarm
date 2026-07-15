@@ -38,7 +38,7 @@ import { cn } from "@/lib/utils";
 
 import type { AgronomyItem } from "@/types/operasional";
 import { format } from "date-fns";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query"; // 🚀 Tambah useQueryClient
 
 interface ActivityDetailSheetProps {
   item: AgronomyItem | null;
@@ -57,6 +57,8 @@ export function ActivityDetailSheet({
   isUpdating = false,
   isUpdatingProduk = false,
 }: ActivityDetailSheetProps) {
+
+  const queryClient = useQueryClient(); // 🚀 FIX BUG 2: Panggil queryClient buat invalidate cache
 
   // ✨ 2. JURUS CACHE: Simpan "arwah" data terakhir biar nggak langsung hilang pas ditutup
   const [cachedItem, setCachedItem] = useState<AgronomyItem | null>(null);
@@ -751,10 +753,13 @@ useEffect(() => {
               {(() => {
                 const selectedMaster = produkOptions?.data?.find((p: any) => p.id === prod.produkId);
                 const stokTerkini = selectedMaster?.stokSaatIni ?? null;
-                const historyProd = item?.metaEkstra?.logProduk?.[index];
-                const dosisTersimpan = (historyProd && historyProd.produkId === prod.produkId) 
-                  ? historyProd.kuantitasPemakaian 
-                  : 0;
+                
+                // 🚀 FIX BUG 3: Cari histori dosis berdasarkan ID Produk, BUKAN posisi baris (index)!
+                const historyProd = item?.metaEkstra?.logProduk?.find((p: any) => p.produkId === prod.produkId);
+                
+                // Pastikan dikonversi ke Number (jaga-jaga kalau backend ngirim string numeric)
+                const dosisTersimpan = historyProd ? parseFloat(String(historyProd.kuantitasPemakaian)) : 0;
+                
                 const maxAllowed = stokTerkini !== null ? stokTerkini + dosisTersimpan : null;
                 const isOverStock = maxAllowed !== null && prod.kuantitasPemakaian > maxAllowed;
 
@@ -814,13 +819,18 @@ useEffect(() => {
         <Plus className="h-4 w-4 mr-2" /> Tambah Produk
       </Button>
 
-      {/* Tombol Simpan (Trigger Transaksi Reverse & Reapply) */}
+    {/* Tombol Simpan (Trigger Transaksi Reverse & Reapply) */}
       <Button 
         disabled={isUpdatingProduk}
         className="mt-2"
         onClick={async () => {
           try {
             await onProdukChange?.(item.id, editedProducts);
+            
+            // 🚀 FIX BUG 2: Paksa aplikasi menarik ulang data stok & produk dari server!
+            await queryClient.invalidateQueries({ queryKey: ["produk-master-list"] });
+            await queryClient.invalidateQueries({ queryKey: ["operasional-options-list"] }); // Jaga-jaga kalau lu nampilin list di tempat lain
+            
             setIsDirty(false);
           } catch {}
         }}
