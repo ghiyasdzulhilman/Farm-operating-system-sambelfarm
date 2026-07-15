@@ -348,17 +348,24 @@ router.get("/notion/all-perawatan", async (req, res): Promise<void> => {
       });
     }
 
-    // 3. Gabung Data (Map Akhir)
+      // 3. Gabung Data (Map Akhir)
       const dataMatang = filteredIndukData.map((perawatan) => {
       const racikanBahan = semuaProduk.filter((p) => p.perawatanId === perawatan.id);
-      const totalBiayaPerawatan = racikanBahan.reduce((sum, p) => sum + (p.totalBiaya ?? 0), 0);
+      
+      // 🚀 FIX: Paksa kuantitasPemakaian (numeric) jadi Number agar UI tidak error
+      const racikanBahanFormatted = racikanBahan.map((p) => ({
+        ...p,
+        kuantitasPemakaian: parseFloat(String(p.kuantitasPemakaian)) || 0
+      }));
+
+      const totalBiayaPerawatan = racikanBahanFormatted.reduce((sum, p) => sum + (p.totalBiaya ?? 0), 0);
 
       return {
         ...perawatan,
-        pekerjaIds: pekerjaMap.get(perawatan.id) || [], // 🚀 SUNTIKAN PEKERJA KE FRONTEND
+        pekerjaIds: pekerjaMap.get(perawatan.id) || [], 
         waktuMulai: toWIBString(perawatan.waktuMulai as Date),
         waktuSelesai: toWIBString(perawatan.waktuSelesai as Date),
-        logProduk: racikanBahan,
+        logProduk: racikanBahanFormatted, // 👈 Pake array yang udah diformat
         totalBiayaProduk: totalBiayaPerawatan, 
       };
     });
