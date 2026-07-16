@@ -46,6 +46,8 @@ import { JadwalPelaksanaan } from "./sheet-parts/JadwalPelaksanaan";
 import { CatatanTemuan } from "./sheet-parts/CatatanTemuan";
 import { TimKebun } from "./sheet-parts/TimKebun";
 import { PerawatanRacikan } from "./sheet-parts/PerawatanRacikan";
+import { ActivityTitle } from "./sheet-parts/ActivityTitle";
+import { CatatanUmum } from "./sheet-parts/CatatanUmum";
 
 interface ActivityDetailSheetProps {
   item: AgronomyItem | null;
@@ -79,10 +81,7 @@ export function ActivityDetailSheet({
   // ✨ 3. Tentukan data yang dipakai: Kalau data asli hilang (lagi proses nutup), pakai data cache!
   const item = incomingItem || cachedItem;
 
-  // 💡 State untuk mendeteksi elemen mana yang lagi di-tap (inline edit)
-  const [activeField, setActiveField] = useState<string | null>(null);
-  const [localValue, setLocalValue] = useState<string>("");
-  
+  // 🚀 activeField dan localValue DIHAPUS karena sudah diisolasi ke sub-komponen (Booster Performa)
   // 💡 State khusus penampung array racikan produk yang lagi diedit
   const [editedProducts, setEditedProducts] = useState<Array<{ produkId: string; kuantitasPemakaian: number; namaProduk?: string; satuanDasar?: string }>>([]);
   const [isDirty, setIsDirty] = useState(false);
@@ -253,51 +252,13 @@ useEffect(() => {
     }
   };
 
-  // 💡 Fungsi pintar untuk mengambil murni catatan ketikan user (Support Inspeksi & Perawatan)
-  const getCleanCatatan = () => {
-    const raw = item.notes || "";
-    
-    // Cegah duplikasi di modul perawatan
-    if (item.module === "perawatan" && raw.includes("\n\nCatatan Tambahan:\n")) {
-      const parts = raw.split("\n\nCatatan Tambahan:\n");
-      return parts[parts.length - 1]; // Ambil yang paling akhir buat ngakalin data lu yang udah terlanjur numpuk
-    }
-    
-    // Cegah duplikasi di modul inspeksi
-    if (item.module === "inspeksi" && raw.includes("\n\n⚠️ Detail Kendala:\n")) {
-      return raw.split("\n\n⚠️ Detail Kendala:\n")[0];
-    }
-    
-    return raw;
-  };
+  // 🚀 getCleanCatatan dan handleInlineSave DIHAPUS karena sudah pindah ke komponen masing-masing.
 
   // 💡 Ekstrak khusus detail kendala (Read-Only) untuk Inspeksi
   const getDetailKendala = () => {
     const raw = item.notes || "";
     const parts = raw.split("\n\n⚠️ Detail Kendala:\n");
     return parts.length > 1 ? parts[1] : "";
-  };
-
-  // 💡 Fungsi penembak data otomatis ala Notion (dipanggil saat klik di luar input / onBlur)
-  const handleInlineSave = (field: string) => {
-    setActiveField(null); // Tutup form input-nya
-
-    const payload: any = {};
-    const valStr = localValue.trim();
-
-    if (field === "title") payload[item.module === "operasional" ? "namaPekerjaan" : "kegiatan"] = valStr;
-    if (field === "phTanah") payload.phTanah = valStr !== "" ? parseFloat(valStr) : null;
-    if (field === "tingkatSerangan") payload.tingkatSerangan = valStr !== "" ? parseFloat(valStr) : null;
-    if (field === "radius") payload.radius = valStr !== "" ? parseFloat(valStr) : null;
-    if (field === "jenisTenagaKerja") payload.jenisTenagaKerja = valStr;
-    if (field === "tagCategory") payload.tagCategory = valStr;
-    if (field === "catatan") payload[item.module === "inspeksi" ? "keterangan" : "catatan"] = valStr;
-    if (field === "durasiKerja") payload.durasiKerja = valStr !== "" ? parseInt(valStr, 10) : 0;
-
-        // Kirim payload ke halaman utama buat di-eksekusi mutasinya (pastikan gak kosong)
-    if (Object.keys(payload).length > 0) {
-      onStatusChange?.(item.id, payload);
-    }
   };
 
   // 💡 HELPER PINTAR KALKULASI HST (Hitungan Selisih Hari Murni) 🚀
@@ -355,44 +316,8 @@ useEffect(() => {
           {/* ✨ 4. BODY WRAPPER: Padding horizontal diperlebar ke px-6 biar konten di dalam tidak sumpek */}
           <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar text-left">
 
-          {/* ✨ 1. NOTION-STYLE PAGE TITLE (Besar, bersih, nyatu dengan background) */}
-            <div className="mb-6 mt-2 group relative">
-              
-              {/* ✨ "Hari ini" / "Kemarin" dipindah ke atas sebagai Eyebrow Meta */}
-              {item.dateLabel !== "Riwayat Lama" && (
-                <div className="mb-2">
-                  <Badge variant="outline" className={cn("text-[10px] px-2 py-0.5 rounded-full font-bold tracking-widest uppercase shadow-sm", item.dateLabel === "Hari ini" ? "border-primary/40 text-primary bg-primary/5" : "text-muted-foreground border-border/50 bg-muted/20")}>
-                    {item.dateLabel}
-                  </Badge>
-                </div>
-              )}
-
-              {activeField === "title" ? (
-
-                <input
-                  autoFocus
-                  type="text"
-                  value={localValue}
-                  onChange={(e) => setLocalValue(e.target.value)}
-                  onBlur={() => handleInlineSave("title")}
-                  onKeyDown={(e) => e.key === "Enter" && handleInlineSave("title")}
-                  className="w-full bg-transparent text-3xl sm:text-4xl font-black tracking-tight text-foreground border-b-2 border-primary/50 outline-none pb-1 placeholder:text-muted-foreground/30"
-                  placeholder="Ketik judul aktivitas..."
-                />
-              ) : (
-                <div 
-                  onClick={() => { setActiveField("title"); setLocalValue(item.title); }}
-                  className="flex items-center gap-3 cursor-pointer group-hover:bg-muted/40 rounded-xl p-1 -ml-1 transition-colors w-fit border-b border-dashed border-transparent hover:border-primary/30"
-                >
-                  <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-foreground">
-                    {item.title}
-                  </h1>
-                  <span className="opacity-0 group-hover:opacity-100 text-muted-foreground/40 transition-opacity">
-                    <Edit3 className="h-5 w-5" />
-                  </span>
-                </div>
-              )}
-            </div>
+          {/* ✨ 1. NOTION-STYLE PAGE TITLE (Diisolasi anti-lag) */}
+          <ActivityTitle item={item} onStatusChange={onStatusChange} />
 
          {/* ✨ 2. NOTION-STYLE PROPERTIES (Metadata vertikal yang rapi) */}
             <div className="flex flex-col gap-2.5 mb-10 border-b border-border/40 pb-6">
@@ -490,16 +415,12 @@ useEffect(() => {
                   </h3>
                 </div>
 
-              <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   
-                  {/* 1. KOTAK-KOTAK UNTUK MODUL INSPEKSI */}
+                  {/* 1. KOTAK-KOTAK UNTUK MODUL INSPEKSI (Mandiri) */}
                   <InspeksiFields 
                     item={item} 
-                    activeField={activeField} 
-                    setActiveField={setActiveField} 
-                    localValue={localValue} 
-                    setLocalValue={setLocalValue} 
-                    handleInlineSave={handleInlineSave} 
+                    onStatusChange={onStatusChange} 
                   />
 
                   {/* 2. WIDGET MODUL OPERASIONAL (Spatial UI Style) */}
@@ -571,37 +492,8 @@ useEffect(() => {
             isUpdatingProduk={isUpdatingProduk}
           />
 
-            {/* SEGMEN CATATAN UMUM (INLINE EDIT) */}
-            <section className="mt-6 space-y-3">
-                <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary),0.6)]" />
-                <h3 className="text-[12px] font-bold uppercase tracking-[0.18em] text-muted-foreground/80">
-                  {item.module === "inspeksi" ? "Catatan Kegiatan" : "Catatan"}
-                </h3>
-              </div>
-
-              
-          {/* Kotak Catatan Utama (Borderless ala Notion) */}
-              <div 
-                onClick={() => { if(activeField !== "catatan") { setActiveField("catatan"); setLocalValue(getCleanCatatan()); } }}
-                // 🚀 Hapus border dan bg tebal. Ganti dengan hover:bg-muted/30 yang sangat halus
-                className="group/notes w-full text-[14px] leading-relaxed text-foreground/90 min-h-[120px] cursor-pointer transition-all hover:bg-muted/30 rounded-2xl p-3 -mx-3"
-              >
-
-                {activeField === "catatan" ? (
-                  <textarea 
-                    autoFocus 
-                    rows={4} 
-                    value={localValue} 
-                    onChange={(e) => setLocalValue(e.target.value)} 
-                    onBlur={() => handleInlineSave("catatan")} 
-                    className="w-full bg-transparent outline-none resize-none p-0" 
-                  />
-                ) : (
-                  <div className="whitespace-pre-wrap">{getCleanCatatan() || "Ketik catatan disini..."}</div>
-                )}
-              </div>
-            </section>
+          {/* SEGMEN CATATAN UMUM (Diisolasi anti-lag) */}
+          <CatatanUmum item={item} onStatusChange={onStatusChange} />
 
          {/* SEGMEN PEKERJA */}
           <TimKebun item={item} dropdownOptions={dropdownOptions} />
