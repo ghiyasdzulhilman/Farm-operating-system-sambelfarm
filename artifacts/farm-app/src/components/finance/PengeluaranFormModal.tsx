@@ -171,7 +171,7 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
               <form onSubmit={(e) => e.preventDefault()} className="space-y-5">
                 <AnimatePresence mode="wait">
                   
-                  {/* STEP 1: KATEGORI & TANGGAL */}
+                {/* STEP 1: KATEGORI & TANGGAL */}
                   {step === 1 && (
                     <motion.div key="step1" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="space-y-4 text-left">
                       <FormField
@@ -186,7 +186,8 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
                                   <SelectValue placeholder="Pilih kategori pengeluaran" />
                                 </SelectTrigger>
                               </FormControl>
-                              <SelectContent className="rounded-xl shadow-xl">
+                              {/* 🚀 FIX UX: Tambahkan z-[110] agar dropdown tampil di atas modal */}
+                              <SelectContent className="rounded-xl shadow-xl z-[110]">
                                 {kategoriList.map((cat: any) => (
                                   <SelectItem key={cat.id} value={cat.id} className="rounded-lg">{cat.nama}</SelectItem>
                                 ))}
@@ -203,9 +204,10 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
                           <FormItem className="space-y-1.5">
                             <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">2. Tanggal Transaksi</FormLabel>
                             <FormControl>
-                              <div className="relative">
-                                <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <Input type="date" className="h-12 rounded-xl bg-muted/50 border-border/50 pl-11 focus-visible:ring-2 focus-visible:ring-rose-500/20 font-bold" {...field} />
+                              {/* 🚀 FIX UX: Tambahkan max-w-[220px] w-full agar tidak over layout */}
+                              <div className="relative max-w-[220px] w-full">
+                                <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                                <Input type="date" className="h-12 w-full rounded-xl bg-muted/50 border-border/50 pl-11 focus-visible:ring-2 focus-visible:ring-rose-500/20 font-bold" {...field} />
                               </div>
                             </FormControl>
                             <FormMessage className="text-xs text-rose-500" />
@@ -289,7 +291,8 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
                                           <SelectValue placeholder="Pilih produk" />
                                         </SelectTrigger>
                                       </FormControl>
-                                      <SelectContent className="rounded-xl shadow-xl">
+                                  {/* 🚀 FIX UX: Tambahkan z-[110] di sini juga */}
+                                      <SelectContent className="rounded-xl shadow-xl z-[110]">
                                         {produkList.map((p: any) => (
                                           <SelectItem key={p.id} value={p.id} className="rounded-lg">{p.nama} ({p.satuanDasar})</SelectItem>
                                         ))}
