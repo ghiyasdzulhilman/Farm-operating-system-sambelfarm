@@ -29,11 +29,12 @@ const ERP_MODULES = [
       { id: "kendala", label: "Hama & Penyakit", icon: Bug },
     ],
   },
-  {
+    {
     id: "finance",
     label: "Finance",
     icon: Wallet,
     children: [
+      { id: "kategori-keuangan", label: "Kategori Keuangan", icon: Database }, // 🚀 Menu master data baru
       { id: "panen", label: "Data Pemanenan", icon: Package },
       { id: "pengeluaran", label: "Lacak Pengeluaran", icon: Database },
     ],
@@ -172,6 +173,15 @@ export function MasterHubPage({ onClose }: { onClose?: () => void }) {
 
       {/* 🚀 PRODUK & STOK MASTER */}
       {activeChild === "produk" && <ProdukManager />}
+
+      {/* 🚀 KATEGORI KEUANGAN MASTER */}
+      {activeChild === "kategori-keuangan" && (
+        <div className="p-8 text-center text-muted-foreground border border-dashed border-border/50 rounded-3xl bg-card">
+          <Database className="h-8 w-8 mx-auto mb-3 opacity-20" />
+          <p className="font-bold">Master Kategori Keuangan</p>
+          <p className="text-sm">Menyiapkan komponen UI...</p>
+        </div>
+      )}
 
       {activeChild === "panen" && (
         <div className="p-8 text-center text-muted-foreground border border-dashed rounded-3xl">Modul Panen (Coming Soon)</div>
