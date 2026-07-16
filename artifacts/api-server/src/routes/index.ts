@@ -10,6 +10,7 @@ import mappingsRouter from "./mappings";
 import dashboardRouter from "./dashboard";
 import stagingRouter from "./staging";
 import produkRoutes from "./produk";
+import financeRouter from "./finance"; 
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use(mappingsRouter);
 router.use(dashboardRouter);
 router.use(stagingRouter);
 router.use(produkRoutes);
-
+router.use("/finance", financeRouter); 
 export default router;
+
