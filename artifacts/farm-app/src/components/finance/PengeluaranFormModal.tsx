@@ -72,14 +72,16 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
     },
   });
 
-  // 🚀 3. MUTASI KE BACKEND PENGELUARAN KITA
+    // 🚀 3. MUTASI KE BACKEND PENGELUARAN KITA
   const addMutation = useMutation({
     mutationFn: async (payload: any) => {
-      const res = await fetch("/api/finance/pengeluaran", {
+      // 🚀 FIX: Benerin alamat endpoint ke route yang tepat
+      const res = await fetch("/api/pengeluaran", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Gagal menyimpan pengeluaran");
       return json;
