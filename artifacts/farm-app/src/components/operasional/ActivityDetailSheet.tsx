@@ -857,34 +857,50 @@ useEffect(() => {
         </div>
       )}
 
-      {/* Tombol Tambah Baris */}
-      <Button 
-        variant="outline" 
-        size="sm" 
-        className="w-full mt-3 border-dashed border-primary/30 text-primary hover:bg-primary/10"
-        onClick={() => { setEditedProducts([...editedProducts, { produkId: "", kuantitasPemakaian: 0 }]); setIsDirty(true); }}
-      >
-        <Plus className="h-4 w-4 mr-2" /> Tambah Produk
-      </Button>
+   {/* Tombol Tambah Baris (Apple Notes / Notion Style) */}
+      <div className="flex justify-start mt-1 pt-2 border-t border-border/30">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="text-primary hover:text-primary hover:bg-primary/10 rounded-xl px-3 py-1.5 h-auto font-semibold text-[13px] transition-all -ml-2"
+          onClick={() => { setEditedProducts([...editedProducts, { produkId: "", kuantitasPemakaian: 0 }]); setIsDirty(true); }}
+        >
+          <Plus className="h-4 w-4 mr-1.5 opacity-70" strokeWidth={2.5} /> Tambah Produk
+        </Button>
+      </div>
 
-    {/* Tombol Simpan (Trigger Transaksi Reverse & Reapply) */}
-      <Button 
-        disabled={isUpdatingProduk}
-        className="mt-2"
-        onClick={async () => {
-          try {
-            await onProdukChange?.(item.id, editedProducts);
-            
-            // 🚀 FIX BUG 2: Paksa aplikasi menarik ulang data stok & produk dari server!
-            await queryClient.invalidateQueries({ queryKey: ["produk-master-list"] });
-            await queryClient.invalidateQueries({ queryKey: ["operasional-options-list"] }); // Jaga-jaga kalau lu nampilin list di tempat lain
-            
-            setIsDirty(false);
-          } catch {}
-        }}
-      >
-        {isUpdatingProduk ? "Menyimpan..." : <><Save className="h-4 w-4 mr-2" /> Simpan Racikan Produk</>}
-      </Button>
+    {/* Tombol Simpan (Pintar & Glowing) - Hanya Muncul Jika Ada Perubahan */}
+      {isDirty && (
+        <div className="mt-4 animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-300">
+          <Button 
+            disabled={isUpdatingProduk}
+            className="w-full rounded-full h-11 text-[13px] font-bold shadow-[0_4px_14px_rgba(var(--primary),0.3)] transition-all hover:shadow-[0_6px_20px_rgba(var(--primary),0.4)] hover:-translate-y-0.5 active:scale-95"
+            onClick={async () => {
+              try {
+                await onProdukChange?.(item.id, editedProducts);
+                
+                // 🚀 FIX BUG 2: Paksa aplikasi menarik ulang data stok & produk dari server!
+                await queryClient.invalidateQueries({ queryKey: ["produk-master-list"] });
+                await queryClient.invalidateQueries({ queryKey: ["operasional-options-list"] }); 
+                
+                setIsDirty(false);
+              } catch {}
+            }}
+          >
+            {isUpdatingProduk ? (
+              <>
+                <div className="h-4 w-4 mr-2 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                Menyimpan...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4 mr-2" strokeWidth={2.5} /> 
+                Simpan Perubahan
+              </>
+            )}
+          </Button>
+        </div>
+      )}
     </div>
   </section>
 )}
