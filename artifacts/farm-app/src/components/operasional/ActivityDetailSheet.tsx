@@ -42,6 +42,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"; // 🚀 Tambah
 
 import { InspeksiFields } from "./sheet-parts/InspeksiFields";
 import { OperasionalFields } from "./sheet-parts/OperasionalFields";
+import { JadwalPelaksanaan } from "./sheet-parts/JadwalPelaksanaan";
+import { CatatanTemuan } from "./sheet-parts/CatatanTemuan";
+import { TimKebun } from "./sheet-parts/TimKebun";
 
 interface ActivityDetailSheetProps {
   item: AgronomyItem | null;
@@ -541,106 +544,20 @@ useEffect(() => {
       </section>
       )}
 
-          {/* 💡 SEGMEN JADWAL PELAKSANAAN (SPATIAL UI STYLE - FIXED MOBILE OVERFLOW) */}
-            {item.metaEkstra && Object.keys(item.metaEkstra).length > 0 && (
-              <section className="mt-6 space-y-3">
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]" />
-                  <h3 className="text-[12px] font-bold uppercase tracking-[0.18em] text-muted-foreground/80">
-                    Jadwal Pelaksanaan
-                  </h3>
-                </div>
+           {/* 💡 SEGMEN JADWAL PELAKSANAAN (SPATIAL UI STYLE - FIXED MOBILE OVERFLOW) */}
+          <JadwalPelaksanaan 
+            item={item} 
+            formatDateValue={formatDateValue} 
+            formatTimeValue={formatTimeValue} 
+            handleDateTimeSave={handleDateTimeSave} 
+          />
 
-                <div className="rounded-3xl border border-border/40 bg-card p-3 sm:p-4 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.03)] flex flex-col gap-3">
-                  
-                  {/* Baris Tanggal Range */}
-                  <div className="flex items-center justify-between gap-2 sm:gap-4 group/date">
-                    {/* 🚀 Lebar label diperkecil di mobile (w-[70px]) */}
-                    <div className="flex items-center gap-1.5 w-[70px] sm:w-20 shrink-0 text-muted-foreground/70 group-hover/date:text-foreground/80 transition-colors">
-                      <CalendarDays className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                      <span className="text-[9px] sm:text-[10px] font-bold tracking-widest uppercase">Tanggal</span>
-                    </div>
-                    {/* 🚀 Tambah min-w-0 agar tidak mendobrak layar */}
-                    <div className="flex items-center gap-1 sm:gap-2.5 flex-1 min-w-0 bg-muted/40 p-1 sm:p-1.5 rounded-[1rem] border border-border/50 shadow-[inset_0_1px_4px_rgba(0,0,0,0.02)]">
-                      <div className="flex-1 min-w-0 bg-background/80 hover:bg-background rounded-xl px-1 sm:px-2 py-1.5 transition-colors border border-transparent hover:border-border/60 shadow-sm hover:shadow-md cursor-pointer relative">
-                        {/* 🚀 Teks lebih kecil di mobile (text-[11px]) */}
-                        <input type="date" value={formatDateValue(item.metaEkstra?.waktuMulai)} onChange={(e) => handleDateTimeSave('waktuMulai', 'date', e.target.value)} className="w-full bg-transparent text-[11px] sm:text-[13px] font-semibold text-foreground/90 outline-none cursor-pointer text-center relative z-10 min-w-0" />
-                      </div>
-                      <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground/40 shrink-0" strokeWidth={2.5} />
-                      <div className="flex-1 min-w-0 bg-background/80 hover:bg-background rounded-xl px-1 sm:px-2 py-1.5 transition-colors border border-transparent hover:border-border/60 shadow-sm hover:shadow-md cursor-pointer relative">
-                        <input type="date" value={formatDateValue(item.metaEkstra?.waktuSelesai)} onChange={(e) => handleDateTimeSave('waktuSelesai', 'date', e.target.value)} className="w-full bg-transparent text-[11px] sm:text-[13px] font-semibold text-foreground/90 outline-none cursor-pointer text-center relative z-10 min-w-0" />
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="h-px w-full bg-border/40" />
-                  
-                  {/* Baris Waktu/Jam Range */}
-                  <div className="flex items-center justify-between gap-2 sm:gap-4 group/time">
-                    <div className="flex items-center gap-1.5 w-[70px] sm:w-20 shrink-0 text-muted-foreground/70 group-hover/time:text-foreground/80 transition-colors">
-                      <Clock3 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                      <span className="text-[9px] sm:text-[10px] font-bold tracking-widest uppercase">Waktu</span>
-                    </div>
-                    <div className="flex items-center gap-1 sm:gap-2.5 flex-1 min-w-0 bg-muted/40 p-1 sm:p-1.5 rounded-[1rem] border border-border/50 shadow-[inset_0_1px_4px_rgba(0,0,0,0.02)]">
-                      <div className="flex-1 min-w-0 bg-background/80 hover:bg-background rounded-xl px-1 sm:px-2 py-1.5 transition-colors border border-transparent hover:border-border/60 shadow-sm hover:shadow-md cursor-pointer relative">
-                        <input type="time" value={formatTimeValue(item.metaEkstra?.waktuMulai)} onChange={(e) => handleDateTimeSave('waktuMulai', 'time', e.target.value)} className="w-full bg-transparent text-[11px] sm:text-[13px] font-semibold text-foreground/90 outline-none cursor-pointer text-center relative z-10 min-w-0" />
-                      </div>
-                      <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground/40 shrink-0" strokeWidth={2.5} />
-                      <div className="flex-1 min-w-0 bg-background/80 hover:bg-background rounded-xl px-1 sm:px-2 py-1.5 transition-colors border border-transparent hover:border-border/60 shadow-sm hover:shadow-md cursor-pointer relative">
-                        <input type="time" value={formatTimeValue(item.metaEkstra?.waktuSelesai)} onChange={(e) => handleDateTimeSave('waktuSelesai', 'time', e.target.value)} className="w-full bg-transparent text-[11px] sm:text-[13px] font-semibold text-foreground/90 outline-none cursor-pointer text-center relative z-10 min-w-0" />
-                      </div>
-                    </div>
-                  </div>
-
-                </div>
-              </section>
-            )}
- 
-{/* 💡 CATATAN TEMUAN (KHUSUS INSPEKSI) */}
- {item.module === "inspeksi" && (() => {
-  const hasFindings = !!(item.metaEkstra.hama?.length || item.metaEkstra.penyakit?.length);
-  return (
-    <section className="mt-6 space-y-3">
-      <div className="flex items-center gap-2">
-        <div className={cn("h-2 w-2 rounded-full", hasFindings ? "bg-destructive" : "bg-primary")} />
-        <h3 className="text-[12px] font-bold uppercase tracking-[0.18em] text-muted-foreground/80">
-       Catatan Temuan
-      </h3>
-
-      </div>
-
-      {/* 🚀 Garis aksen kiri, tanpa card/bg/shadow. Tinggi otomatis ngikutin konten karena border ada di container flex-col. */}
-      <div className={cn(
-        "border-l-2 pl-4 flex flex-col gap-3",
-        hasFindings ? "border-destructive/30" : "border-primary/30"
-      )}>
-        <div className="flex flex-wrap gap-1.5">
-          {(Array.isArray(item.metaEkstra.hama) ? item.metaEkstra.hama : []).map((h: string) => (
-            <span key={h} className="text-[10px] font-bold rounded-full px-2.5 py-1 bg-red-500/10 text-red-600/90 border border-red-500/15">{h}</span>
-          ))}
-          {(Array.isArray(item.metaEkstra.penyakit) ? item.metaEkstra.penyakit : []).map((p: string) => (
-            <span key={p} className="text-[10px] font-bold rounded-full px-2.5 py-1 bg-orange-500/10 text-orange-600/90 border border-orange-500/15">{p}</span>
-          ))}
-          {!hasFindings && (
-            <span className="text-[10px] font-bold rounded-full px-2.5 py-1 bg-primary/10 text-primary border border-primary/20">Tanaman Aman Terkendali</span>
-          )}
-        </div>
-
-        {getDetailKendala() && (
-  <div className={cn(
-    "text-sm whitespace-pre-wrap leading-relaxed font-normal",
-    hasFindings ? "text-destructive/90" : "text-foreground/80"
-  )}>
-    {getDetailKendala()}
-  </div>
-)}
-
-      </div>
-    </section>
-  );
-})()}
-                  
-            
+          {/* 💡 CATATAN TEMUAN (KHUSUS INSPEKSI) */}
+          <CatatanTemuan 
+            item={item} 
+            getDetailKendala={getDetailKendala} 
+          />
+                          
 {/* 💡 SEGMEN BAHAN & DOSIS (KHUSUS PERAWATAN) */}
 {item.module === "perawatan" && (
   <section className="mt-6 space-y-3">
@@ -829,65 +746,9 @@ useEffect(() => {
               </div>
             </section>
 
-      {/* SEGMEN PEKERJA */}
-            <section className="mt-6 space-y-3 pb-8">
-                <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary),0.6)]" />
-                <h3 className="text-[12px] font-bold uppercase tracking-[0.18em] text-muted-foreground/80">
-                  Tim Kebun
-                </h3>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                {/* 🚀 FIX: Mapping ID ke Nama pakai data master terbaru biar status (Nonaktif) ikut muncul */}
-                {(() => {
-                  const workerIds = Array.isArray(item.metaEkstra?.pekerjaIds) ? item.metaEkstra.pekerjaIds : [];
-                  
-                  // Kalau kosong banget
-                  if (workerIds.length === 0 && (!item.workers || item.workers.length === 0)) {
-                    return <span className="text-sm text-muted-foreground italic">Belum ada tim ditugaskan</span>;
-                  }
-
-                  // Kalau master data udah ke-load, kita mapping ID-nya satu per satu
-                  if (workerIds.length > 0 && dropdownOptions?.petugas) {
-                    return workerIds.map((id) => {
-                      const matchedWorker = dropdownOptions.petugas.find((p: any) => p.id === id);
-                      
-                    let label = "(Pekerja Terhapus)";
-                      if (matchedWorker) {
-                        label = matchedWorker.deleted ? `${matchedWorker.name} (Terhapus)` : matchedWorker.name;
-                      }
-                        
-                      return (
-                        // 🚀 Desain Kapsul Organik: Ada ikon profil mini di dalam badge
-                        <div key={id} className={cn(
-                         "flex items-center gap-2 rounded-full border border-border/40 bg-card px-3 py-1.5 text-[12px] font-medium shadow-[0_2px_10px_-2px_rgba(0,0,0,0.02)] transition-all hover:bg-muted/60 hover:-translate-y-0.5", 
-                          matchedWorker?.deleted && "border-dashed text-muted-foreground/60 bg-muted/20 shadow-none hover:-translate-y-0"
-                           )}>
-                          <div className={cn("flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary", matchedWorker?.deleted && "bg-muted text-muted-foreground")}>
-                            <Users className="h-[10px] w-[10px]" />
-                          </div>
-                          <span className="truncate max-w-[120px]">{label}</span>
-                        </div>
-                      );
-                    });
-                  }
-
-                  // Fallback: Selama master data lagi loading
-                  return item.workers?.map((worker, index) => (
-                    <div key={index} className="flex items-center gap-2 rounded-full border border-border/40 bg-card/60 px-3 py-1.5 text-[12px] font-medium shadow-[0_2px_10px_-2px_rgba(0,0,0,0.02)]">
-                      <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary">
-                        <Users className="h-[10px] w-[10px]" />
-                      </div>
-                      <span className="truncate max-w-[120px]">{worker}</span>
-                    </div>
-                  ));
-
-                })()}
-              </div>
-            </section>
+         {/* SEGMEN PEKERJA */}
+          <TimKebun item={item} dropdownOptions={dropdownOptions} />
             
-        {/* ... penutup segmen tim kebun ... */}
           </div> {/* penutup div flex-1 overflow-y-auto px-6 py-6 ... */}
           
           {/* ✨ BOTTOM ACTION BAR: Status (Kiri), Garis (Tengah), X (Kanan) */}
