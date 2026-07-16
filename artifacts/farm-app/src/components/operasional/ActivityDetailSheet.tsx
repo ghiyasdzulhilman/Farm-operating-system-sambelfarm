@@ -131,8 +131,8 @@ useEffect(() => {
       return { total: item?.metaEkstra?.totalBiayaProduk || 0, label: "Estimasi Biaya", subtext: "Menghitung..." };
     }
 
-    let usesHistoricalPrice = false;
-    let usesCurrentPrice = false;
+    let hasHistoricalDiff = false;
+    let hasRealNewProduct = false;
     let calculatedTotal = 0;
 
     const historyLog = item?.metaEkstra?.logProduk || [];
@@ -143,31 +143,31 @@ useEffect(() => {
       const hargaMaster = master?.hargaPerSatuanDasar || 0;
 
       if (historyProd) {
-        // ⏳ PRODUK LAMA (Ember C): Tetap pakai harga historis dari database buat perhitungan
+        // ⏳ PRODUK LAMA (Ember C): Selalu pakai harga historis
         const hargaHistoris = historyProd.hargaTercatatPerSatuan || 0;
         calculatedTotal += (prod.kuantitasPemakaian * hargaHistoris);
 
-        // 💡 CEK SELISIH HARGA: Label "harga lama" cuma muncul kalau harganya BEDA sama harga master sekarang
+        // Cuma naikin bendera kalau ada selisih harga
         if (hargaHistoris !== hargaMaster) {
-          usesHistoricalPrice = true;
-        } else {
-          usesCurrentPrice = true; // Kalau sama persis, anggap aja pakai harga saat ini
+          hasHistoricalDiff = true;
         }
+        // 💡 KUNCI FIX: Jika harga belum berubah, ABAIKAN. 
+        // Jangan pernah set bendera "saat ini" untuk produk riwayat.
       } else {
         // 🆕 PRODUK BARU (Ember B): Gunakan harga master terkini
-        usesCurrentPrice = true;
+        hasRealNewProduct = true; // Ini yang beneran berhak dapet bendera "saat ini"
         calculatedTotal += (prod.kuantitasPemakaian * hargaMaster);
       }
     });
 
-    // 🏷️ Tentukan label indikator harga
+    // 🏷️ Tentukan label indikator harga yang lebih presisi
     let subtext = "";
-    if (usesHistoricalPrice && usesCurrentPrice) {
-      subtext = "(harga lama & saat ini)";
-    } else if (usesHistoricalPrice) {
-      subtext = "(harga lama)";
-    } else if (usesCurrentPrice) {
-      subtext = "(harga saat ini)";
+    if (hasHistoricalDiff && hasRealNewProduct) {
+      subtext = "(harga lama & saat ini)"; // Murni gabungan: ada barang baru + barang lama yg harganya udah naik/turun
+    } else if (hasHistoricalDiff) {
+      subtext = "(harga lama)"; // Semua produk dari riwayat lama, dan ada yg harganya udah beda
+    } else {
+      subtext = "(harga saat ini)"; // Kondisi sisa: Murni barang baru semua, ATAU produk lama yg harganya emang belum ada yg berubah sama sekali di master
     }
 
     return { 
