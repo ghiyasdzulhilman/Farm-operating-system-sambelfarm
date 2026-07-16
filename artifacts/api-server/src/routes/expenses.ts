@@ -1,130 +1,152 @@
-import { Router, type IRouter } from "express";
+import { Router } from "express";
+import { db, pengeluaranTable, produkMasterTable, stockMovementTable } from "@workspace/db";
+import { eq, desc } from "drizzle-orm";
 import { getAuth } from "@clerk/express";
-import { db, fieldMappingsTable, stagingDataTable, type FieldMappingData } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
-import { AddExpenseBody, GetDropdownOptionsResponse } from "@workspace/api-zod";
-import {
-  getNotionConnection,
-  notionFetch,
-  handleNotionErrors,
-  NotionTokenInvalidError,
-} from "../lib/notionClient";
-import { notionCache, delay } from "../lib/notionCache";
+import { getPekerjaIdFromClerk } from "../lib/authHelpers";
 
-const router: IRouter = Router();
+const router = Router();
 
-interface NotionPage {
-  id: string;
-  properties: Record<string, {
-    type: string;
-    title?: Array<{ plain_text: string }>;
-    rich_text?: Array<{ plain_text: string }>;
-  }>;
-}
-
-interface NotionDatabase {
-  id: string;
-  title?: Array<{ plain_text: string }>;
-}
-
-// ---- Notion helpers ---------------------------------------------------------
-
-async function findDatabaseByName(userId: string, accessToken: string, name: string): Promise<string | null> {
+// ==========================================
+// 1. GET SEMUA PENGELUARAN (Riwayat Historis)
+// ==========================================
+router.get("/pengeluaran", async (req, res): Promise<void> => {
   try {
-    const response = await notionFetch(userId, accessToken, "https://api.notion.com/v1/search", {
-      method: "POST",
-      body: JSON.stringify({
-        query: name,
-        filter: { value: "database", property: "object" },
-      }),
-    });
-    if (!response.ok) return null;
-    const data = await response.json() as { results: NotionDatabase[] };
-    const found = data.results.find((r) =>
-      r.title?.some((t) => t.plain_text.toLowerCase().includes(name.toLowerCase()))
-    );
-    return found?.id ?? null;
+    const { userId } = getAuth(req);
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+    const data = await db
+      .select()
+      .from(pengeluaranTable)
+      .orderBy(desc(pengeluaranTable.tanggal));
+
+    res.json({ success: true, data });
   } catch (err) {
-    if (err instanceof NotionTokenInvalidError) throw err;
-    return null;
-  }
-}
-
-async function queryAllPages(userId: string, accessToken: string, databaseId: string): Promise<Array<{ id: string; name: string }>> {
-  try {
-    const response = await notionFetch(userId, accessToken, `https://api.notion.com/v1/databases/${databaseId}/query`, {
-      method: "POST",
-      body: JSON.stringify({ page_size: 100 }),
-    });
-    if (!response.ok) return [];
-    const data = await response.json() as { results: NotionPage[] };
-    return data.results.map((page) => {
-      const titleProp = Object.values(page.properties).find((p) => p.type === "title");
-      const name = titleProp?.title?.[0]?.plain_text ?? "Tanpa Nama";
-      return { id: page.id, name };
-    });
-  } catch (err) {
-    if (err instanceof NotionTokenInvalidError) throw err;
-    return [];
-  }
-}
-
-async function getMappingRow(userId: string, databaseType: string) {
-  const [row] = await db
-    .select()
-    .from(fieldMappingsTable)
-    .where(and(eq(fieldMappingsTable.userId, userId), eq(fieldMappingsTable.databaseType, databaseType)));
-  return row;
-}
-
-// ---- Routes -----------------------------------------------------------------
-
-router.get("/notion/dropdown-options", async (req, res): Promise<void> => {
-  const { userId } = getAuth(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-
-  try {
-    const connection = await getNotionConnection(userId);
-    const { accessToken } = connection;
-    const mappingRow = await getMappingRow(userId, "expenses");
-    const mappings = mappingRow?.mappings as FieldMappingData;
-
-    const [kategoriDbId, areaDbId] = await Promise.all([
-      mappings?.kategori?.relatedDatabaseId || findDatabaseByName(userId, accessToken, "Kategori Pengeluaran"),
-      mappings?.labaRugi?.relatedDatabaseId || findDatabaseByName(userId, accessToken, "Laba Rugi"),
-    ]);
-
-    const [categories, areas] = await Promise.all([
-      kategoriDbId ? queryAllPages(userId, accessToken, kategoriDbId) : Promise.resolve([]),
-      areaDbId ? queryAllPages(userId, accessToken, areaDbId) : Promise.resolve([]),
-    ]);
-
-    res.json(GetDropdownOptionsResponse.parse({ categories, areas }));
-  } catch (err) {
-    if (handleNotionErrors(res, err)) return;
-    res.status(500).json({ error: "Internal Server Error" });
+    console.error("[GET PENGELUARAN ERROR]:", err);
+    res.status(500).json({ error: "Gagal mengambil data pengeluaran." });
   }
 });
 
-router.post("/notion/add-expense", async (req, res): Promise<void> => {
-  const { userId } = getAuth(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-  const parsed = AddExpenseBody.safeParse(req.body);
-  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
-
+// ==========================================
+// 2. POST PENGELUARAN BARU (The 3-in-1 Combo)
+// ==========================================
+router.post("/pengeluaran", async (req, res): Promise<void> => {
   try {
-    await db.insert(stagingDataTable).values({
-      userId,
-      databaseType: "expenses",
-      data: parsed.data,
-      status: "pending",
-      createdAt: new Date(),
-      updatedAt: new Date(),
+    const { userId } = getAuth(req);
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+    const {
+      kategoriId,
+      tanggal,
+      totalBiaya,
+      keterangan,
+      siklusId,
+      isPembelianStok,
+      produkId,
+      kuantitas
+    } = req.body;
+
+    // --- A. VALIDASI DASAR ---
+    if (!kategoriId || !tanggal || totalBiaya === undefined) {
+      res.status(400).json({ error: "Kategori, tanggal, dan total biaya wajib diisi." });
+      return;
+    }
+
+    const biayaNum = Math.round(Number(totalBiaya));
+    if (biayaNum < 0) {
+      res.status(400).json({ error: "Total biaya tidak boleh negatif." });
+      return;
+    }
+
+    // --- B. VALIDASI EKSTRA (Jika Beli Stok) ---
+    let qtyNum = 0;
+    let hargaSatuanNum = 0;
+    
+    if (isPembelianStok) {
+      if (!produkId || !kuantitas) {
+        res.status(400).json({ error: "Produk dan kuantitas wajib diisi untuk pembelian stok." });
+        return;
+      }
+      qtyNum = Number(kuantitas);
+      if (qtyNum <= 0) {
+        res.status(400).json({ error: "Kuantitas pembelian harus lebih dari 0." });
+        return;
+      }
+      // Hitung harga satuan di backend untuk memenuhi constraint DB (Toleransi ABS <= 1)
+      hargaSatuanNum = biayaNum / qtyNum;
+    }
+
+    // 🕵️‍♂️ Lacak identitas pekerja yang melakukan input
+    const pekerjaId = await getPekerjaIdFromClerk(userId);
+
+    // 🚀 --- C. THE 3-IN-1 COMBO (ATOMIC TRANSACTION) ---
+    const result = await db.transaction(async (tx) => {
+      
+      // [AKSI 1] Insert ke tabel pengeluaran
+      const [newPengeluaran] = await tx.insert(pengeluaranTable).values({
+        kategoriId,
+        siklusId: siklusId || null,
+        tanggal: new Date(tanggal),
+        totalBiaya: biayaNum,
+        keterangan: keterangan || null,
+        isPembelianStok: Boolean(isPembelianStok),
+        produkId: isPembelianStok ? produkId : null,
+        kuantitas: isPembelianStok ? String(qtyNum) : null, 
+        hargaSatuan: isPembelianStok ? String(hargaSatuanNum) : null,
+        createdBy: pekerjaId,
+      }).returning();
+
+      // Jika BUKAN pembelian stok (contoh: bayar listrik/gaji), transaksi selesai di sini.
+      if (!isPembelianStok) {
+        return newPengeluaran;
+      }
+
+      // [AKSI 2 & 3] Khusus Pembelian Stok
+      const [produk] = await tx
+        .select({ id: produkMasterTable.id, stokSaatIni: produkMasterTable.stokSaatIni })
+        .from(produkMasterTable)
+        .where(eq(produkMasterTable.id, produkId));
+
+      if (!produk) {
+        throw new Error("PRODUK_NOT_FOUND");
+      }
+
+      const stokSebelum = parseFloat(String(produk.stokSaatIni)) || 0;
+      const stokSesudah = stokSebelum + qtyNum;
+
+      // [AKSI 2] Catat ke Ledger/Buku Jurnal Stok
+      await tx.insert(stockMovementTable).values({
+        produkId: produk.id,
+        tipe: "pembelian", 
+        delta: qtyNum,
+        stokSebelum: stokSebelum,
+        stokSesudah: stokSesudah,
+        catatan: `Pembelian stok via pengeluaran (Ref ID: ${newPengeluaran.id})`,
+      });
+
+      // [AKSI 3] Update Cache Stok Utama
+      await tx.update(produkMasterTable)
+        .set({ 
+          stokSaatIni: stokSesudah,
+          updatedAt: new Date()
+        })
+        .where(eq(produkMasterTable.id, produk.id));
+
+      return {
+        ...newPengeluaran,
+        _stokUpdateStatus: "Sukses",
+        _stokSebelumnya: stokSebelum,
+        _stokBaru: stokSesudah
+      };
     });
-    notionCache.del(`notion_dashboard_${userId}`);
-    res.status(201).json({ success: true, isStaging: true });
-  } catch (err) {
-    res.status(500).json({ error: "Gagal simpan ke staging" });
+
+    res.status(201).json({ success: true, data: result });
+  } catch (err: any) {
+    console.error("[POST PENGELUARAN ERROR]:", err);
+    if (err.message === "PRODUK_NOT_FOUND") {
+      res.status(404).json({ error: "Produk yang dibeli tidak ditemukan di database." });
+      return;
+    }
+    res.status(500).json({ error: "Gagal menyimpan pengeluaran." });
   }
 });
 
