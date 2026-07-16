@@ -20,7 +20,8 @@ import {
 } from "lucide-react";
 
 import { AddHarvestDialog } from "@/components/harvest/add-harvest-dialog";
-import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog";
+// 🚀 Ganti import ke form pengeluaran yang baru (Postgres)
+import { PengeluaranFormModal } from "@/components/finance/PengeluaranFormModal";
 import { AddPerawatanDialog } from "@/components/agronomy/AddPerawatanDialog";
 import { AddInspeksiDialog } from "@/components/agronomy/AddInspeksiDialog";
 import { AddOperasionalDialog } from "@/components/agronomy/AddOperasionalDialog";
@@ -70,9 +71,10 @@ export function AppLayout({
     { href: "/settings", icon: Compass },
   ];
 
-  // URUTAN FAB MUNCUL KE ATAS (VERTIKAL LURUS) DENGAN ICON PILIHAN MANDOR
+    // URUTAN FAB MUNCUL KE ATAS (VERTIKAL LURUS) DENGAN ICON PILIHAN MANDOR
   const quickActions = [
-    { id: "expense", component: AddExpenseDialog, icon: Banknote, delay: 0.12 },
+    // 🚀 Ganti AddExpenseDialog jadi PengeluaranFormModal
+    { id: "expense", component: PengeluaranFormModal, icon: Banknote, delay: 0.12 },
     { id: "inspeksi", component: AddInspeksiDialog, icon: Bug, delay: 0.09 }, 
     { id: "operasional", component: AddOperasionalDialog, icon: HardHat, delay: 0.06 }, 
     { id: "perawatan", component: AddPerawatanDialog, icon: Sprout, delay: 0.03 },
