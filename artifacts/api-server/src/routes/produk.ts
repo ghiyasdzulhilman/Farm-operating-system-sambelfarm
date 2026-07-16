@@ -50,8 +50,6 @@ router.post("/produk", async (req, res): Promise<void> => {
 
   try {
     // 💡 Transaction: insert produk + catat baris pertama ledger dalam satu operasi atomik.
-    // Ini asumsi db.transaction() tersedia dari instance drizzle di @workspace/db — belum pernah
-    // terlihat dipakai di operasional.ts, jadi INI PERLU DIVERIFIKASI jalan di setup kamu. [Medium confidence]
     const result = await db.transaction(async (tx) => {
       const [newProduk] = await tx.insert(produkMasterTable).values({
         nama: nama.trim(),
@@ -108,8 +106,6 @@ router.patch("/produk/:id", async (req, res): Promise<void> => {
   const body = req.body;
 
   // ⚠️ Jaring pengaman arsitektur: stok_saat_ini WAJIB hanya berubah lewat adjustStock().
-  // Kalau baris ini dihapus suatu saat karena "biar simpel", ledger stock_movement langsung
-  // jadi tidak bisa dipercaya sebagai audit trail lengkap.
   if ('stokSaatIni' in body) {
     res.status(400).json({ error: "stokSaatIni tidak bisa diubah langsung lewat endpoint ini." });
     return;
@@ -190,7 +186,6 @@ router.delete("/produk/:id", async (req, res): Promise<void> => {
 
     res.json({ success: true, message: "Produk berhasil dihapus.", data: deletedData });
   } catch (err: any) {
-    // 💡 Tampilkan error asli di terminal Replit biar gampang di-debug
     console.error("[DB ERROR HAPUS PRODUK]:", err);
 
     // 🚀 FIX: Buka bungkus error Drizzle untuk ambil error asli Postgres (err.cause)
@@ -205,7 +200,6 @@ router.delete("/produk/:id", async (req, res): Promise<void> => {
       errorString.includes('violates foreign key');
 
     if (isForeignKeyError) {
-      // Kalau masih masuk sini, berarti beneran udah nyangkut di tabel perawatan_produk
       res.status(400).json({ error: "Produk tidak bisa dihapus karena sudah tercatat di riwayat pemakaian perawatan kebun. Nonaktifkan saja produk ini agar tidak muncul lagi di pilihan." });
       return;
     }
@@ -214,6 +208,81 @@ router.delete("/produk/:id", async (req, res): Promise<void> => {
   }
 });
 
+// ==========================================
+// 5. PENYESUAIAN STOK MANUAL (STOCK ADJUSTMENT)
+// ==========================================
+router.post("/produk/:id/adjust", async (req, res): Promise<void> => {
+  const { userId } = getAuth(req);
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
+  const { id } = req.params;
+  const { stokFisik, catatan } = req.body;
+
+  if (stokFisik === undefined || stokFisik === null) {
+    res.status(400).json({ error: "Stok fisik terbaru wajib diisi." }); return;
+  }
+
+  const stokBaruNum = Number(stokFisik);
+  if (stokBaruNum < 0) {
+    res.status(400).json({ error: "Stok fisik tidak boleh negatif." }); return;
+  }
+
+  try {
+    const result = await db.transaction(async (tx) => {
+      // 1. Ambil data produk dan angka stok sistem saat ini
+      const [produk] = await tx
+        .select()
+        .from(produkMasterTable)
+        .where(eq(produkMasterTable.id, id));
+
+      if (!produk) {
+        throw new Error("PRODUK_NOT_FOUND");
+      }
+
+      const stokSebelum = parseFloat(String(produk.stokSaatIni)) || 0;
+      const delta = stokBaruNum - stokSebelum;
+
+      // Cegah transaksi jika tidak ada perbedaan fisik vs sistem
+      if (delta === 0) {
+        throw new Error("NO_CHANGE");
+      }
+
+      // 2. Insert riwayat penyesuaian ke tabel stock_movement
+      await tx.insert(stockMovementTable).values({
+        produkId: id,
+        tipe: "adjustment",
+        delta: delta,
+        stokSebelum: stokSebelum,
+        stokSesudah: stokBaruNum,
+        catatan: catatan || `Penyesuaian stok manual (Selisih: ${delta > 0 ? '+' : ''}${delta})`,
+      });
+
+      // 3. Update secara paksa stok caching di tabel master
+      const [updatedProduk] = await tx.update(produkMasterTable)
+        .set({ 
+          stokSaatIni: stokBaruNum,
+          updatedAt: new Date()
+        })
+        .where(eq(produkMasterTable.id, id))
+        .returning();
+
+      return {
+        ...updatedProduk,
+        stokSaatIni: parseFloat(String(updatedProduk.stokSaatIni)) || 0
+      };
+    });
+
+    res.json({ success: true, message: "Stok berhasil disesuaikan.", data: result });
+  } catch (err: any) {
+    console.error("[DB ERROR ADJUST STOCK]:", err);
+    if (err.message === "PRODUK_NOT_FOUND") {
+      res.status(404).json({ error: "Produk tidak ditemukan." }); return;
+    }
+    if (err.message === "NO_CHANGE") {
+      res.status(400).json({ error: "Stok fisik sama dengan stok sistem, tidak ada penyesuaian yang disimpan." }); return;
+    }
+    res.status(500).json({ error: "Gagal melakukan penyesuaian stok." });
+  }
+});
 
 export default router;
