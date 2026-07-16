@@ -19,6 +19,8 @@ import {
   inspeksiPekerjaTable
 } from "@workspace/db";
 
+import { getPekerjaIdFromClerk } from "../lib/authHelpers";
+
 const router: IRouter = Router();
 
 // ==========================================
@@ -795,14 +797,17 @@ router.post("/notion/siklus-tanam", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
-  // 🚀 Tambahkan ekstraksi modalAwal dari req.body
+  // 🕵️‍♂️ 1. Suruh si detektif nyari ID Pekerja asli dari token Clerk
+  const pekerjaId = await getPekerjaIdFromClerk(userId);
+
+  // 🚀 2. Ekstraksi body (modalAwal sudah ada)
   const { areaId, namaSiklus, tanggalPindahTanam, modalAwal } = req.body;
   if (!areaId || !namaSiklus || !tanggalPindahTanam) {
     res.status(400).json({ error: "Area, Nama Siklus, dan Tanggal Pindah Tanam wajib diisi." });
     return;
   }
 
-  // 🚀 Pastikan modalAwal adalah angka dan tidak minus (fallback ke 0 jika kosong/invalid)
+  // 🚀 3. Pastikan modalAwal adalah angka dan tidak minus
   const parsedModal = Math.max(0, parseInt(modalAwal as string) || 0);
 
   try {
@@ -817,13 +822,14 @@ router.post("/notion/siklus-tanam", async (req, res): Promise<void> => {
         namaSiklus,
         tanggalPindahTanam: tanggalPindahTanam, 
         status: "Aktif",
-        modalAwal: parsedModal // 🚀 Masukkan modal awal ke database
+        modalAwal: parsedModal,
+        createdBy: pekerjaId, // 🛡️ 4. Tanamkan jejak pembuatnya (Audit Trail)
+        updatedBy: pekerjaId  // 🛡️ Karena baru dibuat, yang update juga orang yang sama
       })
       .returning();
 
     res.status(201).json({ success: true, data: newSiklus });
   } catch (err: any) {
-    // 💡 Tangkap error constraint jika ada masalah
     console.error("[DB ERROR SIKLUS TANAM]:", err);
     res.status(500).json({ error: "Gagal menambahkan siklus tanam baru." });
   }
