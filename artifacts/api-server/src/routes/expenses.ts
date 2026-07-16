@@ -27,7 +27,7 @@ router.get("/pengeluaran", async (req, res): Promise<void> => {
 });
 
 // ==========================================
-// 2. POST PENGELUARAN BARU (The 3-in-1 Combo)
+// 2. POST PENGELUARAN BARU (Otomatisasi Stok & Harga Master)
 // ==========================================
 router.post("/pengeluaran", async (req, res): Promise<void> => {
   try {
@@ -59,7 +59,6 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
 
     // --- B. VALIDASI EKSTRA (Jika Beli Stok) ---
     let qtyNum = 0;
-    
     if (isPembelianStok) {
       if (!produkId || !kuantitas) {
         res.status(400).json({ error: "Produk dan kuantitas wajib diisi untuk pembelian stok." });
@@ -72,10 +71,10 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
       }
     }
 
-    // 🕵️‍♂️ Lacak identitas pekerja yang melakukan input
+    // Lacak identitas pekerja yang melakukan input
     const pekerjaId = await getPekerjaIdFromClerk(userId);
 
-    // 🚀 --- C. MENCARI NAMA KATEGORI & PRODUK BUAT NAMA ITEM ---
+    // Ambil nama kategori & data produk master
     const [kategoriData] = await db.select({ nama: kategoriKeuanganTable.nama }).from(kategoriKeuanganTable).where(eq(kategoriKeuanganTable.id, kategoriId));
     let produkNama = null;
     let produkSatuan = "";
@@ -88,16 +87,14 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
       }
     }
     
-    // Bikin string default yang elegan
     const fallbackNamaItem = isPembelianStok && produkNama 
-      ? `Beli ${produkNama} (${qtyNum} ${produkSatuan})` // Bakal muncul: "Beli NPK (5500 gram)"
+      ? `Beli ${produkNama} (${qtyNum} ${produkSatuan})`
       : kategoriData?.nama ? `Biaya ${kategoriData.nama}` : "Biaya Operasional";
 
-    // 🚀 --- D. THE 3-IN-1 COMBO (ATOMIC TRANSACTION) ---
+    // 🚀 --- C. THE 3-IN-1 COMBO TRANSACTION ---
     const result = await db.transaction(async (tx) => {
       
-      // [AKSI 1] Insert ke tabel pengeluaran 
-      // Trik Jenius: Kita bypass math check & enum constraint dengan selalu pakai lumpsum & qty 1 khusus buat pencatatan uang.
+      // [AKSI 1] Insert ke tabel pengeluaran (Bypass math check via lumpsum)
       const [newPengeluaran] = await tx.insert(pengeluaranTable).values({
         kategoriId,
         siklusId: siklusId || null,
@@ -107,13 +104,13 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
         keterangan: keterangan || null,
         isPembelianStok: Boolean(isPembelianStok),
         produkId: isPembelianStok ? produkId : null,
-        satuanKerja: 'lumpsum', // Bypass enum check constraint
-        kuantitas: "1", // Bypass math check
-        hargaSatuan: biayaNum, // Bypass math check
+        satuanKerja: 'lumpsum',
+        kuantitas: "1",
+        hargaSatuan: biayaNum,
         createdBy: pekerjaId,
       }).returning();
 
-      // Jika BUKAN pembelian stok, transaksi selesai di sini.
+      // Jika BUKAN pembelian stok, urusan selesai di sini.
       if (!isPembelianStok) {
         return newPengeluaran;
       }
@@ -130,8 +127,11 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
 
       const stokSebelum = parseFloat(String(produk.stokSaatIni)) || 0;
       const stokSesudah = stokSebelum + qtyNum;
+      
+      // 🚀 HITUNG OTOMATIS HARGA PER SATUAN DASAR BARU (Pembulatan Integer aman)
+      const hargaSatuanBaru = Math.round(biayaNum / qtyNum);
 
-      // [AKSI 2] Catat ke Ledger/Buku Jurnal Stok menggunakan angka Asli (qtyNum)
+      // [AKSI 2] Catat ke Ledger/Buku Jurnal Stok
       await tx.insert(stockMovementTable).values({
         produkId: produk.id,
         tipe: "pembelian", 
@@ -142,17 +142,19 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
         catatan: `Pembelian via pengeluaran (Ref: ${newPengeluaran.id})`,
       });
 
-      // [AKSI 3] Update Cache Stok Utama
+      // [AKSI 3] Update Cache Stok DAN Otomatis Update Harga Master Terbaru!
       await tx.update(produkMasterTable)
         .set({ 
           stokSaatIni: stokSesudah,
+          hargaPerSatuanDasar: hargaSatuanBaru, // 🚀 SEKARANG HARGA LANGSUNG UPDATE OTOMATIS!
           updatedAt: new Date()
         })
         .where(eq(produkMasterTable.id, produk.id));
 
       return {
         ...newPengeluaran,
-        _stokUpdateStatus: "Sukses"
+        _stokUpdateStatus: "Sukses",
+        _hargaBaruTercatat: hargaSatuanBaru
       };
     });
 
@@ -163,7 +165,7 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
       res.status(404).json({ error: "Produk yang dibeli tidak ditemukan di database." });
       return;
     }
-    res.status(500).json({ error: "Gagal menyimpan pengeluaran. Cek log server untuk detail." });
+    res.status(500).json({ error: "Gagal menyimpan pengeluaran." });
   }
 });
 
