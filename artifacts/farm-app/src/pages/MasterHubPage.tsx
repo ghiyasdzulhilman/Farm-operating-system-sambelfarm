@@ -11,6 +11,8 @@ import { PekerjaManager } from "@/components/master/pekerja/PekerjaManager";
 import { KategoriManager } from "@/components/master/kategori/KategoriManager";
 import { KendalaManager } from "@/components/master/kendala/KendalaManager";
 import { ProdukManager } from "@/components/master/produk/ProdukManager";
+import { KategoriKeuanganManager } from "@/components/master/kategori-keuangan/KategoriKeuanganManager";
+
 // ---------------------------------------------------------------------------
 // 📂 1. DICTIONARY DOMAIN MASTER
 // ---------------------------------------------------------------------------
@@ -175,13 +177,7 @@ export function MasterHubPage({ onClose }: { onClose?: () => void }) {
       {activeChild === "produk" && <ProdukManager />}
 
       {/* 🚀 KATEGORI KEUANGAN MASTER */}
-      {activeChild === "kategori-keuangan" && (
-        <div className="p-8 text-center text-muted-foreground border border-dashed border-border/50 rounded-3xl bg-card">
-          <Database className="h-8 w-8 mx-auto mb-3 opacity-20" />
-          <p className="font-bold">Master Kategori Keuangan</p>
-          <p className="text-sm">Menyiapkan komponen UI...</p>
-        </div>
-      )}
+      {activeChild === "kategori-keuangan" && <KategoriKeuanganManager />}
 
       {activeChild === "panen" && (
         <div className="p-8 text-center text-muted-foreground border border-dashed rounded-3xl">Modul Panen (Coming Soon)</div>
