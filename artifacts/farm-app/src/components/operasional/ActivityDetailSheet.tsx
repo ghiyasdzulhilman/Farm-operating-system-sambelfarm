@@ -857,15 +857,16 @@ useEffect(() => {
         </div>
       )}
 
-   {/* Tombol Tambah Baris (Apple Notes / Notion Style) */}
-      <div className="flex justify-start mt-1 pt-2 border-t border-border/30">
+         {/* Tombol Tambah Baris (Minimalist Action Column di Kanan) */}
+      <div className="flex justify-end mt-1 pt-2 border-t border-border/30">
         <Button 
           variant="ghost" 
-          size="sm" 
-          className="text-primary hover:text-primary hover:bg-primary/10 rounded-xl px-3 py-1.5 h-auto font-semibold text-[13px] transition-all -ml-2"
+          size="icon" 
+          className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10 rounded-full transition-all"
           onClick={() => { setEditedProducts([...editedProducts, { produkId: "", kuantitasPemakaian: 0 }]); setIsDirty(true); }}
+          title="Tambah Produk"
         >
-          <Plus className="h-4 w-4 mr-1.5 opacity-70" strokeWidth={2.5} /> Tambah Produk
+          <Plus className="h-5 w-5" strokeWidth={2.5} />
         </Button>
       </div>
 
