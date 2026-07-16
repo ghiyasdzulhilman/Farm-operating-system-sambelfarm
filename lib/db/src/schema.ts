@@ -314,7 +314,7 @@ export const pengeluaranTable = pgTable("pengeluaran", {
 
 export const panenTable = pgTable("panen", {
   id: uuid("id").defaultRandom().primaryKey(),
-  siklusId: uuid("siklus_id").references(() => siklusTanamTable.id, { onDelete: "set null" }).notNull(),
+  siklusId: uuid("siklus_id").references(() => siklusTanamTable.id, { onDelete: "set null" }), 
 
   tanggal: timestamp("tanggal").defaultNow().notNull(),
   kegiatan: text("kegiatan").notNull(),
