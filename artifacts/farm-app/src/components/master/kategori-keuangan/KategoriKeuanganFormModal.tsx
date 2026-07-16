@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Loader2, CheckCircle2, Wallet, Tag, Layers, AlignLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 interface KategoriKeuanganFormModalProps {
   isOpen: boolean;
@@ -14,11 +15,13 @@ interface KategoriKeuanganFormModalProps {
 }
 
 export function KategoriKeuanganFormModal({ isOpen, onClose, initialData, onSave, isLoading }: KategoriKeuanganFormModalProps) {
+  const { toast } = useToast();
+  
   const [nama, setNama] = useState("");
   const [tipe, setTipe] = useState<"pengeluaran" | "pendapatan">("pengeluaran");
   const [keterangan, setKeterangan] = useState("");
-  const { toast } = useToast();
 
+  // Reset form otomatis atau isi dengan data edit saat modal dibuka
   useEffect(() => {
     if (isOpen) {
       setNama(initialData?.nama || "");
@@ -29,67 +32,107 @@ export function KategoriKeuanganFormModal({ isOpen, onClose, initialData, onSave
 
   const handleSubmit = () => {
     if (!nama.trim()) {
-      toast({ title: "Validasi Gagal", description: "Nama kategori wajib diisi.", variant: "destructive" });
+      toast({ variant: "destructive", title: "Validasi Gagal", description: "Nama kategori wajib diisi." });
       return;
     }
     onSave({ nama, tipe, keterangan });
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[425px] rounded-3xl p-6 border-border/40 bg-card/95 backdrop-blur-xl shadow-2xl">
-        <DialogHeader className="mb-4">
-          <DialogTitle className="text-2xl font-black tracking-tight">
-            {initialData ? "Edit Kategori" : "Kategori Baru"}
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-5">
-          {/* Tipe Selector (Pill Style) */}
-          <div className="flex bg-muted/50 p-1 rounded-2xl">
-            <button
-              onClick={() => setTipe("pengeluaran")}
-              className={`flex-1 text-sm font-bold py-2 rounded-xl transition-all ${tipe === "pengeluaran" ? "bg-card text-rose-500 shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-            >
-              Pengeluaran
-            </button>
-            <button
-              onClick={() => setTipe("pendapatan")}
-              className={`flex-1 text-sm font-bold py-2 rounded-xl transition-all ${tipe === "pendapatan" ? "bg-card text-emerald-500 shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-            >
-              Pendapatan
-            </button>
+    <Sheet open={isOpen} onOpenChange={(val) => { if (!val) onClose(); }}>
+      <SheetContent 
+        side="top" 
+        // 🚀 KUNCI FIX: z-[100] biar ngga ketutup elemen lain
+        className="mx-auto max-w-md rounded-b-[2rem] border-x-0 border-t-0 p-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl shadow-[0_16px_40px_rgba(0,0,0,0.12)] pb-5 z-[100]"
+      >
+        <SheetHeader className="px-6 py-4 flex flex-row items-center justify-between border-b border-border pr-12">
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl bg-primary/10 p-2 text-primary shadow-sm">
+              <Wallet className="h-5 w-5" />
+            </div>
+            <div className="text-left">
+              <SheetTitle className="text-base font-black tracking-tight">
+                {initialData ? "Edit Kategori" : "Tambah Kategori"}
+              </SheetTitle>
+              <p className="text-[10px] font-bold text-primary tracking-wider uppercase">Master Keuangan</p>
+            </div>
           </div>
+        </SheetHeader>
 
+        <div className="px-6 py-5 space-y-5 text-left">
+          
+          {/* INPUT NAMA KATEGORI */}
           <div className="space-y-1.5">
-            <label className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Nama Kategori</label>
+            <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
+              <Tag className="h-3.5 w-3.5" /> Nama Kategori
+            </label>
             <Input 
               placeholder="Contoh: Beli Pupuk, Gaji, Hasil Panen..." 
               value={nama} 
-              onChange={(e) => setNama(e.target.value)} 
-              className="rounded-xl bg-muted/30 border-border/50 h-11 focus-visible:ring-primary/30 font-medium"
+              onChange={e => setNama(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSubmit()} 
+              className="h-12 rounded-xl bg-background border border-input focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm text-sm font-medium px-4"
+              autoFocus={!initialData}
             />
           </div>
 
+          {/* PILIHAN TIPE (Pengeluaran / Pendapatan) */}
           <div className="space-y-1.5">
-            <label className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Keterangan (Opsional)</label>
+            <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
+              <Layers className="h-3.5 w-3.5" /> Tipe Kategori
+            </label>
+            <select 
+              value={tipe} 
+              onChange={e => setTipe(e.target.value as "pengeluaran" | "pendapatan")}
+              className="w-full h-12 rounded-xl border border-input bg-background px-4 text-sm font-semibold outline-none focus:border-primary/50 shadow-sm cursor-pointer"
+            >
+              <option value="pengeluaran">Pengeluaran</option>
+              <option value="pendapatan">Pendapatan</option>
+            </select>
+          </div>
+
+          {/* INPUT KETERANGAN */}
+          <div className="space-y-1.5">
+            <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
+              <AlignLeft className="h-3.5 w-3.5" /> Keterangan (Opsional)
+            </label>
             <Textarea 
-              placeholder="Penjelasan singkat kategori ini..." 
+              placeholder="Penjelasan singkat..." 
               value={keterangan} 
-              onChange={(e) => setKeterangan(e.target.value)} 
-              rows={3}
-              className="rounded-xl bg-muted/30 border-border/50 resize-none focus-visible:ring-primary/30"
+              onChange={e => setKeterangan(e.target.value)}
+              rows={2}
+              className="rounded-xl bg-background border border-input focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm text-sm font-medium px-4 py-3 resize-none"
             />
           </div>
+
         </div>
 
-        <DialogFooter className="mt-6 pt-4 border-t border-border/40 sm:justify-end gap-2">
-          <Button variant="ghost" onClick={onClose} disabled={isLoading} className="rounded-xl hover:bg-muted/50">Batal</Button>
-          <Button onClick={handleSubmit} disabled={isLoading} className="rounded-xl font-bold px-6 shadow-md shadow-primary/20">
-            {isLoading ? "Menyimpan..." : "Simpan"}
+        {/* FOOTER ACTIONS */}
+        <div className="flex items-center justify-end gap-3 px-6 pt-2 pb-2">
+          <Button 
+            variant="ghost" 
+            onClick={onClose} 
+            disabled={isLoading} 
+            className="h-11 rounded-xl px-4 font-bold text-muted-foreground hover:bg-muted"
+          >
+            Batal
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <Button 
+            onClick={handleSubmit} 
+            disabled={isLoading || !nama.trim()} 
+            className="h-11 rounded-xl px-6 font-bold bg-primary text-primary-foreground hover:opacity-90 transition-all shadow-sm gap-2"
+          >
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <><CheckCircle2 className="h-4 w-4" /> Simpan Data</>
+            )}
+          </Button>
+        </div>
+
+        {/* Garis pemanis di bawah sheet */}
+        <div className="mx-auto mt-2 h-1.5 w-12 rounded-full bg-border/60" />
+      </SheetContent>
+    </Sheet>
   );
 }
