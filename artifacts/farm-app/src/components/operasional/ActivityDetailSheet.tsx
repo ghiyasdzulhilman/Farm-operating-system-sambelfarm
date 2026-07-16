@@ -40,6 +40,9 @@ import type { AgronomyItem } from "@/types/operasional";
 import { format } from "date-fns";
 import { useQuery, useQueryClient } from "@tanstack/react-query"; // 🚀 Tambah useQueryClient
 
+import { InspeksiFields } from "./sheet-parts/InspeksiFields";
+import { OperasionalFields } from "./sheet-parts/OperasionalFields";
+
 interface ActivityDetailSheetProps {
   item: AgronomyItem | null;
   onClose: () => void;
@@ -483,135 +486,23 @@ useEffect(() => {
                   </h3>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3">
+                  
                   {/* 1. KOTAK-KOTAK UNTUK MODUL INSPEKSI */}
-                  {item.module === "inspeksi" && (
-                    <>
-  {/* pH Tanah */}
-  <div 
-  onClick={() => { if(activeField !== "phTanah") { setActiveField("phTanah"); setLocalValue(String(item.metaEkstra.phTanah || "")); } }}
-  className="rounded-3xl border border-border/40 bg-card p-3.5 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.04)] cursor-pointer hover:bg-muted/40 transition-colors"
->
-  <div className="flex items-center gap-2 text-muted-foreground/80 mb-1">
-    <Thermometer className="h-4 w-4 opacity-70" />
-    <span className="text-[11px] font-bold uppercase tracking-widest">pH Tanah</span>
-  </div>
-  {activeField === "phTanah" ? (
-    <input autoFocus type="number" step="0.1" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("phTanah")} onKeyDown={(e) => e.key === "Enter" && handleInlineSave("phTanah")} className="w-full bg-transparent text-lg font-black text-foreground outline-none border-b border-primary/30 p-0" />
-  ) : (
-    <p className="text-lg font-black text-foreground">{item.metaEkstra.phTanah || "-"}</p>
-  )}
-</div>
+                  <InspeksiFields 
+                    item={item} 
+                    activeField={activeField} 
+                    setActiveField={setActiveField} 
+                    localValue={localValue} 
+                    setLocalValue={setLocalValue} 
+                    handleInlineSave={handleInlineSave} 
+                  />
 
-  {/* Tingkat Serangan */}
-  <div 
-  onClick={() => { if(activeField !== "tingkatSerangan") { setActiveField("tingkatSerangan"); setLocalValue(String(item.metaEkstra.tingkatSerangan || "")); } }}
-  className="rounded-3xl border border-border/40 bg-card p-3.5 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.04)] cursor-pointer hover:bg-muted/40 transition-colors"
->
-  <div className="flex items-center gap-2 text-muted-foreground/80 mb-1">
-    <TrendingUp className="h-4 w-4 opacity-70" />
-    <span className="text-[11px] font-bold uppercase tracking-widest">Serangan</span>
-  </div>
-  {activeField === "tingkatSerangan" ? (
-    <input autoFocus type="number" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("tingkatSerangan")} onKeyDown={(e) => e.key === "Enter" && handleInlineSave("tingkatSerangan")} className="w-full bg-transparent text-lg font-black text-foreground outline-none border-b border-primary/30 p-0" />
-  ) : (
-    <p className="text-lg font-black text-foreground">{item.metaEkstra.tingkatSerangan ? `${item.metaEkstra.tingkatSerangan}%` : "0%"}</p>
-  )}
-</div>
-
-
- {/* Radius Terpapar */}
-  <div 
-  onClick={() => { if(activeField !== "radius") { setActiveField("radius"); setLocalValue(String(item.metaEkstra.radius || "")); } }}
-  className="rounded-3xl border border-border/40 bg-card p-3.5 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.04)] cursor-pointer hover:bg-muted/40 transition-colors"
->
-  <div className="flex items-center gap-2 text-muted-foreground/80 mb-1">
-    <Radar className="h-4 w-4 opacity-70" />
-    <span className="text-[11px] font-bold uppercase tracking-widest">Radius</span>
-  </div>
-  {activeField === "radius" ? (
-    <input autoFocus type="number" value={localValue} onChange={(e) => setLocalValue(e.target.value)} onBlur={() => handleInlineSave("radius")} onKeyDown={(e) => e.key === "Enter" && handleInlineSave("radius")} className="w-full bg-transparent text-lg font-black text-foreground outline-none border-b border-primary/30 p-0" />
-  ) : (
-    <p className="text-lg font-black text-foreground">{item.metaEkstra.radius ? `${item.metaEkstra.radius} m` : "-"}</p>
-  )}
-</div>
-
-   {/* 🔒 KOTAK KE-4: Durasi Kerja (Kunci Menjadi Read-Only) */}
-  <div className="rounded-3xl border border-border/30 bg-muted/30 p-3.5 shadow-[inset_0_1px_4px_rgba(255,255,255,0.2)] select-none">
-  <div className="flex items-center gap-2 text-muted-foreground/70 mb-1">
-    <Clock3 className="h-4 w-4 opacity-70" />
-    <span className="text-[11px] font-bold uppercase tracking-widest">Durasi Kerja</span>
-  </div>
-  <p className="text-lg font-black text-muted-foreground">
-    {item.metaEkstra.durasiKerja ? `${item.metaEkstra.durasiKerja} Jam` : "0 Jam"}
-  </p>
-</div>
-
-                    </>
-                  )}
-
-               {/* 2. WIDGET MODUL OPERASIONAL (Spatial UI Style) */}
-                  {item.module === "operasional" && (
-                    <>
-                    {/* WIDGET 1: Prioritas (Segmented Control ala iOS / Linear) */}
-                      <div className="rounded-3xl border border-border/40 bg-card p-4 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.04)] flex flex-col justify-between min-h-[105px]">
-                        <div className="flex items-center gap-2 text-muted-foreground/80">
-                          <Zap className="h-4 w-4 opacity-70" />
-                          <span className="text-[11px] font-bold uppercase tracking-widest">Prioritas</span>
-                        </div>
-                        
-                        {(() => {
-                          const prioValue = ["Low", "Medium", "High"].find(
-                            (p) => p.toLowerCase() === (item.metaEkstra.prioritas || "Medium").toLowerCase()
-                          ) || "Medium";
-
-                          return (
-                            <div className="mt-3 flex items-center bg-muted/40 p-1 rounded-xl border border-border/50 w-full relative">
-                              {["Low", "Medium", "High"].map((level) => {
-                                const isActive = prioValue === level;
-                                
-                                // Tentukan warna nyala untuk masing-masing level
-                                let activeClass = "text-muted-foreground hover:text-foreground hover:bg-muted/50";
-                                if (isActive) {
-                                  if (level === "High") activeClass = "bg-destructive text-destructive-foreground shadow-sm shadow-destructive/20";
-                                  else if (level === "Medium") activeClass = "bg-amber-500 text-white shadow-sm shadow-amber-500/20";
-                                  else if (level === "Low") activeClass = "bg-blue-500 text-white shadow-sm shadow-blue-500/20";
-                                }
-
-                                return (
-                                  <button
-                                    key={level}
-                                    onClick={() => onStatusChange?.(item.id, { prioritas: level })}
-                                    className={cn(
-                                      "flex-1 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-300",
-                                      activeClass
-                                    )}
-                                  >
-                                    {level}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          );
-                        })()}
-                      </div>
-
-                      {/* WIDGET 2: Durasi Kerja (Angka Besar & Bersih) */}
-                      <div className="rounded-3xl border border-border/30 bg-muted/30 p-4 shadow-[inset_0_1px_4px_rgba(255,255,255,0.2)] flex flex-col justify-between min-h-[105px] select-none">
-                        <div className="flex items-center gap-2 text-muted-foreground/70">
-                          <Clock3 className="h-4 w-4 opacity-70" />
-                          <span className="text-[11px] font-bold uppercase tracking-widest">Durasi Kerja</span>
-                        </div>
-                        <div className="mt-2 flex items-baseline gap-1.5">
-                          <span className="text-3xl font-bold tracking-tight text-foreground/90">
-                            {item.metaEkstra.durasiKerja || "0"}
-                          </span>
-                          <span className="text-[13px] font-semibold text-muted-foreground/70 mb-1">Jam</span>
-                        </div>
-                      </div>
-                    </>
-                  )}
-
+                  {/* 2. WIDGET MODUL OPERASIONAL (Spatial UI Style) */}
+                  <OperasionalFields 
+                    item={item} 
+                    onStatusChange={onStatusChange} 
+                  />
 
 {/* 3. KOTAK UNTUK MODUL PERAWATAN — Durasi & Total Biaya */}
       {item.module === "perawatan" && (
