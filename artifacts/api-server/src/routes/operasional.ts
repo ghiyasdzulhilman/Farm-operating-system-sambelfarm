@@ -795,30 +795,36 @@ router.post("/notion/siklus-tanam", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
-  const { areaId, namaSiklus, tanggalPindahTanam } = req.body;
+  // 🚀 Tambahkan ekstraksi modalAwal dari req.body
+  const { areaId, namaSiklus, tanggalPindahTanam, modalAwal } = req.body;
   if (!areaId || !namaSiklus || !tanggalPindahTanam) {
     res.status(400).json({ error: "Area, Nama Siklus, dan Tanggal Pindah Tanam wajib diisi." });
     return;
   }
 
-    try {
+  // 🚀 Pastikan modalAwal adalah angka dan tidak minus (fallback ke 0 jika kosong/invalid)
+  const parsedModal = Math.max(0, parseInt(modalAwal as string) || 0);
+
+  try {
     // Opsional: Otomatis ubah siklus lama di area yang sama menjadi "Selesai" jika ada siklus baru aktif
     await db.update(siklusTanamTable)
-      .set({ status: "Selesai" }) // 🚀 SESUAIKAN DENGAN CONSTRAINT SCHEMA BARU
+      .set({ status: "Selesai" }) 
       .where(and(eq(siklusTanamTable.areaId, areaId), eq(siklusTanamTable.status, "Aktif")));
 
     const [newSiklus] = await db.insert(siklusTanamTable)
-
       .values({
         areaId,
         namaSiklus,
-        tanggalPindahTanam: tanggalPindahTanam, // Format YYYY-MM-DD dari frontend
-        status: "Aktif"
+        tanggalPindahTanam: tanggalPindahTanam, 
+        status: "Aktif",
+        modalAwal: parsedModal // 🚀 Masukkan modal awal ke database
       })
       .returning();
 
     res.status(201).json({ success: true, data: newSiklus });
-  } catch (err) {
+  } catch (err: any) {
+    // 💡 Tangkap error constraint jika ada masalah
+    console.error("[DB ERROR SIKLUS TANAM]:", err);
     res.status(500).json({ error: "Gagal menambahkan siklus tanam baru." });
   }
 });
