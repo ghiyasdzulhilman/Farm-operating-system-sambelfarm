@@ -41,6 +41,7 @@ export const pekerjaAtributMasterTable = pgTable("pekerja_atribut_master", {
 
 export const pekerjaTable = pgTable("pekerja", {
   id: uuid("id").defaultRandom().primaryKey(),
+  clerkUserId: text("clerk_user_id").unique(), // 🚀 Jembatan emas ke akun login Clerk
   nama: text("nama").notNull(),
   kontak: text("kontak"),
   roleId: uuid("role_id").references(() => pekerjaAtributMasterTable.id, { onDelete: "set null" }),
@@ -73,6 +74,9 @@ export const siklusTanamTable = pgTable("siklus_tanam", {
   status: text("status").default("Aktif").notNull(),
   modalAwal: integer("modal_awal").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdBy: uuid("created_by").references(() => pekerjaTable.id, { onDelete: "set null" }), // 🚀 Audit Trail
+  updatedBy: uuid("updated_by").references(() => pekerjaTable.id, { onDelete: "set null" }), // 🚀 Audit Trail
+  updatedAt: timestamp("updated_at"), // 🚀 Audit Trail
 },
 (table) => [
   check("modal_awal_non_negative", sql`${table.modalAwal} >= 0`),
