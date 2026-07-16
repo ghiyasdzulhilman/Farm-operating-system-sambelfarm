@@ -304,19 +304,51 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
                                   </FormItem>
                                 )}
                               />
-                              <FormField
+                            <FormField
                                 control={form.control}
                                 name="kuantitas"
-                                render={({ field }) => (
-                                  <FormItem className="space-y-1">
-                                    <FormLabel className="text-[11px] font-bold text-muted-foreground">Volume / Kuantitas Masuk</FormLabel>
-                                    <FormControl>
-                                      <Input type="number" placeholder="1" className="h-11 rounded-xl bg-muted/30 border-border/50 font-bold" onFocus={e => e.target.select()} {...field} />
-                                    </FormControl>
-                                    <FormMessage className="text-[10px] text-rose-500" />
-                                  </FormItem>
-                                )}
+                                render={({ field }) => {
+                                  // 🚀 Hitung live kalkulasi untuk tampilan Newbie-Friendly
+                                  const totalBiayaInput = form.watch("totalBiaya") || 0;
+                                  const qtyInput = form.watch("kuantitas") || 0;
+                                  const estimasiHargaSatuan = qtyInput > 0 ? Math.round(totalBiayaInput / qtyInput) : 0;
+
+                                  return (
+                                    <FormItem className="space-y-3">
+                                      <div className="space-y-1">
+                                        <FormLabel className="text-[11px] font-bold text-muted-foreground">Volume / Kuantitas Masuk</FormLabel>
+                                        <FormControl>
+                                          <Input type="number" placeholder="Contoh: 7500" className="h-11 rounded-xl bg-muted/30 border-border/50 font-bold" onFocus={e => e.target.select()} {...field} />
+                                        </FormControl>
+                                        <FormMessage className="text-[10px] text-rose-500" />
+                                      </div>
+
+                                      {/* 🚀 LIVE CALCULATION INFOBAR FOR NEWBIE */}
+                                      {qtyInput > 0 && (
+                                        <div className="rounded-xl bg-muted/50 p-3 text-xs border border-border/40 space-y-1">
+                                          <div className="flex justify-between text-muted-foreground font-medium">
+                                            <span>Total Nota:</span>
+                                            <span className="font-bold text-foreground">Rp{Number(totalBiayaInput).toLocaleString("id-ID")}</span>
+                                          </div>
+                                          <div className="flex justify-between text-muted-foreground font-medium">
+                                            <span>Volume Barang:</span>
+                                            <span className="font-bold text-foreground">{qtyInput} unit/gram</span>
+                                          </div>
+                                          <div className="border-t border-border/40 my-1" />
+                                          <div className="flex justify-between text-primary font-bold">
+                                            <span>Harga Konversi Master:</span>
+                                            <span>Rp{estimasiHargaSatuan.toLocaleString("id-ID")} / unit</span>
+                                          </div>
+                                          <p className="text-[9px] text-muted-foreground/80 italic mt-1 text-right">
+                                            *Sistem akan otomatis memperbarui harga master ke nilai ini.
+                                          </p>
+                                        </div>
+                                      )}
+                                    </FormItem>
+                                  );
+                                }}
                               />
+
                             </motion.div>
                           )}
                         </AnimatePresence>
