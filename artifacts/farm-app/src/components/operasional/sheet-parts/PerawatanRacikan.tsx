@@ -47,7 +47,7 @@ export function PerawatanRacikan({
               <div key={index} className="flex gap-2 items-center py-3 first:pt-0 last:pb-0">
                 {/* Dropdown Pilih Produk */}
                 <div className="relative flex-1">
-               <select
+         <select
                     value={prod.produkId || ""}
                     onChange={(e) => {
                       const newProds = [...editedProducts];
@@ -64,11 +64,18 @@ export function PerawatanRacikan({
                     className="w-full appearance-none rounded-xl bg-background border border-border/50 px-3 py-2 text-[13px] font-semibold outline-none"
                   >
                     <option value="" disabled>Pilih Produk...</option>
+                    
+                    {/* 🚀 FIX: Tampilkan opsi fallback jika produk ada di riwayat tapi sudah di-soft-delete */}
+                    {prod.produkId && !produkOptions?.data?.some((p: any) => p.id === prod.produkId) && (
+                      <option key={`deleted-${prod.produkId}`} value={prod.produkId}>
+                        {prod.namaProduk || "Produk Dihapus"} (Dihapus)
+                      </option>
+                    )}
+
                     {produkOptions?.data
                       ?.filter((p: any) => p.isActive !== false || p.id === prod.produkId)
                       .map((p: any) => {
                         // 🚀 FIX: LOGIKA PENCEGAH DUPLIKAT BARIS
-                        // Cek apakah produk ini udah dipilih di baris LAIN selain baris ini
                         const isAlreadyUsed = editedProducts.some(
                           (item, i) => item.produkId === p.id && i !== index
                         );
