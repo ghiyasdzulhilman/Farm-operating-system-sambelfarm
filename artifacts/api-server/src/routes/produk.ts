@@ -1,19 +1,24 @@
 import { Router, type IRouter } from "express";
 import { getAuth } from "@clerk/express";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm"; // 🚀 FIX: Tambahin desc di sini
 import { db, produkMasterTable, stockMovementTable } from "@workspace/db";
 
 const router: IRouter = Router();
 
 // ==========================================
-// 1. GET SEMUA PRODUK
+// 1. GET SEMUA PRODUK (Sembunyikan yang di-Soft Delete)
 // ==========================================
 router.get("/produk", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
-    try {
-    const rawData = await db.select().from(produkMasterTable);
+  try {
+    // 🚀 FIX: Filter data, jangan kirim yang udah masuk tong sampah
+    const rawData = await db
+      .select()
+      .from(produkMasterTable)
+      .where(eq(produkMasterTable.deleted, false))
+      .orderBy(desc(produkMasterTable.createdAt));
     
     // 🚀 FIX: Paksa stokSaatIni (numeric) menjadi Number untuk Frontend
     const data = rawData.map(item => ({
@@ -23,6 +28,7 @@ router.get("/produk", async (req, res): Promise<void> => {
 
     res.json({ success: true, data });
   } catch (err) {
+    console.error("[GET PRODUK ERROR]:", err);
     res.status(500).json({ error: "Gagal mengambil data produk." });
   }
 });
@@ -159,51 +165,43 @@ router.patch("/produk/:id", async (req, res): Promise<void> => {
 });
 
 // ==========================================
-// 4. DELETE PRODUK — TANGKAP FK RESTRICT & HAPUS STOK AWAL
+// 4. DELETE PRODUK (THE SMART DELETE)
 // ==========================================
 router.delete("/produk/:id", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   const { id } = req.params;
+
   try {
-    // 💡 Pakai transaction: Hapus log stok dulu, baru hapus produknya
-    const deletedData = await db.transaction(async (tx) => {
-      // 1. Bersihkan riwayat stok yang nyangkut (stok awal)
-      await tx.delete(stockMovementTable).where(eq(stockMovementTable.produkId, id));
-      
-      // 2. Baru hajar produk master-nya
-      const [deleted] = await tx.delete(produkMasterTable)
-        .where(eq(produkMasterTable.id, id))
-        .returning();
-        
-      return deleted;
-    });
-
-  if (!deletedData) {
-      res.status(404).json({ error: "Produk tidak ditemukan." }); return;
-    }
-
-    res.json({ success: true, message: "Produk berhasil dihapus.", data: deletedData });
-  } catch (err: any) {
-    console.error("[DB ERROR HAPUS PRODUK]:", err);
-
-    // 🚀 FIX: Buka bungkus error Drizzle untuk ambil error asli Postgres (err.cause)
-    const dbError = err.cause || err;
-    const errorCode = dbError.code || err.code;
-    const errorString = (String(err) + " " + String(dbError)).toLowerCase();
-
-    const isForeignKeyError = 
-      errorCode === '23503' || 
-      errorString.includes('foreign key constraint') || 
-      errorString.includes('23503') ||
-      errorString.includes('violates foreign key');
-
-    if (isForeignKeyError) {
-      res.status(400).json({ error: "Produk tidak bisa dihapus karena sudah tercatat di riwayat pemakaian perawatan kebun. Nonaktifkan saja produk ini agar tidak muncul lagi di pilihan." });
-      return;
-    }
+    // 🚀 CEK DULU KE GUDANG: Produk ini udah punya riwayat transaksi selain stok_awal belum?
+    const riwayatStok = await db.select().from(stockMovementTable).where(eq(stockMovementTable.produkId, id));
     
+    // Status Clean: Belum ada riwayat, atau cuma ada 1 yaitu stok awal pas pertama dibikin.
+    const isClean = riwayatStok.length === 0 || (riwayatStok.length === 1 && riwayatStok[0].tipe === "stok_awal");
+
+    if (isClean) {
+      // 🟢 KONDISI A: HARD DELETE (Bersih tak bersisa)
+      await db.transaction(async (tx) => {
+        await tx.delete(stockMovementTable).where(eq(stockMovementTable.produkId, id));
+        await tx.delete(produkMasterTable).where(eq(produkMasterTable.id, id));
+      });
+      res.json({ success: true, message: "Produk berhasil dihapus permanen." });
+    } else {
+      // 🟡 KONDISI B: SOFT DELETE (Amankan data laporan)
+      await db.update(produkMasterTable)
+        .set({ 
+          deleted: true, 
+          isActive: false, 
+          updatedAt: new Date() 
+        })
+        .where(eq(produkMasterTable.id, id));
+        
+      res.json({ success: true, message: "Produk disembunyikan untuk menjaga riwayat laporan." });
+    }
+
+  } catch (err: any) {
+    console.error("[DELETE PRODUK ERROR]:", err);
     res.status(500).json({ error: "Gagal menghapus produk. Terjadi kesalahan pada server." });
   }
 });
