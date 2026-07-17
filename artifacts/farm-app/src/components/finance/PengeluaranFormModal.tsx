@@ -5,11 +5,11 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
-interface FormPengeluaranProps {
+interface PengeluaranFormModalProps {
   onSuccessClose?: () => void;
 }
 
-export function FormPengeluaran({ onSuccessClose }: FormPengeluaranProps) {
+export function PengeluaranFormModal({ onSuccessClose }: PengeluaranFormModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
