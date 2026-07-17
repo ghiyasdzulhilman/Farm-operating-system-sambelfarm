@@ -204,24 +204,27 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
           for (const item of produkArray) {
             const produk = produkMap.get(item.produkId)!;
 
-            // Panggil adjustStock — throw "STOK_TIDAK_CUKUP:..." kalau gagal, ditangkap di catch luar.
+          // Panggil adjustStock — throw "STOK_TIDAK_CUKUP:..." kalau gagal, ditangkap di catch luar.
             await adjustStock(tx, {
               produkId: item.produkId,
               delta: -item.kuantitasPemakaian,
               tipe: "pemakaian",
-              perawatanProdukId: null, // diisi belakangan setelah insert, lihat catatan di bawah
+              perawatanProdukId: null, 
             });
 
-            const totalBiaya = Math.round(item.kuantitasPemakaian * produk.hargaPerSatuanDasar);
+            // 🚀 FIX: Parse harga dari string DB jadi Number buat kalkulasi
+            const hargaSatuanNum = Number(produk.hargaPerSatuanDasar) || 0;
+            const totalBiaya = Math.round(item.kuantitasPemakaian * hargaSatuanNum);
 
             await tx.insert(perawatanProdukTable).values({
               perawatanId: newPerawatan.id,
               produkId: item.produkId,
-              kuantitasPemakaian: item.kuantitasPemakaian,
-              hargaTercatatPerSatuan: produk.hargaPerSatuanDasar,
+              kuantitasPemakaian: String(item.kuantitasPemakaian), // 🚀 BUNGKUS DENGAN String()
+              hargaTercatatPerSatuan: String(hargaSatuanNum), // 🚀 BUNGKUS DENGAN String()
               totalBiaya,
-              urutan: urutanIndex++, // 🚀 Suntik posisi urutan di sini
+              urutan: urutanIndex++,
             });
+
           }
 
         }
@@ -359,10 +362,11 @@ router.get("/notion/all-perawatan", async (req, res): Promise<void> => {
         .filter((p) => p.perawatanId === perawatan.id)
         .sort((a, b) => (a.urutan ?? 0) - (b.urutan ?? 0)); 
       
-      // 🚀 FIX: Paksa kuantitasPemakaian (numeric) jadi Number agar UI tidak error
+      // 🚀 FIX: Paksa kuantitas & harga (numeric) jadi Number agar UI tidak error
       const racikanBahanFormatted = racikanBahan.map((p) => ({
         ...p,
-        kuantitasPemakaian: parseFloat(String(p.kuantitasPemakaian)) || 0
+        kuantitasPemakaian: parseFloat(String(p.kuantitasPemakaian)) || 0,
+        hargaTercatatPerSatuan: parseFloat(String(p.hargaTercatatPerSatuan)) || 0 // 🚀 TAMBAHAN PARSING
       }));
 
       const totalBiayaPerawatan = racikanBahanFormatted.reduce((sum, p) => sum + (p.totalBiaya ?? 0), 0);
@@ -543,7 +547,7 @@ router.patch("/notion/perawatan/:id", async (req, res): Promise<void> => {
           await tx.delete(perawatanProdukTable).where(eq(perawatanProdukTable.id, item.id));
         }
 
-        // --- EKSEKUSI EMBER B: TAMBAH BARU (Potong stok & pakai harga master TERBARU) ---
+         // --- EKSEKUSI EMBER B: TAMBAH BARU (Potong stok & pakai harga master TERBARU) ---
         if (toInsert.length > 0) {
           const insertIds = toInsert.map((p) => p.produkId);
           const masterRows = await tx.select().from(produkMasterTable).where(inArray(produkMasterTable.id, insertIds));
@@ -552,7 +556,11 @@ router.patch("/notion/perawatan/:id", async (req, res): Promise<void> => {
           for (const item of toInsert) {
             const master = masterMap.get(item.produkId);
             if (!master) throw new Error(`Produk dengan ID ${item.produkId} tidak ditemukan.`);
-            if (master.hargaPerSatuanDasar === 0) throw new Error(`Produk "${master.nama}" belum punya harga. Set harga dulu.`);
+            
+            // 🚀 FIX: Parse harga dari string DB jadi Number
+            const hargaMasterNum = Number(master.hargaPerSatuanDasar) || 0;
+            
+            if (hargaMasterNum === 0) throw new Error(`Produk "${master.nama}" belum punya harga. Set harga dulu.`);
             if (item.kuantitasPemakaian <= 0) throw new Error(`Kuantitas pemakaian "${master.nama}" harus lebih dari 0.`);
 
             await adjustStock(tx, {
@@ -562,14 +570,14 @@ router.patch("/notion/perawatan/:id", async (req, res): Promise<void> => {
               perawatanProdukId: null,
             });
 
-            const totalBiaya = Math.round(item.kuantitasPemakaian * master.hargaPerSatuanDasar);
+            const totalBiaya = Math.round(item.kuantitasPemakaian * hargaMasterNum);
             await tx.insert(perawatanProdukTable).values({
               perawatanId: id,
               produkId: item.produkId,
-              kuantitasPemakaian: item.kuantitasPemakaian.toString(), 
-              hargaTercatatPerSatuan: master.hargaPerSatuanDasar, // Harga Baru
+              kuantitasPemakaian: String(item.kuantitasPemakaian), // 🚀 BUNGKUS String()
+              hargaTercatatPerSatuan: String(hargaMasterNum), // 🚀 BUNGKUS String()
               totalBiaya,
-              urutan: item.urutan, // 🚀 Suntik posisi urutan
+              urutan: item.urutan, 
             });
           }
         }
