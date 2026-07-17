@@ -175,7 +175,7 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
   return (
     <div className="w-full space-y-3 animate-in fade-in duration-300">
       <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground pl-1">
-        {isTrashMode ? `Tong Sampah Master (${filteredProduk.length})` : `Daftar Produk Terdaftar ({filteredProduk.length})`}
+        {isTrashMode ? "Tong Sampah" : "Daftar Produk Terdaftar"} ({filteredProduk.length})
       </h4>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
