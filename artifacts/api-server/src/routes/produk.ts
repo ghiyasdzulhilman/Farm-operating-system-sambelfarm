@@ -58,14 +58,14 @@ router.post("/produk", async (req, res): Promise<void> => {
   try {
     // 💡 Transaction: insert produk + catat baris pertama ledger dalam satu operasi atomik.
     const result = await db.transaction(async (tx) => {
-      const [newProduk] = await tx.insert(produkMasterTable).values({
+   const [newProduk] = await tx.insert(produkMasterTable).values({
         nama: nama.trim(),
         jenis,
         bentuk: bentuk || "Solid",
         satuanDasar: satuanDasar || "gram",
         satuanTampilan: satuanTampilan || "kg",
-        hargaPerSatuanDasar: Number(hargaPerSatuanDasar) || 0,
-        stokSaatIni: stokAwalNum,
+        hargaPerSatuanDasar: String(Number(hargaPerSatuanDasar) || 0), // 🚀 BUNGKUS DENGAN String()
+        stokSaatIni: String(stokAwalNum), // 🚀 BUNGKUS DENGAN String()
         n: n !== undefined ? Number(n) : undefined,
         p: p !== undefined ? Number(p) : undefined,
         k: k !== undefined ? Number(k) : undefined,
@@ -77,9 +77,9 @@ router.post("/produk", async (req, res): Promise<void> => {
         await tx.insert(stockMovementTable).values({
           produkId: newProduk.id,
           tipe: "stok_awal",
-          delta: stokAwalNum,
-          stokSebelum: 0,
-          stokSesudah: stokAwalNum,
+          delta: String(stokAwalNum), // 🚀 BUNGKUS DENGAN String()
+          stokSebelum: "0", // 🚀 BUNGKUS DENGAN String()
+          stokSesudah: String(stokAwalNum), // 🚀 BUNGKUS DENGAN String()
           perawatanProdukId: null,
           catatan: "Stok awal saat produk dibuat",
         });
@@ -246,20 +246,20 @@ router.post("/produk/:id/adjust", async (req, res): Promise<void> => {
         throw new Error("NO_CHANGE");
       }
 
-      // 2. Insert riwayat penyesuaian ke tabel stock_movement
+     // 2. Insert riwayat penyesuaian ke tabel stock_movement
       await tx.insert(stockMovementTable).values({
         produkId: id,
         tipe: "adjustment",
-        delta: delta,
-        stokSebelum: stokSebelum,
-        stokSesudah: stokBaruNum,
+        delta: String(delta), // 🚀 BUNGKUS DENGAN String()
+        stokSebelum: String(stokSebelum), // 🚀 BUNGKUS DENGAN String()
+        stokSesudah: String(stokBaruNum), // 🚀 BUNGKUS DENGAN String()
         catatan: catatan || `Penyesuaian stok manual (Selisih: ${delta > 0 ? '+' : ''}${delta})`,
       });
 
       // 3. Update secara paksa stok caching di tabel master
       const [updatedProduk] = await tx.update(produkMasterTable)
         .set({ 
-          stokSaatIni: stokBaruNum,
+          stokSaatIni: String(stokBaruNum), // 🚀 BUNGKUS DENGAN String()
           updatedAt: new Date()
         })
         .where(eq(produkMasterTable.id, id))
