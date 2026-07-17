@@ -99,7 +99,7 @@ export const produkMasterTable = pgTable("produk_master", {
   satuanDasar: text("satuan_dasar").default("gram").notNull(),
   satuanTampilan: text("satuan_tampilan").default("kg").notNull(),
 
-  hargaPerSatuanDasar: integer("harga_per_satuan_dasar").default(0).notNull(),
+  hargaPerSatuanDasar: numeric("harga_per_satuan_dasar", { precision: 18, scale: 3 }).default("0").notNull(),
   stokSaatIni: numeric("stok_saat_ini", { precision: 18, scale: 3 }).default(0).notNull(),
 
   isActive: boolean("is_active").default(true).notNull(),
@@ -168,7 +168,7 @@ export const perawatanProdukTable = pgTable("perawatan_produk", {
 
   // kuantitas pakai: gunakan numeric untuk presisi
   kuantitasPemakaian: numeric("kuantitas_pemakaian", { precision: 18, scale: 3 }).notNull(),
-  hargaTercatatPerSatuan: integer("harga_tercatat_per_satuan").notNull(),
+  hargaTercatatPerSatuan: numeric("harga_tercatat_per_satuan", { precision: 18, scale: 3 }).notNull(),
   totalBiaya: integer("total_biaya").notNull(), // dihitung di app code / transaction
 
   urutan: integer("urutan").default(0).notNull(),
@@ -291,7 +291,7 @@ export const pengeluaranTable = pgTable("pengeluaran", {
 
   satuanKerja: text("satuan_kerja").default("lumpsum").notNull(),
   kuantitas: numeric("kuantitas", { precision: 18, scale: 3 }).notNull(),
-  hargaSatuan: integer("harga_satuan").notNull(), // money in cents
+  hargaSatuan: numeric("harga_satuan", { precision: 18, scale: 3 }).notNull(),
   totalBiaya: integer("total_biaya").notNull(),
 
   isPembelianStok: boolean("is_pembelian_stok").default(false).notNull(),
