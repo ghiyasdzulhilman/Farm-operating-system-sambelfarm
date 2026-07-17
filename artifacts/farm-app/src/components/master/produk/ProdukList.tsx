@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Trash2, Package, Pencil, ToggleLeft, ToggleRight, PackageSearch, AlertCircle, RefreshCcw } from "lucide-react";
+import { Trash2, Package, Pencil, ToggleLeft, ToggleRight, PackageSearch, AlertCircle, RefreshCcw, RotateCcw, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -9,9 +9,10 @@ interface ProdukListProps {
   produk: any[];
   activeTab: string;
   searchQuery: string;
+  statusFilter: "aktif" | "nonaktif" | "delete"; // 🚀 FIX: Terima statusFilter dari induk
 }
 
-export function ProdukList({ produk, activeTab, searchQuery }: ProdukListProps) {
+export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: ProdukListProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -19,7 +20,7 @@ export function ProdukList({ produk, activeTab, searchQuery }: ProdukListProps) 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editHarga, setEditHarga] = useState<string>("");
 
-  // 🚀 State Edit Stok (Stock Adjustment)
+  // State Edit Stok (Stock Adjustment)
   const [editingStockId, setEditingStockId] = useState<string | null>(null);
   const [stokFisik, setStokFisik] = useState<string>("");
   const [catatanStok, setCatatanStok] = useState<string>("");
@@ -46,7 +47,7 @@ export function ProdukList({ produk, activeTab, searchQuery }: ProdukListProps) 
     },
   });
 
-  // 2. MUTASI HAPUS
+  // 2. MUTASI SMART DELETE (Pindahkan ke Tong Sampah)
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const res = await fetch(`/api/produk/${id}`, { method: "DELETE" });
@@ -58,14 +59,48 @@ export function ProdukList({ produk, activeTab, searchQuery }: ProdukListProps) 
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["produk-master-list"] });
-      toast({ title: "Dihapus", description: "Produk berhasil dihapus dari database." });
+      toast({ title: "Berhasil", description: "Produk dipindahkan ke Tong Sampah." });
     },
     onError: (err: any) => {
       toast({ variant: "destructive", title: "Gagal Menghapus", description: err.message });
     }
   });
 
-  // 🚀 3. MUTASI PENYESUAIAN STOK (AJUSTMENT)
+  // 🚀 FIX: 3. MUTASI PULIHKAN (Restore dari Tong Sampah)
+  const restoreMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/produk/${id}/restore`, { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Gagal memulihkan produk.");
+      return json;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["produk-master-list"] });
+      toast({ title: "Dipulihkan", description: "Produk berhasil diaktifkan kembali." });
+    },
+    onError: (err: any) => {
+      toast({ variant: "destructive", title: "Gagal", description: err.message });
+    }
+  });
+
+  // 🚀 FIX: 4. MUTASI HAPUS PERMANEN (Membakar semua riwayat transaksi)
+  const forceDeleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/produk/${id}/force`, { method: "DELETE" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Gagal menghapus permanen.");
+      return json;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["produk-master-list"] });
+      toast({ title: "Meninggal Permanen", description: "Produk beserta seluruh catatan transaksi dimusnahkan." });
+    },
+    onError: (err: any) => {
+      toast({ variant: "destructive", title: "Gagal", description: err.message });
+    }
+  });
+
+  // 5. MUTASI PENYESUAIAN STOK (AJUSTMENT)
   const adjustMutation = useMutation({
     mutationFn: async ({ id, payload }: { id: string; payload: any }) => {
       const res = await fetch(`/api/produk/${id}/adjust`, {
@@ -87,7 +122,7 @@ export function ProdukList({ produk, activeTab, searchQuery }: ProdukListProps) 
     },
   });
 
-  // 4. LOGIKA FILTERING DATA
+  // 6. LOGIKA FILTERING DATA BERDASARKAN KATEGORI & SEARCH
   const filteredProduk = useMemo(() => {
     return produk
       .filter((item) => activeTab === "Semua" || item.jenis?.toLowerCase() === activeTab.toLowerCase())
@@ -96,7 +131,7 @@ export function ProdukList({ produk, activeTab, searchQuery }: ProdukListProps) 
 
   // --- HANDLER HARGA ---
   const startEditHarga = (item: any) => {
-    setEditingStockId(null); // Tutup form stok jika sedang terbuka
+    setEditingStockId(null);
     setEditingId(item.id);
     setEditHarga(String(item.hargaPerSatuanDasar ?? 0));
   };
@@ -110,9 +145,9 @@ export function ProdukList({ produk, activeTab, searchQuery }: ProdukListProps) 
     updateMutation.mutate({ id: item.id, payload: { hargaPerSatuanDasar: nilaiBaru } });
   };
 
-  // 🚀 --- HANDLER STOK ---
+  // --- HANDLER STOK ---
   const startEditStock = (item: any) => {
-    setEditingId(null); // Tutup form harga jika sedang terbuka
+    setEditingId(null);
     setEditingStockId(item.id);
     setStokFisik(String(item.stokSaatIni));
     setCatatanStok("");
@@ -135,10 +170,12 @@ export function ProdukList({ produk, activeTab, searchQuery }: ProdukListProps) 
     updateMutation.mutate({ id: item.id, payload: { isActive: !item.isActive } });
   };
 
+  const isTrashMode = statusFilter === "delete";
+
   return (
     <div className="w-full space-y-3 animate-in fade-in duration-300">
       <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground pl-1">
-        Daftar Produk Terdaftar ({filteredProduk.length})
+        {isTrashMode ? `Tong Sampah Master (${filteredProduk.length})` : `Daftar Produk Terdaftar ({filteredProduk.length})`}
       </h4>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -152,15 +189,20 @@ export function ProdukList({ produk, activeTab, searchQuery }: ProdukListProps) 
               key={item.id}
               className={cn(
                 "flex flex-col gap-3 rounded-2xl border bg-card p-3.5 shadow-sm transition-all duration-200",
-                item.isActive 
-                  ? "border-border/50 hover:border-primary/30" 
-                  : "border-border/20 bg-muted/10 opacity-75 grayscale-[0.3]"
+                isTrashMode
+                  ? "border-rose-500/20 bg-rose-500/[0.02]"
+                  : item.isActive 
+                    ? "border-border/50 hover:border-primary/30" 
+                    : "border-border/20 bg-muted/10 opacity-75 grayscale-[0.3]"
               )}
             >
               {/* SEKTOR ATAS: Identitas & Tombol Aksi */}
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3 min-w-0">
-                  <div className="rounded-xl bg-muted/60 p-2 text-muted-foreground/80 shrink-0 mt-0.5">
+                  <div className={cn(
+                    "rounded-xl p-2 shrink-0 mt-0.5 shadow-sm bg-muted/60 text-muted-foreground/80",
+                    isTrashMode && "bg-rose-500/10 text-rose-600"
+                  )}>
                     <Package className="h-4 w-4" />
                   </div>
                   <div className="flex flex-col min-w-0">
@@ -168,15 +210,23 @@ export function ProdukList({ produk, activeTab, searchQuery }: ProdukListProps) 
                       {item.nama}
                     </span>
                     <div className="flex flex-wrap gap-1.5 mt-1.5">
-                      <span className="text-[9px] font-black uppercase tracking-widest text-primary bg-primary/10 px-1.5 py-0.5 rounded-md">
+                      <span className={cn(
+                        "text-[9px] font-black uppercase tracking-widest bg-primary/10 text-primary px-1.5 py-0.5 rounded-md",
+                        isTrashMode && "bg-rose-500/10 text-rose-600"
+                      )}>
                         {item.jenis}
                       </span>
-                      {!item.isActive && (
+                      {!item.isActive && !isTrashMode && (
                         <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md">
                           Nonaktif
                         </span>
                       )}
-                      {hargaKosong && item.isActive && (
+                      {isTrashMode && (
+                        <span className="text-[9px] font-black uppercase tracking-widest text-rose-600 bg-rose-500/20 px-1.5 py-0.5 rounded-md font-bold">
+                          Terhapus
+                        </span>
+                      )}
+                      {hargaKosong && item.isActive && !isTrashMode && (
                         <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-amber-600 bg-amber-500/10 px-1.5 py-0.5 rounded-md border border-amber-500/20">
                           <AlertCircle className="h-2.5 w-2.5" /> Harga Rp0
                         </span>
@@ -185,33 +235,68 @@ export function ProdukList({ produk, activeTab, searchQuery }: ProdukListProps) 
                   </div>
                 </div>
 
+                {/* 🚀 FIX: LOGIKA PERALIHAN TOMBOL AKSI (NORMAL VS RECYCLE BIN) */}
                 <div className="flex items-center gap-1 shrink-0">
-                  <Button
-                    variant="ghost" size="icon"
-                    onClick={() => toggleActive(item)}
-                    disabled={updateMutation.isPending || adjustMutation.isPending}
-                    className="h-9 w-9 rounded-xl hover:bg-muted"
-                  >
-                    {item.isActive ? <ToggleRight className="h-5 w-5 text-primary" /> : <ToggleLeft className="h-5 w-5 text-muted-foreground" />}
-                  </Button>
-                  <Button
-                    variant="ghost" size="icon"
-                    onClick={() => {
-                      if (confirm(`Yakin ingin menghapus produk "${item.nama}"?`)) {
-                        deleteMutation.mutate(item.id);
-                      }
-                    }}
-                    disabled={deleteMutation.isPending || adjustMutation.isPending}
-                    className="h-9 w-9 text-destructive/70 hover:text-destructive hover:bg-destructive/10 rounded-xl transition-colors"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  {isTrashMode ? (
+                    // 🗑️ TAMPILAN OPSI DI DALAM TAB DELETE (PULIHKAN & HAPUS PERMANEN)
+                    <>
+                      <Button
+                        variant="ghost" size="sm"
+                        onClick={() => {
+                          if (confirm(`Pulihkan produk "${item.nama}" agar bisa digunakan kembali?`)) {
+                            restoreMutation.mutate(item.id);
+                          }
+                        }}
+                        disabled={restoreMutation.isPending || forceDeleteMutation.isPending}
+                        className="h-8 px-2.5 gap-1 text-[10px] font-black uppercase tracking-wider text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 rounded-xl transition-all"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" /> Pulihkan
+                      </Button>
+                      
+                      <Button
+                        variant="ghost" size="sm"
+                        onClick={() => {
+                          if (confirm(`⚠️ PERINGATAN KERAS! Menghapus permanen "${item.nama}" akan MEMBAKAR/MENGHAPUS TOTAL seluruh riwayat nota pembelian uang kas dan stok movement barang di kebun. Anda yakin?`)) {
+                            forceDeleteMutation.mutate(item.id);
+                          }
+                        }}
+                        disabled={restoreMutation.isPending || forceDeleteMutation.isPending}
+                        className="h-8 px-2.5 gap-1 text-[10px] font-black uppercase tracking-wider text-rose-600 hover:text-rose-700 hover:bg-rose-500/10 rounded-xl transition-all"
+                      >
+                        <ShieldAlert className="h-3.5 w-3.5" /> Hapus Permanen
+                      </Button>
+                    </>
+                  ) : (
+                    // 🔘 TAMPILAN MODE NORMAL (TOGGLE & INJAK TONG SAMPAH)
+                    <>
+                      <Button
+                        variant="ghost" size="icon"
+                        onClick={() => toggleActive(item)}
+                        disabled={updateMutation.isPending || adjustMutation.isPending}
+                        className="h-9 w-9 rounded-xl hover:bg-muted"
+                      >
+                        {item.isActive ? <ToggleRight className="h-5 w-5 text-primary" /> : <ToggleLeft className="h-5 w-5 text-muted-foreground" />}
+                      </Button>
+                      <Button
+                        variant="ghost" size="icon"
+                        onClick={() => {
+                          if (confirm(`Pindahkan produk "${item.nama}" ke tong sampah?`)) {
+                            deleteMutation.mutate(item.id);
+                          }
+                        }}
+                        disabled={deleteMutation.isPending || adjustMutation.isPending}
+                        className="h-9 w-9 text-destructive/70 hover:text-destructive hover:bg-destructive/10 rounded-xl transition-colors"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
 
               {/* SEKTOR BAWAH: Dinamis (View / Form Edit Harga / Form Edit Stok) */}
-              {isEditingStock ? (
-                // 🚀 TAMPILAN FORM OPNAME STOK
+              {isEditingStock && !isTrashMode ? (
+                // TAMPILAN FORM OPNAME STOK
                 <div className="w-full flex flex-col gap-2.5 pt-3 border-t border-border/40 mt-1 animate-in fade-in zoom-in-95 duration-200">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-1.5">
@@ -250,24 +335,28 @@ export function ProdukList({ produk, activeTab, searchQuery }: ProdukListProps) 
                   </div>
                 </div>
               ) : (
-                // TAMPILAN NORMAL / EDIT HARGA
+                // TAMPILAN NORMAL STOK & HARGA (Read-Only saat di Tong Sampah)
                 <div className="flex items-center justify-between pt-2.5 border-t border-border/40 mt-1">
                   
                   {/* Bagian Stok Kiri */}
                   <div className="text-xs flex items-center gap-1.5">
                     <span className="text-muted-foreground">Stok:</span>
-                    <button 
-                      onClick={() => startEditStock(item)} 
-                      className="flex items-center gap-1.5 font-bold text-foreground hover:text-primary transition-colors group"
-                    >
-                      {item.stokSaatIni} <span className="font-semibold text-muted-foreground group-hover:text-primary/70">{item.satuanDasar}</span>
-                      <Pencil className="h-3 w-3 text-muted-foreground/40 group-hover:text-primary/70 transition-colors" />
-                    </button>
+                    {isTrashMode ? (
+                      <span className="font-bold text-muted-foreground/80">{item.stokSaatIni} {item.satuanDasar}</span>
+                    ) : (
+                      <button 
+                        onClick={() => startEditStock(item)} 
+                        className="flex items-center gap-1.5 font-bold text-foreground hover:text-primary transition-colors group"
+                      >
+                        {item.stokSaatIni} <span className="font-semibold text-muted-foreground group-hover:text-primary/70">{item.satuanDasar}</span>
+                        <Pencil className="h-3 w-3 text-muted-foreground/40 group-hover:text-primary/70 transition-colors" />
+                      </button>
+                    )}
                   </div>
                   
                   {/* Bagian Harga Kanan */}
                   <div className="text-xs">
-                    {isEditingHarga ? (
+                    {isEditingHarga && !isTrashMode ? (
                       <div className="flex items-center gap-1.5 animate-in fade-in zoom-in-95 duration-200">
                         <input
                           type="number" 
@@ -284,18 +373,22 @@ export function ProdukList({ produk, activeTab, searchQuery }: ProdukListProps) 
                         </Button>
                       </div>
                     ) : (
-                      <button 
-                        onClick={() => startEditHarga(item)} 
-                        className="flex items-center gap-1.5 font-bold text-foreground hover:text-primary transition-colors group"
-                      >
-                        <span className={cn(hargaKosong && "text-amber-600")}>
-                          Rp{item.hargaPerSatuanDasar?.toLocaleString("id-ID") ?? 0}
-                        </span>
-                        <span className="text-muted-foreground/60 text-[10px] font-semibold">
-                          /{item.satuanDasar}
-                        </span>
-                        <Pencil className="h-3 w-3 text-muted-foreground/40 group-hover:text-primary/70 transition-colors" />
-                      </button>
+                      isTrashMode ? (
+                        <span className="font-bold text-muted-foreground/80">Rp{item.hargaPerSatuanDasar?.toLocaleString("id-ID") ?? 0}/{item.satuanDasar}</span>
+                      ) : (
+                        <button 
+                          onClick={() => startEditHarga(item)} 
+                          className="flex items-center gap-1.5 font-bold text-foreground hover:text-primary transition-colors group"
+                        >
+                          <span className={cn(hargaKosong && "text-amber-600")}>
+                            Rp{item.hargaPerSatuanDasar?.toLocaleString("id-ID") ?? 0}
+                          </span>
+                          <span className="text-muted-foreground/60 text-[10px] font-semibold">
+                            /{item.satuanDasar}
+                          </span>
+                          <Pencil className="h-3 w-3 text-muted-foreground/40 group-hover:text-primary/70 transition-colors" />
+                        </button>
+                      )
                     )}
                   </div>
 
@@ -310,7 +403,9 @@ export function ProdukList({ produk, activeTab, searchQuery }: ProdukListProps) 
         <div className="flex flex-col items-center justify-center p-12 border border-dashed rounded-3xl bg-muted/10 text-center text-muted-foreground">
           <PackageSearch className="h-8 w-8 opacity-20 mb-2" />
           <p className="text-xs font-semibold">Tidak ada produk ditemukan.</p>
-          <p className="text-[10px] opacity-70">Coba ubah kata kunci atau ganti filter kategori.</p>
+          <p className="text-[10px] opacity-70">
+            {isTrashMode ? "Tong sampah Anda kosong bersih." : "Coba ubah kata kunci atau ganti filter kategori."}
+          </p>
         </div>
       )}
     </div>
