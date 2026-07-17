@@ -47,7 +47,7 @@ export function PerawatanRacikan({
               <div key={index} className="flex gap-2 items-center py-3 first:pt-0 last:pb-0">
                 {/* Dropdown Pilih Produk */}
                 <div className="relative flex-1">
-                  <select
+               <select
                     value={prod.produkId || ""}
                     onChange={(e) => {
                       const newProds = [...editedProducts];
@@ -66,12 +66,21 @@ export function PerawatanRacikan({
                     <option value="" disabled>Pilih Produk...</option>
                     {produkOptions?.data
                       ?.filter((p: any) => p.isActive !== false || p.id === prod.produkId)
-                      .map((p: any) => (
-                        <option key={p.id} value={p.id}>
-                          {p.nama} {p.isActive === false ? "(Nonaktif)" : ""}
-                        </option>
-                      ))}
+                      .map((p: any) => {
+                        // 🚀 FIX: LOGIKA PENCEGAH DUPLIKAT BARIS
+                        // Cek apakah produk ini udah dipilih di baris LAIN selain baris ini
+                        const isAlreadyUsed = editedProducts.some(
+                          (item, i) => item.produkId === p.id && i !== index
+                        );
+                        
+                        return (
+                          <option key={p.id} value={p.id} disabled={isAlreadyUsed}>
+                            {p.nama} {p.isActive === false ? "(Nonaktif)" : ""} {isAlreadyUsed ? "⚠️ (Sudah Dipakai)" : ""}
+                          </option>
+                        );
+                      })}
                   </select>
+
                   <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground opacity-50 pointer-events-none" />
                 </div>
 
