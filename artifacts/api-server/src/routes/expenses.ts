@@ -35,7 +35,6 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
     if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
     const {
-      areaId,
       kategoriId,
       tanggal,
       totalBiaya,
@@ -97,33 +96,14 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
       ? `Beli Stok: ${produkNama}`
       : kategoriData?.nama ? `Biaya ${kategoriData.nama}` : "Biaya Operasional";
 
-    // 🚀 THE NEW LOGIC: CARI SIKLUS AKTIF BERDASARKAN AREA
-    let siklusIdToSave = siklusId || null;
-    if (areaId) {
-      const [activeCycle] = await db
-        .select({ id: siklusTanamTable.id })
-        .from(siklusTanamTable)
-        .where(
-          and(
-            eq(siklusTanamTable.areaId, areaId),
-            eq(siklusTanamTable.status, "Aktif")
-          )
-        )
-        .limit(1);
-
-      if (activeCycle) {
-        siklusIdToSave = activeCycle.id;
-      }
-    }
-
     // 🚀 --- C. THE 3-IN-1 COMBO TRANSACTION ---
 
         const result = await db.transaction(async (tx) => {
       
-     // [AKSI 1] Insert ke tabel pengeluaran pakai DATA JUJUR
+      // [AKSI 1] Insert ke tabel pengeluaran pakai DATA JUJUR
       const [newPengeluaran] = await tx.insert(pengeluaranTable).values({
-        areaId: areaId || null, 
-        siklusId: siklusIdToSave, 
+        areaId: null, // 🚀 FIX: Set murni jadi Biaya Umum
+        siklusId: null, // 🚀 FIX: Set murni jadi Biaya Umum
         kategoriId,
         tanggal: new Date(tanggal),
         namaItem: keterangan ? `${fallbackNamaItem} - ${keterangan}` : fallbackNamaItem,
@@ -222,26 +202,7 @@ router.get("/pengeluaran-dropdown-options", async (req, res): Promise<void> => {
     const { userId } = getAuth(req);
     if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
-    const dbAreas = await db
-      .select({
-        id: areasTable.id,
-        name: areasTable.name,
-        namaSiklus: siklusTanamTable.namaSiklus,
-      })
-      .from(areasTable)
-      .leftJoin(
-        siklusTanamTable,
-        and(
-          eq(areasTable.id, siklusTanamTable.areaId),
-          eq(siklusTanamTable.status, "Aktif")
-        )
-      );
-
-    const formattedAreas = dbAreas.map(a => ({ 
-      id: a.id, 
-      name: a.namaSiklus ? `${a.name} - ${a.namaSiklus}` : a.name 
-    }));
-
+    // 🚀 FIX: Query areasTable dihapus karena form pengeluaran murni untuk Biaya Umum & Stok
     const dbKategoriKeuangan = await db
       .select()
       .from(kategoriKeuanganTable)
@@ -250,7 +211,6 @@ router.get("/pengeluaran-dropdown-options", async (req, res): Promise<void> => {
 
     res.json({ 
       success: true,
-      areas: formattedAreas, 
       kategoriKeuangan: dbKategoriKeuangan 
     });
 
