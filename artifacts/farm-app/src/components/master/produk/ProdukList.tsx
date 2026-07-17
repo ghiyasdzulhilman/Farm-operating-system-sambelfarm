@@ -129,7 +129,7 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
       .filter((item) => item.nama?.toLowerCase().includes(searchQuery.toLowerCase()));
   }, [produk, activeTab, searchQuery]);
 
-  // --- HANDLER HARGA ---
+    // --- HANDLER HARGA ---
   const startEditHarga = (item: any) => {
     setEditingStockId(null);
     setEditingId(item.id);
@@ -137,7 +137,10 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
   };
 
   const submitEditHarga = (item: any) => {
-    const nilaiBaru = Number(editHarga);
+    // 🚀 FIX: Parsing aman untuk desimal, jika NaN otomatis ke 0
+    let nilaiBaru = Number(editHarga);
+    if (isNaN(nilaiBaru) || nilaiBaru < 0) nilaiBaru = 0; 
+    
     if (nilaiBaru === 0 && item.isActive && item.hargaPerSatuanDasar !== 0) {
       const yakin = confirm(`⚠️ Set harga "${item.nama}" ke Rp0 akan memblokir produk ini dari form perawatan. Lanjutkan?`);
       if (!yakin) return;
@@ -145,7 +148,7 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
     updateMutation.mutate({ id: item.id, payload: { hargaPerSatuanDasar: nilaiBaru } });
   };
 
-  // --- HANDLER STOK ---
+    // --- HANDLER STOK ---
   const startEditStock = (item: any) => {
     setEditingId(null);
     setEditingStockId(item.id);
@@ -154,7 +157,13 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
   };
 
   const submitEditStock = (item: any) => {
+    // 🚀 FIX: Parsing aman untuk desimal, jika NaN cegah mutasi
     const fisikNum = Number(stokFisik);
+    if (isNaN(fisikNum) || fisikNum < 0) {
+       toast({ variant: "destructive", title: "Format Salah", description: "Pastikan angka stok fisik valid."});
+       return;
+    }
+
     if (fisikNum === Number(item.stokSaatIni)) {
       toast({ title: "Tidak ada perubahan", description: "Angka stok fisik sama dengan stok di sistem." });
       setEditingStockId(null);
