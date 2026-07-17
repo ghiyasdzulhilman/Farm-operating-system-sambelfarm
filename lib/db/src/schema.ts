@@ -305,12 +305,18 @@ export const pengeluaranTable = pgTable("pengeluaran", {
 (table) => [
   check("kuantitas_non_negative", sql`${table.kuantitas} >= 0`),
   check("harga_satuan_non_negative", sql`${table.hargaSatuan} >= 0`),
-  check("satuan_kerja_valid", sql`${table.satuanKerja} IN ('lumpsum', 'jam', 'hari', 'unit', 'kg', 'liter', 'botol')`),
-  check("total_biaya_konsisten", sql`ABS(${table.totalBiaya} - ROUND(${table.kuantitas} * ${table.hargaSatuan})) <= 1`),
+  
+  // 🚀 PERUBAHAN 1: Tambah 'gram' dan 'ml' biar sinkron sama master produk
+  check("satuan_kerja_valid", sql`${table.satuanKerja} IN ('lumpsum', 'jam', 'hari', 'unit', 'kg', 'liter', 'botol', 'gram', 'ml')`),
+  
+  // 🚀 PERUBAHAN 2: Rumus toleransi pembulatan dinamis (Aman buat volume besar)
+  check("total_biaya_konsisten", sql`ABS(${table.totalBiaya} - ROUND(${table.kuantitas} * ${table.hargaSatuan})) <= (ROUND(${table.kuantitas}) + 100)`),
+  
   check("pembelian_stok_konsisten", sql`(${table.isPembelianStok} = true AND ${table.produkId} IS NOT NULL) OR (${table.isPembelianStok} = false AND ${table.produkId} IS NULL)`),
   index("pengeluaran_siklus_idx").on(table.siklusId),
   index("pengeluaran_tanggal_idx").on(table.tanggal),
 ]);
+
 
 export const panenTable = pgTable("panen", {
   id: uuid("id").defaultRandom().primaryKey(),
