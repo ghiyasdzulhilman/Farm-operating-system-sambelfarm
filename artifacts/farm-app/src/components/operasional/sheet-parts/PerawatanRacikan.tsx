@@ -91,7 +91,7 @@ export function PerawatanRacikan({
                   <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground opacity-50 pointer-events-none" />
                 </div>
 
-                {/* Input Gram/Dosis dengan Preview Sisa Stok */}
+             {/* Input Gram/Dosis dengan Preview Sisa Stok */}
                 {(() => {
                   const selectedMaster = produkOptions?.data?.find((p: any) => p.id === prod.produkId);
                   const stokTerkini = selectedMaster?.stokSaatIni ?? null;
@@ -100,7 +100,10 @@ export function PerawatanRacikan({
                   const dosisTersimpan = historyProd ? parseFloat(String(historyProd.kuantitasPemakaian)) : 0;
                   
                   const maxAllowed = stokTerkini !== null ? stokTerkini + dosisTersimpan : null;
-                  const isOverStock = maxAllowed !== null && prod.kuantitasPemakaian > maxAllowed;
+                  
+                  // 🚀 FIX: Konversi aman ke Number khusus buat ngecek overstock
+                  const currentQty = Number(prod.kuantitasPemakaian) || 0;
+                  const isOverStock = maxAllowed !== null && currentQty > maxAllowed;
 
                   return (
                     <div className={cn(
@@ -110,10 +113,12 @@ export function PerawatanRacikan({
                       <input
                         type="number"
                         min="0"
-                        value={prod.kuantitasPemakaian || ""}
+                        step="any" // 🚀 FIX: Izinkan keyboard iOS ngeluarin koma/titik
+                        value={prod.kuantitasPemakaian === 0 ? "" : prod.kuantitasPemakaian}
                         onChange={(e) => {
                           const newProds = [...editedProducts];
-                          newProds[index] = { ...newProds[index], kuantitasPemakaian: parseFloat(e.target.value) || 0 };
+                          // 🚀 FIX: Simpan input mentah sebagai string supaya desimal nggak kere-set React
+                          newProds[index] = { ...newProds[index], kuantitasPemakaian: e.target.value };
                           setEditedProducts(newProds);
                           setIsDirty(true);
                         }}
