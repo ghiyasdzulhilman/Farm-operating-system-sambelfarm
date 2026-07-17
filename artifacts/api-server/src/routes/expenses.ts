@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { db, pengeluaranTable, produkMasterTable, stockMovementTable, kategoriKeuanganTable } from "@workspace/db";
-import { eq, desc } from "drizzle-orm";
+import { db, pengeluaranTable, produkMasterTable, stockMovementTable, kategoriKeuanganTable, areasTable, siklusTanamTable } from "@workspace/db";
+import { eq, desc, and } from "drizzle-orm";
 import { getAuth } from "@clerk/express";
 import { getPekerjaIdFromClerk } from "../lib/authHelpers";
 
@@ -35,6 +35,7 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
     if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
     const {
+      areaId,
       kategoriId,
       tanggal,
       totalBiaya,
@@ -92,22 +93,42 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
       }
     }
     
-    // Nggak perlu lagi nulis (7500 gram) di nama, karena datanya udah masuk murni ke kolom kuantitas & satuan_kerja
     const fallbackNamaItem = isPembelianStok && produkNama 
       ? `Beli Stok: ${produkNama}`
       : kategoriData?.nama ? `Biaya ${kategoriData.nama}` : "Biaya Operasional";
 
+    // 🚀 THE NEW LOGIC: CARI SIKLUS AKTIF BERDASARKAN AREA
+    let siklusIdToSave = siklusId || null;
+    if (areaId) {
+      const [activeCycle] = await db
+        .select({ id: siklusTanamTable.id })
+        .from(siklusTanamTable)
+        .where(
+          and(
+            eq(siklusTanamTable.areaId, areaId),
+            eq(siklusTanamTable.status, "Aktif")
+          )
+        )
+        .limit(1);
+
+      if (activeCycle) {
+        siklusIdToSave = activeCycle.id;
+      }
+    }
+
     // 🚀 --- C. THE 3-IN-1 COMBO TRANSACTION ---
+
     const result = await db.transaction(async (tx) => {
       
-      // [AKSI 1] Insert ke tabel pengeluaran pakai DATA JUJUR
+     // [AKSI 1] Insert ke tabel pengeluaran pakai DATA JUJUR
       const [newPengeluaran] = await tx.insert(pengeluaranTable).values({
+        areaId: areaId || null, // 🚀 MASUKIN AREA ID
+        siklusId: siklusIdToSave, // 🚀 MASUKIN SIKLUS AKTIF
         kategoriId,
-        siklusId: siklusId || null,
         tanggal: new Date(tanggal),
         namaItem: keterangan ? `${fallbackNamaItem} - ${keterangan}` : fallbackNamaItem,
         totalBiaya: biayaNum,
-        keterangan: keterangan || null,
+        catatan: keterangan || null, // 🚀 FIX: Sesuaikan nama kolom jadi 'catatan' (bukan keterangan)
         isPembelianStok: Boolean(isPembelianStok),
         produkId: isPembelianStok ? produkId : null,
         satuanKerja: produkSatuan, // 🚀 JUJUR: Ngirim 'gram', 'kg', atau 'lumpsum' sesuai kondisi
@@ -181,15 +202,82 @@ router.get("/kategori-keuangan", async (req, res): Promise<void> => {
     if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
     // Ambil semua daftar kategori keuangan dari database
-    const data = await db
-      .select()
-      .from(kategoriKeuanganTable)
-      .orderBy(kategoriKeuanganTable.nama);
+      const data = await db
+      .select({
+        id: pengeluaranTable.id,
+        areaId: pengeluaranTable.areaId,
+        areaName: areasTable.name,
+        siklusId: pengeluaranTable.siklusId,
+        namaSiklus: siklusTanamTable.namaSiklus,
+        kategoriId: pengeluaranTable.kategoriId,
+        produkId: pengeluaranTable.produkId,
+        pekerjaId: pengeluaranTable.pekerjaId,
+        tanggal: pengeluaranTable.tanggal,
+        namaItem: pengeluaranTable.namaItem,
+        satuanKerja: pengeluaranTable.satuanKerja,
+        kuantitas: pengeluaranTable.kuantitas,
+        hargaSatuan: pengeluaranTable.hargaSatuan,
+        totalBiaya: pengeluaranTable.totalBiaya,
+        isPembelianStok: pengeluaranTable.isPembelianStok,
+        catatan: pengeluaranTable.catatan, 
+        createdAt: pengeluaranTable.createdAt,
+        updatedAt: pengeluaranTable.updatedAt,
+      })
+      .from(pengeluaranTable)
+      .leftJoin(areasTable, eq(pengeluaranTable.areaId, areasTable.id))
+      .leftJoin(siklusTanamTable, eq(pengeluaranTable.siklusId, siklusTanamTable.id))
+      .orderBy(desc(pengeluaranTable.tanggal));
 
     res.json({ success: true, data });
   } catch (err) {
     console.error("[GET KATEGORI KEUANGAN ERROR]:", err);
     res.status(500).json({ error: "Gagal mengambil data kategori keuangan." });
+  }
+});
+
+// ==========================================
+// 3. GET DROPDOWN OPTIONS PENGELUARAN 🚀
+// ==========================================
+router.get("/pengeluaran-dropdown-options", async (req, res): Promise<void> => {
+  try {
+    const { userId } = getAuth(req);
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+    const dbAreas = await db
+      .select({
+        id: areasTable.id,
+        name: areasTable.name,
+        namaSiklus: siklusTanamTable.namaSiklus,
+      })
+      .from(areasTable)
+      .leftJoin(
+        siklusTanamTable,
+        and(
+          eq(areasTable.id, siklusTanamTable.areaId),
+          eq(siklusTanamTable.status, "Aktif")
+        )
+      );
+
+    const formattedAreas = dbAreas.map(a => ({ 
+      id: a.id, 
+      name: a.namaSiklus ? `${a.name} - ${a.namaSiklus}` : a.name 
+    }));
+
+    const dbKategoriKeuangan = await db
+      .select()
+      .from(kategoriKeuanganTable)
+      .where(eq(kategoriKeuanganTable.tipe, 'pengeluaran'))
+      .orderBy(kategoriKeuanganTable.nama);
+
+    res.json({ 
+      success: true,
+      areas: formattedAreas, 
+      kategoriKeuangan: dbKategoriKeuangan 
+    });
+
+  } catch (err) {
+    console.error("[GET PENGELUARAN DROPDOWN ERROR]:", err);
+    res.status(500).json({ error: "Gagal mengambil opsi dropdown pengeluaran." }); 
   }
 });
 
