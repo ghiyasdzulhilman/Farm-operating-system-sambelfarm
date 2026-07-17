@@ -7,7 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, ArrowRight, CheckCircle2, Receipt,
-  Calendar, Tag, ToggleLeft, ToggleRight, Loader2, Wallet, X, Check, MapPin 
+  Calendar, Tag, ToggleLeft, ToggleRight, Loader2, Wallet, X, Check 
 } from "lucide-react";
 
 import { useToast } from "@/hooks/use-toast";
@@ -25,7 +25,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 const pengeluaranSchema = z.object({
   tanggal: z.string().min(1, "Tanggal wajib diisi"),
   namaItem: z.string().min(1, "Nama pengeluaran wajib diisi"),
-  areaId: z.string().optional(), // 🚀 Daftarin areaId
   siklusId: z.string().optional(), // Biarin aja buat jaga-jaga
   
   kategoriId: z.string().min(1, "Kategori wajib dipilih"),
@@ -59,7 +58,6 @@ type PengeluaranFormValues = z.infer<typeof pengeluaranSchema>;
 const EMPTY_VALUES: PengeluaranFormValues = {
   tanggal: format(new Date(), "yyyy-MM-dd"),
   namaItem: "",
-  areaId: "",
   siklusId: "",
   kategoriId: "",
   isPembelianStok: false,
@@ -160,16 +158,12 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
       ? `Pembelian ${selectedProduk.nama} sebanyak ${values.qtyPcs} pcs (@${values.beratPerPcs} ${satuan}). Total volume masuk: ${calcTotalVolume} ${satuan}.`
       : `Pengeluaran ${values.namaItem} sebesar Rp${Number(values.totalBiayaLumpsum || 0).toLocaleString("id-ID")}.`;
 
-    // Susun payload jujur untuk backend
+        // Susun payload jujur untuk backend
     const payload = {
       tanggal: values.tanggal,
       namaItem: values.namaItem,
       
-      // 🚀 Handle logika "none" jika user pilih opsi Umum/Bukan area spesifik
-      areaId: values.areaId === "none" ? undefined : (values.areaId || undefined), 
-      
       kategoriId: values.kategoriId,
-      // (siklusId nggak perlu dikirim lagi karena backend udah otomatis nyariin)
       isPembelianStok: values.isPembelianStok,
       totalBiaya: values.isPembelianStok ? calcTotalUang : Number(values.totalBiayaLumpsum),
       produkId: values.isPembelianStok ? values.produkId : undefined,
@@ -243,36 +237,10 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
                           </FormItem>
                         )} />
 
-                                                <FormField control={form.control} name="namaItem" render={({ field }) => (
+                        <FormField control={form.control} name="namaItem" render={({ field }) => (
                           <FormItem className="space-y-1.5">
                             <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80"><Tag className="inline-block h-3.5 w-3.5 mr-1" /> Nama Pengeluaran</FormLabel>
                             <FormControl><Input placeholder="" className="h-12 rounded-xl bg-background border border-input shadow-sm text-sm font-medium" {...field} /></FormControl>
-                            <FormMessage className="text-xs text-red-500" />
-                          </FormItem>
-                        )} />
-
-                        {/* 🚀 FORM FIELD BARU: AREA & SIKLUS */}
-                        <FormField control={form.control} name="areaId" render={({ field }) => (
-                          <FormItem className="space-y-1.5 pt-2">
-                            <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-                              <MapPin className="inline-block h-3.5 w-3.5 mr-1" /> Area
-                            </FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value || ""}>
-                              <FormControl>
-                                <SelectTrigger className="h-12 rounded-xl bg-background border-input text-sm font-medium shadow-sm">
-                                  <SelectValue placeholder="Pilih Area - Siklus..." />
-                                </SelectTrigger>
-                              </FormControl>
-                              {/* 🚀 z-[9999] biar aman dari tumpukan sheet */}
-                              <SelectContent className="rounded-xl z-[9999]">
-                                <SelectItem value="none" className="text-muted-foreground italic">
-                                  Biaya Umum
-                                </SelectItem>
-                                {areasList.map((a: any) => (
-                                  <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
                             <FormMessage className="text-xs text-red-500" />
                           </FormItem>
                         )} />
