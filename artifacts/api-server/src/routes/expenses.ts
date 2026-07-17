@@ -61,7 +61,7 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
     // --- B. VALIDASI EKSTRA & LOGIKA KEJUJURAN DATA ---
     // Default untuk pengeluaran biasa (Gaji, Listrik, dll)
     let qtyNum = 1;
-    let hargaSatuanNum = biayaNum;
+    let hargaSatuanNum: string | number = biayaNum; // 🚀 FIX: Izinkan tipe string untuk desimal
     
     if (isPembelianStok) {
       if (!produkId || !kuantitas) {
@@ -73,8 +73,8 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
         res.status(400).json({ error: "Kuantitas pembelian harus lebih dari 0." });
         return;
       }
-      // 🚀 JUJUR: Hitung harga satuan asli (Pembulatan aman berkat toleransi schema baru)
-      hargaSatuanNum = Math.round(biayaNum / qtyNum);
+      // 🚀 FIX: Hapus Math.round(), biarkan desimal dengan presisi 3 angka di belakang koma
+      hargaSatuanNum = (biayaNum / qtyNum).toFixed(3);
     }
 
     // Lacak identitas pekerja yang melakukan input
@@ -118,22 +118,22 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
 
     // 🚀 --- C. THE 3-IN-1 COMBO TRANSACTION ---
 
-    const result = await db.transaction(async (tx) => {
+        const result = await db.transaction(async (tx) => {
       
      // [AKSI 1] Insert ke tabel pengeluaran pakai DATA JUJUR
       const [newPengeluaran] = await tx.insert(pengeluaranTable).values({
-        areaId: areaId || null, // 🚀 MASUKIN AREA ID
-        siklusId: siklusIdToSave, // 🚀 MASUKIN SIKLUS AKTIF
+        areaId: areaId || null, 
+        siklusId: siklusIdToSave, 
         kategoriId,
         tanggal: new Date(tanggal),
         namaItem: keterangan ? `${fallbackNamaItem} - ${keterangan}` : fallbackNamaItem,
         totalBiaya: biayaNum,
-        catatan: keterangan || null, // 🚀 FIX: Sesuaikan nama kolom jadi 'catatan' (bukan keterangan)
+        catatan: keterangan || null, 
         isPembelianStok: Boolean(isPembelianStok),
         produkId: isPembelianStok ? produkId : null,
-        satuanKerja: produkSatuan, // 🚀 JUJUR: Ngirim 'gram', 'kg', atau 'lumpsum' sesuai kondisi
-        kuantitas: String(qtyNum), // 🚀 JUJUR: Ngirim angka asli (contoh: 7500)
-        hargaSatuan: hargaSatuanNum, // 🚀 JUJUR: Ngirim hasil pembagian asli (contoh: 3)
+        satuanKerja: produkSatuan, 
+        kuantitas: String(qtyNum), 
+        hargaSatuan: String(hargaSatuanNum), // 🚀 FIX: Bungkus pakai String()
         createdBy: pekerjaId,
       }).returning();
 
@@ -159,9 +159,9 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
       await tx.insert(stockMovementTable).values({
         produkId: produk.id,
         tipe: "pembelian", 
-        delta: qtyNum,
-        stokSebelum: stokSebelum,
-        stokSesudah: stokSesudah,
+        delta: String(qtyNum), // 🚀 FIX: Bungkus pakai String()
+        stokSebelum: String(stokSebelum), // 🚀 FIX: Bungkus pakai String()
+        stokSesudah: String(stokSesudah), // 🚀 FIX: Bungkus pakai String()
         pengeluaranId: newPengeluaran.id, 
         catatan: `Pembelian via pengeluaran (Ref: ${newPengeluaran.id})`,
       });
@@ -169,8 +169,8 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
       // [AKSI 3] Update Cache Stok DAN Otomatis Update Harga Master Terbaru
       await tx.update(produkMasterTable)
         .set({ 
-          stokSaatIni: stokSesudah,
-          hargaPerSatuanDasar: hargaSatuanNum, 
+          stokSaatIni: String(stokSesudah), // 🚀 FIX: Bungkus pakai String()
+          hargaPerSatuanDasar: String(hargaSatuanNum), // 🚀 FIX: Bungkus pakai String()
           updatedAt: new Date()
         })
         .where(eq(produkMasterTable.id, produk.id));
@@ -194,39 +194,18 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
 });
 
 // ==========================================
-// 3. GET KATEGORI KEUANGAN (Untuk Dropdown Form)
+// 3. GET KATEGORI KEUANGAN (Legacy / Global)
 // ==========================================
 router.get("/kategori-keuangan", async (req, res): Promise<void> => {
   try {
     const { userId } = getAuth(req);
     if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
-    // Ambil semua daftar kategori keuangan dari database
-      const data = await db
-      .select({
-        id: pengeluaranTable.id,
-        areaId: pengeluaranTable.areaId,
-        areaName: areasTable.name,
-        siklusId: pengeluaranTable.siklusId,
-        namaSiklus: siklusTanamTable.namaSiklus,
-        kategoriId: pengeluaranTable.kategoriId,
-        produkId: pengeluaranTable.produkId,
-        pekerjaId: pengeluaranTable.pekerjaId,
-        tanggal: pengeluaranTable.tanggal,
-        namaItem: pengeluaranTable.namaItem,
-        satuanKerja: pengeluaranTable.satuanKerja,
-        kuantitas: pengeluaranTable.kuantitas,
-        hargaSatuan: pengeluaranTable.hargaSatuan,
-        totalBiaya: pengeluaranTable.totalBiaya,
-        isPembelianStok: pengeluaranTable.isPembelianStok,
-        catatan: pengeluaranTable.catatan, 
-        createdAt: pengeluaranTable.createdAt,
-        updatedAt: pengeluaranTable.updatedAt,
-      })
-      .from(pengeluaranTable)
-      .leftJoin(areasTable, eq(pengeluaranTable.areaId, areasTable.id))
-      .leftJoin(siklusTanamTable, eq(pengeluaranTable.siklusId, siklusTanamTable.id))
-      .orderBy(desc(pengeluaranTable.tanggal));
+    // 🚀 FIX: Kembalikan query murni narik dari tabel kategori keuangan
+    const data = await db
+      .select()
+      .from(kategoriKeuanganTable)
+      .orderBy(kategoriKeuanganTable.nama);
 
     res.json({ success: true, data });
   } catch (err) {
@@ -236,7 +215,7 @@ router.get("/kategori-keuangan", async (req, res): Promise<void> => {
 });
 
 // ==========================================
-// 3. GET DROPDOWN OPTIONS PENGELUARAN 🚀
+// 4. GET DROPDOWN OPTIONS PENGELUARAN 🚀
 // ==========================================
 router.get("/pengeluaran-dropdown-options", async (req, res): Promise<void> => {
   try {
