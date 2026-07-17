@@ -57,8 +57,11 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
       return;
     }
 
-    // --- B. VALIDASI EKSTRA (Jika Beli Stok) ---
-    let qtyNum = 0;
+    // --- B. VALIDASI EKSTRA & LOGIKA KEJUJURAN DATA ---
+    // Default untuk pengeluaran biasa (Gaji, Listrik, dll)
+    let qtyNum = 1;
+    let hargaSatuanNum = biayaNum;
+    
     if (isPembelianStok) {
       if (!produkId || !kuantitas) {
         res.status(400).json({ error: "Produk dan kuantitas wajib diisi untuk pembelian stok." });
@@ -69,6 +72,8 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
         res.status(400).json({ error: "Kuantitas pembelian harus lebih dari 0." });
         return;
       }
+      // 🚀 JUJUR: Hitung harga satuan asli (Pembulatan aman berkat toleransi schema baru)
+      hargaSatuanNum = Math.round(biayaNum / qtyNum);
     }
 
     // Lacak identitas pekerja yang melakukan input
@@ -77,7 +82,7 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
     // Ambil nama kategori & data produk master
     const [kategoriData] = await db.select({ nama: kategoriKeuanganTable.nama }).from(kategoriKeuanganTable).where(eq(kategoriKeuanganTable.id, kategoriId));
     let produkNama = null;
-    let produkSatuan = "";
+    let produkSatuan = "lumpsum";
     
     if (isPembelianStok) {
       const [p] = await db.select({ nama: produkMasterTable.nama, satuanDasar: produkMasterTable.satuanDasar }).from(produkMasterTable).where(eq(produkMasterTable.id, produkId));
@@ -87,14 +92,15 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
       }
     }
     
+    // Nggak perlu lagi nulis (7500 gram) di nama, karena datanya udah masuk murni ke kolom kuantitas & satuan_kerja
     const fallbackNamaItem = isPembelianStok && produkNama 
-      ? `Beli ${produkNama} (${qtyNum} ${produkSatuan})`
+      ? `Beli Stok: ${produkNama}`
       : kategoriData?.nama ? `Biaya ${kategoriData.nama}` : "Biaya Operasional";
 
     // 🚀 --- C. THE 3-IN-1 COMBO TRANSACTION ---
     const result = await db.transaction(async (tx) => {
       
-      // [AKSI 1] Insert ke tabel pengeluaran (Bypass math check via lumpsum)
+      // [AKSI 1] Insert ke tabel pengeluaran pakai DATA JUJUR
       const [newPengeluaran] = await tx.insert(pengeluaranTable).values({
         kategoriId,
         siklusId: siklusId || null,
@@ -104,9 +110,9 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
         keterangan: keterangan || null,
         isPembelianStok: Boolean(isPembelianStok),
         produkId: isPembelianStok ? produkId : null,
-        satuanKerja: 'lumpsum',
-        kuantitas: "1",
-        hargaSatuan: biayaNum,
+        satuanKerja: produkSatuan, // 🚀 JUJUR: Ngirim 'gram', 'kg', atau 'lumpsum' sesuai kondisi
+        kuantitas: String(qtyNum), // 🚀 JUJUR: Ngirim angka asli (contoh: 7500)
+        hargaSatuan: hargaSatuanNum, // 🚀 JUJUR: Ngirim hasil pembagian asli (contoh: 3)
         createdBy: pekerjaId,
       }).returning();
 
@@ -127,9 +133,6 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
 
       const stokSebelum = parseFloat(String(produk.stokSaatIni)) || 0;
       const stokSesudah = stokSebelum + qtyNum;
-      
-      // 🚀 HITUNG OTOMATIS HARGA PER SATUAN DASAR BARU (Pembulatan Integer aman)
-      const hargaSatuanBaru = Math.round(biayaNum / qtyNum);
 
       // [AKSI 2] Catat ke Ledger/Buku Jurnal Stok
       await tx.insert(stockMovementTable).values({
@@ -142,11 +145,11 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
         catatan: `Pembelian via pengeluaran (Ref: ${newPengeluaran.id})`,
       });
 
-      // [AKSI 3] Update Cache Stok DAN Otomatis Update Harga Master Terbaru!
+      // [AKSI 3] Update Cache Stok DAN Otomatis Update Harga Master Terbaru
       await tx.update(produkMasterTable)
         .set({ 
           stokSaatIni: stokSesudah,
-          hargaPerSatuanDasar: hargaSatuanBaru, // 🚀 SEKARANG HARGA LANGSUNG UPDATE OTOMATIS!
+          hargaPerSatuanDasar: hargaSatuanNum, 
           updatedAt: new Date()
         })
         .where(eq(produkMasterTable.id, produk.id));
@@ -154,7 +157,7 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
       return {
         ...newPengeluaran,
         _stokUpdateStatus: "Sukses",
-        _hargaBaruTercatat: hargaSatuanBaru
+        _hargaBaruTercatat: hargaSatuanNum
       };
     });
 
