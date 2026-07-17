@@ -317,6 +317,7 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
                   <div className="flex items-center gap-2">
                     <input
                       type="number"
+                      step="any" // 🚀 FIX: Izinkan input stok desimal di keyboard HP
                       placeholder="Stok Fisik Gudang"
                       value={stokFisik}
                       onChange={(e) => setStokFisik(e.target.value)}
@@ -363,12 +364,13 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
                     )}
                   </div>
                   
-                  {/* Bagian Harga Kanan */}
+               {/* Bagian Harga Kanan */}
                   <div className="text-xs">
                     {isEditingHarga && !isTrashMode ? (
                       <div className="flex items-center gap-1.5 animate-in fade-in zoom-in-95 duration-200">
                         <input
                           type="number" 
+                          step="any" // 🚀 FIX: Izinkan ngetik angka desimal
                           value={editHarga} 
                           onChange={(e) => setEditHarga(e.target.value)}
                           className="w-24 rounded-lg border border-input bg-background px-2 py-1 text-xs outline-none focus:border-primary/50 font-bold shadow-sm"
@@ -383,14 +385,18 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
                       </div>
                     ) : (
                       isTrashMode ? (
-                        <span className="font-bold text-muted-foreground/80">Rp{item.hargaPerSatuanDasar?.toLocaleString("id-ID") ?? 0}/{item.satuanDasar}</span>
+                        <span className="font-bold text-muted-foreground/80">
+                          {/* 🚀 FIX: Parsing Number & format desimal max 3 digit */}
+                          Rp{Number(item.hargaPerSatuanDasar || 0).toLocaleString("id-ID", { maximumFractionDigits: 3 })}/{item.satuanDasar}
+                        </span>
                       ) : (
                         <button 
                           onClick={() => startEditHarga(item)} 
                           className="flex items-center gap-1.5 font-bold text-foreground hover:text-primary transition-colors group"
                         >
                           <span className={cn(hargaKosong && "text-amber-600")}>
-                            Rp{item.hargaPerSatuanDasar?.toLocaleString("id-ID") ?? 0}
+                            {/* 🚀 FIX: Parsing Number & format desimal max 3 digit */}
+                            Rp{Number(item.hargaPerSatuanDasar || 0).toLocaleString("id-ID", { maximumFractionDigits: 3 })}
                           </span>
                           <span className="text-muted-foreground/60 text-[10px] font-semibold">
                             /{item.satuanDasar}
