@@ -207,8 +207,14 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
                 </Button>
               </div>
             </motion.div>
-          ) : isLoadingOptions ? ( <Skeleton className="h-48 w-full rounded-2xl" /> ) : (
+         ) : isLoadingOptions ? ( 
+            <div className="flex flex-col items-center justify-center py-12 space-y-3">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Menyiapkan Form...</p>
+            </div> 
+          ) : (
             <Form {...form}>
+
               <form onSubmit={(e) => e.preventDefault()} className="space-y-5 text-left">
                 <div className="max-h-[55vh] overflow-y-auto pr-1 pb-2 space-y-5 overflow-x-hidden">
                   <AnimatePresence mode="wait">
@@ -246,9 +252,11 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
                                 <FormControl>
                                   <SelectTrigger className="h-11 rounded-xl bg-background border-input text-xs font-medium"><SelectValue placeholder="Pilih Kategori..." /></SelectTrigger>
                                 </FormControl>
-                                <SelectContent className="rounded-xl">
+                              {/* 🚀 FIX: Tambah z-[9999] biar ga ketimpa Modal */}
+                                <SelectContent className="rounded-xl z-[9999]">
                                   {kategoriList.map((k: any) => (<SelectItem key={k.id} value={k.id}>{k.nama}</SelectItem>))}
                                 </SelectContent>
+
                               </Select>
                               <FormMessage className="text-xs text-red-500" />
                             </FormItem>
@@ -274,9 +282,11 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
                                 <FormItem>
                                   <Select onValueChange={field.onChange} value={field.value}>
                                     <FormControl><SelectTrigger className="h-11 rounded-xl bg-background border-input text-xs font-bold"><SelectValue placeholder="Pilih Produk Master..." /></SelectTrigger></FormControl>
-                                    <SelectContent className="rounded-xl">
+                                  {/* 🚀 FIX: Tambah z-[9999] biar ga ketimpa Modal */}
+                                    <SelectContent className="rounded-xl z-[9999]">
                                       {produkList.map((p: any) => (<SelectItem key={p.id} value={p.id}>{p.nama}</SelectItem>))}
                                     </SelectContent>
+
                                   </Select>
                                   <FormMessage className="text-xs text-red-500" />
                                 </FormItem>
