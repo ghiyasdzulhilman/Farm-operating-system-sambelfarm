@@ -16,14 +16,27 @@ export function ProdukManager() {
   const [activeTab, setActiveTab] = useState("Semua");
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  // 🚀 FIX: State filter status (Aktif, Nonaktif, Delete/Trash)
+  const [statusFilter, setStatusFilter] = useState<"aktif" | "nonaktif" | "delete">("aktif");
 
-  // 2. FETCH DATA MANDIRI (Terpisah dari dropdown master)
+  // 2. FETCH DATA DINAMIS (Mengikuti status filter aktif vs tong sampah)
   const { data, isLoading } = useQuery({
-    queryKey: ["produk-master-list"],
-    queryFn: async () => fetch("/api/produk").then((r) => r.json()),
+    queryKey: ["produk-master-list", statusFilter],
+    queryFn: async () => {
+      const endpoint = statusFilter === "delete" ? "/api/produk/trash" : "/api/produk";
+      return fetch(endpoint).then((r) => r.json());
+    },
   });
 
   const semuaProduk = data?.data || [];
+
+  // 🚀 FIX: Filter data di tingkat client berdasarkan isActive
+  const displayedProduk = semuaProduk.filter((item: any) => {
+    if (statusFilter === "aktif") return item.isActive === true;
+    if (statusFilter === "nonaktif") return item.isActive === false;
+    return true; // Jika statusFilter === "delete", datanya sudah murni tersaring dari backend /api/produk/trash
+  });
 
   return (
     <div className="space-y-6">
@@ -52,7 +65,30 @@ export function ProdukManager() {
           </Button>
         </div>
 
-        {/* 🧭 TOGGLE NAVIGATION (SCROLLABLE TABS) */}
+        {/* 🚀 FIX: TOMBOL STATUS FILTER (Aktif | Nonaktif | Delete) TEPAT DI BAWAH KOLOM SEARCH */}
+        <div className="flex gap-1.5 p-1 bg-muted/30 rounded-xl border border-border/40 w-fit max-w-xs shadow-inner">
+          {(["aktif", "nonaktif", "delete"] as const).map((status) => (
+            <button
+              key={status}
+              onClick={() => {
+                setStatusFilter(status);
+                setSearchQuery("");
+              }}
+              className={cn(
+                "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
+                statusFilter === status
+                  ? status === "delete"
+                    ? "bg-destructive text-destructive-foreground shadow-sm"
+                    : "bg-background text-primary shadow-sm border border-border/40"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {status === "delete" ? "🗑️ Delete" : status}
+            </button>
+          ))}
+        </div>
+
+        {/* 🧭 TOGGLE NAVIGATION (SCROLLABLE TABS KATEGORI) */}
         <div className="flex gap-2 p-1 bg-muted/40 rounded-xl w-full overflow-x-auto border border-border/40 
           /* Sembunyikan scrollbar tapi tetap bisa digeser */
           scrollbar-width-none [&::-webkit-scrollbar]:hidden"
@@ -82,9 +118,10 @@ export function ProdukManager() {
         </div>
       ) : (
         <ProdukList 
-          produk={semuaProduk} 
+          produk={displayedProduk} 
           activeTab={activeTab} 
           searchQuery={searchQuery} 
+          statusFilter={statusFilter} // 🚀 Oper status filter ke anak
         />
       )}
 
