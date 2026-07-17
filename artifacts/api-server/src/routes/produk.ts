@@ -1,7 +1,8 @@
 import { Router, type IRouter } from "express";
 import { getAuth } from "@clerk/express";
-import { eq, desc } from "drizzle-orm"; // 🚀 FIX: Tambahin desc di sini
-import { db, produkMasterTable, stockMovementTable } from "@workspace/db";
+import { eq, desc } from "drizzle-orm";
+// 🚀 FIX: Tambahin tabel perawatan dan pengeluaran buat pembersihan riwayat total
+import { db, produkMasterTable, stockMovementTable, perawatanProdukTable, pengeluaranTable } from "@workspace/db";
 
 const router: IRouter = Router();
 
@@ -280,6 +281,92 @@ router.post("/produk/:id/adjust", async (req, res): Promise<void> => {
       res.status(400).json({ error: "Stok fisik sama dengan stok sistem, tidak ada penyesuaian yang disimpan." }); return;
     }
     res.status(500).json({ error: "Gagal melakukan penyesuaian stok." });
+  }
+});
+
+// ==========================================
+// 6. GET PRODUK DI TONG SAMPAH (Recycle Bin)
+// ==========================================
+router.get("/produk/trash", async (req, res): Promise<void> => {
+  try {
+    const { userId } = getAuth(req);
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+    // Ambil data produk yang status deleted-nya TRUE
+    const rawData = await db
+      .select()
+      .from(produkMasterTable)
+      .where(eq(produkMasterTable.deleted, true))
+      .orderBy(desc(produkMasterTable.updatedAt));
+    
+    const data = rawData.map(item => ({
+      ...item,
+      stokSaatIni: parseFloat(String(item.stokSaatIni)) || 0
+    }));
+
+    res.json({ success: true, data });
+  } catch (err) {
+    console.error("[GET TRASH ERROR]:", err);
+    res.status(500).json({ error: "Gagal mengambil data tong sampah." });
+  }
+});
+
+// ==========================================
+// 7. PULIHKAN PRODUK (Restore dari Tong Sampah)
+// ==========================================
+router.post("/produk/:id/restore", async (req, res): Promise<void> => {
+  try {
+    const { userId } = getAuth(req);
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+    const { id } = req.params;
+
+    // Balikin status deleted jadi false, dan aktifkan kembali produknya
+    await db.update(produkMasterTable)
+      .set({ 
+        deleted: false, 
+        isActive: true, 
+        updatedAt: new Date() 
+      })
+      .where(eq(produkMasterTable.id, id));
+
+    res.json({ success: true, message: "Produk berhasil dipulihkan kembali." });
+  } catch (err) {
+    console.error("[RESTORE PRODUK ERROR]:", err);
+    res.status(500).json({ error: "Gagal memulihkan produk." });
+  }
+});
+
+// ==========================================
+// 8. HAPUS PERMANEN + RIWAYAT TOTAL (Force Delete)
+// ==========================================
+router.delete("/produk/:id/force", async (req, res): Promise<void> => {
+  try {
+    const { userId } = getAuth(req);
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+    const { id } = req.params;
+
+    // 🚀 Eksekusi berantai di dalam satu transaksi aman (All or Nothing)
+    await db.transaction(async (tx) => {
+      // 1. Hapus riwayat di buku gudang (stock movement)
+      await tx.delete(stockMovementTable).where(eq(stockMovementTable.produkId, id));
+      
+      // 2. Hapus riwayat pemakaian barang di modul perawatan kebun
+      await tx.delete(perawatanProdukTable).where(eq(perawatanProdukTable.produkId, id));
+      
+      // 3. Hapus transaksi pembelian uangnya di modul pengeluaran
+      // Kita hapus karena tabel pengeluaran lu punya check constraint ketat (pembelian_stok_konsisten)
+      await tx.delete(pengeluaranTable).where(eq(pengeluaranTable.produkId, id));
+      
+      // 4. Setelah semua anaknya bersih, hapus produk induknya dari master produk
+      await tx.delete(produkMasterTable).where(eq(produkMasterTable.id, id));
+    });
+
+    res.json({ success: true, message: "Produk beserta seluruh riwayatnya berhasil dimusnahkan selamanya." });
+  } catch (err) {
+    console.error("[FORCE DELETE ERROR]:", err);
+    res.status(500).json({ error: "Gagal menghapus produk secara permanen." });
   }
 });
 
