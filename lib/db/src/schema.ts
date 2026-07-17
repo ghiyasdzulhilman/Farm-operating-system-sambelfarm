@@ -83,13 +83,11 @@ export const siklusTanamTable = pgTable("siklus_tanam", {
   check("status_siklus_valid", sql`${table.status} IN ('Aktif', 'Selesai', 'Ditutup')`),
 ]);
 
-// Produk master: stok sekarang tetap disimpan (cache) tetapi gunakan atomic update via trigger/transaction
 export const produkMasterTable = pgTable("produk_master", {
   id: uuid("id").defaultRandom().primaryKey(),
   nama: text("nama").notNull(),
   jenis: text("jenis").notNull(),
 
-  // Nutrient fields tetap doublePrecision (atau numeric jika perlu)
   n: doublePrecision("n").default(0),
   p: doublePrecision("p").default(0),
   k: doublePrecision("k").default(0),
@@ -101,12 +99,12 @@ export const produkMasterTable = pgTable("produk_master", {
   satuanDasar: text("satuan_dasar").default("gram").notNull(),
   satuanTampilan: text("satuan_tampilan").default("kg").notNull(),
 
-  // Harga disimpan sebagai integer (satuan terkecil, mis. cents)
   hargaPerSatuanDasar: integer("harga_per_satuan_dasar").default(0).notNull(),
-  // Stok cache: gunakan numeric untuk presisi non-floating
   stokSaatIni: numeric("stok_saat_ini", { precision: 18, scale: 3 }).default(0).notNull(),
 
   isActive: boolean("is_active").default(true).notNull(),
+  // 🚀 FIX: Tambah kolom deleted untuk fitur Smart Delete
+  deleted: boolean("deleted").default(false).notNull(),
 
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
