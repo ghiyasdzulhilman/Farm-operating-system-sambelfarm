@@ -143,14 +143,17 @@ useEffect(() => {
 
     const historyLog = item?.metaEkstra?.logProduk || [];
 
-    editedProducts.forEach((prod) => {
+     editedProducts.forEach((prod) => {
       const historyProd = historyLog.find((p: any) => p.produkId === prod.produkId);
       const master = produkOptions.data.find((p: any) => p.id === prod.produkId);
-      const hargaMaster = master?.hargaPerSatuanDasar || 0;
+      
+      // 🚀 FIX: Bungkus harga master dengan Number() karena wujudnya string numeric dari DB
+      const hargaMaster = Number(master?.hargaPerSatuanDasar) || 0;
 
       if (historyProd) {
         // ⏳ PRODUK LAMA (Ember C): Selalu pakai harga historis
-        const hargaHistoris = historyProd.hargaTercatatPerSatuan || 0;
+        // 🚀 FIX: Bungkus juga harga historis untuk keamanan komparasi strict
+        const hargaHistoris = Number(historyProd.hargaTercatatPerSatuan) || 0;
         calculatedTotal += (prod.kuantitasPemakaian * hargaHistoris);
 
         // Cuma naikin bendera kalau ada selisih harga
