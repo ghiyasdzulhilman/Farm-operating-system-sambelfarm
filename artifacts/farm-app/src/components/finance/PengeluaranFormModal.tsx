@@ -322,7 +322,7 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
                               <FormField control={form.control} name="produkId" render={({ field }) => (
                                 <FormItem>
                                   <Select onValueChange={field.onChange} value={field.value}>
-                                    <FormControl><SelectTrigger className="h-11 rounded-xl bg-background border-input text-xs font-bold"><SelectValue placeholder="Pilih Produk Master..." /></SelectTrigger></FormControl>
+                                    <FormControl><SelectTrigger className="h-11 rounded-xl bg-background border-input text-xs font-bold"><SelectValue placeholder="Pilih Produk" /></SelectTrigger></FormControl>
                                   {/* 🚀 FIX: Tambah z-[9999] biar ga ketimpa Modal */}
                                     <SelectContent className="rounded-xl z-[9999]">
                                       {produkList.map((p: any) => (<SelectItem key={p.id} value={p.id}>{p.nama}</SelectItem>))}
@@ -336,13 +336,13 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
                               <div className="grid grid-cols-2 gap-3">
                                 <FormField control={form.control} name="hargaPerPcs" render={({ field }) => (
                                   <FormItem className="space-y-1">
-                                    <FormLabel className="text-[10px] font-bold text-muted-foreground">Harga 1 Pcs (Rp)</FormLabel>
+                                    <FormLabel className="text-[10px] font-bold text-muted-foreground">Harga/pcs</FormLabel>
                                     <FormControl><Input type="number" placeholder="" className="h-10 rounded-lg text-xs font-bold" {...field} value={field.value || ""} onChange={e => field.onChange(Number(e.target.value))} /></FormControl>
                                   </FormItem>
                                 )} />
                                 <FormField control={form.control} name="beratPerPcs" render={({ field }) => (
                                   <FormItem className="space-y-1">
-                                    <FormLabel className="text-[10px] font-bold text-muted-foreground">Berat 1 Pcs ({satuan})</FormLabel>
+                                    <FormLabel className="text-[10px] font-bold text-muted-foreground">Berat/pcs({satuan})</FormLabel>
                                     <FormControl><Input type="number" placeholder="" className="h-10 rounded-lg text-xs font-bold" {...field} value={field.value || ""} onChange={e => field.onChange(Number(e.target.value))} /></FormControl>
                                   </FormItem>
                                 )} />
@@ -358,11 +358,11 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
                               {/* LIVE CALCULATION */}
                               <div className="mt-2 p-3 rounded-xl bg-primary text-primary-foreground flex flex-col gap-1.5 shadow-md">
                                 <div className="flex justify-between items-center text-xs font-medium opacity-90">
-                                  <span>Total Tagihan Uang:</span>
+                                  <span>Total Biaya:</span>
                                   <span className="font-black text-sm">Rp {calcTotalUang.toLocaleString("id-ID")}</span>
                                 </div>
                                 <div className="flex justify-between items-center text-xs font-medium opacity-90">
-                                  <span>Total Masuk Gudang:</span>
+                                  <span>Total Stok:</span>
                                   <span className="font-black text-sm">{calcTotalVolume} {satuan}</span>
                                 </div>
                               </div>
