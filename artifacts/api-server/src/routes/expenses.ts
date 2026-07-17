@@ -161,7 +161,7 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
       };
     });
 
-    res.status(201).json({ success: true, data: result });
+        res.status(201).json({ success: true, data: result });
   } catch (err: any) {
     console.error("[POST PENGELUARAN ERROR]:", err);
     if (err.message === "PRODUK_NOT_FOUND") {
@@ -169,6 +169,27 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
       return;
     }
     res.status(500).json({ error: "Gagal menyimpan pengeluaran." });
+  }
+});
+
+// ==========================================
+// 3. GET KATEGORI KEUANGAN (Untuk Dropdown Form)
+// ==========================================
+router.get("/kategori-keuangan", async (req, res): Promise<void> => {
+  try {
+    const { userId } = getAuth(req);
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+    // Ambil semua daftar kategori keuangan dari database
+    const data = await db
+      .select()
+      .from(kategoriKeuanganTable)
+      .orderBy(kategoriKeuanganTable.nama);
+
+    res.json({ success: true, data });
+  } catch (err) {
+    console.error("[GET KATEGORI KEUANGAN ERROR]:", err);
+    res.status(500).json({ error: "Gagal mengambil data kategori keuangan." });
   }
 });
 
