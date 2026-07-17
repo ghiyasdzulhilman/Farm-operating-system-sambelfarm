@@ -280,6 +280,7 @@ export const kategoriKeuanganTable = pgTable("kategori_keuangan", {
 
 export const pengeluaranTable = pgTable("pengeluaran", {
   id: uuid("id").defaultRandom().primaryKey(),
+  areaId: uuid("area_id").references(() => areasTable.id, { onDelete: "set null" }),
   siklusId: uuid("siklus_id").references(() => siklusTanamTable.id, { onDelete: "set null" }),
   kategoriId: uuid("kategori_id").references(() => kategoriKeuanganTable.id, { onDelete: "set null" }),
   produkId: uuid("produk_id").references(() => produkMasterTable.id, { onDelete: "set null" }),
@@ -310,13 +311,14 @@ export const pengeluaranTable = pgTable("pengeluaran", {
   check("total_biaya_konsisten_v2", sql`ABS(${table.totalBiaya} - ROUND(${table.kuantitas} * ${table.hargaSatuan})) <= (ROUND(${table.kuantitas}) + 100)`),
   
   check("pembelian_stok_konsisten", sql`(${table.isPembelianStok} = true AND ${table.produkId} IS NOT NULL) OR (${table.isPembelianStok} = false AND ${table.produkId} IS NULL)`),
+  index("pengeluaran_area_idx").on(table.areaId),
   index("pengeluaran_siklus_idx").on(table.siklusId),
   index("pengeluaran_tanggal_idx").on(table.tanggal),
 ]);
 
-
 export const panenTable = pgTable("panen", {
   id: uuid("id").defaultRandom().primaryKey(),
+  areaId: uuid("area_id").references(() => areasTable.id, { onDelete: "set null" }),
   siklusId: uuid("siklus_id").references(() => siklusTanamTable.id, { onDelete: "set null" }), 
 
   tanggal: timestamp("tanggal").defaultNow().notNull(),
@@ -337,6 +339,7 @@ export const panenTable = pgTable("panen", {
   check("kuantitas_kg_non_negative", sql`${table.kuantitasKg} >= 0`),
   check("harga_jual_non_negative", sql`${table.hargaJualPerKg} >= 0`),
   check("total_pendapatan_konsisten", sql`ABS(${table.totalPendapatan} - ROUND(${table.kuantitasKg} * ${table.hargaJualPerKg})) <= 1`),
+  index("panen_area_idx").on(table.areaId),
   index("panen_siklus_idx").on(table.siklusId),
   index("panen_tanggal_idx").on(table.tanggal),
 ]);
