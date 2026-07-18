@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { getAuth } from "@clerk/express";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm"; // 🚀 FIX: Tambahkan 'and'
 // 🚀 FIX: Tambahin tabel perawatan dan pengeluaran buat pembersihan riwayat total
 import { db, produkMasterTable, stockMovementTable, perawatanProdukTable, pengeluaranTable } from "@workspace/db";
 
@@ -21,10 +21,45 @@ router.get("/produk", async (req, res): Promise<void> => {
       .where(eq(produkMasterTable.deleted, false))
       .orderBy(desc(produkMasterTable.createdAt));
     
-    // 🚀 FIX: Paksa stokSaatIni (numeric) menjadi Number untuk Frontend
-    const data = rawData.map(item => ({
-      ...item,
-      stokSaatIni: parseFloat(String(item.stokSaatIni)) || 0
+    // 🚀 FIX: Inject riwayat HPP terakhir ke masing-masing produk menggunakan Promise.all
+    const data = await Promise.all(rawData.map(async (item) => {
+      
+      // Cari 1 transaksi pembelian terakhir di buku gudang untuk produk ini
+      const [latestPurchase] = await db
+        .select({
+          hargaHppSebelum: stockMovementTable.hargaHppSebelum,
+          hargaHppSesudah: stockMovementTable.hargaHppSesudah,
+          nilaiPembelianBaru: stockMovementTable.nilaiPembelianBaru,
+          delta: stockMovementTable.delta, // Qty beli
+          stokSebelum: stockMovementTable.stokSebelum,
+          stokSesudah: stockMovementTable.stokSesudah,
+          createdAt: stockMovementTable.createdAt,
+        })
+        .from(stockMovementTable)
+        .where(
+          and(
+            eq(stockMovementTable.produkId, item.id),
+            eq(stockMovementTable.tipe, "pembelian") // Murni cuma narik dari nota beli
+          )
+        )
+        .orderBy(desc(stockMovementTable.createdAt))
+        .limit(1);
+
+      return {
+        ...item,
+        stokSaatIni: parseFloat(String(item.stokSaatIni)) || 0,
+        
+        // 🚀 TAMBAHAN: Paket data portabel untuk dikonsumsi oleh HppHistoryPopover di frontend
+        _hppHistory: latestPurchase ? {
+          hargaHppSebelum: parseFloat(String(latestPurchase.hargaHppSebelum)) || 0,
+          hargaHppSesudah: parseFloat(String(latestPurchase.hargaHppSesudah)) || 0,
+          nilaiPembelianBaru: parseFloat(String(latestPurchase.nilaiPembelianBaru)) || 0,
+          qtyBeli: parseFloat(String(latestPurchase.delta)) || 0,
+          stokSebelum: parseFloat(String(latestPurchase.stokSebelum)) || 0,
+          stokSesudah: parseFloat(String(latestPurchase.stokSesudah)) || 0,
+          tanggal: latestPurchase.createdAt
+        } : null
+      };
     }));
 
     res.json({ success: true, data });
