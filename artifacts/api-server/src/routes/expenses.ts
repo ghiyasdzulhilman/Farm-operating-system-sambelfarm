@@ -117,14 +117,19 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
         createdBy: pekerjaId,
       }).returning();
 
-      // Jika BUKAN pembelian stok, urusan selesai di sini.
+    // Jika BUKAN pembelian stok, urusan selesai di sini.
       if (!isPembelianStok) {
         return newPengeluaran;
       }
 
       // [AKSI 2 & 3] Khusus Pembelian Stok
       const [produk] = await tx
-        .select({ id: produkMasterTable.id, stokSaatIni: produkMasterTable.stokSaatIni })
+        // 🚀 FIX: Tarik hargaPerSatuanDasar lama untuk dihitung rata-ratanya
+        .select({ 
+          id: produkMasterTable.id, 
+          stokSaatIni: produkMasterTable.stokSaatIni,
+          hargaPerSatuanDasar: produkMasterTable.hargaPerSatuanDasar 
+        })
         .from(produkMasterTable)
         .where(eq(produkMasterTable.id, produkId));
 
@@ -133,15 +138,30 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
       }
 
       const stokSebelum = parseFloat(String(produk.stokSaatIni)) || 0;
+      const hargaMasterSebelum = parseFloat(String(produk.hargaPerSatuanDasar)) || 0;
       const stokSesudah = stokSebelum + qtyNum;
+
+      // 🧮 🚀 RUMUS MOVING AVERAGE (RATA-RATA TERTIMBANG)
+      let hppBaru = Number(hargaSatuanNum); // Default ke harga beli di nota
+
+      // Hitung Moving Average HANYA jika di gudang masih ada stok lama
+      if (stokSebelum > 0 && stokSesudah > 0) {
+        const totalNilaiAsetLama = stokSebelum * hargaMasterSebelum;
+        const totalNilaiBeliBaru = qtyNum * Number(hargaSatuanNum);
+        
+        hppBaru = (totalNilaiAsetLama + totalNilaiBeliBaru) / stokSesudah;
+      }
+      
+      const hppBaruString = hppBaru.toFixed(3); // Rapikan maksimal 3 desimal
 
       // [AKSI 2] Catat ke Ledger/Buku Jurnal Stok
       await tx.insert(stockMovementTable).values({
         produkId: produk.id,
         tipe: "pembelian", 
-        delta: String(qtyNum), // 🚀 FIX: Bungkus pakai String()
-        stokSebelum: String(stokSebelum), // 🚀 FIX: Bungkus pakai String()
-        stokSesudah: String(stokSesudah), // 🚀 FIX: Bungkus pakai String()
+        delta: String(qtyNum), 
+        stokSebelum: String(stokSebelum), 
+        stokSesudah: String(stokSesudah), 
+        hargaHppSesudah: hppBaruString, // 🚀 TAMBAHAN: Catat jejak audit HPP di sini
         pengeluaranId: newPengeluaran.id, 
         catatan: `Pembelian via pengeluaran (Ref: ${newPengeluaran.id})`,
       });
@@ -149,8 +169,8 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
       // [AKSI 3] Update Cache Stok DAN Otomatis Update Harga Master Terbaru
       await tx.update(produkMasterTable)
         .set({ 
-          stokSaatIni: String(stokSesudah), // 🚀 FIX: Bungkus pakai String()
-          hargaPerSatuanDasar: String(hargaSatuanNum), // 🚀 FIX: Bungkus pakai String()
+          stokSaatIni: String(stokSesudah), 
+          hargaPerSatuanDasar: hppBaruString, // 🚀 FIX: Timpa dengan HPP Moving Average
           updatedAt: new Date()
         })
         .where(eq(produkMasterTable.id, produk.id));
@@ -158,8 +178,9 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
       return {
         ...newPengeluaran,
         _stokUpdateStatus: "Sukses",
-        _hargaBaruTercatat: hargaSatuanNum
+        _hargaBaruTercatat: hppBaruString
       };
+
     });
 
         res.status(201).json({ success: true, data: result });
