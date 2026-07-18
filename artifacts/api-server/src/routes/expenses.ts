@@ -141,14 +141,13 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
       const hargaMasterSebelum = parseFloat(String(produk.hargaPerSatuanDasar)) || 0;
       const stokSesudah = stokSebelum + qtyNum;
 
-      // 🧮 🚀 RUMUS MOVING AVERAGE (RATA-RATA TERTIMBANG)
+    // 🧮 🚀 RUMUS MOVING AVERAGE (RATA-RATA TERTIMBANG)
       let hppBaru = Number(hargaSatuanNum); // Default ke harga beli di nota
+      let totalNilaiBeliBaru = qtyNum * Number(hargaSatuanNum); // 🚀 Tarik keluar biar bisa disave ke DB
 
       // Hitung Moving Average HANYA jika di gudang masih ada stok lama
       if (stokSebelum > 0 && stokSesudah > 0) {
         const totalNilaiAsetLama = stokSebelum * hargaMasterSebelum;
-        const totalNilaiBeliBaru = qtyNum * Number(hargaSatuanNum);
-        
         hppBaru = (totalNilaiAsetLama + totalNilaiBeliBaru) / stokSesudah;
       }
       
@@ -161,7 +160,10 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
         delta: String(qtyNum), 
         stokSebelum: String(stokSebelum), 
         stokSesudah: String(stokSesudah), 
-        hargaHppSesudah: hppBaruString, // 🚀 TAMBAHAN: Catat jejak audit HPP di sini
+        // 🚀 FIX: Rekam sejarah matematika HPP secara permanen (dibungkus String untuk kolom numeric)
+        hargaHppSebelum: String(hargaMasterSebelum), 
+        hargaHppSesudah: hppBaruString,
+        nilaiPembelianBaru: String(totalNilaiBeliBaru),
         pengeluaranId: newPengeluaran.id, 
         catatan: `Pembelian via pengeluaran (Ref: ${newPengeluaran.id})`,
       });
