@@ -4,6 +4,7 @@ import { Trash2, Package, Pencil, ToggleLeft, ToggleRight, PackageSearch, AlertC
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { HppHistoryPopover } from "./HppHistoryPopover"; // 🚀 TAMBAHAN: Import Kalkulator Popover
 
 interface ProdukListProps {
   produk: any[];
@@ -246,12 +247,17 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
 
                 {/* 🚀 FIX: LOGIKA PERALIHAN TOMBOL AKSI (NORMAL VS RECYCLE BIN) */}
                 <div className="flex items-center gap-1 shrink-0">
+                  
+                  {/* 🚀 TAMBAHAN: Tombol Popover Detail HPP ditaruh paling kiri */}
+                  <HppHistoryPopover history={item._hppHistory} satuanDasar={item.satuanDasar} />
+
                   {isTrashMode ? (
                     // 🗑️ TAMPILAN OPSI DI DALAM TAB DELETE (PULIHKAN & HAPUS PERMANEN)
                     <>
                       <Button
                         variant="ghost" size="sm"
                         onClick={() => {
+
                           if (confirm(`Pulihkan produk "${item.nama}" agar bisa digunakan kembali?`)) {
                             restoreMutation.mutate(item.id);
                           }
