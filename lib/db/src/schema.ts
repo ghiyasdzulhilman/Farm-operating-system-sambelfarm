@@ -357,8 +357,10 @@ export const stockMovementTable = pgTable("stock_movement", {
   stokSebelum: numeric("stok_sebelum", { precision: 18, scale: 3 }).notNull(),
   stokSesudah: numeric("stok_sesudah", { precision: 18, scale: 3 }).notNull(),
   
-  // 🚀 TAMBAHAN: Buat jejak audit HPP pergerakan barang
+  // 🚀 FIX: Komponen lengkap jejak audit HPP (Sebelum, Sesudah, dan Total Beli)
+  hargaHppSebelum: numeric("harga_hpp_sebelum", { precision: 18, scale: 3 }),
   hargaHppSesudah: numeric("harga_hpp_sesudah", { precision: 18, scale: 3 }),
+  nilaiPembelianBaru: numeric("nilai_pembelian_baru", { precision: 18, scale: 3 }),
 
   perawatanProdukId: uuid("perawatan_produk_id").references(() => perawatanProdukTable.id, { onDelete: "set null" }),
   pengeluaranId: uuid("pengeluaran_id").references(() => pengeluaranTable.id, { onDelete: "set null" }),
