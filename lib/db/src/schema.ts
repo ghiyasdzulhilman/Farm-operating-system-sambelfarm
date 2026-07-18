@@ -356,6 +356,9 @@ export const stockMovementTable = pgTable("stock_movement", {
   delta: numeric("delta", { precision: 18, scale: 3 }).notNull(), // perubahan stok
   stokSebelum: numeric("stok_sebelum", { precision: 18, scale: 3 }).notNull(),
   stokSesudah: numeric("stok_sesudah", { precision: 18, scale: 3 }).notNull(),
+  
+  // 🚀 TAMBAHAN: Buat jejak audit HPP pergerakan barang
+  hargaHppSesudah: numeric("harga_hpp_sesudah", { precision: 18, scale: 3 }),
 
   perawatanProdukId: uuid("perawatan_produk_id").references(() => perawatanProdukTable.id, { onDelete: "set null" }),
   pengeluaranId: uuid("pengeluaran_id").references(() => pengeluaranTable.id, { onDelete: "set null" }),
@@ -363,6 +366,7 @@ export const stockMovementTable = pgTable("stock_movement", {
   catatan: text("catatan"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 },
+
 (table) => [
   check("stock_movement_source_exclusive", sql`NOT (${table.perawatanProdukId} IS NOT NULL AND ${table.pengeluaranId} IS NOT NULL)`),
   index("stock_movement_produk_idx").on(table.produkId),
