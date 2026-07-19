@@ -39,10 +39,11 @@ router.get("/produk", async (req, res): Promise<void> => {
         .where(
           and(
             eq(stockMovementTable.produkId, item.id),
-            // 🚀 FIX: Ambil riwayat dari nota beli ATAU stok awal dari master
+            // 🚀 FIX BUG: Tambah penyesuaian_harga ke radar pembacaan Popover
             or(
               eq(stockMovementTable.tipe, "pembelian"),
-              eq(stockMovementTable.tipe, "stok_awal")
+              eq(stockMovementTable.tipe, "stok_awal"),
+              eq(stockMovementTable.tipe, "penyesuaian_harga")
             )
           )
         )
@@ -185,28 +186,64 @@ router.patch("/produk/:id", async (req, res): Promise<void> => {
     cleanPayload.hargaPerSatuanDasar = harga;
   }
 
-  cleanPayload.updatedAt = new Date();
+    cleanPayload.updatedAt = new Date();
 
   try {
-    const [updated] = await db.update(produkMasterTable)
-      .set(cleanPayload)
-      .where(eq(produkMasterTable.id, id))
-      .returning();
+    // 🚀 FIX BUG: Bungkus dalam transaction untuk mencatat "Penyesuaian Harga" ke ledger
+    const updatedData = await db.transaction(async (tx) => {
+      // 1. Ambil data sebelum diupdate
+      const [oldData] = await tx.select().from(produkMasterTable).where(eq(produkMasterTable.id, id));
+      if (!oldData) throw new Error("NOT_FOUND");
 
-        if (!updated) {
-      res.status(404).json({ error: "Produk tidak ditemukan." }); return;
-    }
+      // 2. Eksekusi update master
+      const [updated] = await tx.update(produkMasterTable)
+        .set(cleanPayload)
+        .where(eq(produkMasterTable.id, id))
+        .returning();
 
-    // 🚀 FIX: Format response balikan setelah edit
+      // 3. Cek apakah hargaHpp (hargaPerSatuanDasar) diedit
+      if ('hargaPerSatuanDasar' in cleanPayload) {
+        const hargaLama = Number(oldData.hargaPerSatuanDasar) || 0;
+        const hargaBaru = Number(cleanPayload.hargaPerSatuanDasar) || 0;
+        
+        if (hargaLama !== hargaBaru) {
+          const stokTerkini = parseFloat(String(oldData.stokSaatIni)) || 0;
+          
+          // 🧮 LOGIKA REVALUASI ASET: (Stok x Harga Baru) - (Stok x Harga Lama)
+          // Ini bikin matematika Moving Average di Popover tetep akurat 100%
+          const nilaiAsetLama = stokTerkini * hargaLama;
+          const nilaiAsetBaru = stokTerkini * hargaBaru;
+          const selisihRevaluasi = nilaiAsetBaru - nilaiAsetLama;
+
+          await tx.insert(stockMovementTable).values({
+            produkId: id,
+            tipe: "penyesuaian_harga",
+            delta: "0",
+            stokSebelum: String(stokTerkini),
+            stokSesudah: String(stokTerkini),
+            hargaHppSebelum: String(hargaLama),
+            hargaHppSesudah: String(hargaBaru),
+            nilaiPembelianBaru: String(selisihRevaluasi), // Suntik selisih valuasi ke Poin B
+            catatan: "Revaluasi HPP manual via Edit Produk",
+          });
+        }
+      }
+
+      return updated;
+    });
+
     res.json({ 
       success: true, 
       data: {
-        ...updated,
-        stokSaatIni: parseFloat(String(updated.stokSaatIni)) || 0
+        ...updatedData,
+        stokSaatIni: parseFloat(String(updatedData.stokSaatIni)) || 0
       } 
     });
 
   } catch (err: any) {
+    if (err.message === "NOT_FOUND") {
+      res.status(404).json({ error: "Produk tidak ditemukan." }); return;
+    }
     if (err.code === '23505') {
       res.status(400).json({ error: "Nama produk ini sudah terdaftar." });
       return;
