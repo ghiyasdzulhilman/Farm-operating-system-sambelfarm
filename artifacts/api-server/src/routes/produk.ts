@@ -23,7 +23,7 @@ router.get("/produk", async (req, res): Promise<void> => {
     // 🚀 FIX: Inject riwayat HPP terakhir ke masing-masing produk menggunakan Promise.all
     const data = await Promise.all(rawData.map(async (item) => {
       
-      // Cari 1 transaksi pembelian terakhir di buku gudang untuk produk ini
+    // Cari 1 transaksi pembelian terakhir di buku gudang untuk produk ini
       const [latestPurchase] = await db
         .select({
           hargaHppSebelum: stockMovementTable.hargaHppSebelum,
@@ -33,6 +33,7 @@ router.get("/produk", async (req, res): Promise<void> => {
           stokSebelum: stockMovementTable.stokSebelum,
           stokSesudah: stockMovementTable.stokSesudah,
           createdAt: stockMovementTable.createdAt,
+          tipe: stockMovementTable.tipe, // 🚀 TAMBAHAN 1: Tarik tipe transaksi dari database
         })
         .from(stockMovementTable)
         .where(
@@ -60,9 +61,11 @@ router.get("/produk", async (req, res): Promise<void> => {
           qtyBeli: parseFloat(String(latestPurchase.delta)) || 0,
           stokSebelum: parseFloat(String(latestPurchase.stokSebelum)) || 0,
           stokSesudah: parseFloat(String(latestPurchase.stokSesudah)) || 0,
-          tanggal: latestPurchase.createdAt
+          tanggal: latestPurchase.createdAt,
+          tipe: latestPurchase.tipe // 🚀 TAMBAHAN 2: Susupkan variabel tipe ke paket data frontend
         } : null
       };
+
     }));
 
     res.json({ success: true, data });
