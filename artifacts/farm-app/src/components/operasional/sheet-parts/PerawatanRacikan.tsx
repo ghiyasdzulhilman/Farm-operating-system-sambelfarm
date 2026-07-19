@@ -174,7 +174,18 @@ export function PerawatanRacikan({
               className="w-full rounded-full h-11 text-[13px] font-bold shadow-[0_4px_14px_rgba(var(--primary),0.3)] transition-all hover:shadow-[0_6px_20px_rgba(var(--primary),0.4)] hover:-translate-y-0.5 active:scale-95"
               onClick={async () => {
                 try {
-                  await onProdukChange?.(item.id, editedProducts);
+                  // 🚀 FIX: SANITASI DATA SEBELUM DIKIRIM KE BACKEND
+                  const payloadBersih = editedProducts
+                    .filter((p) => p.produkId && p.produkId !== "") // 1. Buang baris yang belum pilih produk
+                    .map((p) => ({
+                      produkId: p.produkId,
+                      // 2. Paksa konversi string ke angka desimal (Number)
+                      kuantitasPemakaian: Number(p.kuantitasPemakaian) || 0, 
+                    }))
+                    .filter((p) => p.kuantitasPemakaian > 0); // 3. Buang baris yang dosisnya 0 atau kosong
+
+                  // 4. Lempar data yang udah bersih & matang ke Parent Component
+                  await onProdukChange?.(item.id, payloadBersih);
                   
                   // Tarik ulang data setelah sukses
                   await queryClient.invalidateQueries({ queryKey: ["produk-master-list"] });
@@ -183,6 +194,7 @@ export function PerawatanRacikan({
                   setIsDirty(false);
                 } catch {}
               }}
+
             >
               {isUpdatingProduk ? (
                 <>
