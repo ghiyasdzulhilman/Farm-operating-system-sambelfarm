@@ -93,29 +93,36 @@ export function HppHistoryPopover({ history, satuanDasar }: HppHistoryProps) {
                 </div>
               </div>
 
-         {/* Bagian B: Dinamis */}
+            {/* Bagian B: Dinamis */}
               <div className="space-y-1.5">
                 <div className="font-bold text-primary uppercase text-[10px] tracking-wider flex items-center gap-1.5">
                   <span className="w-4 h-4 rounded-full bg-primary/10 flex items-center justify-center text-[9px] border border-primary/20">B</span>
-                  {/* 🚀 FIX: Teks judul dinamis mendeteksi tipe transaksi */}
-                  {history.tipe === "stok_awal" ? "Stok Awal (Input Master)" : "Beli Baru (Via Nota)"}
+                  {/* 🚀 FIX: Tambah deteksi teks Koreksi HPP */}
+                  {history.tipe === "stok_awal" ? "Stok Awal (Input Master)" : history.tipe === "penyesuaian_harga" ? "Koreksi Valuasi Manual" : "Beli Baru (Via Nota)"}
                 </div>
                 <div className="pl-5.5 font-medium flex justify-between items-end border-b border-dashed border-border/50 pb-2">
-                  <div className="text-muted-foreground/80 text-[10px]">
-                    {history.qtyBeli} {satuanDasar} <span className="text-[9px] mx-0.5">×</span> {formatRp(history.qtyBeli > 0 ? history.nilaiPembelianBaru / history.qtyBeli : 0)}
-                  </div>
+                  {/* 🚀 FIX: Kosongkan rincian qty x harga khusus buat penyesuaian manual karena ini adalah nilai selisih murni */}
+                  {history.tipe === "penyesuaian_harga" ? (
+                    <div className="text-muted-foreground/80 text-[10px] italic">
+                      Selisih revaluasi aset
+                    </div>
+                  ) : (
+                    <div className="text-muted-foreground/80 text-[10px]">
+                      {history.qtyBeli} {satuanDasar} <span className="text-[9px] mx-0.5">×</span> {formatRp(history.qtyBeli > 0 ? history.nilaiPembelianBaru / history.qtyBeli : 0)}
+                    </div>
+                  )}
                   <div className="font-bold text-foreground">
                     {formatRp(history.nilaiPembelianBaru)}
                   </div>
                 </div>
               </div>
 
-        {/* Bagian C: Dinamis */}
+              {/* Bagian C: Dinamis */}
               <div className="space-y-2 pt-1">
                 <div className="font-bold text-emerald-600 uppercase text-[10px] tracking-wider flex items-center gap-1.5">
                   <span className="w-4 h-4 rounded-full bg-emerald-500/10 flex items-center justify-center text-[9px] border border-emerald-500/20">C</span>
-                  {/* 🚀 FIX: Teks kesimpulan kalkulasi dinamis mendeteksi tipe transaksi */}
-                  {history.tipe === "stok_awal" ? "Penetapan HPP Awal" : "Rata-rata Tertimbang"}
+                  {/* 🚀 FIX: Teks kesimpulan yang relevan dengan tipe */}
+                  {history.tipe === "stok_awal" ? "Penetapan HPP Awal" : history.tipe === "penyesuaian_harga" ? "HPP Setelah Dikoreksi" : "Rata-rata Tertimbang"}
                 </div>
 
                 <div className="pl-5.5 space-y-1.5 bg-emerald-500/5 p-2 rounded-xl border border-emerald-500/10">
