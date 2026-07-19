@@ -20,11 +20,14 @@ export async function adjustStock(
     ? and(eq(produkMasterTable.id, produkId), gte(produkMasterTable.stokSaatIni, -delta))
     : eq(produkMasterTable.id, produkId);
 
-  const updated = await tx
+    const updated = await tx
     .update(produkMasterTable)
     .set({ stokSaatIni: sql`${produkMasterTable.stokSaatIni} + ${delta}` })
     .where(whereClause)
-    .returning({ stokSesudah: produkMasterTable.stokSaatIni });
+    .returning({ 
+      stokSesudah: produkMasterTable.stokSaatIni,
+      hargaHpp: produkMasterTable.hargaPerSatuanDasar // 🚀 TAMBAHAN: Tarik sekalian HPP saat ini
+    });
 
     if (updated.length === 0) {
     throw new Error(`STOK_TIDAK_CUKUP:${produkId}`);
@@ -33,6 +36,8 @@ export async function adjustStock(
   // 🚀 FIX FASE 1: Konversi paksa dari String (numeric Postgres) menjadi Number
   // Pakai String() dulu untuk mencegah TS ngambek kalau type aslinya nggak kebaca
   const stokSesudahNum = parseFloat(String(updated[0].stokSesudah)) || 0;
+  // 🚀 TAMBAHAN: Tangkap nilai HPP untuk dicatat di riwayat (wajib bentuk String)
+  const hargaHppTerkini = String(updated[0].hargaHpp || "0"); 
   
   // Karena stokSesudahNum sekarang 100% Number, kalkulasi matematika ini bebas dari string concatenation
   const stokSebelumNum = stokSesudahNum - delta;
@@ -44,6 +49,10 @@ export async function adjustStock(
     delta: String(delta), 
     stokSebelum: String(stokSebelumNum), 
     stokSesudah: String(stokSesudahNum), 
+    // 🚀 FIX FASE 2: Injeksi jejak rekam HPP ke buku gudang
+    hargaHppSebelum: hargaHppTerkini, 
+    hargaHppSesudah: hargaHppTerkini, // Karena cuma pemakaian/refund, HPP rata-rata TIDAK BERUBAH
+    nilaiPembelianBaru: "0", // Bukan transaksi beli, jadi dipatok 0
     perawatanProdukId, 
     catatan,
   });
