@@ -1,7 +1,6 @@
 import { Router, type IRouter } from "express";
 import { getAuth } from "@clerk/express";
-import { eq, desc, and } from "drizzle-orm"; // 🚀 FIX: Tambahkan 'and'
-// 🚀 FIX: Tambahin tabel perawatan dan pengeluaran buat pembersihan riwayat total
+import { eq, desc, and, or } from "drizzle-orm"; 
 import { db, produkMasterTable, stockMovementTable, perawatanProdukTable, pengeluaranTable } from "@workspace/db";
 
 const router: IRouter = Router();
@@ -39,7 +38,11 @@ router.get("/produk", async (req, res): Promise<void> => {
         .where(
           and(
             eq(stockMovementTable.produkId, item.id),
-            eq(stockMovementTable.tipe, "pembelian") // Murni cuma narik dari nota beli
+            // 🚀 FIX: Ambil riwayat dari nota beli ATAU stok awal dari master
+            or(
+              eq(stockMovementTable.tipe, "pembelian"),
+              eq(stockMovementTable.tipe, "stok_awal")
+            )
           )
         )
         .orderBy(desc(stockMovementTable.createdAt))
@@ -93,7 +96,9 @@ router.post("/produk", async (req, res): Promise<void> => {
   try {
     // 💡 Transaction: insert produk + catat baris pertama ledger dalam satu operasi atomik.
     const result = await db.transaction(async (tx) => {
-   const [newProduk] = await tx.insert(produkMasterTable).values({
+    // 🚀 FIX: Pastikan harga disiapkan sebagai Number buat hitung total nilai
+    const hargaNum = Number(hargaPerSatuanDasar) || 0;
+    const [newProduk] = await tx.insert(produkMasterTable).values({
         nama: nama.trim(),
         jenis,
         bentuk: bentuk || "Solid",
@@ -109,12 +114,19 @@ router.post("/produk", async (req, res): Promise<void> => {
       }).returning();
 
       if (stokAwalNum > 0) {
+        // 🚀 FIX: Hitung Nilai Beli Baru (Poin B di Popover)
+        const totalNilaiAwal = stokAwalNum * hargaNum;
+
         await tx.insert(stockMovementTable).values({
           produkId: newProduk.id,
           tipe: "stok_awal",
-          delta: String(stokAwalNum), // 🚀 BUNGKUS DENGAN String()
-          stokSebelum: "0", // 🚀 BUNGKUS DENGAN String()
-          stokSesudah: String(stokAwalNum), // 🚀 BUNGKUS DENGAN String()
+          delta: String(stokAwalNum),
+          stokSebelum: "0", 
+          stokSesudah: String(stokAwalNum), 
+          // 🚀 FIX: Injeksi data sejarah HPP persis kayak di form pengeluaran
+          hargaHppSebelum: "0", // Gudang awalnya kosong (Poin A = 0)
+          hargaHppSesudah: String(hargaNum),
+          nilaiPembelianBaru: String(totalNilaiAwal),
           perawatanProdukId: null,
           catatan: "Stok awal saat produk dibuat",
         });
