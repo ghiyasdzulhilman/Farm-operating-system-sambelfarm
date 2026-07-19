@@ -63,10 +63,10 @@ export function HppHistoryPopover({ history, satuanDasar }: HppHistoryProps) {
           </button>
         </div>
 
-        {/* BODY (ISI STRUK) */}
+       {/* BODY (ISI STRUK) */}
         <div className="p-4 text-xs space-y-4.5 bg-card">
           {!history ? (
-            // KONDISI A: BELUM ADA TRANSAKSI PEMBELIAN
+        // KONDISI A: BELUM ADA TRANSAKSI PEMBELIAN
             <div className="text-center text-muted-foreground py-3">
               <Calculator className="h-8 w-8 opacity-20 mx-auto mb-2" />
               <p className="font-bold text-foreground/70 text-[11px]">Belum ada riwayat pembelian.</p>
@@ -75,7 +75,7 @@ export function HppHistoryPopover({ history, satuanDasar }: HppHistoryProps) {
               </p>
             </div>
           ) : (
-            // KONDISI B: ADA TRANSAKSI PEMBELIAN (TAMPILKAN MATEMATIKA)
+       // KONDISI B: ADA TRANSAKSI PEMBELIAN ATAU STOK AWAL
             <>
               {/* Bagian A: Aset Lama */}
               <div className="space-y-1.5">
@@ -93,11 +93,12 @@ export function HppHistoryPopover({ history, satuanDasar }: HppHistoryProps) {
                 </div>
               </div>
 
-              {/* Bagian B: Beli Baru */}
+         {/* Bagian B: Dinamis */}
               <div className="space-y-1.5">
                 <div className="font-bold text-primary uppercase text-[10px] tracking-wider flex items-center gap-1.5">
                   <span className="w-4 h-4 rounded-full bg-primary/10 flex items-center justify-center text-[9px] border border-primary/20">B</span>
-                  Beli Baru (Via Nota)
+                  {/* 🚀 FIX: Teks judul dinamis mendeteksi tipe transaksi */}
+                  {history.tipe === "stok_awal" ? "Stok Awal (Input Master)" : "Beli Baru (Via Nota)"}
                 </div>
                 <div className="pl-5.5 font-medium flex justify-between items-end border-b border-dashed border-border/50 pb-2">
                   <div className="text-muted-foreground/80 text-[10px]">
@@ -109,12 +110,14 @@ export function HppHistoryPopover({ history, satuanDasar }: HppHistoryProps) {
                 </div>
               </div>
 
-              {/* Bagian C: Hasil Moving Average */}
+        {/* Bagian C: Dinamis */}
               <div className="space-y-2 pt-1">
                 <div className="font-bold text-emerald-600 uppercase text-[10px] tracking-wider flex items-center gap-1.5">
                   <span className="w-4 h-4 rounded-full bg-emerald-500/10 flex items-center justify-center text-[9px] border border-emerald-500/20">C</span>
-                  Rata-rata Tertimbang
+                  {/* 🚀 FIX: Teks kesimpulan kalkulasi dinamis mendeteksi tipe transaksi */}
+                  {history.tipe === "stok_awal" ? "Penetapan HPP Awal" : "Rata-rata Tertimbang"}
                 </div>
+
                 <div className="pl-5.5 space-y-1.5 bg-emerald-500/5 p-2 rounded-xl border border-emerald-500/10">
                   <div className="flex justify-between text-[10px] text-muted-foreground">
                     <span>Total Aset (A + B)</span>
