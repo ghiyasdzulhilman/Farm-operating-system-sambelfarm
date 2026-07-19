@@ -199,34 +199,33 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
             }
           }
 
-            // 3. Baru potong stok + insert baris perawatan_produk, satu per satu
+         // 3. Baru potong stok + insert baris perawatan_produk, satu per satu
           let urutanIndex = 0; // 🚀 Siapkan index urutan
           for (const item of produkArray) {
             const produk = produkMap.get(item.produkId)!;
-
-          // Panggil adjustStock — throw "STOK_TIDAK_CUKUP:..." kalau gagal, ditangkap di catch luar.
-            await adjustStock(tx, {
-              produkId: item.produkId,
-              delta: -item.kuantitasPemakaian,
-              tipe: "pemakaian",
-              perawatanProdukId: null, 
-            });
 
             // 🚀 FIX: Parse harga dari string DB jadi Number buat kalkulasi
             const hargaSatuanNum = Number(produk.hargaPerSatuanDasar) || 0;
             const totalBiaya = Math.round(item.kuantitasPemakaian * hargaSatuanNum);
 
-            await tx.insert(perawatanProdukTable).values({
+            // 🚀 FIX BUG: Insert ke perawatanProdukTable DULU biar kita dapet ID-nya
+            const [insertedRacikan] = await tx.insert(perawatanProdukTable).values({
               perawatanId: newPerawatan.id,
               produkId: item.produkId,
-              kuantitasPemakaian: String(item.kuantitasPemakaian), // 🚀 BUNGKUS DENGAN String()
-              hargaTercatatPerSatuan: String(hargaSatuanNum), // 🚀 BUNGKUS DENGAN String()
+              kuantitasPemakaian: String(item.kuantitasPemakaian), 
+              hargaTercatatPerSatuan: String(hargaSatuanNum), 
               totalBiaya,
               urutan: urutanIndex++,
+            }).returning(); // Wajib pakai .returning() buat dapetin ID-nya
+
+            // 🚀 FIX BUG: Setelah dapet ID racikannya, baru suruh adjustStock nyatet riwayatnya
+            await adjustStock(tx, {
+              produkId: item.produkId,
+              delta: -item.kuantitasPemakaian,
+              tipe: "pemakaian",
+              perawatanProdukId: insertedRacikan.id, // Sodorin ID-nya ke sini!
             });
-
           }
-
         }
 
         return newPerawatan;
@@ -536,13 +535,13 @@ router.patch("/notion/perawatan/:id", async (req, res): Promise<void> => {
              toDelete.push(oldData); // Ember A: Dihapus
         }
 
-        // --- EKSEKUSI EMBER A: DIHAPUS (Kembalikan stok penuh & hapus baris) ---
+       // --- EKSEKUSI EMBER A: DIHAPUS (Kembalikan stok penuh & hapus baris) ---
         for (const item of toDelete) {
           await adjustStock(tx, {
             produkId: item.produkId,
             delta: item.kuantitasPemakaian, // kembalikan (positif)
             tipe: "reversal_edit",
-            perawatanProdukId: null,
+            perawatanProdukId: item.id, // 🚀 FIX: Sodorin ID racikan lama yang mau dihapus
           });
           await tx.delete(perawatanProdukTable).where(eq(perawatanProdukTable.id, item.id));
         }
@@ -563,21 +562,24 @@ router.patch("/notion/perawatan/:id", async (req, res): Promise<void> => {
             if (hargaMasterNum === 0) throw new Error(`Produk "${master.nama}" belum punya harga. Set harga dulu.`);
             if (item.kuantitasPemakaian <= 0) throw new Error(`Kuantitas pemakaian "${master.nama}" harus lebih dari 0.`);
 
+            const totalBiaya = Math.round(item.kuantitasPemakaian * hargaMasterNum);
+            
+            // 🚀 FIX: Insert dulu ke perawatanProdukTable buat dapetin ID-nya
+            const [insertedRacikan] = await tx.insert(perawatanProdukTable).values({
+              perawatanId: id,
+              produkId: item.produkId,
+              kuantitasPemakaian: String(item.kuantitasPemakaian), 
+              hargaTercatatPerSatuan: String(hargaMasterNum), 
+              totalBiaya,
+              urutan: item.urutan, 
+            }).returning(); // Wajib .returning()
+
+            // 🚀 FIX: Baru suruh motong stok dan sodorin ID racikannya
             await adjustStock(tx, {
               produkId: item.produkId,
               delta: -item.kuantitasPemakaian, // potong (negatif)
               tipe: "pemakaian",
-              perawatanProdukId: null,
-            });
-
-            const totalBiaya = Math.round(item.kuantitasPemakaian * hargaMasterNum);
-            await tx.insert(perawatanProdukTable).values({
-              perawatanId: id,
-              produkId: item.produkId,
-              kuantitasPemakaian: String(item.kuantitasPemakaian), // 🚀 BUNGKUS String()
-              hargaTercatatPerSatuan: String(hargaMasterNum), // 🚀 BUNGKUS String()
-              totalBiaya,
-              urutan: item.urutan, 
+              perawatanProdukId: insertedRacikan.id, // 🚀 Sodorin ID barunya ke sini
             });
           }
         }
@@ -598,7 +600,7 @@ router.patch("/notion/perawatan/:id", async (req, res): Promise<void> => {
               produkId: item.produkId,
               delta: deltaQty,
               tipe: deltaQty > 0 ? "reversal_edit" : "pemakaian", // disamakan tipenya agar log rapi
-              perawatanProdukId: null,
+              perawatanProdukId: item.oldData.id, // 🚀 FIX: Comot ID racikan dari memori oldData
             });
           }
 
