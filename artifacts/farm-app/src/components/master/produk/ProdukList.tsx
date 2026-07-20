@@ -202,10 +202,14 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
       </h4>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {filteredProduk.map((item) => {
+        
+       {filteredProduk.map((item) => {
           const isEditingHarga = editingId === item.id;
           const isEditingStock = editingStockId === item.id;
           const hargaKosong = !item.hargaPerSatuanDasar || item.hargaPerSatuanDasar === 0;
+          
+          // 🚀 FIX: Variabel ini buat ngunci form & nyembunyiin icon pensil (Trash atau Nonaktif)
+          const isReadOnly = isTrashMode || !item.isActive;
 
           return (
              <div
@@ -213,7 +217,6 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
               className={cn(
                 "flex flex-col gap-3 rounded-2xl border bg-card p-3.5 shadow-sm transition-all duration-200",
                 isTrashMode
-                  // 🚀 FIX UX: Tema grayscale pudar untuk Tong Sampah, bukan merah
                   ? "border-border/40 bg-muted/5 opacity-90 grayscale-[0.1]" 
                   : item.isActive 
                     ? "border-border/50 hover:border-primary/30" 
@@ -225,7 +228,6 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
                 <div className="flex items-start gap-3 min-w-0">
                   <div className={cn(
                     "rounded-xl p-2 shrink-0 mt-0.5 shadow-sm bg-muted/60 text-muted-foreground/80",
-                    // 🚀 FIX UX: Ikon juga jadi abu-abu pudar kalau di tong sampah
                     isTrashMode && "bg-muted text-muted-foreground opacity-70"
                   )}>
                     <Package className="h-4 w-4" />
@@ -261,7 +263,7 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
                   </div>
                 </div>
 
-              {/* 🚀 FIX UX: Sektor Kanan Atas Dirapikan */}
+              {/* Sektor Kanan Atas Dirapikan */}
                 <div className="flex items-center gap-1 shrink-0">
                   
                   {/* Tombol Popover Detail HPP selalu tampil */}
@@ -285,7 +287,6 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
                       <Button
                         variant="ghost" size="icon"
                         onClick={() => {
-                          // 🚀 FIX UX: Buka modal verifikasi 2 langkah
                           setForceDeleteTarget(item);
                           setDeleteConfirmText("");
                         }}
@@ -296,7 +297,7 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
                       </Button>
                     </>
                   ) : (
-                    // 🔘 TAMPILAN MODE NORMAL (TOGGLE & INJAK TONG SAMPAH)
+                    // 🔘 TAMPILAN MODE NORMAL
                     <>
                       <Button
                         variant="ghost" size="icon"
@@ -324,7 +325,8 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
               </div>
 
               {/* SEKTOR BAWAH: Dinamis (View / Form Edit Harga / Form Edit Stok) */}
-              {isEditingStock && !isTrashMode ? (
+              {/* 🚀 FIX: Pakai isReadOnly buat ngeblok form edit stok */}
+              {isEditingStock && !isReadOnly ? (
                 // TAMPILAN FORM OPNAME STOK
                 <div className="w-full flex flex-col gap-2.5 pt-3 border-t border-border/40 mt-1 animate-in fade-in zoom-in-95 duration-200">
                   <div className="flex items-center justify-between">
@@ -337,7 +339,7 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
                   <div className="flex items-center gap-2">
                     <input
                       type="number"
-                      step="any" // 🚀 FIX: Izinkan input stok desimal di keyboard HP
+                      step="any"
                       placeholder="Stok Fisik Gudang"
                       value={stokFisik}
                       onChange={(e) => setStokFisik(e.target.value)}
@@ -365,13 +367,14 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
                   </div>
                 </div>
               ) : (
-                // TAMPILAN NORMAL STOK & HARGA (Read-Only saat di Tong Sampah)
+                // TAMPILAN NORMAL STOK & HARGA (Read-Only saat di Tong Sampah / Nonaktif)
                 <div className="flex items-center justify-between pt-2.5 border-t border-border/40 mt-1">
                   
                   {/* Bagian Stok Kiri */}
                   <div className="text-xs flex items-center gap-1.5">
                     <span className="text-muted-foreground">Stok:</span>
-                    {isTrashMode ? (
+                    {/* 🚀 FIX: Sembunyikan icon pensil kalau lagi mode read-only */}
+                    {isReadOnly ? (
                       <span className="font-bold text-muted-foreground/80">{item.stokSaatIni} {item.satuanDasar}</span>
                     ) : (
                       <button 
@@ -386,11 +389,12 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
                   
                {/* Bagian Harga Kanan */}
                   <div className="text-xs">
-                    {isEditingHarga && !isTrashMode ? (
+                    {/* 🚀 FIX: Pakai isReadOnly buat ngeblok form edit harga */}
+                    {isEditingHarga && !isReadOnly ? (
                       <div className="flex items-center gap-1.5 animate-in fade-in zoom-in-95 duration-200">
                         <input
                           type="number" 
-                          step="any" // 🚀 FIX: Izinkan ngetik angka desimal
+                          step="any"
                           value={editHarga} 
                           onChange={(e) => setEditHarga(e.target.value)}
                           className="w-24 rounded-lg border border-input bg-background px-2 py-1 text-xs outline-none focus:border-primary/50 font-bold shadow-sm"
@@ -404,9 +408,9 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
                         </Button>
                       </div>
                     ) : (
-                      isTrashMode ? (
+                      // 🚀 FIX: Sembunyikan icon pensil kalau lagi mode read-only
+                      isReadOnly ? (
                         <span className="font-bold text-muted-foreground/80">
-                          {/* 🚀 FIX: Parsing Number & format desimal max 3 digit */}
                           Rp{Number(item.hargaPerSatuanDasar || 0).toLocaleString("id-ID", { maximumFractionDigits: 3 })}/{item.satuanDasar}
                         </span>
                       ) : (
@@ -415,7 +419,6 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
                           className="flex items-center gap-1.5 font-bold text-foreground hover:text-primary transition-colors group"
                         >
                           <span className={cn(hargaKosong && "text-amber-600")}>
-                            {/* 🚀 FIX: Parsing Number & format desimal max 3 digit */}
                             Rp{Number(item.hargaPerSatuanDasar || 0).toLocaleString("id-ID", { maximumFractionDigits: 3 })}
                           </span>
                           <span className="text-muted-foreground/60 text-[10px] font-semibold">
@@ -432,6 +435,7 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
             </div>
           );
         })}
+
       </div>
 
             {filteredProduk.length === 0 && (
