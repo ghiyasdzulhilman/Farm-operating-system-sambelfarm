@@ -2,12 +2,14 @@ import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   Loader2, CheckCircle2, PackagePlus, Tag, Layers, 
-  Coins, Box, FlaskConical, AlertCircle, ChevronDown // 🚀 Tambah ChevronDown
+  Coins, Box, FlaskConical, AlertCircle, ChevronDown 
 } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { cn } from "@/lib/utils"; 
 
 interface ProdukFormModalProps {
   isOpen: boolean;
