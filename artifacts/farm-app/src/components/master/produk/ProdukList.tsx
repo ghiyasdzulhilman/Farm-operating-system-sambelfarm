@@ -267,7 +267,35 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
                   {/* Tombol Popover Detail HPP selalu tampil */}
                   <HppHistoryPopover history={item._hppHistory} satuanDasar={item.satuanDasar} />
 
-                  {!isTrashMode && (
+                  {isTrashMode ? (
+                    // 🗑️ TAMPILAN OPSI TONG SAMPAH (ICON ONLY)
+                    <>
+                      <Button
+                        variant="ghost" size="icon"
+                        onClick={() => {
+                          if (confirm(`Pulihkan produk "${item.nama}" agar bisa digunakan kembali?`)) {
+                            restoreMutation.mutate(item.id);
+                          }
+                        }}
+                        disabled={restoreMutation.isPending || forceDeleteMutation.isPending}
+                        className="h-9 w-9 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 rounded-xl transition-colors"
+                      >
+                        <RotateCcw className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost" size="icon"
+                        onClick={() => {
+                          // 🚀 FIX UX: Buka modal verifikasi 2 langkah
+                          setForceDeleteTarget(item);
+                          setDeleteConfirmText("");
+                        }}
+                        disabled={restoreMutation.isPending || forceDeleteMutation.isPending}
+                        className="h-9 w-9 text-rose-600 hover:text-rose-700 hover:bg-rose-500/10 rounded-xl transition-colors"
+                      >
+                        <ShieldAlert className="h-4 w-4" />
+                      </Button>
+                    </>
+                  ) : (
                     // 🔘 TAMPILAN MODE NORMAL (TOGGLE & INJAK TONG SAMPAH)
                     <>
                       <Button
@@ -398,38 +426,6 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
                       )
                     )}
                   </div>
-
-                </div>
-              )}
-
-              {/* 🚀 FIX UX: FOOTER KHUSUS UNTUK TONG SAMPAH (TOMBOL DI BAWAH) */}
-              {isTrashMode && (
-                <div className="flex items-center justify-end gap-2 pt-3 mt-1 border-t border-border/40">
-                  <Button
-                    variant="ghost" size="sm"
-                    onClick={() => {
-                      if (confirm(`Pulihkan produk "${item.nama}" agar bisa digunakan kembali?`)) {
-                        restoreMutation.mutate(item.id);
-                      }
-                    }}
-                    disabled={restoreMutation.isPending || forceDeleteMutation.isPending}
-                    className="h-8 px-4 gap-1.5 text-[10px] font-black uppercase tracking-wider text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 rounded-xl transition-colors"
-                  >
-                    <RotateCcw className="h-3.5 w-3.5" /> Pulihkan
-                  </Button>
-                  
-                  <Button
-                    variant="ghost" size="sm"
-                    onClick={() => {
-                      // Buka modal verifikasi 2 langkah
-                      setForceDeleteTarget(item);
-                      setDeleteConfirmText("");
-                    }}
-                    disabled={restoreMutation.isPending || forceDeleteMutation.isPending}
-                    className="h-8 px-4 gap-1.5 text-[10px] font-black uppercase tracking-wider text-rose-600 hover:text-rose-700 hover:bg-rose-500/10 rounded-xl transition-colors"
-                  >
-                    <ShieldAlert className="h-3.5 w-3.5" /> Hapus Permanen
-                  </Button>
                 </div>
               )}
 
