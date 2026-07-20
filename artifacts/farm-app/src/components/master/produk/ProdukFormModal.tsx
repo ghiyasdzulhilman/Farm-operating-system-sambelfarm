@@ -113,15 +113,14 @@ export function ProdukFormModal({ isOpen, onClose, defaultType }: ProdukFormModa
 
   return (
     <Sheet open={isOpen} onOpenChange={(val) => { if (!val) onClose(); }}>
-      {/* 🚀 FIX UX: Modal dari bawah khas iOS, dengan handle di atas */}
+      {/* 🚀 FIX UX: Balikin membal dari atas, rounded di bawah, shadow ke bawah */}
       <SheetContent 
-       side="bottom" 
-       className="mx-auto max-w-md rounded-t-[2rem] border-x-0 border-b-0 p-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl shadow-[0_-16px_40px_rgba(0,0,0,0.12)] z-[100] max-h-[90vh] flex flex-col"
+       side="top" 
+       className="mx-auto max-w-md rounded-b-[2rem] border-x-0 border-t-0 p-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl shadow-[0_16px_40px_rgba(0,0,0,0.12)] z-[100] max-h-[90vh] flex flex-col pb-6"
        >
-        
-        <div className="mx-auto mt-3 mb-1 h-1.5 w-12 rounded-full bg-border/60 shrink-0" />
 
-        <SheetHeader className="px-6 pb-4 pt-2 flex flex-row items-center justify-between border-b border-border pr-12 shrink-0">
+        {/* 🚀 FIX UX: Header disesuaikan paddingnya tanpa handle atas */}
+        <SheetHeader className="px-6 py-4 flex flex-row items-center justify-between border-b border-border pr-12 shrink-0">
           <div className="flex items-center gap-3">
             <div className="rounded-xl bg-primary/10 p-2 text-primary shadow-sm">
               <PackagePlus className="h-5 w-5" />
@@ -264,8 +263,8 @@ export function ProdukFormModal({ isOpen, onClose, defaultType }: ProdukFormModa
           </div>
         </div>
 
-        {/* 🚀 FIX UX: Sticky Bottom Bar buat Simpan */}
-        <div className="sticky bottom-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-t border-border/50 flex items-center justify-end gap-3 px-6 pt-4 pb-6 shrink-0 mt-auto">
+        {/* 🚀 FIX UX: Tombol simpan tetep nempel rapi */}
+        <div className="bg-white/95 dark:bg-slate-950/95 flex items-center justify-end gap-3 px-6 pt-4 pb-2 shrink-0 mt-auto">
           <Button 
             variant="ghost" 
             onClick={onClose} 
@@ -286,6 +285,9 @@ export function ProdukFormModal({ isOpen, onClose, defaultType }: ProdukFormModa
             )}
           </Button>
         </div>
+
+        {/* 🚀 FIX UX: Garis handle ditaruh paling bawah modal */}
+        <div className="mx-auto mt-2 mb-2 h-1.5 w-12 rounded-full bg-border/60 shrink-0" />
 
       </SheetContent>
     </Sheet>
