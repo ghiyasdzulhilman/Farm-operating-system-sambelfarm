@@ -71,7 +71,7 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
       const isPermanen = data.message?.toLowerCase().includes("permanen");
       
       toast({ 
-        title: isPermanen ? "Dihapus Permanen" : "Masuk Tong Sampah", 
+        title: isPermanen ? "Dihapus Permanen" : "Trash", 
         description: data.message || "Produk berhasil dihapus." // Tampilkan pesan asli dari backend
       });
     },
@@ -198,7 +198,7 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
   return (
     <div className="w-full space-y-3 animate-in fade-in duration-300">
       <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground pl-1">
-        {isTrashMode ? "Tong Sampah" : "Daftar Produk Terdaftar"} ({filteredProduk.length})
+        {isTrashMode ? "Trash" : "Daftar Produk Terdaftar"} ({filteredProduk.length})
       </h4>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -309,7 +309,7 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
                         variant="ghost" size="icon"
                         onClick={() => {
                           // 🚀 FIX UX: Ubah teks pop-up biar user paham ada fitur Smart Delete
-                          if (confirm(`Hapus produk "${item.nama}"?\n\nCatatan: Sistem akan menghapus produk ini permanen jika belum ada riwayat transaksi, ATAU memindahkannya ke Tong Sampah jika sudah pernah digunakan.`)) {
+                          if (confirm(`Hapus produk "${item.nama}"?\n\nCatatan: Sistem akan menghapus produk ini permanen jika belum ada riwayat transaksi, ATAU memindahkannya ke Sampah jika sudah pernah digunakan.`)) {
                             deleteMutation.mutate(item.id);
                           }
                         }}
