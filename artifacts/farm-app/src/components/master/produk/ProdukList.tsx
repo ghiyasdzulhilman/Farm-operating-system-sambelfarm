@@ -107,7 +107,7 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["produk-master-list"] });
-      toast({ title: "Meninggal Permanen", description: "Produk beserta seluruh catatan transaksi dimusnahkan." });
+      toast({ title: "Dihapus Permanen", description: "Produk beserta seluruh catatan transaksi berhasil dihapus" });
     },
     onError: (err: any) => {
       toast({ variant: "destructive", title: "Gagal", description: err.message });
@@ -522,10 +522,12 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
                   }
                 });
               }}
-              className="h-11 rounded-xl px-6 font-bold bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-50 disabled:bg-muted disabled:text-muted-foreground shadow-sm transition-all"
+              // 🚀 FIX BUG SAFARI: Ganti transition-all jadi transition-colors
+              className="h-11 rounded-xl px-6 font-bold bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-50 disabled:bg-muted disabled:text-muted-foreground shadow-sm transition-colors"
             >
-              {forceDeleteMutation.isPending ? "Membakar..." : "Ya, Musnahkan"}
+              {forceDeleteMutation.isPending ? "Membakar" : "Hapus Permanen"}
             </Button>
+
           </div>
 
         </SheetContent>
