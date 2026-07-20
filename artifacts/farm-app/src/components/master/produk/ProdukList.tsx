@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Trash2, Package, Pencil, ToggleLeft, ToggleRight, PackageSearch, AlertCircle, RefreshCcw, RotateCcw, ShieldAlert } from "lucide-react";
+import { Trash2, Package, Pencil, ToggleLeft, ToggleRight, PackageSearch, AlertCircle, RefreshCcw, RotateCcw, ShieldAlert, MoreVertical } from "lucide-react"; 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -17,7 +17,11 @@ interface ProdukListProps {
 
 export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: ProdukListProps) {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
+    const queryClient = useQueryClient();
+
+  // 🚀 TAMBAHAN: State Edit Detail Produk (Titik 3)
+  const [editingDetail, setEditingDetail] = useState<any | null>(null);
+  const [detailForm, setDetailForm] = useState<any>({});
 
     // 🚀 TAMBAHAN: State Keamanan Hapus Permanen
   const [forceDeleteTarget, setForceDeleteTarget] = useState<any | null>(null);
@@ -47,8 +51,10 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["produk-master-list"] });
       setEditingId(null);
+      setEditingDetail(null); // 🚀 FIX: Tutup sheet edit detail saat sukses
       toast({ title: "Tersimpan", description: "Data produk berhasil diperbarui." });
     },
+
     onError: (err: any) => {
       toast({ variant: "destructive", title: "Gagal Menyimpan", description: err.message });
     },
@@ -263,13 +269,35 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
                   </div>
                 </div>
 
-              {/* Sektor Kanan Atas Dirapikan */}
+             {/* Sektor Kanan Atas Dirapikan */}
                 <div className="flex items-center gap-1 shrink-0">
                   
                   {/* Tombol Popover Detail HPP selalu tampil */}
                   <HppHistoryPopover history={item._hppHistory} satuanDasar={item.satuanDasar} />
 
+                  {/* 🚀 TAMBAHAN: Tombol Edit Titik 3 (Disembunyikan saat di Tong Sampah) */}
+                  {!isTrashMode && (
+                    <Button
+                      variant="ghost" size="icon"
+                      onClick={() => {
+                        setEditingDetail(item);
+                        setDetailForm({
+                          nama: item.nama || "",
+                          jenis: item.jenis || "Pupuk",
+                          bentuk: item.bentuk || "Solid",
+                          satuanDasar: item.satuanDasar || "gram",
+                          satuanTampilan: item.satuanTampilan || "kg",
+                          n: item.n || "", p: item.p || "", k: item.k || "", ca: item.ca || "", mg: item.mg || ""
+                        });
+                      }}
+                      className="h-9 w-9 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  )}
+
                   {isTrashMode ? (
+
                     // 🗑️ TAMPILAN OPSI TONG SAMPAH (ICON ONLY)
                     <>
                       <Button
@@ -537,7 +565,115 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
         </SheetContent>
       </Sheet>
 
+      {/* 🚀 TAMBAHAN: MODAL SHEET EDIT DETAIL PRODUK */}
+      <Sheet open={!!editingDetail} onOpenChange={(val) => { if (!val) setEditingDetail(null); }}>
+        <SheetContent 
+          side="bottom" 
+          className="mx-auto max-w-md rounded-t-[2rem] border-x-0 border-b-0 p-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl shadow-[0_-16px_40px_rgba(0,0,0,0.12)] z-[100] max-h-[90vh] flex flex-col"
+        >
+          <div className="mx-auto mt-3 mb-1 h-1.5 w-12 rounded-full bg-border/60 shrink-0" />
+
+          <SheetHeader className="px-6 pb-4 pt-2 flex flex-row items-center border-b border-border shrink-0">
+            <div className="text-left">
+              <SheetTitle className="text-base font-black tracking-tight text-foreground">Edit Produk</SheetTitle>
+              <p className="text-[10px] font-bold text-muted-foreground tracking-wider uppercase">Ubah Detail & Kandungan</p>
+            </div>
+          </SheetHeader>
+
+          <div className="px-6 py-5 space-y-4 text-left flex-1 overflow-y-auto custom-scrollbar">
+            {/* Input Nama */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Nama Produk</label>
+              <Input 
+                value={detailForm.nama || ""} 
+                onChange={e => setDetailForm({ ...detailForm, nama: e.target.value })}
+                className="h-11 rounded-xl bg-background shadow-sm text-sm font-bold"
+              />
+            </div>
+
+            {/* Grid Jenis & Bentuk */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Jenis</label>
+                <select 
+                  value={detailForm.jenis || ""} 
+                  onChange={e => setDetailForm({ ...detailForm, jenis: e.target.value })}
+                  className="w-full h-11 rounded-xl border border-input bg-background px-3 text-sm font-semibold shadow-sm outline-none"
+                >
+                  {["Pupuk", "Insektisida", "Herbisida", "Fungisida", "Lainnya"].map((j) => <option key={j} value={j}>{j}</option>)}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Bentuk & Satuan</label>
+                <select 
+                  value={detailForm.bentuk || ""} 
+                  onChange={e => {
+                    const isSolid = e.target.value === "Solid";
+                    setDetailForm({ 
+                      ...detailForm, 
+                      bentuk: e.target.value,
+                      satuanDasar: isSolid ? "gram" : "ml",
+                      satuanTampilan: isSolid ? "kg" : "liter"
+                    });
+                  }}
+                  className="w-full h-11 rounded-xl border border-input bg-background px-3 text-sm font-semibold shadow-sm outline-none"
+                >
+                  <option value="Solid">Solid (Kg/Gr)</option>
+                  <option value="Cair">Cair (Lt/Ml)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Grid Kandungan Hara */}
+            <div className="pt-2">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2 block">Kandungan Hara (Opsional)</label>
+              <div className="grid grid-cols-5 gap-2 p-3 rounded-xl bg-muted/30 border border-border/50">
+                {(["n", "p", "k", "ca", "mg"] as const).map((key) => (
+                  <div key={key} className="space-y-1 text-center">
+                    <label className="text-[9px] font-black uppercase text-muted-foreground">{key}</label>
+                    <Input 
+                      type="number" step="any" placeholder="0"
+                      value={detailForm[key] || ""} 
+                      onChange={e => setDetailForm({ ...detailForm, [key]: e.target.value })}
+                      className="h-9 rounded-lg text-center px-1 text-xs font-bold bg-background shadow-sm"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="sticky bottom-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-t border-border/50 flex items-center justify-end gap-3 px-6 pt-4 pb-6 shrink-0 mt-auto">
+            <Button variant="ghost" onClick={() => setEditingDetail(null)} className="h-11 rounded-xl px-4 font-bold text-muted-foreground hover:bg-muted">
+              Batal
+            </Button>
+            <Button 
+              disabled={updateMutation.isPending || !detailForm.nama}
+              onClick={() => {
+                updateMutation.mutate({
+                  id: editingDetail.id,
+                  payload: {
+                    nama: detailForm.nama,
+                    jenis: detailForm.jenis,
+                    bentuk: detailForm.bentuk,
+                    satuanDasar: detailForm.satuanDasar,
+                    satuanTampilan: detailForm.satuanTampilan,
+                    n: detailForm.n ? Number(detailForm.n) : null,
+                    p: detailForm.p ? Number(detailForm.p) : null,
+                    k: detailForm.k ? Number(detailForm.k) : null,
+                    ca: detailForm.ca ? Number(detailForm.ca) : null,
+                    mg: detailForm.mg ? Number(detailForm.mg) : null,
+                  }
+                });
+              }} 
+              className="h-11 rounded-xl px-6 font-bold bg-primary text-primary-foreground hover:opacity-90 transition-all shadow-sm"
+            >
+              {updateMutation.isPending ? "Menyimpan..." : "Simpan Perubahan"}
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
     </div>
   );
 }
-
