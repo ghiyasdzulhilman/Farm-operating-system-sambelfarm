@@ -208,12 +208,13 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
           const hargaKosong = !item.hargaPerSatuanDasar || item.hargaPerSatuanDasar === 0;
 
           return (
-            <div
+             <div
               key={item.id}
               className={cn(
                 "flex flex-col gap-3 rounded-2xl border bg-card p-3.5 shadow-sm transition-all duration-200",
                 isTrashMode
-                  ? "border-rose-500/20 bg-rose-500/[0.02]"
+                  // 🚀 FIX UX: Tema grayscale pudar untuk Tong Sampah, bukan merah
+                  ? "border-border/40 bg-muted/5 opacity-90 grayscale-[0.1]" 
                   : item.isActive 
                     ? "border-border/50 hover:border-primary/30" 
                     : "border-border/20 bg-muted/10 opacity-75 grayscale-[0.3]"
@@ -224,10 +225,12 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
                 <div className="flex items-start gap-3 min-w-0">
                   <div className={cn(
                     "rounded-xl p-2 shrink-0 mt-0.5 shadow-sm bg-muted/60 text-muted-foreground/80",
-                    isTrashMode && "bg-rose-500/10 text-rose-600"
+                    // 🚀 FIX UX: Ikon juga jadi abu-abu pudar kalau di tong sampah
+                    isTrashMode && "bg-muted text-muted-foreground opacity-70"
                   )}>
                     <Package className="h-4 w-4" />
                   </div>
+
                   <div className="flex flex-col min-w-0">
                     <span className="text-sm font-bold text-foreground truncate block">
                       {item.nama}
@@ -258,43 +261,13 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
                   </div>
                 </div>
 
-                {/* 🚀 FIX: LOGIKA PERALIHAN TOMBOL AKSI (NORMAL VS RECYCLE BIN) */}
+              {/* 🚀 FIX UX: Sektor Kanan Atas Dirapikan */}
                 <div className="flex items-center gap-1 shrink-0">
                   
-                  {/* 🚀 TAMBAHAN: Tombol Popover Detail HPP ditaruh paling kiri */}
+                  {/* Tombol Popover Detail HPP selalu tampil */}
                   <HppHistoryPopover history={item._hppHistory} satuanDasar={item.satuanDasar} />
 
-                  {isTrashMode ? (
-                    // 🗑️ TAMPILAN OPSI DI DALAM TAB DELETE (PULIHKAN & HAPUS PERMANEN)
-                    <>
-                      <Button
-                        variant="ghost" size="sm"
-                        onClick={() => {
-
-                          if (confirm(`Pulihkan produk "${item.nama}" agar bisa digunakan kembali?`)) {
-                            restoreMutation.mutate(item.id);
-                          }
-                        }}
-                        disabled={restoreMutation.isPending || forceDeleteMutation.isPending}
-                        className="h-8 px-2.5 gap-1 text-[10px] font-black uppercase tracking-wider text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 rounded-xl transition-all"
-                      >
-                        <RotateCcw className="h-3.5 w-3.5" /> Pulihkan
-                      </Button>
-                      
-                      <Button
-                        variant="ghost" size="sm"
-                        onClick={() => {
-                          // 🚀 FIX UX: Buka modal verifikasi 2 langkah
-                          setForceDeleteTarget(item);
-                          setDeleteConfirmText(""); // Reset input text
-                        }}
-                        disabled={restoreMutation.isPending || forceDeleteMutation.isPending}
-                        className="h-8 px-2.5 gap-1 text-[10px] font-black uppercase tracking-wider text-rose-600 hover:text-rose-700 hover:bg-rose-500/10 rounded-xl transition-all"
-                      >
-                        <ShieldAlert className="h-3.5 w-3.5" /> Hapus Permanen
-                      </Button>
-                    </>
-                  ) : (
+                  {!isTrashMode && (
                     // 🔘 TAMPILAN MODE NORMAL (TOGGLE & INJAK TONG SAMPAH)
                     <>
                       <Button
@@ -308,8 +281,7 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
                       <Button
                         variant="ghost" size="icon"
                         onClick={() => {
-                          // 🚀 FIX UX: Ubah teks pop-up biar user paham ada fitur Smart Delete
-                          if (confirm(`Hapus produk "${item.nama}"?\n\nCatatan: Sistem akan menghapus produk ini permanen jika belum ada riwayat transaksi, ATAU memindahkannya ke Sampah jika sudah pernah digunakan.`)) {
+                          if (confirm(`Hapus produk "${item.nama}"?\n\nCatatan: Sistem akan menghapus produk ini permanen jika belum ada riwayat transaksi, ATAU memindahkannya ke Tong Sampah jika sudah pernah digunakan.`)) {
                             deleteMutation.mutate(item.id);
                           }
                         }}
@@ -429,6 +401,38 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
 
                 </div>
               )}
+
+              {/* 🚀 FIX UX: FOOTER KHUSUS UNTUK TONG SAMPAH (TOMBOL DI BAWAH) */}
+              {isTrashMode && (
+                <div className="flex items-center justify-end gap-2 pt-3 mt-1 border-t border-border/40">
+                  <Button
+                    variant="ghost" size="sm"
+                    onClick={() => {
+                      if (confirm(`Pulihkan produk "${item.nama}" agar bisa digunakan kembali?`)) {
+                        restoreMutation.mutate(item.id);
+                      }
+                    }}
+                    disabled={restoreMutation.isPending || forceDeleteMutation.isPending}
+                    className="h-8 px-4 gap-1.5 text-[10px] font-black uppercase tracking-wider text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 rounded-xl transition-colors"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" /> Pulihkan
+                  </Button>
+                  
+                  <Button
+                    variant="ghost" size="sm"
+                    onClick={() => {
+                      // Buka modal verifikasi 2 langkah
+                      setForceDeleteTarget(item);
+                      setDeleteConfirmText("");
+                    }}
+                    disabled={restoreMutation.isPending || forceDeleteMutation.isPending}
+                    className="h-8 px-4 gap-1.5 text-[10px] font-black uppercase tracking-wider text-rose-600 hover:text-rose-700 hover:bg-rose-500/10 rounded-xl transition-colors"
+                  >
+                    <ShieldAlert className="h-3.5 w-3.5" /> Hapus Permanen
+                  </Button>
+                </div>
+              )}
+
             </div>
           );
         })}
