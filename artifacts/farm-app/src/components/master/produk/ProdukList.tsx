@@ -439,7 +439,7 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
           <PackageSearch className="h-8 w-8 opacity-20 mb-2" />
           <p className="text-xs font-semibold">Tidak ada produk ditemukan.</p>
           <p className="text-[10px] opacity-70">
-            {isTrashMode ? "Tong sampah Anda kosong bersih." : "Coba ubah kata kunci atau ganti filter kategori."}
+            {isTrashMode ? "Sampah anda bersih" : "Coba ubah kata kunci atau ganti filter kategori."}
           </p>
         </div>
       )}
