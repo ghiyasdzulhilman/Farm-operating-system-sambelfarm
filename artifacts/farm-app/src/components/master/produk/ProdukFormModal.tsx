@@ -22,22 +22,21 @@ const SATUAN_PRESET: Record<string, { dasar: string; tampilan: string }> = {
   Cair: { dasar: "ml", tampilan: "liter" },
 };
 
-// 🚀 FIX: State input sekarang mewakili satuan TAMPILAN (Kg/Liter)
 type ProdukForm = {
   nama: string;
   jenis: string;
   bentuk: "Solid" | "Cair";
   satuanDasar: string;
   satuanTampilan: string;
-  hargaPerTampilan: string; // Tadinya hargaPerSatuanDasar
-  stokAwalTampilan: string; // Tadinya stokAwal
+  hargaInput: string; // 🚀 FIX: Ganti jadi universal (bisa harga per kg, bisa harga total botol)
+  stokInput: string;  // 🚀 FIX: Ganti jadi universal (bisa stok kg, bisa isi ml botol)
   n: string; p: string; k: string; ca: string; mg: string;
 };
 
 const EMPTY_PRODUK_FORM: ProdukForm = {
   nama: "", jenis: "Pupuk", bentuk: "Solid",
   satuanDasar: "gram", satuanTampilan: "kg",
-  hargaPerTampilan: "", stokAwalTampilan: "",
+  hargaInput: "", stokInput: "", // 🚀 Disesuaikan
   n: "", p: "", k: "", ca: "", mg: "",
 };
 
@@ -47,6 +46,7 @@ export function ProdukFormModal({ isOpen, onClose, defaultType }: ProdukFormModa
   
   const [form, setForm] = useState<ProdukForm>(EMPTY_PRODUK_FORM);
   const [isHaraOpen, setIsHaraOpen] = useState(false);
+  const [inputMode, setInputMode] = useState<"besar" | "kecil">("besar"); // 🚀 TAMBAHAN: State Saklar Mode
 
   useEffect(() => {
     if (isOpen) {
@@ -60,12 +60,22 @@ export function ProdukFormModal({ isOpen, onClose, defaultType }: ProdukFormModa
     setForm((f) => ({ ...f, bentuk, satuanDasar: preset.dasar, satuanTampilan: preset.tampilan }));
   };
 
-  const addMutation = useMutation({
+    const addMutation = useMutation({
     mutationFn: async () => {
-      // 🚀 LOGIKA KONVERSI (Dari layar HP ke Database)
-      const multiplier = 1000; // 1 kg = 1000 gram, 1 liter = 1000 ml
-      const hargaDasar = (Number(form.hargaPerTampilan) || 0) / multiplier; // Dibagi 1000
-      const stokDasar = (Number(form.stokAwalTampilan) || 0) * multiplier; // Dikali 1000
+      // 🚀 LOGIKA KONVERSI BARU (Mengerti Nota Petani)
+      const hargaNum = Number(form.hargaInput) || 0;
+      const stokNum = Number(form.stokInput) || 0;
+      let hargaDasar = 0;
+      let stokDasar = 0;
+
+      if (inputMode === "besar") {
+        hargaDasar = hargaNum / 1000; // Harga per Kg dibagi 1000 = HPP per Gram
+        stokDasar = stokNum * 1000;   // Stok Kg dikali 1000 = Stok murni Gram
+      } else {
+        // Mode Kecil: hargaInput = HARGA TOTAL BOTOL, stokInput = ISI ML/GRAM
+        hargaDasar = stokNum > 0 ? hargaNum / stokNum : 0; 
+        stokDasar = stokNum; // Langsung masukin Gram/Ml murni tanpa dikali 1000
+      }
 
       const payload = {
         nama: form.nama,
@@ -73,8 +83,9 @@ export function ProdukFormModal({ isOpen, onClose, defaultType }: ProdukFormModa
         bentuk: form.bentuk,
         satuanDasar: form.satuanDasar,
         satuanTampilan: form.satuanTampilan,
-        hargaPerSatuanDasar: hargaDasar, // 👈 Masuk ke DB dalam wujud harga/gram
-        stokAwal: stokDasar, // 👈 Masuk ke DB dalam wujud total gram
+        hargaPerSatuanDasar: hargaDasar, // 👈 Masuk ke DB akurat!
+        stokAwal: stokDasar, // 👈 Masuk ke DB akurat!
+
         n: form.n ? Number(form.n) : undefined,
         p: form.p ? Number(form.p) : undefined,
         k: form.k ? Number(form.k) : undefined,
@@ -109,7 +120,7 @@ export function ProdukFormModal({ isOpen, onClose, defaultType }: ProdukFormModa
     addMutation.mutate();
   };
 
-  const hargaKosong = form.hargaPerTampilan === "" || Number(form.hargaPerTampilan) === 0;
+    const hargaKosong = form.hargaInput === "" || Number(form.hargaInput) === 0; // 🚀 Disesuaikan dengan penamaan form baru
 
   return (
     <Sheet open={isOpen} onOpenChange={(val) => { if (!val) onClose(); }}>
@@ -181,44 +192,78 @@ export function ProdukFormModal({ isOpen, onClose, defaultType }: ProdukFormModa
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            {/* 🚀 LOGIKA BARU: Input Harga per Kg/Liter */}
+                    {/* 🚀 TAMBAHAN UX: Saklar Mode Satuan (Pill Switch) */}
+          <div className="flex items-center justify-between p-1 bg-muted/40 rounded-xl border border-border/50">
+            <button
+              onClick={() => {
+                setInputMode("besar");
+                setForm(f => ({ ...f, hargaInput: "", stokInput: "" })); // Reset isian biar aman
+              }}
+              className={cn("flex-1 text-[11px] font-bold py-2 rounded-lg transition-all", inputMode === "besar" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground")}
+            >
+              Mode {form.satuanTampilan} (Karung/Grosir)
+            </button>
+            <button
+              onClick={() => {
+                setInputMode("kecil");
+                setForm(f => ({ ...f, hargaInput: "", stokInput: "" })); // Reset isian biar aman
+              }}
+              className={cn("flex-1 text-[11px] font-bold py-2 rounded-lg transition-all", inputMode === "kecil" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground")}
+            >
+              Mode {form.satuanDasar} (Botol/Obat)
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 mt-2">
+            {/* 🚀 FIX UX: Input Harga Bunglon */}
             <div className="space-y-1.5">
               <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground/80 truncate">
-                <Coins className="h-3.5 w-3.5" /> Harga / {form.satuanTampilan}
+                <Coins className="h-3.5 w-3.5" /> 
+                {inputMode === "besar" ? `Harga / ${form.satuanTampilan}` : `Harga Total 1 Botol`}
               </label>
               <div className="space-y-1.5">
                 <Input 
                   type="number" inputMode="decimal" step="any"
                   placeholder="Rp 0" 
-                  value={form.hargaPerTampilan} 
-                  onChange={e => setForm({ ...form, hargaPerTampilan: e.target.value })}
+                  value={form.hargaInput} 
+                  onChange={e => setForm({ ...form, hargaInput: e.target.value })}
                   className="h-12 rounded-xl bg-background border border-input focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm text-sm font-medium px-4"
                 />
-                {Number(form.hargaPerTampilan) > 0 && (
+                
+                {/* Hitungan Bantuan Hijau - Harga */}
+                {inputMode === "besar" && Number(form.hargaInput) > 0 && (
                   <p className="text-[10px] font-bold text-emerald-600 pl-1 animate-in fade-in">
-                    = Rp {(Number(form.hargaPerTampilan) / 1000).toLocaleString("id-ID")} / {form.satuanDasar}
+                    = Rp {(Number(form.hargaInput) / 1000).toLocaleString("id-ID")} / {form.satuanDasar}
+                  </p>
+                )}
+                {/* 🚀 Fitur Andalan Lu: Cek Silang HPP Pestisida Otomatis */}
+                {inputMode === "kecil" && Number(form.hargaInput) > 0 && Number(form.stokInput) > 0 && (
+                  <p className="text-[10px] font-bold text-emerald-600 pl-1 animate-in fade-in">
+                    = Rp {(Number(form.hargaInput) / Number(form.stokInput)).toLocaleString("id-ID", { maximumFractionDigits: 2 })} / {form.satuanDasar}
                   </p>
                 )}
               </div>
             </div>
 
-            {/* 🚀 LOGIKA BARU: Input Stok Awal (Kg/Liter) */}
+            {/* 🚀 FIX UX: Input Stok Bunglon */}
             <div className="space-y-1.5">
               <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground/80 truncate">
-                <Box className="h-3.5 w-3.5" /> Stok Awal ({form.satuanTampilan})
+                <Box className="h-3.5 w-3.5" /> 
+                {inputMode === "besar" ? `Stok Awal (${form.satuanTampilan})` : `Isi Kemasan (${form.satuanDasar})`}
               </label>
               <div className="space-y-1.5">
                 <Input 
                   type="number" inputMode="decimal" step="any"
-                  placeholder={`0 ${form.satuanTampilan}`} 
-                  value={form.stokAwalTampilan} 
-                  onChange={e => setForm({ ...form, stokAwalTampilan: e.target.value })}
+                  placeholder={`0 ${inputMode === "besar" ? form.satuanTampilan : form.satuanDasar}`} 
+                  value={form.stokInput} 
+                  onChange={e => setForm({ ...form, stokInput: e.target.value })}
                   className="h-12 rounded-xl bg-background border border-input focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm text-sm font-medium px-4"
                 />
-                {Number(form.stokAwalTampilan) > 0 && (
+                
+                {/* Hitungan Bantuan Hijau - Stok (Cuma tayang buat mode besar) */}
+                {inputMode === "besar" && Number(form.stokInput) > 0 && (
                   <p className="text-[10px] font-bold text-emerald-600 pl-1 animate-in fade-in">
-                    = {(Number(form.stokAwalTampilan) * 1000).toLocaleString("id-ID")} {form.satuanDasar}
+                    = {(Number(form.stokInput) * 1000).toLocaleString("id-ID")} {form.satuanDasar}
                   </p>
                 )}
               </div>
