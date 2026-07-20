@@ -135,7 +135,7 @@ export function ProdukFormModal({ isOpen, onClose, defaultType }: ProdukFormModa
 
         <div className="px-6 py-5 space-y-5 text-left flex-1 overflow-y-auto custom-scrollbar">
           
-          <div className="space-y-1.5">
+        <div className="space-y-1.5">
             <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
               <Tag className="h-3.5 w-3.5" /> Nama Produk
             </label>
@@ -144,7 +144,6 @@ export function ProdukFormModal({ isOpen, onClose, defaultType }: ProdukFormModa
               value={form.nama} 
               onChange={e => setForm({ ...form, nama: e.target.value })}
               className="h-12 rounded-xl bg-background border border-input focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm text-sm font-medium px-4"
-              autoFocus
             />
           </div>
 
