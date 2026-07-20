@@ -302,7 +302,8 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
                       <Button
                         variant="ghost" size="icon"
                         onClick={() => {
-                          if (confirm(`Pindahkan produk "${item.nama}" ke tong sampah?`)) {
+                          // 🚀 FIX UX: Ubah teks pop-up biar user paham ada fitur Smart Delete
+                          if (confirm(`Hapus produk "${item.nama}"?\n\nCatatan: Sistem akan menghapus produk ini permanen jika belum ada riwayat transaksi, ATAU memindahkannya ke Tong Sampah jika sudah pernah digunakan.`)) {
                             deleteMutation.mutate(item.id);
                           }
                         }}
