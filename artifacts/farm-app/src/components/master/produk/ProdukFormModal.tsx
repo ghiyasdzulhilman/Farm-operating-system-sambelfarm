@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   Loader2, CheckCircle2, PackagePlus, Tag, Layers, 
-  Coins, Box, FlaskConical, AlertCircle 
+  Coins, Box, FlaskConical, AlertCircle, ChevronDown // 🚀 Tambah ChevronDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,21 +22,22 @@ const SATUAN_PRESET: Record<string, { dasar: string; tampilan: string }> = {
   Cair: { dasar: "ml", tampilan: "liter" },
 };
 
+// 🚀 FIX: State input sekarang mewakili satuan TAMPILAN (Kg/Liter)
 type ProdukForm = {
   nama: string;
   jenis: string;
   bentuk: "Solid" | "Cair";
   satuanDasar: string;
   satuanTampilan: string;
-  hargaPerSatuanDasar: string;
-  stokAwal: string;
+  hargaPerTampilan: string; // Tadinya hargaPerSatuanDasar
+  stokAwalTampilan: string; // Tadinya stokAwal
   n: string; p: string; k: string; ca: string; mg: string;
 };
 
 const EMPTY_PRODUK_FORM: ProdukForm = {
   nama: "", jenis: "Pupuk", bentuk: "Solid",
   satuanDasar: "gram", satuanTampilan: "kg",
-  hargaPerSatuanDasar: "", stokAwal: "0",
+  hargaPerTampilan: "", stokAwalTampilan: "",
   n: "", p: "", k: "", ca: "", mg: "",
 };
 
@@ -47,7 +48,6 @@ export function ProdukFormModal({ isOpen, onClose, defaultType }: ProdukFormModa
   const [form, setForm] = useState<ProdukForm>(EMPTY_PRODUK_FORM);
   const [isHaraOpen, setIsHaraOpen] = useState(false);
 
-  // Reset form dan ikuti tab kategori yang lagi aktif pas modal dibuka
   useEffect(() => {
     if (isOpen) {
       setForm({ ...EMPTY_PRODUK_FORM, jenis: defaultType === "Semua" ? "Pupuk" : defaultType });
@@ -62,14 +62,19 @@ export function ProdukFormModal({ isOpen, onClose, defaultType }: ProdukFormModa
 
   const addMutation = useMutation({
     mutationFn: async () => {
+      // 🚀 LOGIKA KONVERSI (Dari layar HP ke Database)
+      const multiplier = 1000; // 1 kg = 1000 gram, 1 liter = 1000 ml
+      const hargaDasar = (Number(form.hargaPerTampilan) || 0) / multiplier; // Dibagi 1000
+      const stokDasar = (Number(form.stokAwalTampilan) || 0) * multiplier; // Dikali 1000
+
       const payload = {
         nama: form.nama,
         jenis: form.jenis,
         bentuk: form.bentuk,
         satuanDasar: form.satuanDasar,
         satuanTampilan: form.satuanTampilan,
-        hargaPerSatuanDasar: Number(form.hargaPerSatuanDasar) || 0,
-        stokAwal: Number(form.stokAwal) || 0,
+        hargaPerSatuanDasar: hargaDasar, // 👈 Masuk ke DB dalam wujud harga/gram
+        stokAwal: stokDasar, // 👈 Masuk ke DB dalam wujud total gram
         n: form.n ? Number(form.n) : undefined,
         p: form.p ? Number(form.p) : undefined,
         k: form.k ? Number(form.k) : undefined,
@@ -104,16 +109,19 @@ export function ProdukFormModal({ isOpen, onClose, defaultType }: ProdukFormModa
     addMutation.mutate();
   };
 
-  const hargaKosong = form.hargaPerSatuanDasar === "" || Number(form.hargaPerSatuanDasar) === 0;
+  const hargaKosong = form.hargaPerTampilan === "" || Number(form.hargaPerTampilan) === 0;
 
   return (
     <Sheet open={isOpen} onOpenChange={(val) => { if (!val) onClose(); }}>
+      {/* 🚀 FIX UX: Modal dari bawah khas iOS, dengan handle di atas */}
       <SheetContent 
-       side="top" 
-       className="mx-auto max-w-md rounded-b-[2rem] border-x-0 border-t-0 p-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl shadow-[0_16px_40px_rgba(0,0,0,0.12)] z-[100] max-h-[90vh] flex flex-col pb-10"
+       side="bottom" 
+       className="mx-auto max-w-md rounded-t-[2rem] border-x-0 border-b-0 p-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl shadow-[0_-16px_40px_rgba(0,0,0,0.12)] z-[100] max-h-[90vh] flex flex-col"
        >
+        
+        <div className="mx-auto mt-3 mb-1 h-1.5 w-12 rounded-full bg-border/60 shrink-0" />
 
-        <SheetHeader className="px-6 py-4 flex flex-row items-center justify-between border-b border-border pr-12 shrink-0">
+        <SheetHeader className="px-6 pb-4 pt-2 flex flex-row items-center justify-between border-b border-border pr-12 shrink-0">
           <div className="flex items-center gap-3">
             <div className="rounded-xl bg-primary/10 p-2 text-primary shadow-sm">
               <PackagePlus className="h-5 w-5" />
@@ -125,10 +133,8 @@ export function ProdukFormModal({ isOpen, onClose, defaultType }: ProdukFormModa
           </div>
         </SheetHeader>
 
-        {/* Area ini yang akan scrollable, aman dari keyboard */}
-    <div className="px-6 py-5 space-y-5 text-left flex-1 overflow-y-auto custom-scrollbar">
+        <div className="px-6 py-5 space-y-5 text-left flex-1 overflow-y-auto custom-scrollbar">
           
-          {/* 1. INPUT NAMA PRODUK */}
           <div className="space-y-1.5">
             <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
               <Tag className="h-3.5 w-3.5" /> Nama Produk
@@ -142,62 +148,85 @@ export function ProdukFormModal({ isOpen, onClose, defaultType }: ProdukFormModa
             />
           </div>
 
-          {/* 2. GRID JENIS & BENTUK */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
+            {/* 🚀 FIX UX: Dropdown dengan Ikon Chevron */}
+            <div className="space-y-1.5 relative group">
               <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
                 <Layers className="h-3.5 w-3.5" /> Jenis
               </label>
-              <select 
-                value={form.jenis} 
-                onChange={e => setForm({ ...form, jenis: e.target.value })}
-                className="w-full h-12 rounded-xl border border-input bg-background px-4 text-sm font-semibold outline-none focus:border-primary/50 focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm cursor-pointer"
-              >
-                {JENIS_PRODUK_OPTIONS.map((j) => <option key={j} value={j}>{j}</option>)}
-              </select>
+              <div className="relative">
+                <select 
+                  value={form.jenis} 
+                  onChange={e => setForm({ ...form, jenis: e.target.value })}
+                  className="w-full appearance-none h-12 rounded-xl border border-input bg-background pl-4 pr-10 text-sm font-semibold outline-none focus:border-primary/50 focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm cursor-pointer"
+                >
+                  {JENIS_PRODUK_OPTIONS.map((j) => <option key={j} value={j}>{j}</option>)}
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground opacity-50 pointer-events-none" />
+              </div>
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 relative group">
               <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
                 <FlaskConical className="h-3.5 w-3.5" /> Bentuk
               </label>
-              <select 
-                value={form.bentuk} 
-                onChange={e => handleBentukChange(e.target.value as "Solid" | "Cair")}
-                className="w-full h-12 rounded-xl border border-input bg-background px-4 text-sm font-semibold outline-none focus:border-primary/50 focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm cursor-pointer"
-              >
-                <option value="Solid">Solid (gram/kg)</option>
-                <option value="Cair">Cair (ml/liter)</option>
-              </select>
+              <div className="relative">
+                <select 
+                  value={form.bentuk} 
+                  onChange={e => handleBentukChange(e.target.value as "Solid" | "Cair")}
+                  className="w-full appearance-none h-12 rounded-xl border border-input bg-background pl-4 pr-10 text-sm font-semibold outline-none focus:border-primary/50 focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm cursor-pointer"
+                >
+                  <option value="Solid">Solid (gram/kg)</option>
+                  <option value="Cair">Cair (ml/liter)</option>
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground opacity-50 pointer-events-none" />
+              </div>
             </div>
           </div>
 
-          {/* 3. GRID HARGA & STOK */}
           <div className="grid grid-cols-2 gap-4">
+            {/* 🚀 LOGIKA BARU: Input Harga per Kg/Liter */}
             <div className="space-y-1.5">
               <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground/80 truncate">
-                <Coins className="h-3.5 w-3.5" /> Harga / {form.satuanDasar}
+                <Coins className="h-3.5 w-3.5" /> Harga / {form.satuanTampilan}
               </label>
-              <Input 
-                type="number" placeholder="Rp 0" 
-                value={form.hargaPerSatuanDasar} 
-                onChange={e => setForm({ ...form, hargaPerSatuanDasar: e.target.value })}
-                className="h-12 rounded-xl bg-background border border-input focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm text-sm font-medium px-4"
-              />
+              <div className="space-y-1.5">
+                <Input 
+                  type="number" inputMode="decimal" step="any"
+                  placeholder="Rp 0" 
+                  value={form.hargaPerTampilan} 
+                  onChange={e => setForm({ ...form, hargaPerTampilan: e.target.value })}
+                  className="h-12 rounded-xl bg-background border border-input focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm text-sm font-medium px-4"
+                />
+                {Number(form.hargaPerTampilan) > 0 && (
+                  <p className="text-[10px] font-bold text-emerald-600 pl-1 animate-in fade-in">
+                    = Rp {(Number(form.hargaPerTampilan) / 1000).toLocaleString("id-ID")} / {form.satuanDasar}
+                  </p>
+                )}
+              </div>
             </div>
+
+            {/* 🚀 LOGIKA BARU: Input Stok Awal (Kg/Liter) */}
             <div className="space-y-1.5">
               <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground/80 truncate">
-                <Box className="h-3.5 w-3.5" /> Stok Awal
+                <Box className="h-3.5 w-3.5" /> Stok Awal ({form.satuanTampilan})
               </label>
-              <Input 
-                type="number" placeholder={`0 ${form.satuanDasar}`} 
-                value={form.stokAwal} 
-                onChange={e => setForm({ ...form, stokAwal: e.target.value })}
-                className="h-12 rounded-xl bg-background border border-input focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm text-sm font-medium px-4"
-              />
+              <div className="space-y-1.5">
+                <Input 
+                  type="number" inputMode="decimal" step="any"
+                  placeholder={`0 ${form.satuanTampilan}`} 
+                  value={form.stokAwalTampilan} 
+                  onChange={e => setForm({ ...form, stokAwalTampilan: e.target.value })}
+                  className="h-12 rounded-xl bg-background border border-input focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm text-sm font-medium px-4"
+                />
+                {Number(form.stokAwalTampilan) > 0 && (
+                  <p className="text-[10px] font-bold text-emerald-600 pl-1 animate-in fade-in">
+                    = {(Number(form.stokAwalTampilan) * 1000).toLocaleString("id-ID")} {form.satuanDasar}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* WARNING HARGA KOSONG */}
           {hargaKosong && (
             <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 animate-in fade-in zoom-in-95">
               <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
@@ -207,7 +236,6 @@ export function ProdukFormModal({ isOpen, onClose, defaultType }: ProdukFormModa
             </div>
           )}
 
-          {/* 4. KANDUNGAN HARA (COLLAPSIBLE) */}
           <div className="pt-2">
             <button 
               onClick={() => setIsHaraOpen(!isHaraOpen)}
@@ -224,10 +252,11 @@ export function ProdukFormModal({ isOpen, onClose, defaultType }: ProdukFormModa
                   <div key={key} className="space-y-1 text-center">
                     <label className="text-[10px] font-black uppercase text-muted-foreground">{key}</label>
                     <Input 
-                      type="number" placeholder="0"
+                      type="number" inputMode="decimal" step="any"
+                      placeholder="0"
                       value={form[key]} 
                       onChange={e => setForm({ ...form, [key]: e.target.value })}
-                      className="h-10 rounded-lg text-center px-1 text-xs font-bold"
+                      className="h-10 rounded-lg text-center px-1 text-xs font-bold bg-background shadow-sm"
                     />
                   </div>
                 ))}
@@ -236,9 +265,8 @@ export function ProdukFormModal({ isOpen, onClose, defaultType }: ProdukFormModa
           </div>
         </div>
 
-        {/* FOOTER ACTIONS (Shrink-0 biar ukurannya ga kegencet) */}
-      <div className="flex items-center justify-end gap-3 px-6 pt-4 pb-2 shrink-0">
-
+        {/* 🚀 FIX UX: Sticky Bottom Bar buat Simpan */}
+        <div className="sticky bottom-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-t border-border/50 flex items-center justify-end gap-3 px-6 pt-4 pb-6 shrink-0 mt-auto">
           <Button 
             variant="ghost" 
             onClick={onClose} 
@@ -260,7 +288,6 @@ export function ProdukFormModal({ isOpen, onClose, defaultType }: ProdukFormModa
           </Button>
         </div>
 
-        <div className="mx-auto mt-2 h-1.5 w-12 rounded-full bg-border/60" />
       </SheetContent>
     </Sheet>
   );
