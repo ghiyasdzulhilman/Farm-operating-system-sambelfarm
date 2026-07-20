@@ -83,7 +83,7 @@ export function ProdukManager() {
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              {status === "delete" ? "🗑️ Delete" : status}
+              {status === "delete" ? "Trash" : status}
             </button>
           ))}
         </div>
