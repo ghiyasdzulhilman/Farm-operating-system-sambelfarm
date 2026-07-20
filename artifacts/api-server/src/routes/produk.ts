@@ -383,9 +383,52 @@ router.get("/produk/trash", async (req, res): Promise<void> => {
       .where(eq(produkMasterTable.deleted, true))
       .orderBy(desc(produkMasterTable.updatedAt));
     
-    const data = rawData.map(item => ({
-      ...item,
-      stokSaatIni: parseFloat(String(item.stokSaatIni)) || 0
+    // 🚀 FIX: Inject riwayat HPP terakhir sama persis kayak di GET produk aktif
+    const data = await Promise.all(rawData.map(async (item) => {
+      
+      // Cari 1 transaksi pembelian terakhir di buku gudang untuk produk ini
+      const [latestPurchase] = await db
+        .select({
+          hargaHppSebelum: stockMovementTable.hargaHppSebelum,
+          hargaHppSesudah: stockMovementTable.hargaHppSesudah,
+          nilaiPembelianBaru: stockMovementTable.nilaiPembelianBaru,
+          delta: stockMovementTable.delta, 
+          stokSebelum: stockMovementTable.stokSebelum,
+          stokSesudah: stockMovementTable.stokSesudah,
+          createdAt: stockMovementTable.createdAt,
+          tipe: stockMovementTable.tipe, 
+        })
+        .from(stockMovementTable)
+        .where(
+          and(
+            eq(stockMovementTable.produkId, item.id),
+            or(
+              eq(stockMovementTable.tipe, "pembelian"),
+              eq(stockMovementTable.tipe, "stok_awal"),
+              eq(stockMovementTable.tipe, "penyesuaian_harga")
+            )
+          )
+        )
+        .orderBy(desc(stockMovementTable.createdAt))
+        .limit(1);
+
+      return {
+        ...item,
+        stokSaatIni: parseFloat(String(item.stokSaatIni)) || 0,
+        
+        // 🚀 FIX: Bawa paket data _hppHistory ke frontend biar popover gak kosong
+        _hppHistory: latestPurchase ? {
+          hargaHppSebelum: parseFloat(String(latestPurchase.hargaHppSebelum)) || 0,
+          hargaHppSesudah: parseFloat(String(latestPurchase.hargaHppSesudah)) || 0,
+          nilaiPembelianBaru: parseFloat(String(latestPurchase.nilaiPembelianBaru)) || 0,
+          qtyBeli: parseFloat(String(latestPurchase.delta)) || 0,
+          stokSebelum: parseFloat(String(latestPurchase.stokSebelum)) || 0,
+          stokSesudah: parseFloat(String(latestPurchase.stokSesudah)) || 0,
+          tanggal: latestPurchase.createdAt,
+          tipe: latestPurchase.tipe 
+        } : null
+      };
+
     }));
 
     res.json({ success: true, data });
