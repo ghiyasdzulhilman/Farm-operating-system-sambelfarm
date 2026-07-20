@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { getAuth } from "@clerk/express";
 import { eq, desc, and, or } from "drizzle-orm"; 
-import { db, produkMasterTable, stockMovementTable, perawatanProdukTable, pengeluaranTable } from "@workspace/db";
+import { db, produkMasterTable, stockMovementTable, perawatanProdukTable, pengeluaranTable, adjustStock } from "@workspace/db";
 
 const router: IRouter = Router();
 
@@ -328,29 +328,26 @@ router.post("/produk/:id/adjust", async (req, res): Promise<void> => {
       const stokSebelum = parseFloat(String(produk.stokSaatIni)) || 0;
       const delta = stokBaruNum - stokSebelum;
 
-      // Cegah transaksi jika tidak ada perbedaan fisik vs sistem
+     // Cegah transaksi jika tidak ada perbedaan fisik vs sistem
       if (delta === 0) {
         throw new Error("NO_CHANGE");
       }
 
-     // 2. Insert riwayat penyesuaian ke tabel stock_movement
-      await tx.insert(stockMovementTable).values({
+      // 🚀 FIX: Panggil Si Orang Gudang (adjustStock) biar jejak HPP otomatis dicatat!
+      // Nggak perlu manual update master table atau insert stock movement lagi, 
+      // karena fungsi ini udah nge-handle semuanya (All-in-One).
+      await adjustStock(tx, {
         produkId: id,
-        tipe: "adjustment",
-        delta: String(delta), // 🚀 BUNGKUS DENGAN String()
-        stokSebelum: String(stokSebelum), // 🚀 BUNGKUS DENGAN String()
-        stokSesudah: String(stokBaruNum), // 🚀 BUNGKUS DENGAN String()
+        delta: delta, 
+        tipe: "stok_opname", // 🚀 Ubah tipe biar lebih deskriptif di buku gudang
         catatan: catatan || `Penyesuaian stok manual (Selisih: ${delta > 0 ? '+' : ''}${delta})`,
       });
 
-      // 3. Update secara paksa stok caching di tabel master
-      const [updatedProduk] = await tx.update(produkMasterTable)
-        .set({ 
-          stokSaatIni: String(stokBaruNum), // 🚀 BUNGKUS DENGAN String()
-          updatedAt: new Date()
-        })
-        .where(eq(produkMasterTable.id, id))
-        .returning();
+      // 🚀 Ambil data master terbaru yang udah di-update sama adjustStock buat dikirim balik ke Frontend
+      const [updatedProduk] = await tx
+        .select()
+        .from(produkMasterTable)
+        .where(eq(produkMasterTable.id, id));
 
       return {
         ...updatedProduk,
