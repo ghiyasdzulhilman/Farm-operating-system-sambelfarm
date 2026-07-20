@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Trash2, Package, Pencil, ToggleLeft, ToggleRight, PackageSearch, AlertCircle, RefreshCcw, RotateCcw, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input"; // 🚀 TAMBAHAN: Import Input
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { HppHistoryPopover } from "./HppHistoryPopover"; // 🚀 TAMBAHAN: Import Kalkulator Popover
@@ -16,6 +17,10 @@ interface ProdukListProps {
 export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: ProdukListProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+    // 🚀 TAMBAHAN: State Keamanan Hapus Permanen
+  const [forceDeleteTarget, setForceDeleteTarget] = useState<any | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState<string>("");
 
   // State Edit Harga
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -278,9 +283,9 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
                       <Button
                         variant="ghost" size="sm"
                         onClick={() => {
-                          if (confirm(`⚠️ PERINGATAN KERAS! Menghapus permanen "${item.nama}" akan MEMBAKAR/MENGHAPUS TOTAL seluruh riwayat nota pembelian uang kas dan stok movement barang di kebun. Anda yakin?`)) {
-                            forceDeleteMutation.mutate(item.id);
-                          }
+                          // 🚀 FIX UX: Buka modal verifikasi 2 langkah
+                          setForceDeleteTarget(item);
+                          setDeleteConfirmText(""); // Reset input text
                         }}
                         disabled={restoreMutation.isPending || forceDeleteMutation.isPending}
                         className="h-8 px-2.5 gap-1 text-[10px] font-black uppercase tracking-wider text-rose-600 hover:text-rose-700 hover:bg-rose-500/10 rounded-xl transition-all"
@@ -428,7 +433,7 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
         })}
       </div>
 
-      {filteredProduk.length === 0 && (
+            {filteredProduk.length === 0 && (
         <div className="flex flex-col items-center justify-center p-12 border border-dashed rounded-3xl bg-muted/10 text-center text-muted-foreground">
           <PackageSearch className="h-8 w-8 opacity-20 mb-2" />
           <p className="text-xs font-semibold">Tidak ada produk ditemukan.</p>
@@ -437,6 +442,76 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
           </p>
         </div>
       )}
+
+      {/* 🚀 TAMBAHAN: MODAL VERIFIKASI HAPUS PERMANEN (DANGER ZONE) */}
+      {forceDeleteTarget && (
+        <div className="fixed inset-0 z-[200] flex items-start justify-center pt-32 bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-background rounded-[2rem] w-full max-w-md p-6 shadow-2xl flex flex-col gap-4 animate-in zoom-in-95 duration-200 border border-border/50">
+            
+            {/* Header Bahaya */}
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-rose-500/10 text-rose-600 rounded-2xl shrink-0">
+                <ShieldAlert className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-foreground tracking-tight">Konfirmasi Hapus Permanen</h3>
+                <p className="text-[10px] font-bold text-rose-600 uppercase tracking-wider">Tindakan Berbahaya</p>
+              </div>
+            </div>
+
+            {/* Kotak Peringatan */}
+            <div className="bg-rose-500/10 border border-rose-500/20 p-4 rounded-2xl">
+              <p className="text-[11px] font-semibold text-rose-700 leading-relaxed">
+                Tindakan ini tidak dapat dibatalkan. Seluruh riwayat transaksi, nota pembelian, dan pemakaian stok untuk produk ini akan dihapus selamanya dari database.
+              </p>
+            </div>
+
+            {/* Input Verifikasi */}
+            <div className="space-y-2 mt-2">
+              <label className="text-xs font-bold text-muted-foreground leading-relaxed block">
+                Ketik <span className="text-foreground select-all bg-muted px-1.5 py-0.5 rounded-md border border-border/50">{forceDeleteTarget.nama}</span> di bawah ini untuk melanjutkan:
+              </label>
+              <Input
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="Ketik nama produk disini..."
+                className="h-12 rounded-xl bg-background border-rose-500/30 focus-visible:ring-2 focus-visible:ring-rose-500/20 text-sm font-medium px-4"
+              />
+            </div>
+
+            {/* Tombol Aksi */}
+            <div className="flex items-center justify-end gap-3 mt-2">
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setForceDeleteTarget(null);
+                  setDeleteConfirmText("");
+                }}
+                className="h-11 rounded-xl px-4 font-bold text-muted-foreground hover:bg-muted"
+              >
+                Batal
+              </Button>
+              <Button
+                // 🚀 KUNCI KEAMANAN: Disable tombol kalau teks nggak cocok 100%
+                disabled={deleteConfirmText !== forceDeleteTarget.nama || forceDeleteMutation.isPending}
+                onClick={() => {
+                  forceDeleteMutation.mutate(forceDeleteTarget.id, {
+                    onSuccess: () => {
+                      setForceDeleteTarget(null);
+                      setDeleteConfirmText("");
+                    }
+                  });
+                }}
+                className="h-11 rounded-xl px-6 font-bold bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-50 disabled:bg-muted disabled:text-muted-foreground shadow-sm transition-all"
+              >
+                {forceDeleteMutation.isPending ? "Membakar..." : "Ya, Musnahkan"}
+              </Button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
