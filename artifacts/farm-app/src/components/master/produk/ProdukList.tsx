@@ -2,10 +2,11 @@ import { useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Trash2, Package, Pencil, ToggleLeft, ToggleRight, PackageSearch, AlertCircle, RefreshCcw, RotateCcw, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input"; // 🚀 TAMBAHAN: Import Input
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { HppHistoryPopover } from "./HppHistoryPopover"; // 🚀 TAMBAHAN: Import Kalkulator Popover
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"; // 🚀 FIX UX: Import Sheet
+import { HppHistoryPopover } from "./HppHistoryPopover"; 
 
 interface ProdukListProps {
   produk: any[];
@@ -443,75 +444,94 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
         </div>
       )}
 
-      {/* 🚀 TAMBAHAN: MODAL VERIFIKASI HAPUS PERMANEN (DANGER ZONE) */}
-      {forceDeleteTarget && (
-        <div className="fixed inset-0 z-[200] flex items-start justify-center pt-32 bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-background rounded-[2rem] w-full max-w-md p-6 shadow-2xl flex flex-col gap-4 animate-in zoom-in-95 duration-200 border border-border/50">
-            
-            {/* Header Bahaya */}
+    {/* 🚀 FIX UX: MODAL SHEET DARI BAWAH KHUSUS HAPUS PERMANEN */}
+      <Sheet 
+        open={!!forceDeleteTarget} 
+        onOpenChange={(val) => { 
+          if (!val) {
+            setForceDeleteTarget(null);
+            setDeleteConfirmText("");
+          }
+        }}
+      >
+        <SheetContent 
+          side="bottom" 
+          className="mx-auto max-w-md rounded-t-[2rem] border-x-0 border-b-0 p-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl shadow-[0_-16px_40px_rgba(0,0,0,0.12)] z-[100] max-h-[90vh] flex flex-col"
+        >
+          
+          {/* Drag Handle iOS */}
+          <div className="mx-auto mt-3 mb-1 h-1.5 w-12 rounded-full bg-border/60 shrink-0" />
+
+          {/* Header Sheet */}
+          <SheetHeader className="px-6 pb-4 pt-2 flex flex-row items-center justify-between border-b border-border pr-12 shrink-0">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-rose-500/10 text-rose-600 rounded-2xl shrink-0">
-                <ShieldAlert className="h-6 w-6" />
+              <div className="rounded-xl bg-rose-500/10 p-2 text-rose-600 shadow-sm">
+                <ShieldAlert className="h-5 w-5" />
               </div>
-              <div>
-                <h3 className="text-base font-black text-foreground tracking-tight">Konfirmasi Hapus Permanen</h3>
-                <p className="text-[10px] font-bold text-rose-600 uppercase tracking-wider">Tindakan Berbahaya</p>
+              <div className="text-left">
+                <SheetTitle className="text-base font-black tracking-tight text-foreground">Hapus Permanen</SheetTitle>
+                <p className="text-[10px] font-bold text-rose-600 tracking-wider uppercase">Tindakan Berbahaya</p>
               </div>
             </div>
+          </SheetHeader>
 
-            {/* Kotak Peringatan */}
+          {/* Area Scrollable yang aman dari keyboard */}
+          <div className="px-6 py-5 space-y-5 text-left flex-1 overflow-y-auto custom-scrollbar">
+            
             <div className="bg-rose-500/10 border border-rose-500/20 p-4 rounded-2xl">
               <p className="text-[11px] font-semibold text-rose-700 leading-relaxed">
                 Tindakan ini tidak dapat dibatalkan. Seluruh riwayat transaksi, nota pembelian, dan pemakaian stok untuk produk ini akan dihapus selamanya dari database.
               </p>
             </div>
 
-            {/* Input Verifikasi */}
-            <div className="space-y-2 mt-2">
+            <div className="space-y-2">
               <label className="text-xs font-bold text-muted-foreground leading-relaxed block">
-                Ketik <span className="text-foreground select-all bg-muted px-1.5 py-0.5 rounded-md border border-border/50">{forceDeleteTarget.nama}</span> di bawah ini untuk melanjutkan:
+                Ketik <span className="text-foreground select-all bg-muted px-1.5 py-0.5 rounded-md border border-border/50">{forceDeleteTarget?.nama}</span> di bawah ini untuk melanjutkan:
               </label>
               <Input
                 value={deleteConfirmText}
                 onChange={(e) => setDeleteConfirmText(e.target.value)}
                 placeholder="Ketik nama produk disini..."
                 className="h-12 rounded-xl bg-background border-rose-500/30 focus-visible:ring-2 focus-visible:ring-rose-500/20 text-sm font-medium px-4"
+                // 💡 Nggak pakai autoFocus biar UI nggak loncat sendiri pas kebuka di HP
               />
             </div>
-
-            {/* Tombol Aksi */}
-            <div className="flex items-center justify-end gap-3 mt-2">
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setForceDeleteTarget(null);
-                  setDeleteConfirmText("");
-                }}
-                className="h-11 rounded-xl px-4 font-bold text-muted-foreground hover:bg-muted"
-              >
-                Batal
-              </Button>
-              <Button
-                // 🚀 KUNCI KEAMANAN: Disable tombol kalau teks nggak cocok 100%
-                disabled={deleteConfirmText !== forceDeleteTarget.nama || forceDeleteMutation.isPending}
-                onClick={() => {
-                  forceDeleteMutation.mutate(forceDeleteTarget.id, {
-                    onSuccess: () => {
-                      setForceDeleteTarget(null);
-                      setDeleteConfirmText("");
-                    }
-                  });
-                }}
-                className="h-11 rounded-xl px-6 font-bold bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-50 disabled:bg-muted disabled:text-muted-foreground shadow-sm transition-all"
-              >
-                {forceDeleteMutation.isPending ? "Membakar..." : "Ya, Musnahkan"}
-              </Button>
-            </div>
-
+            
           </div>
-        </div>
-      )}
+
+          {/* Sticky Bottom Bar buat Tombol */}
+          <div className="sticky bottom-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-t border-border/50 flex items-center justify-end gap-3 px-6 pt-4 pb-6 shrink-0 mt-auto">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setForceDeleteTarget(null);
+                setDeleteConfirmText("");
+              }}
+              className="h-11 rounded-xl px-4 font-bold text-muted-foreground hover:bg-muted"
+            >
+              Batal
+            </Button>
+            <Button
+              // 🚀 KUNCI KEAMANAN: Pakai optional chaining (?.) untuk jaga-jaga kalau target null
+              disabled={deleteConfirmText !== forceDeleteTarget?.nama || forceDeleteMutation.isPending}
+              onClick={() => {
+                forceDeleteMutation.mutate(forceDeleteTarget.id, {
+                  onSuccess: () => {
+                    setForceDeleteTarget(null);
+                    setDeleteConfirmText("");
+                  }
+                });
+              }}
+              className="h-11 rounded-xl px-6 font-bold bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-50 disabled:bg-muted disabled:text-muted-foreground shadow-sm transition-all"
+            >
+              {forceDeleteMutation.isPending ? "Membakar..." : "Ya, Musnahkan"}
+            </Button>
+          </div>
+
+        </SheetContent>
+      </Sheet>
 
     </div>
   );
 }
+
