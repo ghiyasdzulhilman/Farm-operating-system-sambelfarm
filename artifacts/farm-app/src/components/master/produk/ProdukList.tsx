@@ -48,7 +48,7 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
     },
   });
 
-  // 2. MUTASI SMART DELETE (Pindahkan ke Tong Sampah)
+    // 2. MUTASI SMART DELETE (Pindahkan ke Tong Sampah / Hapus Permanen)
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const res = await fetch(`/api/produk/${id}`, { method: "DELETE" });
@@ -58,9 +58,16 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
       if (!res.ok) throw new Error(data.error || "Gagal menghapus produk.");
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => { // 🚀 FIX: Tangkap 'data' balikan dari backend
       queryClient.invalidateQueries({ queryKey: ["produk-master-list"] });
-      toast({ title: "Berhasil", description: "Produk dipindahkan ke Tong Sampah." });
+      
+      // 🚀 FIX: Deteksi apakah pesan dari backend mengandung kata "permanen"
+      const isPermanen = data.message?.toLowerCase().includes("permanen");
+      
+      toast({ 
+        title: isPermanen ? "Dihapus Permanen" : "Masuk Tong Sampah", 
+        description: data.message || "Produk berhasil dihapus." // Tampilkan pesan asli dari backend
+      });
     },
     onError: (err: any) => {
       toast({ variant: "destructive", title: "Gagal Menghapus", description: err.message });
