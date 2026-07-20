@@ -666,11 +666,13 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
                   }
                 });
               }} 
-              className="h-11 rounded-xl px-6 font-bold bg-primary text-primary-foreground hover:opacity-90 transition-all shadow-sm"
+              // 🚀 FIX BUG SAFARI: Ganti transition-all jadi transition-colors
+              className="h-11 rounded-xl px-6 font-bold bg-primary text-primary-foreground hover:opacity-90 transition-colors shadow-sm"
             >
               {updateMutation.isPending ? "Menyimpan..." : "Simpan Perubahan"}
             </Button>
           </div>
+
         </SheetContent>
       </Sheet>
 
