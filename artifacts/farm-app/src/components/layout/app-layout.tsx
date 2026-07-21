@@ -19,8 +19,7 @@ import {
   Bug 
 } from "lucide-react";
 
-// 🚀 FIX: Hapus import AddHarvestDialog lama, masukin FormPanen baru
-import { FormPanen } from "@/components/finance/FormPanen";
+import { Formpanen } from "@/components/finance/FormPanen";
 import { PengeluaranFormModal } from "@/components/finance/PengeluaranFormModal";
 import { AddPerawatanDialog } from "@/components/agronomy/AddPerawatanDialog";
 import { AddInspeksiDialog } from "@/components/agronomy/AddInspeksiDialog";
@@ -40,9 +39,6 @@ export function AppLayout({
   const [location] = useLocation();
   const { isSignedIn } = useAuth();
   const [isFabOpen, setIsFabOpen] = useState(false);
-  
-  // 🚀 FIX: State baru khusus buat ngontrol laci FormPanen
-  const [isPanenOpen, setIsPanenOpen] = useState(false);
 
   const { data: connectionStatus } = useGetNotionConnectionStatus({
     query: {
@@ -74,14 +70,14 @@ export function AppLayout({
     { href: "/settings", icon: Compass },
   ];
 
-  // URUTAN FAB MUNCUL KE ATAS (VERTIKAL LURUS) DENGAN ICON PILIHAN MANDOR
+    // URUTAN FAB MUNCUL KE ATAS (VERTIKAL LURUS) DENGAN ICON PILIHAN MANDOR
   const quickActions = [
+
     { id: "expense", component: PengeluaranFormModal, icon: Banknote, delay: 0.12 },
     { id: "inspeksi", component: AddInspeksiDialog, icon: Bug, delay: 0.09 }, 
     { id: "operasional", component: AddOperasionalDialog, icon: HardHat, delay: 0.06 }, 
     { id: "perawatan", component: AddPerawatanDialog, icon: Sprout, delay: 0.03 },
-    // 🚀 FIX: Hapus properti `component`, tambahin `onClick` biar logikanya jadi bersih
-    { id: "harvest", icon: ShoppingBasket, delay: 0.0, onClick: () => setIsPanenOpen(true) }, 
+    { id: "harvest", component: FormPanen, icon: ShoppingBasket, delay: 0.0 }, 
   ];
 
   return (
@@ -138,9 +134,6 @@ export function AppLayout({
       <main className="container p-4 md:p-6 mx-auto max-w-7xl">
         {children}
       </main>
-
-      {/* 🚀 FORM PANEN MOUNT DI SINI */}
-      <FormPanen isOpen={isPanenOpen} onClose={() => setIsPanenOpen(false)} />
 
       {/* BACKDROP GELAP SAAT FAB DIBUKA */}
       <AnimatePresence>
@@ -202,26 +195,16 @@ export function AppLayout({
                   transition={{ type: "spring", bounce: 0.35, duration: 0.5, delay: action.delay }}
                   className="absolute z-20"
                 >
-                  {/* 🚀 FIX LOGIKA FAB: Support OnClick untuk form modern, tetap sedia overlay untuk form lama */}
-                  <div 
-                    className="relative flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-primary text-primary-foreground shadow-xl active:scale-95 transition-all cursor-pointer"
-                    onClick={() => {
-                      if (action.onClick) {
-                        action.onClick();
-                        setIsFabOpen(false); // Tutup laci FAB kalau tombolnya ditekan
-                      }
-                    }}
-                  >
+                  {/* LINGKARAN ICON PREMIUM */}
+                  <div className="relative flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-primary text-primary-foreground shadow-xl active:scale-95 transition-all">
                     <Icon className="h-[20px] w-[20px] stroke-[2.5]" />
                     
-                    {/* JURUS INVISIBLE OVERLAY (Cuma render kalau komponen lamanya ada) */}
-                    {ActionDialog && (
-                      <div className="absolute inset-0 z-30 opacity-0 overflow-hidden">
-                        <div className="w-full h-full [&_button]:w-full [&_button]:h-full [&_button]:absolute [&_button]:inset-0 [&_button]:opacity-0">
-                          <ActionDialog />
-                        </div>
+                    {/* JURUS INVISIBLE OVERLAY */}
+                    <div className="absolute inset-0 z-30 opacity-0 overflow-hidden">
+                      <div className="w-full h-full [&_button]:w-full [&_button]:h-full [&_button]:absolute [&_button]:inset-0 [&_button]:opacity-0">
+                        <ActionDialog />
                       </div>
-                    )}
+                    </div>
                   </div>
                 </motion.div>
               );
