@@ -6,7 +6,7 @@ import { format } from "date-fns";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft, ArrowRight, CheckCircle2, Receipt,
+  ArrowLeft, ArrowRight, CheckCircle2, Banknote, // 🚀 FIX: Ganti Receipt jadi Banknote
   Calendar, Tag, ToggleLeft, ToggleRight, Loader2, Wallet, X, Check 
 } from "lucide-react";
 
@@ -91,8 +91,9 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
     enabled: open 
   });
   
-  const produkList = rawProduk?.data || [];
-  const kategoriList = rawDropdown?.kategoriKeuangan || []; // 🚀 Ambil kategori dari response baru
+  // 🚀 FIX: Filter produk biar yang muncul cuma yang statusnya Aktif
+  const produkList = (rawProduk?.data || []).filter((p: any) => p.isActive === true);
+  const kategoriList = rawDropdown?.kategoriKeuangan || []; 
   const areasList = rawDropdown?.areas || []; // 🚀 Ambil array area
   const isLoadingOptions = loadProduk || loadDropdown;
 
@@ -188,9 +189,10 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
 
       {/* 🚀 MENGGUNAKAN GAYA SHEET DARI OPERASIONAL (TURUN DARI ATAS) */}
       <SheetContent side="top" className="mx-auto max-w-md rounded-b-[2rem] border-x-0 border-t-0 p-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl shadow-[0_16px_40px_rgba(0,0,0,0.12)] pb-5 z-[999]">
-        <SheetHeader className="px-6 py-4 flex flex-row items-center justify-between border-b border-border">
+         <SheetHeader className="px-6 py-4 flex flex-row items-center justify-between border-b border-border">
           <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-primary/10 p-2 text-primary shadow-sm"><Receipt className="h-5 w-5" /></div>
+            {/* 🚀 FIX: Ganti icon Receipt jadi Banknote */}
+            <div className="rounded-xl bg-primary/10 p-2 text-primary shadow-sm"><Banknote className="h-5 w-5" /></div>
             <div className="text-left">
               <SheetTitle className="text-base font-black tracking-tight">Input Pengeluaran</SheetTitle>
               <p className="text-[10px] font-bold text-primary tracking-wider uppercase">Step {step} dari 3</p>
@@ -232,7 +234,8 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
                         <FormField control={form.control} name="tanggal" render={({ field }) => (
                           <FormItem className="space-y-1.5">
                             <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80"><Calendar className="inline-block h-3.5 w-3.5 mr-1" /> Tanggal Transaksi</FormLabel>
-                            <FormControl><Input type="date" className="h-12 rounded-xl bg-background border border-input focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm text-sm font-medium" {...field} /></FormControl>
+                            {/* 🚀 FIX: Kecilin tinggi jadi h-11 biar gak over */}
+                            <FormControl><Input type="date" className="h-11 rounded-xl bg-background border border-input focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm text-sm font-medium" {...field} /></FormControl>
                             <FormMessage className="text-xs text-red-500" />
                           </FormItem>
                         )} />
@@ -381,10 +384,14 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
                             )} />
                           )}
 
-                          <div className="p-3 mt-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 flex gap-2 text-[11px] font-semibold">
+                        {/* 🚀 FIX: Teks Alert dibikin dinamis menyesuaikan tipe pengeluaran */}
+                          <div className="p-3 mt-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 flex gap-2 text-[11px] font-semibold leading-relaxed">
                             <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" />
-                            Pastikan data sudah benar. Data akan langsung mempengaruhi laporan keuangan dan stok gudang.
+                            {isPembelianStok 
+                              ? "Pastikan data sudah benar. Transaksi ini akan memotong saldo kas dan menambah stok produk di gudang secara otomatis." 
+                              : "Pastikan nominal sudah benar. Transaksi ini akan langsung memotong saldo kas keuangan Anda."}
                           </div>
+
                         </div>
                       </motion.div>
                     )}
