@@ -96,7 +96,8 @@ export const produkMasterTable = pgTable("produk_master", {
   satuanTampilan: text("satuan_tampilan").default("kg").notNull(),
 
   hargaPerSatuanDasar: numeric("harga_per_satuan_dasar", { precision: 18, scale: 3 }).default("0").notNull(),
-  stokSaatIni: numeric("stok_saat_ini", { precision: 18, scale: 3 }).default(0).notNull(),
+  // 🚀 FIX: Bungkus angka 0 jadi string "0" biar sesuai dengan tipe numeric
+  stokSaatIni: numeric("stok_saat_ini", { precision: 18, scale: 3 }).default("0").notNull(),
 
   isActive: boolean("is_active").default(true).notNull(),
   // 🚀 FIX: Tambah kolom deleted untuk fitur Smart Delete
