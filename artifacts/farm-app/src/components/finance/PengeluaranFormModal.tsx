@@ -178,9 +178,12 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
   const selectedProduk = useMemo(() => produkList.find((p: any) => p.id === produkId), [produkList, produkId]);
   const satuan = selectedProduk?.satuanDasar || "satuan";
   
-  // Mesin Hitung Live
+    // Mesin Hitung Live
   const calcTotalUang = Number(hargaPerPcs || 0) * Number(qtyPcs || 0);
   const calcTotalVolume = Number(beratPerPcs || 0) * Number(qtyPcs || 0);
+  // 🚀 SUNTIKAN BARU: Hitung Harga Pokok per Satuan (HPP)
+  const hppPerSatuan = Number(beratPerPcs || 0) > 0 ? (Number(hargaPerPcs || 0) / Number(beratPerPcs)) : 0;
+  const hppFormatted = hppPerSatuan.toLocaleString("id-ID", { maximumFractionDigits: 2 });
 
   // --- MUTASI SUBMIT ---
   const savePengeluaran = useMutation({
@@ -216,10 +219,11 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
     if (isStepValid) setStep((prev) => prev + 1);
   };
 
-  function onSubmit(values: PengeluaranFormValues) {
+    function onSubmit(values: PengeluaranFormValues) {
     // Racik teks laporan
+    const hppKalkulasi = Number(values.beratPerPcs || 0) > 0 ? (Number(values.hargaPerPcs || 0) / Number(values.beratPerPcs)) : 0;
     const autoLaporanTeks = values.isPembelianStok && selectedProduk
-      ? `Pembelian ${selectedProduk.nama} sebanyak ${values.qtyPcs} pcs (@${values.beratPerPcs} ${satuan}). Total volume masuk: ${calcTotalVolume} ${satuan}.`
+      ? `Beli ${selectedProduk.nama}: ${values.qtyPcs} kemasan (@${values.beratPerPcs}${satuan}). Masuk: ${calcTotalVolume}${satuan}. HPP: Rp${hppKalkulasi.toLocaleString("id-ID", { maximumFractionDigits: 2 })}/${satuan}.`
       : `Pengeluaran ${values.namaItem} sebesar Rp${Number(values.totalBiayaLumpsum || 0).toLocaleString("id-ID")}.`;
 
         // Susun payload jujur untuk backend
@@ -395,7 +399,7 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
                                 </FormItem>
                               )} />
 
-                              {/* LIVE CALCULATION */}
+                            {/* LIVE CALCULATION */}
                               <div className="mt-2 p-3 rounded-xl bg-primary text-primary-foreground flex flex-col gap-1.5 shadow-md">
                                 <div className="flex justify-between items-center text-xs font-medium opacity-90">
                                   <span>Total Biaya:</span>
@@ -405,7 +409,13 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
                                   <span>Total Stok:</span>
                                   <span className="font-black text-sm">{calcTotalVolume} {satuan}</span>
                                 </div>
+                                {/* 🚀 FIX UX: Tampilkan transparan HPP baru secara realtime */}
+                                <div className="flex justify-between items-center text-[10px] font-semibold opacity-75 pt-1 mt-1 border-t border-primary-foreground/20">
+                                  <span>HPP Tercatat:</span>
+                                  <span>Rp {hppFormatted} / {satuan}</span>
+                                </div>
                               </div>
+
                             </motion.div>
                           ) : (
                             /* KONDISI A: BIAYA LUMPSUM BIASA */
@@ -438,13 +448,14 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
                             </button>
                           </div>
 
-                          {isAutoCatatan ? (
+                        {isAutoCatatan ? (
                             <div className="p-3.5 rounded-xl border border-dashed border-primary/40 bg-primary/5 text-xs font-medium text-foreground leading-relaxed">
                               {isPembelianStok && selectedProduk
-                                ? `Pembelian ${selectedProduk.nama} sebanyak ${qtyPcs} pcs (@${beratPerPcs} ${satuan}). Total volume masuk: ${calcTotalVolume} ${satuan}.`
+                                ? `Beli ${selectedProduk.nama}: ${qtyPcs} kemasan (@${beratPerPcs}${satuan}). Masuk: ${calcTotalVolume}${satuan}. HPP: Rp${hppFormatted}/${satuan}.`
                                 : `Pengeluaran ${form.getValues("namaItem")} sebesar Rp${Number(form.getValues("totalBiayaLumpsum") || 0).toLocaleString("id-ID")}.`}
                             </div>
                           ) : (
+
                             <FormField control={form.control} name="keteranganManual" render={({ field }) => (
                               <FormItem>
                                 <FormLabel className="text-xs font-bold text-muted-foreground">Catatan Manual</FormLabel>
