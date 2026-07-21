@@ -6,8 +6,9 @@ import { format } from "date-fns";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft, ArrowRight, CheckCircle2, Banknote, // 🚀 FIX: Ganti Receipt jadi Banknote
-  Calendar, Tag, ToggleLeft, ToggleRight, Loader2, Wallet, X, Check 
+  ArrowLeft, ArrowRight, CheckCircle2, Banknote, 
+  Calendar, Tag, ToggleLeft, ToggleRight, Loader2, Wallet, X, Check,
+  Plus, ChevronDown, PackagePlus // 🚀 FIX: Tambah ikon buat modal bertumpuk
 } from "lucide-react";
 
 import { useToast } from "@/hooks/use-toast";
@@ -91,14 +92,54 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
     enabled: open 
   });
   
-  // 🚀 FIX: Filter produk biar yang muncul cuma yang statusnya Aktif
-  const produkList = (rawProduk?.data || []).filter((p: any) => p.isActive === true);
+    const produkList = (rawProduk?.data || []).filter((p: any) => p.isActive === true);
   const kategoriList = rawDropdown?.kategoriKeuangan || []; 
-  const areasList = rawDropdown?.areas || []; // 🚀 Ambil array area
+  const areasList = rawDropdown?.areas || []; 
   const isLoadingOptions = loadProduk || loadDropdown;
+
+  // 🚀 SUNTIKAN STATE & MUTASI TAMBAH CEPAT (KATEGORI & PRODUK)
+  const [isAddingKategori, setIsAddingKategori] = useState(false);
+  const [newKategoriName, setNewKategoriName] = useState("");
+  const [isAddingProduk, setIsAddingProduk] = useState(false);
+  const [newProdukForm, setNewProdukForm] = useState({
+    nama: "", jenis: "Pupuk", bentuk: "Solid" as "Solid" | "Cair", satuanDasar: "gram", satuanTampilan: "kg"
+  });
+
+  const addKategoriMutation = useMutation({
+    mutationFn: async () => {
+      // Catatan: Kalo URL endpoint lu beda, sesuaikan "/api/kategori-keuangan" ini ya bro
+      const res = await fetch("/api/kategori-keuangan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nama: newKategoriName }) });
+      if (!res.ok) throw new Error("Gagal tambah kategori");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["pengeluaran-dropdown-options"] });
+      if (data?.id) form.setValue("kategoriId", data.id); // Auto-pilih kategori baru
+      setIsAddingKategori(false); setNewKategoriName("");
+      toast({ title: "Sukses", description: "Kategori ditambahkan." });
+    }
+  });
+
+  const addProdukMutation = useMutation({
+    mutationFn: async () => {
+      const payload = { ...newProdukForm, hargaPerSatuanDasar: 0, stokAwal: 0 }; // 0 karena stok & harga bakal direkam di nota ini
+      const res = await fetch("/api/produk", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      if (!res.ok) throw new Error("Gagal tambah produk");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["produk-master-list"] });
+      const newId = data?.id || data?.data?.id; // Nyesuaiin respon API lu
+      if (newId) form.setValue("produkId", newId); // Auto-pilih produk baru
+      setIsAddingProduk(false);
+      setNewProdukForm({ nama: "", jenis: "Pupuk", bentuk: "Solid", satuanDasar: "gram", satuanTampilan: "kg" });
+      toast({ title: "Sukses", description: "Produk Master dibuat. Silakan lanjut isi nota." });
+    }
+  });
 
   // --- INIT FORM ---
   const form = useForm<PengeluaranFormValues>({
+
     resolver: zodResolver(pengeluaranSchema),
     defaultValues: EMPTY_VALUES,
     shouldUnregister: false,
@@ -252,8 +293,7 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
                       </motion.div>
                     )}
 
-                    {/* ================= STEP 2: KALKULASI & TOGGLE ================= */}
-
+                   {/* ================= STEP 2: KALKULASI & TOGGLE ================= */}
                     {step === 2 && (
                       <motion.div key="step2" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-4 pt-1">
                         
@@ -262,15 +302,21 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
                             <FormItem className="space-y-1.5">
                               <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">1. Kategori Beban</FormLabel>
                               <Select onValueChange={field.onChange} value={field.value}>
-                                <FormControl>
-                                  <SelectTrigger className="h-11 rounded-xl bg-background border-input text-xs font-medium"><SelectValue placeholder="Pilih Kategori..." /></SelectTrigger>
-                                </FormControl>
-                              {/* 🚀 FIX: Tambah z-[9999] biar ga ketimpa Modal */}
+                                <FormControl><SelectTrigger className="h-11 rounded-xl bg-background border-input text-xs font-medium"><SelectValue placeholder="Pilih Kategori..." /></SelectTrigger></FormControl>
                                 <SelectContent className="rounded-xl z-[9999]">
                                   {kategoriList.map((k: any) => (<SelectItem key={k.id} value={k.id}>{k.nama}</SelectItem>))}
                                 </SelectContent>
-
                               </Select>
+                              {/* 🚀 SUNTIKAN UX: Form Cepat Kategori */}
+                              {isAddingKategori ? (
+                                <div className="flex items-center gap-1 mt-1 bg-muted/50 rounded-lg p-1 border border-border animate-in fade-in zoom-in-95">
+                                  <input autoFocus className="bg-transparent text-xs px-2 outline-none w-full font-medium h-8" placeholder="Kategori baru..." value={newKategoriName} onChange={(e) => setNewKategoriName(e.target.value)} />
+                                  <Button type="button" size="icon" variant="ghost" className="h-8 w-8 text-emerald-600 hover:bg-emerald-500/10 rounded-md shrink-0 transition-colors" onClick={() => addKategoriMutation.mutate()} disabled={!newKategoriName.trim() || addKategoriMutation.isPending}>{addKategoriMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin"/> : <Check className="h-4 w-4"/>}</Button>
+                                  <Button type="button" size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive/10 rounded-md shrink-0 transition-colors" onClick={() => setIsAddingKategori(false)}><X className="h-4 w-4"/></Button>
+                                </div>
+                              ) : (
+                                <button type="button" onClick={() => setIsAddingKategori(true)} className="text-[10px] font-bold text-primary flex items-center hover:underline pl-1 pt-0.5 w-fit"><Plus className="h-3 w-3 mr-0.5"/> Tambah Kategori Baru</button>
+                              )}
                               <FormMessage className="text-xs text-red-500" />
                             </FormItem>
                           )} />
@@ -292,15 +338,15 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
                           {isPembelianStok ? (
                             <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="space-y-3 pt-2">
                               <FormField control={form.control} name="produkId" render={({ field }) => (
-                                <FormItem>
+                                <FormItem className="space-y-1">
                                   <Select onValueChange={field.onChange} value={field.value}>
                                     <FormControl><SelectTrigger className="h-11 rounded-xl bg-background border-input text-xs font-bold"><SelectValue placeholder="Pilih Produk" /></SelectTrigger></FormControl>
-                                  {/* 🚀 FIX: Tambah z-[9999] biar ga ketimpa Modal */}
                                     <SelectContent className="rounded-xl z-[9999]">
                                       {produkList.map((p: any) => (<SelectItem key={p.id} value={p.id}>{p.nama}</SelectItem>))}
                                     </SelectContent>
-
                                   </Select>
+                                  {/* 🚀 SUNTIKAN UX: Tombol pemicu Modal Bertumpuk Produk */}
+                                  <button type="button" onClick={() => setIsAddingProduk(true)} className="text-[10px] font-bold text-primary flex items-center hover:underline pl-1 pt-0.5 w-fit"><Plus className="h-3 w-3 mr-0.5"/> Tambah Produk Master</button>
                                   <FormMessage className="text-xs text-red-500" />
                                 </FormItem>
                               )} />
@@ -419,9 +465,73 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
               </form>
             </Form>
           )}
-        </div>
-        <div className="mx-auto mt-1 h-1 w-10 rounded-full bg-border" />
-      </SheetContent>
-    </Sheet>
-  );
+          </div>
+         <div className="mx-auto mt-1 h-1 w-10 rounded-full bg-border" />
+       </SheetContent>
+
+       {/* 🚀 MODAL BERTUMPUK: TAMBAH PRODUK BARU */}
+       <Sheet open={isAddingProduk} onOpenChange={setIsAddingProduk}>
+         <SheetContent side="bottom" className="mx-auto max-w-md rounded-t-[2rem] border-x-0 border-b-0 p-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl shadow-[0_-16px_40px_rgba(0,0,0,0.12)] z-[1000] flex flex-col">
+           {/* Drag Handle iOS */}
+           <div className="mx-auto mt-3 mb-1 h-1.5 w-12 rounded-full bg-border/60 shrink-0" />
+           
+           <SheetHeader className="px-6 pb-4 pt-2 flex flex-row items-center justify-between border-b border-border shrink-0">
+             <div className="flex items-center gap-3">
+               <div className="rounded-xl bg-primary/10 p-2 text-primary shadow-sm"><PackagePlus className="h-5 w-5" /></div>
+               <div className="text-left">
+                 <SheetTitle className="text-base font-black tracking-tight">Produk Baru</SheetTitle>
+                 <p className="text-[10px] font-bold text-muted-foreground uppercase">Master Data Cepat</p>
+               </div>
+             </div>
+           </SheetHeader>
+
+           <div className="px-6 py-5 space-y-4 text-left flex-1 overflow-y-auto custom-scrollbar">
+             <div className="space-y-1.5">
+               <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Nama Produk</label>
+               <Input placeholder="Cth: Curacron" value={newProdukForm.nama} onChange={e => setNewProdukForm(f => ({...f, nama: e.target.value}))} className="h-11 rounded-xl bg-background text-sm font-medium px-4" />
+             </div>
+             
+             <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5 relative">
+                   <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Jenis</label>
+                   <div className="relative">
+                     <select value={newProdukForm.jenis} onChange={e => setNewProdukForm(f => ({...f, jenis: e.target.value}))} className="w-full appearance-none h-11 rounded-xl border border-input bg-background pl-4 pr-10 text-xs font-semibold outline-none focus:border-primary/50 shadow-sm cursor-pointer">
+                       {["Pupuk", "Insektisida", "Herbisida", "Fungisida", "Lainnya"].map(j => <option key={j} value={j}>{j}</option>)}
+                     </select>
+                     <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground opacity-50 pointer-events-none" />
+                   </div>
+                </div>
+                
+                <div className="space-y-1.5 relative">
+                   <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Bentuk</label>
+                   <div className="relative">
+                     <select value={newProdukForm.bentuk} onChange={e => {
+                         const bentuk = e.target.value as "Solid" | "Cair";
+                         setNewProdukForm(f => ({ ...f, bentuk, satuanDasar: bentuk === "Solid" ? "gram" : "ml", satuanTampilan: bentuk === "Solid" ? "kg" : "liter" }));
+                       }} className="w-full appearance-none h-11 rounded-xl border border-input bg-background pl-4 pr-10 text-xs font-semibold outline-none focus:border-primary/50 shadow-sm cursor-pointer">
+                       <option value="Solid">Solid (Padat)</option>
+                       <option value="Cair">Cair</option>
+                     </select>
+                     <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground opacity-50 pointer-events-none" />
+                   </div>
+                </div>
+             </div>
+
+             <div className="p-3 mt-4 rounded-xl bg-primary/5 border border-primary/20 text-primary flex items-start gap-2 text-[10px] font-semibold leading-relaxed animate-in fade-in zoom-in-95">
+               <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" />
+               <p>Harga beli dan stok awal akan otomatis tercatat setelah Anda menyimpan nota pengeluaran ini.</p>
+             </div>
+           </div>
+
+           <div className="bg-white/95 dark:bg-slate-950/95 flex items-center justify-end gap-3 px-6 pt-3 pb-6 shrink-0 mt-auto border-t border-border/50">
+             <Button variant="ghost" onClick={() => setIsAddingProduk(false)} className="h-11 rounded-xl px-4 font-bold text-muted-foreground hover:bg-muted">Batal</Button>
+             <Button onClick={() => addProdukMutation.mutate()} disabled={!newProdukForm.nama.trim() || addProdukMutation.isPending} className="h-11 rounded-xl px-6 font-bold bg-primary text-primary-foreground hover:opacity-90 transition-colors shadow-sm gap-2">
+               {addProdukMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Simpan & Lanjut"}
+             </Button>
+           </div>
+         </SheetContent>
+       </Sheet>
+     </Sheet>
+   );
 }
+
