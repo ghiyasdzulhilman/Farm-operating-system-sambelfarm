@@ -7,7 +7,7 @@ import { getPekerjaIdFromClerk } from "../lib/authHelpers";
 const router = Router();
 
 // ==========================================
-// 1. GET DROPDOWN OPTIONS (Area-Siklus Digabung) 🚀
+// 1. GET DROPDOWN OPTIONS (Area-Siklus Digabung)
 // ==========================================
 router.get("/harvest/dropdown", async (req, res): Promise<void> => {
   try {
@@ -29,7 +29,6 @@ router.get("/harvest/dropdown", async (req, res): Promise<void> => {
         )
       );
 
-    // 💡 Gabungkan string buat UI Pill Button
     const formattedAreas = dbAreas.map(a => ({ 
       id: a.id, 
       name: a.namaSiklus ? `${a.name} - ${a.namaSiklus}` : a.name 
@@ -46,6 +45,7 @@ router.get("/harvest/dropdown", async (req, res): Promise<void> => {
 // 2. GET SEMUA RIWAYAT PANEN
 // ==========================================
 router.get("/harvest", async (req, res): Promise<void> => {
+  // [Tidak ada perubahan - kodenya udah aman]
   try {
     const { userId } = getAuth(req);
     if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
@@ -79,7 +79,7 @@ router.get("/harvest", async (req, res): Promise<void> => {
 });
 
 // ==========================================
-// 3. POST PANEN BARU (Auto-Siklus Logic) 🚀
+// 3. POST PANEN BARU
 // ==========================================
 router.post("/harvest", async (req, res): Promise<void> => {
   try {
@@ -87,7 +87,7 @@ router.post("/harvest", async (req, res): Promise<void> => {
     if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
     const {
-      areaId, // Frontend HANYA ngirim ini
+      areaId,
       tanggal,
       kegiatan,
       kuantitasKg,
@@ -97,27 +97,24 @@ router.post("/harvest", async (req, res): Promise<void> => {
       catatan
     } = req.body;
 
-    if (!kuantitasKg || hargaJualPerKg === undefined || !tanggal || !areaId) {
+    if (kuantitasKg === undefined || hargaJualPerKg === undefined || !tanggal || !areaId) {
       res.status(400).json({ error: "Area, Tanggal, Kuantitas, dan Harga Jual wajib diisi." });
       return;
     }
 
     const qtyNum = Number(kuantitasKg);
     const hargaNum = Math.round(Number(hargaJualPerKg));
-    if (qtyNum < 0 || hargaNum < 0) {
-      res.status(400).json({ error: "Kuantitas dan harga tidak boleh negatif." }); return;
+    
+    // FIX: Tambah validasi isNaN biar input huruf gak tembus
+    if (isNaN(qtyNum) || isNaN(hargaNum) || qtyNum < 0 || hargaNum < 0) {
+      res.status(400).json({ error: "Kuantitas dan harga harus berupa angka positif." }); 
+      return;
     }
 
-    // 🔍 CARI SIKLUS AKTIF OTOMATIS
     const [activeCycle] = await db
       .select({ id: siklusTanamTable.id })
       .from(siklusTanamTable)
-      .where(
-        and(
-          eq(siklusTanamTable.areaId, areaId),
-          eq(siklusTanamTable.status, "Aktif")
-        )
-      )
+      .where(and(eq(siklusTanamTable.areaId, areaId), eq(siklusTanamTable.status, "Aktif")))
       .limit(1);
 
     const totalPendapatanKalkulasi = Math.round(qtyNum * hargaNum);
@@ -125,7 +122,7 @@ router.post("/harvest", async (req, res): Promise<void> => {
 
     const [newHarvest] = await db.insert(panenTable).values({
       areaId: areaId,
-      siklusId: activeCycle ? activeCycle.id : null, // 🚀 Masuk otomatis
+      siklusId: activeCycle ? activeCycle.id : null,
       tanggal: new Date(tanggal),
       kegiatan: kegiatan || "Panen Rutin",
       kuantitasKg: String(qtyNum),
@@ -155,28 +152,48 @@ router.put("/harvest/:id", async (req, res): Promise<void> => {
     const harvestId = req.params.id;
     const { areaId, tanggal, kegiatan, kuantitasKg, hargaJualPerKg, kualitas, channelPenjualan, catatan } = req.body;
 
-    const qtyNum = Number(kuantitasKg);
-    const hargaNum = Math.round(Number(hargaJualPerKg));
+    // FIX 1: Ambil data existing dari database untuk jaga-jaga kalau update parsial
+    const [existingHarvest] = await db
+      .select()
+      .from(panenTable)
+      .where(eq(panenTable.id, harvestId))
+      .limit(1);
 
-    // 🔑 ATOMIC UPDATE: Jika areaId berubah, update siklusId-nya juga
-    let finalSiklusId = undefined;
-    if (areaId) {
-      const [activeCycle] = await db.select({ id: siklusTanamTable.id }).from(siklusTanamTable)
-        .where(and(eq(siklusTanamTable.areaId, areaId), eq(siklusTanamTable.status, "Aktif"))).limit(1);
+    if (!existingHarvest) {
+      res.status(404).json({ error: "Data panen tidak ditemukan." });
+      return;
+    }
+
+    // FIX 2: Tentukan angka valid dengan fallback ke data lama jika frontend tidak kirim
+    const finalQty = kuantitasKg !== undefined ? Number(kuantitasKg) : Number(existingHarvest.kuantitasKg);
+    const finalHarga = hargaJualPerKg !== undefined ? Math.round(Number(hargaJualPerKg)) : existingHarvest.hargaJualPerKg;
+
+    if (isNaN(finalQty) || isNaN(finalHarga) || finalQty < 0 || finalHarga < 0) {
+      res.status(400).json({ error: "Kuantitas dan harga harus berupa angka positif." });
+      return;
+    }
+
+    let finalSiklusId = existingHarvest.siklusId;
+    // Cek ulang siklus HANYA JIKA areaId diubah dan berbeda dari sebelumnya
+    if (areaId && areaId !== existingHarvest.areaId) {
+      const [activeCycle] = await db.select({ id: siklusTanamTable.id })
+        .from(siklusTanamTable)
+        .where(and(eq(siklusTanamTable.areaId, areaId), eq(siklusTanamTable.status, "Aktif")))
+        .limit(1);
       finalSiklusId = activeCycle ? activeCycle.id : null;
     }
 
     const [updatedHarvest] = await db.update(panenTable).set({
-      areaId: areaId || undefined,
-      siklusId: finalSiklusId !== undefined ? finalSiklusId : undefined,
-      tanggal: tanggal ? new Date(tanggal) : undefined,
-      kegiatan: kegiatan,
-      kuantitasKg: qtyNum ? String(qtyNum) : undefined, 
-      hargaJualPerKg: hargaNum,
-      totalPendapatan: (qtyNum && hargaNum) ? Math.round(qtyNum * hargaNum) : undefined, 
-      kualitas: kualitas,
-      channelPenjualan: channelPenjualan,
-      catatan: catatan,
+      areaId: areaId !== undefined ? areaId : existingHarvest.areaId,
+      siklusId: finalSiklusId,
+      tanggal: tanggal ? new Date(tanggal) : existingHarvest.tanggal,
+      kegiatan: kegiatan !== undefined ? kegiatan : existingHarvest.kegiatan,
+      kuantitasKg: String(finalQty), 
+      hargaJualPerKg: finalHarga,
+      totalPendapatan: Math.round(finalQty * finalHarga), // FIX 3: Selalu kalkulasi ulang berdasarkan fallback
+      kualitas: kualitas !== undefined ? kualitas : existingHarvest.kualitas,
+      channelPenjualan: channelPenjualan !== undefined ? channelPenjualan : existingHarvest.channelPenjualan,
+      catatan: catatan !== undefined ? catatan : existingHarvest.catatan,
       updatedAt: new Date(),
     })
     .where(eq(panenTable.id, harvestId))
@@ -193,6 +210,7 @@ router.put("/harvest/:id", async (req, res): Promise<void> => {
 // 5. DELETE PANEN
 // ==========================================
 router.delete("/harvest/:id", async (req, res): Promise<void> => {
+  // [Tidak ada perubahan]
   try {
     const { userId } = getAuth(req);
     if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
