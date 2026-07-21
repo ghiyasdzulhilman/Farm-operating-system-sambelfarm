@@ -231,11 +231,11 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
                     {/* ================= STEP 1: IDENTITAS ================= */}
                     {step === 1 && (
                       <motion.div key="step1" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-5 pt-1">
-                        <FormField control={form.control} name="tanggal" render={({ field }) => (
+                       <FormField control={form.control} name="tanggal" render={({ field }) => (
                           <FormItem className="space-y-1.5">
                             <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80"><Calendar className="inline-block h-3.5 w-3.5 mr-1" /> Tanggal Transaksi</FormLabel>
-                            {/* 🚀 FIX: Kecilin tinggi jadi h-11 biar gak over */}
-                            <FormControl><Input type="date" className="h-11 rounded-xl bg-background border border-input focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm text-sm font-medium" {...field} /></FormControl>
+                            {/* 🚀 FIX: Tambah w-full block biar kotak inputnya ngelebar mentok di layar HP */}
+                            <FormControl><Input type="date" className="w-full block h-11 rounded-xl bg-background border border-input focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm text-sm font-medium" {...field} /></FormControl>
                             <FormMessage className="text-xs text-red-500" />
                           </FormItem>
                         )} />
