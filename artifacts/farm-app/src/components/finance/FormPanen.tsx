@@ -7,12 +7,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import { 
   ArrowLeft, ArrowRight, CheckCircle2, Loader2, MapPinned, 
-  PackageOpen, Briefcase, ShoppingCart, Tag, Check, X, DollarSign 
+  PackageOpen, Briefcase, ShoppingCart, Tag, Check, X, PlusCircle 
 } from "lucide-react";
 
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -46,12 +46,10 @@ const EMPTY_VALUES: PanenFormValues = {
   catatan: "",
 };
 
-interface FormPanenProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-export function FormPanen({ isOpen, onClose }: FormPanenProps) {
+// 🚀 FIX: Ubah props agar mandiri (bisa nerima onSuccess callback jika diperlukan)
+export function FormPanen({ onSuccess }: { onSuccess?: () => void }) {
+  // 🚀 FIX: State buka-tutup laci diatur dari dalam komponen
+  const [open, setOpen] = useState(false);
   const [step, setStep] = useState(1);
   const [submittedRecords, setSubmittedRecords] = useState<any | null>(null);
 
@@ -65,7 +63,7 @@ export function FormPanen({ isOpen, onClose }: FormPanenProps) {
       if (!res.ok) throw new Error("Gagal mengambil data dropdown");
       return res.json();
     },
-    enabled: isOpen,
+    enabled: open, // Hanya load data kalau laci terbuka
   });
 
   const form = useForm<PanenFormValues>({
@@ -77,15 +75,6 @@ export function FormPanen({ isOpen, onClose }: FormPanenProps) {
   const currentKuantitas = useWatch({ control: form.control, name: "kuantitasKg" });
   const currentHarga = useWatch({ control: form.control, name: "hargaJualPerKg" });
   const totalPendapatan = (currentKuantitas || 0) * (currentHarga || 0);
-
-  // RESET FORM KETIKA DITUTUP
-  useEffect(() => {
-    if (!isOpen) {
-      setStep(1);
-      setSubmittedRecords(null);
-      form.reset(EMPTY_VALUES);
-    }
-  }, [isOpen, form]);
 
   const savePanen = useMutation({
     mutationFn: async (payload: PanenFormValues) => {
@@ -103,6 +92,8 @@ export function FormPanen({ isOpen, onClose }: FormPanenProps) {
     onSuccess: (responseData) => {
       queryClient.invalidateQueries({ queryKey: ["harvest"] });
       setSubmittedRecords(responseData.data);
+      form.reset(EMPTY_VALUES);
+      onSuccess?.();
     },
     onError: (err: any) => {
       toast({ title: "Gagal menyimpan", description: err.message, variant: "destructive" });
@@ -120,7 +111,21 @@ export function FormPanen({ isOpen, onClose }: FormPanenProps) {
   };
 
   return (
-    <Sheet open={isOpen} onOpenChange={onClose}>
+    <Sheet open={open} onOpenChange={(val) => { 
+      setOpen(val); 
+      if (!val) { 
+        setStep(1); 
+        setSubmittedRecords(null); 
+        form.reset(EMPTY_VALUES); 
+      } 
+    }}>
+      {/* 🚀 FIX: Tambahkan Trigger persis seperti AddOperasionalDialog */}
+      <SheetTrigger asChild>
+        <Button className="h-11 rounded-xl px-5 font-bold bg-primary text-primary-foreground hover:opacity-90 transition-all active:scale-[0.98] gap-2">
+          <PlusCircle className="h-4 w-4" /> Panen
+        </Button>
+      </SheetTrigger>
+
       <SheetContent side="bottom" className="h-[85vh] sm:h-[90vh] mx-auto sm:max-w-md rounded-t-[2rem] p-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl shadow-[0_-16px_40px_rgba(0,0,0,0.12)]">
         
         {/* HEADER */}
@@ -153,7 +158,7 @@ export function FormPanen({ isOpen, onClose }: FormPanenProps) {
                 <p className="text-xs text-muted-foreground">Stok atau laporan keuangan telah diperbarui.</p>
               </div>
               <div className="w-full space-y-2 pt-4">
-                <Button type="button" className="w-full h-11 rounded-xl text-xs font-bold bg-secondary text-secondary-foreground hover:opacity-90" onClick={onClose}>
+                <Button type="button" className="w-full h-11 rounded-xl text-xs font-bold bg-secondary text-secondary-foreground hover:opacity-90" onClick={() => setOpen(false)}>
                   Tutup Form
                 </Button>
               </div>
@@ -282,7 +287,7 @@ export function FormPanen({ isOpen, onClose }: FormPanenProps) {
                       <ArrowLeft className="mr-2 h-4 w-4" /> Kembali
                     </Button>
                   ) : (
-                    <Button type="button" variant="ghost" className="h-11 rounded-xl px-4 font-bold text-muted-foreground hover:bg-muted" onClick={onClose}>
+                    <Button type="button" variant="ghost" className="h-11 rounded-xl px-4 font-bold text-muted-foreground hover:bg-muted" onClick={() => setOpen(false)}>
                       Batal
                     </Button>
                   )}
