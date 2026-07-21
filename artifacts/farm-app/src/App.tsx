@@ -11,7 +11,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppLayout } from "@/components/layout/app-layout";
 import { HomePage } from "@/pages/home";
 import { DashboardPage } from "@/pages/dashboard";
-import { ConnectPage } from "@/pages/connect";
+// CONNECT PAGE SUDAH DIHAPUS DARI SINI
 import { SettingsPage } from "@/pages/settings";
 import { AgronomyHubPage } from "@/pages/AgronomyHubPage";
 import NotFound from "@/pages/not-found";
@@ -195,21 +195,17 @@ function ClerkProviderWithRoutes() {
                 <DashboardPage />
               </ProtectedRoute>
             </Route>
-            <Route path="/connect">
-              <ProtectedRoute>
-                <ConnectPage />
-              </ProtectedRoute>
-            </Route>
+            {/* ROUTE CONNECT SUDAH DIHAPUS TOTAL DARI SINI */}
             <Route path="/settings">
               <ProtectedRoute>
                 <SettingsPage />
               </ProtectedRoute>
             </Route>
-<Route path="/operasional">
-  <ProtectedRoute>
-    <AgronomyHubPage />
-  </ProtectedRoute>
-</Route>
+            <Route path="/operasional">
+              <ProtectedRoute>
+                <AgronomyHubPage />
+              </ProtectedRoute>
+            </Route>
             <Route component={NotFound} />
           </Switch>
         </AppLayout>
