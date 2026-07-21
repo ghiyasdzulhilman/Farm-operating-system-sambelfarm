@@ -1,11 +1,50 @@
 import { useState, useEffect } from "react";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useForm, useWatch } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { motion, AnimatePresence } from "framer-motion";
+import { format } from "date-fns";
+import { 
+  ArrowLeft, ArrowRight, CheckCircle2, Loader2, MapPinned, 
+  PackageOpen, Briefcase, ShoppingCart, Tag, Check, X, DollarSign 
+} from "lucide-react";
+
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2, MapPin, CalendarDays, DollarSign, PackageOpen, ShoppingCart, Tag, CheckCircle2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+
+// ==========================================
+// ZOD SCHEMA
+// ==========================================
+const panenSchema = z.object({
+  areaId: z.string().min(1, "Wajib pilih 1 area lahan"),
+  kegiatan: z.string().min(1, "Nama kegiatan wajib diisi"),
+  tanggal: z.string().min(1, "Tanggal wajib diisi"),
+  kuantitasKg: z.coerce.number().min(0.1, "Kuantitas wajib diisi (Min. 0.1 Kg)"),
+  hargaJualPerKg: z.coerce.number().min(1, "Harga jual wajib diisi"),
+  kualitas: z.string().optional(),
+  channelPenjualan: z.string().optional(),
+  catatan: z.string().optional(),
+});
+
+type PanenFormValues = z.infer<typeof panenSchema>;
+
+const EMPTY_VALUES: PanenFormValues = {
+  areaId: "",
+  kegiatan: "Panen Rutin",
+  tanggal: format(new Date(), "yyyy-MM-dd"),
+  kuantitasKg: 0,
+  hargaJualPerKg: 0,
+  kualitas: "",
+  channelPenjualan: "",
+  catatan: "",
+};
 
 interface FormPanenProps {
   isOpen: boolean;
@@ -13,52 +52,43 @@ interface FormPanenProps {
 }
 
 export function FormPanen({ isOpen, onClose }: FormPanenProps) {
+  const [step, setStep] = useState(1);
+  const [submittedRecords, setSubmittedRecords] = useState<any | null>(null);
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // --- FORM STATES ---
-  const [areaId, setAreaId] = useState("");
-  const [siklusId, setSiklusId] = useState("");
-  const [tanggal, setTanggal] = useState(new Date().toISOString().split('T')[0]);
-  const [kegiatan, setKegiatan] = useState("Panen Rutin");
-  const [kuantitasKg, setKuantitasKg] = useState("");
-  const [hargaJualPerKg, setHargaJualPerKg] = useState("");
-  const [kualitas, setKualitas] = useState("");
-  const [channelPenjualan, setChannelPenjualan] = useState("");
-  const [catatan, setCatatan] = useState("");
-
-  // --- AUTO CALCULATE TOTAL PENDAPATAN ---
-  const totalPendapatan = (Number(kuantitasKg) || 0) * (Number(hargaJualPerKg) || 0);
-
-  // --- RESET FORM KETIKA DITUTUP ---
-  useEffect(() => {
-    if (!isOpen) {
-      setAreaId("");
-      setSiklusId("");
-      setTanggal(new Date().toISOString().split('T')[0]);
-      setKegiatan("Panen Rutin");
-      setKuantitasKg("");
-      setHargaJualPerKg("");
-      setKualitas("");
-      setChannelPenjualan("");
-      setCatatan("");
-    }
-  }, [isOpen]);
-
-  // --- FETCH DATA DROPDOWN AREA & SIKLUS AKTIF ---
-  const { data: dropdownData, isLoading: isDropdownLoading } = useQuery({
+  const { data: dropdownData, isLoading: isLoadingOptions } = useQuery({
     queryKey: ["harvestDropdown"],
     queryFn: async () => {
       const res = await fetch("/api/harvest/dropdown");
       if (!res.ok) throw new Error("Gagal mengambil data dropdown");
       return res.json();
     },
-    enabled: isOpen, // Hanya fetch kalau lacinya dibuka
+    enabled: isOpen,
   });
 
-  // --- MUTATION POST DATA ---
-  const harvestMutation = useMutation({
-    mutationFn: async (payload: any) => {
+  const form = useForm<PanenFormValues>({
+    resolver: zodResolver(panenSchema),
+    defaultValues: EMPTY_VALUES,
+  });
+
+  const selectedAreaId = useWatch({ control: form.control, name: "areaId" });
+  const currentKuantitas = useWatch({ control: form.control, name: "kuantitasKg" });
+  const currentHarga = useWatch({ control: form.control, name: "hargaJualPerKg" });
+  const totalPendapatan = (currentKuantitas || 0) * (currentHarga || 0);
+
+  // RESET FORM KETIKA DITUTUP
+  useEffect(() => {
+    if (!isOpen) {
+      setStep(1);
+      setSubmittedRecords(null);
+      form.reset(EMPTY_VALUES);
+    }
+  }, [isOpen, form]);
+
+  const savePanen = useMutation({
+    mutationFn: async (payload: PanenFormValues) => {
       const res = await fetch("/api/harvest", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -70,223 +100,208 @@ export function FormPanen({ isOpen, onClose }: FormPanenProps) {
       }
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (responseData) => {
       queryClient.invalidateQueries({ queryKey: ["harvest"] });
-      toast({
-        title: "Sukses!",
-        description: "Data panen berhasil dicatat.",
-        icon: <CheckCircle2 className="h-5 w-5 text-green-500" />,
-      });
-      onClose();
+      setSubmittedRecords(responseData.data);
     },
     onError: (err: any) => {
-      toast({
-        title: "Gagal menyimpan",
-        description: err.message,
-        variant: "destructive",
-      });
+      toast({ title: "Gagal menyimpan", description: err.message, variant: "destructive" });
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!kuantitasKg || !hargaJualPerKg || !tanggal) {
-      toast({
-        title: "Validasi Gagal",
-        description: "Tanggal, kuantitas (Kg), dan Harga Jual wajib diisi.",
-        variant: "destructive",
-      });
-      return;
-    }
+  const handleNextStep = async () => {
+    const fieldsToValidate: Array<keyof PanenFormValues> = ["kegiatan", "areaId", "tanggal"];
+    const isStepValid = await form.trigger(fieldsToValidate);
+    if (isStepValid) setStep(2);
+  };
 
-    harvestMutation.mutate({
-      areaId,
-      siklusId,
-      tanggal,
-      kegiatan,
-      kuantitasKg,
-      hargaJualPerKg,
-      kualitas,
-      channelPenjualan,
-      catatan
-    });
+  const onSubmit = (values: PanenFormValues) => {
+    savePanen.mutate(values);
   };
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent side="bottom" className="h-[90vh] overflow-y-auto rounded-t-[2rem] px-4 pb-12 sm:max-w-md mx-auto">
-        <SheetHeader className="mb-6 text-left">
-          <SheetTitle className="text-2xl font-black flex items-center gap-2">
-            <PackageOpen className="h-6 w-6 text-primary" />
-            Catat Panen
-          </SheetTitle>
-          <p className="text-sm text-muted-foreground">
-            Masukkan data hasil panen dan pendapatan dari kebun.
-          </p>
+      <SheetContent side="bottom" className="h-[85vh] sm:h-[90vh] mx-auto sm:max-w-md rounded-t-[2rem] p-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl shadow-[0_-16px_40px_rgba(0,0,0,0.12)]">
+        
+        {/* HEADER */}
+        <SheetHeader className="px-6 py-4 flex flex-row items-center justify-between border-b border-border">
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl bg-primary/10 p-2 text-primary shadow-sm">
+              <PackageOpen className="h-5 w-5" />
+            </div>
+            <div className="text-left">
+              <SheetTitle className="text-base font-black tracking-tight">Catat Panen</SheetTitle>
+              <p className="text-[10px] font-bold text-primary tracking-wider uppercase">Step {step} dari 2</p>
+            </div>
+          </div>
+          <div className="flex gap-1.5">
+            {[1, 2].map((i) => (
+              <div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${step === i ? "w-6 bg-primary" : "w-1.5 bg-border"}`} />
+            ))}
+          </div>
         </SheetHeader>
 
-        {isDropdownLoading ? (
-          <div className="flex h-32 items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-6">
-            
-            {/* GROUP 1: SUMBER TANAMAN */}
-            <div className="space-y-4 rounded-2xl border border-border/50 bg-muted/20 p-4">
-              <div className="space-y-1.5">
-                <label className="flex items-center gap-2 text-sm font-bold">
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
-                  Area / Blok 
-                </label>
-                <select
-                  value={areaId}
-                  onChange={(e) => setAreaId(e.target.value)}
-                  className="flex h-12 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                >
-                  <option value="">Pilih Area...</option>
-                  {dropdownData?.areas?.map((a: any) => (
-                    <option key={a.id} value={a.id}>{a.name}</option>
-                  ))}
-                </select>
+        <div className="px-6 py-4 h-[calc(100%-80px)] flex flex-col">
+          {submittedRecords ? (
+            // LAYAR SUKSES
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center justify-center flex-1 py-6 text-center space-y-5">
+              <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center mb-1">
+                <CheckCircle2 className="h-8 w-8 text-primary" />
               </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-black text-foreground tracking-tight">Data Panen Tersimpan!</h3>
+                <p className="text-xs text-muted-foreground">Stok atau laporan keuangan telah diperbarui.</p>
+              </div>
+              <div className="w-full space-y-2 pt-4">
+                <Button type="button" className="w-full h-11 rounded-xl text-xs font-bold bg-secondary text-secondary-foreground hover:opacity-90" onClick={onClose}>
+                  Tutup Form
+                </Button>
+              </div>
+            </motion.div>
+          ) : isLoadingOptions ? (
+            <div className="space-y-3"><Skeleton className="h-12 w-full rounded-xl" /><Skeleton className="h-24 w-full rounded-xl" /></div>
+          ) : (
+            <Form {...form}>
+              <form onSubmit={(e) => e.preventDefault()} className="flex flex-col h-full text-left">
+                
+                {/* KONTEN SCROLLABLE */}
+                <div className="flex-1 overflow-y-auto pr-1 pb-4 space-y-5">
+                  <AnimatePresence mode="wait">
 
-              <div className="space-y-1.5">
-                <label className="flex items-center gap-2 text-sm font-bold">
-                  <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                  Siklus Tanam Aktif
-                </label>
-                <select
-                  value={siklusId}
-                  onChange={(e) => setSiklusId(e.target.value)}
-                  className="flex h-12 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                >
-                  <option value="">Pilih Siklus (Opsional)...</option>
-                  {dropdownData?.siklus?.map((s: any) => (
-                    <option key={s.id} value={s.id}>{s.namaSiklus}</option>
-                  ))}
-                </select>
-              </div>
-              
-              <div className="space-y-1.5">
-                <label className="text-sm font-bold">Tanggal Panen</label>
-                <Input
-                  type="date"
-                  value={tanggal}
-                  onChange={(e) => setTanggal(e.target.value)}
-                  className="h-12 rounded-xl"
-                  required
-                />
-              </div>
-            </div>
+                    {/* ================= STEP 1: SUMBER TANAMAN ================= */}
+                    {step === 1 && (
+                      <motion.div key="step1" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-5 pt-1">
+                        
+                        <FormField control={form.control} name="kegiatan" render={({ field }) => (
+                          <FormItem className="space-y-1.5">
+                            <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80"><Briefcase className="inline-block h-3.5 w-3.5 mr-1" /> Nama Kegiatan</FormLabel>
+                            <FormControl><Input className="h-11 rounded-xl bg-background border border-input shadow-sm text-sm font-medium" placeholder="Cth: Panen Rutin, Panen Akhir..." {...field} /></FormControl>
+                            <FormMessage className="text-xs text-red-500" />
+                          </FormItem>
+                        )} />
 
-            {/* GROUP 2: HASIL & PENDAPATAN */}
-            <div className="space-y-4 rounded-2xl border border-border/50 bg-primary/5 p-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="flex items-center gap-2 text-sm font-bold">
-                    <PackageOpen className="h-4 w-4 text-primary" />
-                    Kuantitas (Kg)
-                  </label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="Contoh: 15.5"
-                    value={kuantitasKg}
-                    onChange={(e) => setKuantitasKg(e.target.value)}
-                    className="h-12 rounded-xl font-mono text-lg"
-                    required
-                  />
+                        <div className="space-y-2">
+                          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80"><MapPinned className="inline-block h-3.5 w-3.5 mr-1" /> Pilih Sumber Lahan</p>
+                          <div className="flex flex-wrap gap-2 pt-1">
+                            {dropdownData?.areas?.map((item: any) => {
+                              const isSelected = selectedAreaId === item.id;
+                              return (
+                                <button key={item.id} type="button" 
+                                  onClick={() => form.setValue("areaId", item.id, { shouldValidate: true })}
+                                  className={`px-4 py-2 rounded-full text-xs font-semibold transition-all border ${isSelected ? "bg-primary text-primary-foreground border-primary shadow-md scale-[1.01]" : "bg-card text-muted-foreground border-border hover:bg-muted/80 shadow-sm"}`}>
+                                  {item.name}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          {form.formState.errors.areaId && <p className="text-xs text-red-500 mt-1">{form.formState.errors.areaId.message}</p>}
+                        </div>
+
+                        <FormField control={form.control} name="tanggal" render={({ field }) => (
+                          <FormItem className="space-y-1.5">
+                            <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Tanggal Panen</FormLabel>
+                            <FormControl><Input type="date" className="h-11 rounded-xl bg-background border border-input shadow-sm text-sm font-medium" {...field} /></FormControl>
+                            <FormMessage className="text-xs text-red-500" />
+                          </FormItem>
+                        )} />
+                      </motion.div>
+                    )}
+
+                    {/* ================= STEP 2: HASIL & PENDAPATAN ================= */}
+                    {step === 2 && (
+                      <motion.div key="step2" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-4 pt-1">
+                        
+                        <div className="bg-card p-4 rounded-2xl border border-border shadow-sm space-y-4">
+                          <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">1. Kalkulasi Hasil</p>
+                          
+                          <div className="grid grid-cols-2 gap-3">
+                            <FormField control={form.control} name="kuantitasKg" render={({ field }) => (
+                              <FormItem className="space-y-1.5">
+                                <FormLabel className="text-[10px] font-bold text-muted-foreground uppercase">Kuantitas (Kg)</FormLabel>
+                                <FormControl><Input type="number" step="0.01" className="h-11 rounded-xl bg-background text-sm font-bold" placeholder="0.0" {...field} onChange={e => field.onChange(Number(e.target.value))} /></FormControl>
+                                <FormMessage className="text-[10px] text-red-500" />
+                              </FormItem>
+                            )} />
+                            <FormField control={form.control} name="hargaJualPerKg" render={({ field }) => (
+                              <FormItem className="space-y-1.5">
+                                <FormLabel className="text-[10px] font-bold text-muted-foreground uppercase">Harga/Kg (Rp)</FormLabel>
+                                <FormControl><Input type="number" className="h-11 rounded-xl bg-background text-sm font-bold" placeholder="0" {...field} onChange={e => field.onChange(Number(e.target.value))} /></FormControl>
+                                <FormMessage className="text-[10px] text-red-500" />
+                              </FormItem>
+                            )} />
+                          </div>
+
+                          <div className="flex flex-col items-center justify-center rounded-xl bg-primary/10 p-3 text-primary border border-primary/20">
+                            <span className="text-[10px] font-bold uppercase tracking-wider opacity-80 mb-0.5">Total Pendapatan</span>
+                            <span className="text-2xl font-black tabular-nums">Rp {totalPendapatan.toLocaleString('id-ID')}</span>
+                          </div>
+                        </div>
+
+                        <div className="bg-card p-4 rounded-2xl border border-border shadow-sm space-y-4">
+                          <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">2. Detail Opsional</p>
+                          
+                          <div className="grid grid-cols-2 gap-3">
+                            <FormField control={form.control} name="kualitas" render={({ field }) => (
+                              <FormItem className="space-y-1.5">
+                                <FormLabel className="text-[10px] font-bold text-muted-foreground uppercase"><Tag className="inline-block h-3 w-3 mr-1" />Grade</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value || ""}>
+                                  <FormControl><SelectTrigger className="h-11 rounded-xl text-xs"><SelectValue placeholder="Pilih..." /></SelectTrigger></FormControl>
+                                  <SelectContent className="rounded-xl">
+                                    <SelectItem value="Grade A">Grade A</SelectItem>
+                                    <SelectItem value="Grade B">Grade B</SelectItem>
+                                    <SelectItem value="Sortiran">Sortiran</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </FormItem>
+                            )} />
+                            
+                            <FormField control={form.control} name="channelPenjualan" render={({ field }) => (
+                              <FormItem className="space-y-1.5">
+                                <FormLabel className="text-[10px] font-bold text-muted-foreground uppercase"><ShoppingCart className="inline-block h-3 w-3 mr-1" />Pembeli</FormLabel>
+                                <FormControl><Input className="h-11 rounded-xl text-xs bg-background" placeholder="Cth: Tengkulak..." {...field} /></FormControl>
+                              </FormItem>
+                            )} />
+                          </div>
+
+                          <FormField control={form.control} name="catatan" render={({ field }) => (
+                            <FormItem className="space-y-1.5 pt-1">
+                              <FormLabel className="text-[10px] font-bold text-muted-foreground uppercase">Catatan</FormLabel>
+                              <FormControl><Textarea className="min-h-[70px] rounded-xl text-xs bg-background" placeholder="Kondisi cuaca atau info tambahan..." {...field} /></FormControl>
+                            </FormItem>
+                          )} />
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
-                <div className="space-y-1.5">
-                  <label className="flex items-center gap-2 text-sm font-bold">
-                    <DollarSign className="h-4 w-4 text-primary" />
-                    Harga/Kg (Rp)
-                  </label>
-                  <Input
-                    type="number"
-                    min="0"
-                    placeholder="Contoh: 12000"
-                    value={hargaJualPerKg}
-                    onChange={(e) => setHargaJualPerKg(e.target.value)}
-                    className="h-12 rounded-xl font-mono text-lg"
-                    required
-                  />
+
+                {/* ================= NAVIGASI BAWAH ================= */}
+                <div className="flex justify-between items-center pt-3 pb-2 border-t border-border mt-auto">
+                  {step > 1 ? (
+                    <Button type="button" variant="ghost" className="h-11 rounded-xl px-4 font-bold text-muted-foreground hover:bg-muted" onClick={() => setStep(1)} disabled={savePanen.isPending}>
+                      <ArrowLeft className="mr-2 h-4 w-4" /> Kembali
+                    </Button>
+                  ) : (
+                    <Button type="button" variant="ghost" className="h-11 rounded-xl px-4 font-bold text-muted-foreground hover:bg-muted" onClick={onClose}>
+                      Batal
+                    </Button>
+                  )}
+
+                  {step < 2 ? (
+                    <Button type="button" className="h-11 rounded-xl px-5 font-bold bg-primary text-primary-foreground hover:opacity-90 shadow-sm" onClick={handleNextStep}>
+                      Lanjut <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  ) : (
+                    <Button type="button" className="h-11 rounded-xl px-6 font-bold bg-primary text-primary-foreground hover:opacity-90 shadow-sm" disabled={savePanen.isPending} onClick={form.handleSubmit(onSubmit)}>
+                      {savePanen.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Proses...</> : <><CheckCircle2 className="mr-2 h-4 w-4" /> Simpan</>}
+                    </Button>
+                  )}
                 </div>
-              </div>
 
-              {/* LIVE CALCULATION DISPLAY */}
-              <div className="flex items-center justify-between rounded-xl bg-primary p-4 text-primary-foreground shadow-inner">
-                <span className="text-sm font-medium opacity-90">Total Pendapatan:</span>
-                <span className="text-2xl font-black tabular-nums">
-                  Rp {totalPendapatan.toLocaleString('id-ID')}
-                </span>
-              </div>
-            </div>
-
-            {/* GROUP 3: DETAIL TAMBAHAN (OPSIONAL) */}
-            <div className="space-y-4 rounded-2xl border border-border/50 bg-muted/20 p-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="flex items-center gap-2 text-sm font-bold text-muted-foreground">
-                    <Tag className="h-4 w-4" />
-                    Grade / Kualitas
-                  </label>
-                  <select
-                    value={kualitas}
-                    onChange={(e) => setKualitas(e.target.value)}
-                    className="flex h-12 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                  >
-                    <option value="">(Kosong)</option>
-                    <option value="Grade A">Grade A</option>
-                    <option value="Grade B">Grade B</option>
-                    <option value="Sortiran">Sortiran / Afkir</option>
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="flex items-center gap-2 text-sm font-bold text-muted-foreground">
-                    <ShoppingCart className="h-4 w-4" />
-                    Dijual ke
-                  </label>
-                  <Input
-                    type="text"
-                    placeholder="Misal: Tengkulak, Pasar..."
-                    value={channelPenjualan}
-                    onChange={(e) => setChannelPenjualan(e.target.value)}
-                    className="h-12 rounded-xl"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-sm font-bold text-muted-foreground">Catatan Khusus</label>
-                <Textarea
-                  placeholder="Kondisi cuaca saat panen, atau keterangan lainnya..."
-                  value={catatan}
-                  onChange={(e) => setCatatan(e.target.value)}
-                  className="min-h-[80px] rounded-xl resize-none"
-                />
-              </div>
-            </div>
-
-            <Button 
-              type="submit" 
-              disabled={harvestMutation.isPending} 
-              className="h-14 w-full rounded-2xl text-lg font-bold shadow-lg"
-            >
-              {harvestMutation.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Menyimpan...
-                </>
-              ) : (
-                "Simpan Hasil Panen"
-              )}
-            </Button>
-          </form>
-        )}
+              </form>
+            </Form>
+          )}
+        </div>
       </SheetContent>
     </Sheet>
   );
