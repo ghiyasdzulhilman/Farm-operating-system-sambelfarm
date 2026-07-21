@@ -230,20 +230,43 @@ export function FormPanen({ onSuccess }: { onSuccess?: () => void }) {
       <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">1. Kalkulasi Hasil</p>
       
       <div className="grid grid-cols-2 gap-3">
-        <FormField control={form.control} name="kuantitasKg" render={({ field }) => (
-          <FormItem className="space-y-1.5">
-            <FormLabel className="text-[10px] font-bold text-muted-foreground uppercase">Kuantitas (Kg)</FormLabel>
-            <FormControl><Input type="number" step="0.01" className="h-11 rounded-xl bg-background border-input text-sm font-bold" placeholder="0.0" {...field} onChange={e => field.onChange(Number(e.target.value))} /></FormControl>
-            <FormMessage className="text-[10px] text-red-500" />
-          </FormItem>
-        )} />
-        <FormField control={form.control} name="hargaJualPerKg" render={({ field }) => (
-          <FormItem className="space-y-1.5">
-            <FormLabel className="text-[10px] font-bold text-muted-foreground uppercase">Harga/Kg (Rp)</FormLabel>
-            <FormControl><Input type="number" className="h-11 rounded-xl bg-background border-input text-sm font-bold" placeholder="0" {...field} onChange={e => field.onChange(Number(e.target.value))} /></FormControl>
-            <FormMessage className="text-[10px] text-red-500" />
-          </FormItem>
-        )} />
+   <FormField control={form.control} name="kuantitasKg" render={({ field }) => (
+  <FormItem className="space-y-1.5">
+    <FormLabel className="text-[10px] font-bold text-muted-foreground uppercase">Kuantitas (Kg)</FormLabel>
+    <FormControl>
+      {/* 👇 PERHATIKAN value dan onChange DI SINI 👇 */}
+      <Input 
+        type="number" 
+        step="0.01" 
+        className="h-11 rounded-xl bg-background border-input text-sm font-bold" 
+        placeholder="0.0" 
+        {...field} 
+        value={field.value || ""} 
+        onChange={e => field.onChange(e.target.value ? Number(e.target.value) : "")} 
+      />
+    </FormControl>
+    <FormMessage className="text-[10px] text-red-500" />
+  </FormItem>
+)} />
+
+<FormField control={form.control} name="hargaJualPerKg" render={({ field }) => (
+  <FormItem className="space-y-1.5">
+    <FormLabel className="text-[10px] font-bold text-muted-foreground uppercase">Harga/Kg (Rp)</FormLabel>
+    <FormControl>
+      {/* 👇 PERHATIKAN value dan onChange DI SINI 👇 */}
+      <Input 
+        type="number" 
+        className="h-11 rounded-xl bg-background border-input text-sm font-bold" 
+        placeholder="0" 
+        {...field} 
+        value={field.value || ""} 
+        onChange={e => field.onChange(e.target.value ? Number(e.target.value) : "")} 
+      />
+    </FormControl>
+    <FormMessage className="text-[10px] text-red-500" />
+  </FormItem>
+)} />
+
       </div>
 
       <div className="flex flex-col items-center justify-center rounded-xl bg-primary/10 p-3 text-primary border border-primary/20">
@@ -254,9 +277,6 @@ export function FormPanen({ onSuccess }: { onSuccess?: () => void }) {
 
   </motion.div>
 )}
-
- </AnimatePresence>
-</div>
                 
 {/* ================= STEP 3: DETAIL OPSIONAL ================= */}
 {step === 3 && (
@@ -298,6 +318,8 @@ export function FormPanen({ onSuccess }: { onSuccess?: () => void }) {
 
   </motion.div>
 )}
+</AnimatePresence>
+</div>
 
                 {/* ================= NAVIGASI BAWAH ================= */}
                 <div className="flex justify-between items-center pt-4 border-t border-border mt-2">
