@@ -40,8 +40,9 @@ const feed = [
 const fallbackFeed = [
   {
     title: "20kg berhasil dicatat • Blok A",
+    // 👇 INI YANG KITA UBAH BRO 👇
     description:
-      "Panen masuk ke database Notion dan siap dianalisis.",
+      "Data panen berhasil disimpan secara real-time dan siap dianalisis.",
     time: "baru saja",
     tone: "emerald",
     icon: Sprout,
