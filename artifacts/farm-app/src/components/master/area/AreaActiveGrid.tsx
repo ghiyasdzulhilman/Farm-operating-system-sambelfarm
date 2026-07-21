@@ -115,32 +115,53 @@ export function AreaActiveGrid({ areas, allSiklus, searchQuery }: AreaActiveGrid
               key={area.id} 
               className="rounded-2xl border border-border/50 bg-card overflow-hidden shadow-sm transition-all duration-300 hover:border-border flex flex-col justify-between"
             >
-              {/* 1. HEADER CARD (Identitas Area) */}
+           {/* 1. HEADER CARD (Identitas Area) */}
               <div className="flex items-center justify-between bg-muted/10 p-4 border-b border-border/40">
-                <span className="text-sm font-black flex items-center gap-2">
-                  <div className="rounded-full bg-primary/10 p-1.5 text-primary">
+                <span className="text-sm font-black flex items-center gap-2 min-w-0">
+                  <div className="rounded-full bg-primary/10 p-1.5 text-primary shrink-0">
                     <MapPin className="h-4 w-4" />
                   </div>
-                  {cleanName}
+                  <span className="truncate block">{cleanName}</span>
                 </span>
                 
-             <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={() => {
-                    // 🚀 SUNTIKAN BARU: Buka modal hapus dan simpan nama areanya
-                    setAreaToDelete({ id: area.id, name: cleanName });
-                  }} 
-                  disabled={delAreaMutation.isPending} 
-                  className="h-8 w-8 text-destructive hover:bg-destructive/10 shrink-0"
-                >
-                  {delAreaMutation.isPending && areaToDelete?.id === area.id ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                {/* 🚀 FIX UX: Grup Tombol Aksi Kanan (Siklus & Hapus) */}
+                <div className="flex items-center gap-1 shrink-0">
+                  {currentCycle ? (
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => handleOpenSiklus(area, currentCycle)}
+                      className="h-8 w-8 text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                    >
+                      <Settings2 className="h-4 w-4" />
+                    </Button>
                   ) : (
-                    <Trash2 className="h-4 w-4" />
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => handleOpenSiklus(area, null)}
+                      className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
                   )}
-                </Button>
-
+                  
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => {
+                      setAreaToDelete({ id: area.id, name: cleanName });
+                    }} 
+                    disabled={delAreaMutation.isPending} 
+                    className="h-8 w-8 text-destructive/70 hover:text-destructive hover:bg-destructive/10 rounded-lg shrink-0 transition-colors"
+                  >
+                    {delAreaMutation.isPending && areaToDelete?.id === area.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
               </div>
 
               {/* 2. BODY CARD (Informasi Siklus Berjalan) */}
@@ -175,29 +196,7 @@ export function AreaActiveGrid({ areas, allSiklus, searchQuery }: AreaActiveGrid
                 )}
               </div>
 
-              {/* 3. BOTTOM BUTTONS (Pemicu Akses Kontrol) */}
-              <div className="p-4 pt-0">
-                {currentCycle ? (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => handleOpenSiklus(area, currentCycle)}
-                    className="w-full h-9 text-xs rounded-xl border-border hover:bg-muted/50 font-bold gap-1.5"
-                  >
-                    <Settings2 className="h-3.5 w-3.5" /> Kelola Siklus
-                  </Button>
-                ) : (
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => handleOpenSiklus(area, null)}
-                    className="w-full h-9 text-xs font-bold text-muted-foreground hover:text-primary rounded-xl border border-dashed border-border/85 hover:bg-primary/5 bg-muted/10 gap-1.5"
-                  >
-                    <Plus className="h-3.5 w-3.5" /> Mulai Siklus Tanam
-                  </Button>
-                )}
-              </div>
-            </div>
+          </div>
           );
         })}
       </div>
