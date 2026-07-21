@@ -19,7 +19,7 @@ import {
   Bug 
 } from "lucide-react";
 
-import { Formpanen } from "@/components/finance/FormPanen";
+import { FormPanen } from "@/components/finance/FormPanen";
 import { PengeluaranFormModal } from "@/components/finance/PengeluaranFormModal";
 import { AddPerawatanDialog } from "@/components/agronomy/AddPerawatanDialog";
 import { AddInspeksiDialog } from "@/components/agronomy/AddInspeksiDialog";
