@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import { 
   ArrowLeft, ArrowRight, CheckCircle2, Loader2, MapPinned, 
-  PackageOpen, Briefcase, ShoppingCart, Tag, Check, X, PlusCircle 
+  PackageOpen, Briefcase, ShoppingCart, Tag, PlusCircle, Calendar 
 } from "lucide-react";
 
 import { useToast } from "@/hooks/use-toast";
@@ -46,9 +46,7 @@ const EMPTY_VALUES: PanenFormValues = {
   catatan: "",
 };
 
-// 🚀 FIX: Ubah props agar mandiri (bisa nerima onSuccess callback jika diperlukan)
 export function FormPanen({ onSuccess }: { onSuccess?: () => void }) {
-  // 🚀 FIX: State buka-tutup laci diatur dari dalam komponen
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(1);
   const [submittedRecords, setSubmittedRecords] = useState<any | null>(null);
@@ -63,7 +61,7 @@ export function FormPanen({ onSuccess }: { onSuccess?: () => void }) {
       if (!res.ok) throw new Error("Gagal mengambil data dropdown");
       return res.json();
     },
-    enabled: open, // Hanya load data kalau laci terbuka
+    enabled: open, 
   });
 
   const form = useForm<PanenFormValues>({
@@ -102,6 +100,12 @@ export function FormPanen({ onSuccess }: { onSuccess?: () => void }) {
 
   const handleNextStep = async () => {
     const fieldsToValidate: Array<keyof PanenFormValues> = ["kegiatan", "areaId", "tanggal"];
+    
+    if (step === 1 && !form.getValues("areaId")) {
+      toast({ variant: "destructive", title: "Oops!", description: "Pilih 1 Sumber Lahan terlebih dahulu." }); 
+      return;
+    }
+
     const isStepValid = await form.trigger(fieldsToValidate);
     if (isStepValid) setStep(2);
   };
@@ -119,14 +123,14 @@ export function FormPanen({ onSuccess }: { onSuccess?: () => void }) {
         form.reset(EMPTY_VALUES); 
       } 
     }}>
-      {/* 🚀 FIX: Tambahkan Trigger persis seperti AddOperasionalDialog */}
       <SheetTrigger asChild>
         <Button className="h-11 rounded-xl px-5 font-bold bg-primary text-primary-foreground hover:opacity-90 transition-all active:scale-[0.98] gap-2">
           <PlusCircle className="h-4 w-4" /> Panen
         </Button>
       </SheetTrigger>
 
-      <SheetContent side="bottom" className="h-[85vh] sm:h-[90vh] mx-auto sm:max-w-md rounded-t-[2rem] p-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl shadow-[0_-16px_40px_rgba(0,0,0,0.12)]">
+      {/* 🚀 DIUBAH: Mengikuti styling addoperasionaldialog (side="top", rounded-b-[2rem], blur, padding) */}
+      <SheetContent side="top" className="mx-auto max-w-md rounded-b-[2rem] border-x-0 border-t-0 p-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl shadow-[0_16px_40px_rgba(0,0,0,0.12)] pb-5">
         
         {/* HEADER */}
         <SheetHeader className="px-6 py-4 flex flex-row items-center justify-between border-b border-border">
@@ -135,7 +139,7 @@ export function FormPanen({ onSuccess }: { onSuccess?: () => void }) {
               <PackageOpen className="h-5 w-5" />
             </div>
             <div className="text-left">
-              <SheetTitle className="text-base font-black tracking-tight">Catat Panen</SheetTitle>
+              <SheetTitle className="text-base font-black tracking-tight">Input Panen</SheetTitle>
               <p className="text-[10px] font-bold text-primary tracking-wider uppercase">Step {step} dari 2</p>
             </div>
           </div>
@@ -146,31 +150,31 @@ export function FormPanen({ onSuccess }: { onSuccess?: () => void }) {
           </div>
         </SheetHeader>
 
-        <div className="px-6 py-4 h-[calc(100%-80px)] flex flex-col">
+        <div className="px-6 py-4">
           {submittedRecords ? (
             // LAYAR SUKSES
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center justify-center flex-1 py-6 text-center space-y-5">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center justify-center py-6 text-center space-y-5">
               <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center mb-1">
                 <CheckCircle2 className="h-8 w-8 text-primary" />
               </div>
               <div className="space-y-1">
-                <h3 className="text-base font-black text-foreground tracking-tight">Data Panen Tersimpan!</h3>
-                <p className="text-xs text-muted-foreground">Stok atau laporan keuangan telah diperbarui.</p>
+                <h3 className="text-base font-black text-foreground tracking-tight">Data Berhasil Disimpan</h3>
+                <p className="text-xs text-muted-foreground">Stok gudang & keuangan telah diperbarui.</p>
               </div>
               <div className="w-full space-y-2 pt-4">
-                <Button type="button" className="w-full h-11 rounded-xl text-xs font-bold bg-secondary text-secondary-foreground hover:opacity-90" onClick={() => setOpen(false)}>
+                <Button type="button" className="w-full h-11 rounded-xl text-xs font-bold bg-secondary text-secondary-foreground hover:opacity-90 mt-1" onClick={() => { setOpen(false); setStep(1); setSubmittedRecords(null); form.reset(EMPTY_VALUES); }}>
                   Tutup Form
                 </Button>
               </div>
             </motion.div>
           ) : isLoadingOptions ? (
-            <div className="space-y-3"><Skeleton className="h-12 w-full rounded-xl" /><Skeleton className="h-24 w-full rounded-xl" /></div>
+             <Skeleton className="h-12 w-full rounded-xl" />
           ) : (
             <Form {...form}>
-              <form onSubmit={(e) => e.preventDefault()} className="flex flex-col h-full text-left">
+              <form onSubmit={(e) => e.preventDefault()} className="space-y-5 text-left">
                 
-                {/* KONTEN SCROLLABLE */}
-                <div className="flex-1 overflow-y-auto pr-1 pb-4 space-y-5">
+                {/* 🚀 KONTEN SCROLLABLE DENGAN BATAS TINGGI AGAR RAPI */}
+                <div className="max-h-[55vh] overflow-y-auto pr-1 pb-2 space-y-5">
                   <AnimatePresence mode="wait">
 
                     {/* ================= STEP 1: SUMBER TANAMAN ================= */}
@@ -180,7 +184,7 @@ export function FormPanen({ onSuccess }: { onSuccess?: () => void }) {
                         <FormField control={form.control} name="kegiatan" render={({ field }) => (
                           <FormItem className="space-y-1.5">
                             <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80"><Briefcase className="inline-block h-3.5 w-3.5 mr-1" /> Nama Kegiatan</FormLabel>
-                            <FormControl><Input className="h-11 rounded-xl bg-background border border-input shadow-sm text-sm font-medium" placeholder="Cth: Panen Rutin, Panen Akhir..." {...field} /></FormControl>
+                            <FormControl><Input className="h-12 rounded-xl bg-background border border-input focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm text-sm font-medium" placeholder="Cth: Panen Rutin, Panen Akhir..." {...field} /></FormControl>
                             <FormMessage className="text-xs text-red-500" />
                           </FormItem>
                         )} />
@@ -204,8 +208,8 @@ export function FormPanen({ onSuccess }: { onSuccess?: () => void }) {
 
                         <FormField control={form.control} name="tanggal" render={({ field }) => (
                           <FormItem className="space-y-1.5">
-                            <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Tanggal Panen</FormLabel>
-                            <FormControl><Input type="date" className="h-11 rounded-xl bg-background border border-input shadow-sm text-sm font-medium" {...field} /></FormControl>
+                            <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80"><Calendar className="inline-block h-3.5 w-3.5 mr-1" />Tanggal Panen</FormLabel>
+                            <FormControl><Input type="date" className="h-12 rounded-xl bg-background border border-input focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm text-sm font-bold appearance-none px-3 w-full" {...field} /></FormControl>
                             <FormMessage className="text-xs text-red-500" />
                           </FormItem>
                         )} />
@@ -216,6 +220,7 @@ export function FormPanen({ onSuccess }: { onSuccess?: () => void }) {
                     {step === 2 && (
                       <motion.div key="step2" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-4 pt-1">
                         
+                        {/* 🚀 KOTAK CARD STYLING SEPERTI OPERASIONAL */}
                         <div className="bg-card p-4 rounded-2xl border border-border shadow-sm space-y-4">
                           <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">1. Kalkulasi Hasil</p>
                           
@@ -223,14 +228,14 @@ export function FormPanen({ onSuccess }: { onSuccess?: () => void }) {
                             <FormField control={form.control} name="kuantitasKg" render={({ field }) => (
                               <FormItem className="space-y-1.5">
                                 <FormLabel className="text-[10px] font-bold text-muted-foreground uppercase">Kuantitas (Kg)</FormLabel>
-                                <FormControl><Input type="number" step="0.01" className="h-11 rounded-xl bg-background text-sm font-bold" placeholder="0.0" {...field} onChange={e => field.onChange(Number(e.target.value))} /></FormControl>
+                                <FormControl><Input type="number" step="0.01" className="h-11 rounded-xl bg-background border-input text-sm font-bold" placeholder="0.0" {...field} onChange={e => field.onChange(Number(e.target.value))} /></FormControl>
                                 <FormMessage className="text-[10px] text-red-500" />
                               </FormItem>
                             )} />
                             <FormField control={form.control} name="hargaJualPerKg" render={({ field }) => (
                               <FormItem className="space-y-1.5">
                                 <FormLabel className="text-[10px] font-bold text-muted-foreground uppercase">Harga/Kg (Rp)</FormLabel>
-                                <FormControl><Input type="number" className="h-11 rounded-xl bg-background text-sm font-bold" placeholder="0" {...field} onChange={e => field.onChange(Number(e.target.value))} /></FormControl>
+                                <FormControl><Input type="number" className="h-11 rounded-xl bg-background border-input text-sm font-bold" placeholder="0" {...field} onChange={e => field.onChange(Number(e.target.value))} /></FormControl>
                                 <FormMessage className="text-[10px] text-red-500" />
                               </FormItem>
                             )} />
@@ -242,6 +247,7 @@ export function FormPanen({ onSuccess }: { onSuccess?: () => void }) {
                           </div>
                         </div>
 
+                        {/* 🚀 KOTAK CARD STYLING SEPERTI OPERASIONAL */}
                         <div className="bg-card p-4 rounded-2xl border border-border shadow-sm space-y-4">
                           <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">2. Detail Opsional</p>
                           
@@ -250,7 +256,7 @@ export function FormPanen({ onSuccess }: { onSuccess?: () => void }) {
                               <FormItem className="space-y-1.5">
                                 <FormLabel className="text-[10px] font-bold text-muted-foreground uppercase"><Tag className="inline-block h-3 w-3 mr-1" />Grade</FormLabel>
                                 <Select onValueChange={field.onChange} value={field.value || ""}>
-                                  <FormControl><SelectTrigger className="h-11 rounded-xl text-xs"><SelectValue placeholder="Pilih..." /></SelectTrigger></FormControl>
+                                  <FormControl><SelectTrigger className="h-11 rounded-xl bg-background border-input text-xs font-medium"><SelectValue placeholder="Pilih..." /></SelectTrigger></FormControl>
                                   <SelectContent className="rounded-xl">
                                     <SelectItem value="Grade A">Grade A</SelectItem>
                                     <SelectItem value="Grade B">Grade B</SelectItem>
@@ -263,15 +269,15 @@ export function FormPanen({ onSuccess }: { onSuccess?: () => void }) {
                             <FormField control={form.control} name="channelPenjualan" render={({ field }) => (
                               <FormItem className="space-y-1.5">
                                 <FormLabel className="text-[10px] font-bold text-muted-foreground uppercase"><ShoppingCart className="inline-block h-3 w-3 mr-1" />Pembeli</FormLabel>
-                                <FormControl><Input className="h-11 rounded-xl text-xs bg-background" placeholder="Cth: Tengkulak..." {...field} /></FormControl>
+                                <FormControl><Input className="h-11 rounded-xl bg-background border-input text-xs font-medium" placeholder="Cth: Tengkulak..." {...field} /></FormControl>
                               </FormItem>
                             )} />
                           </div>
 
                           <FormField control={form.control} name="catatan" render={({ field }) => (
                             <FormItem className="space-y-1.5 pt-1">
-                              <FormLabel className="text-[10px] font-bold text-muted-foreground uppercase">Catatan</FormLabel>
-                              <FormControl><Textarea className="min-h-[70px] rounded-xl text-xs bg-background" placeholder="Kondisi cuaca atau info tambahan..." {...field} /></FormControl>
+                              <FormLabel className="text-[10px] font-bold text-muted-foreground uppercase">Catatan Lapangan</FormLabel>
+                              <FormControl><Textarea className="min-h-[70px] rounded-xl bg-background border-input text-xs p-3" placeholder="Kondisi cuaca atau info tambahan..." {...field} /></FormControl>
                             </FormItem>
                           )} />
                         </div>
@@ -281,7 +287,7 @@ export function FormPanen({ onSuccess }: { onSuccess?: () => void }) {
                 </div>
 
                 {/* ================= NAVIGASI BAWAH ================= */}
-                <div className="flex justify-between items-center pt-3 pb-2 border-t border-border mt-auto">
+                <div className="flex justify-between items-center pt-4 border-t border-border mt-2">
                   {step > 1 ? (
                     <Button type="button" variant="ghost" className="h-11 rounded-xl px-4 font-bold text-muted-foreground hover:bg-muted" onClick={() => setStep(1)} disabled={savePanen.isPending}>
                       <ArrowLeft className="mr-2 h-4 w-4" /> Kembali
@@ -293,12 +299,12 @@ export function FormPanen({ onSuccess }: { onSuccess?: () => void }) {
                   )}
 
                   {step < 2 ? (
-                    <Button type="button" className="h-11 rounded-xl px-5 font-bold bg-primary text-primary-foreground hover:opacity-90 shadow-sm" onClick={handleNextStep}>
+                    <Button type="button" className="h-11 rounded-xl px-5 font-bold bg-primary text-primary-foreground hover:opacity-90 transition-all shadow-sm" onClick={handleNextStep}>
                       Lanjut <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   ) : (
-                    <Button type="button" className="h-11 rounded-xl px-6 font-bold bg-primary text-primary-foreground hover:opacity-90 shadow-sm" disabled={savePanen.isPending} onClick={form.handleSubmit(onSubmit)}>
-                      {savePanen.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Proses...</> : <><CheckCircle2 className="mr-2 h-4 w-4" /> Simpan</>}
+                    <Button type="button" className="h-11 rounded-xl px-6 font-bold bg-primary text-primary-foreground hover:opacity-90 transition-all shadow-sm" disabled={savePanen.isPending} onClick={form.handleSubmit(onSubmit)}>
+                      {savePanen.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Menyimpan...</> : <><CheckCircle2 className="mr-2 h-4 w-4" /> Simpan Data</>}
                     </Button>
                   )}
                 </div>
@@ -307,6 +313,9 @@ export function FormPanen({ onSuccess }: { onSuccess?: () => void }) {
             </Form>
           )}
         </div>
+        
+        {/* 🚀 INDIKATOR GRABBER DI BAWAH SHEET */}
+        <div className="mx-auto mt-1 h-1 w-10 rounded-full bg-border" />
       </SheetContent>
     </Sheet>
   );
