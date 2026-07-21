@@ -54,8 +54,6 @@ const ERP_MODULES = [
     label: "Finance",
     icon: Wallet,
     children: [
-      { id: "pengeluaran", label: "Catat Pengeluaran", icon: Wallet },
-      { id: "pendapatan", label: "Data Pendapatan", icon: Database },
       { id: "kategori-keuangan", label: "Kategori Keuangan", icon: Database },
     ],
   },
@@ -210,12 +208,6 @@ export function MasterHubPage({ onClose }: { onClose?: () => void }) {
       {/* MODULE: FINANCE */}
       {/* ======================================= */}
       {activeChild === "kategori-keuangan" && <KategoriKeuanganManager />}
-      {activeChild === "pengeluaran" && (
-        <div className="p-8 text-center text-muted-foreground border border-dashed rounded-3xl">Modul Pengeluaran (Coming Soon)</div>
-      )}
-      {activeChild === "pendapatan" && (
-        <div className="p-8 text-center text-muted-foreground border border-dashed rounded-3xl">Modul Pendapatan (Coming Soon)</div>
-      )}
 
       {/* ======================================= */}
       {/* MODULE: TOOLS */}
