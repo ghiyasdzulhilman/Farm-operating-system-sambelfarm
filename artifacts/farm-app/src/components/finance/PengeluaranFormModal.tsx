@@ -189,7 +189,7 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
 
       {/* 🚀 MENGGUNAKAN GAYA SHEET DARI OPERASIONAL (TURUN DARI ATAS) */}
       <SheetContent side="top" className="mx-auto max-w-md rounded-b-[2rem] border-x-0 border-t-0 p-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl shadow-[0_16px_40px_rgba(0,0,0,0.12)] pb-5 z-[999]">
-         <SheetHeader className="px-6 py-4 flex flex-row items-center justify-between border-b border-border">
+        <SheetHeader className="px-6 py-4 flex flex-row items-center justify-between border-b border-border">
           <div className="flex items-center gap-3">
             {/* 🚀 FIX: Ganti icon Receipt jadi Banknote */}
             <div className="rounded-xl bg-primary/10 p-2 text-primary shadow-sm"><Banknote className="h-5 w-5" /></div>
@@ -198,7 +198,8 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
               <p className="text-[10px] font-bold text-primary tracking-wider uppercase">Step {step} dari 3</p>
             </div>
           </div>
-          <div className="flex gap-1.5">{[1, 2, 3].map((i) => (<div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${step >= i ? "w-6 bg-primary" : "w-1.5 bg-border"}`} />))}</div>
+          {/* 🚀 FIX: Ganti 'step >= i' jadi 'step === i' biar titiknya sama percis kayak form Operasional */}
+          <div className="flex gap-1.5">{[1, 2, 3].map((i) => (<div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${step === i ? "w-6 bg-primary" : "w-1.5 bg-border"}`} />))}</div>
         </SheetHeader>
 
         <div className="px-6 py-4">
