@@ -203,7 +203,7 @@ export function ProdukFormModal({ isOpen, onClose, defaultType }: ProdukFormModa
               }}
               className={cn("flex-1 text-[11px] font-bold py-2 rounded-lg transition-all", inputMode === "besar" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground")}
             >
-              Mode {form.satuanTampilan} (Karung/Grosir)
+              {form.satuanTampilan}
             </button>
             <button
               onClick={() => {
@@ -212,7 +212,7 @@ export function ProdukFormModal({ isOpen, onClose, defaultType }: ProdukFormModa
               }}
               className={cn("flex-1 text-[11px] font-bold py-2 rounded-lg transition-all", inputMode === "kecil" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground")}
             >
-              Mode {form.satuanDasar} (Botol/Obat)
+              {form.satuanDasar}
             </button>
           </div>
 
@@ -221,7 +221,7 @@ export function ProdukFormModal({ isOpen, onClose, defaultType }: ProdukFormModa
             <div className="space-y-1.5">
               <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground/80 truncate">
                 <Coins className="h-3.5 w-3.5" /> 
-                {inputMode === "besar" ? `Harga / ${form.satuanTampilan}` : `Harga Total 1 Botol`}
+                {inputMode === "besar" ? `Harga / ${form.satuanTampilan}` : `Harga Total`}
               </label>
               <div className="space-y-1.5">
                 <Input 
