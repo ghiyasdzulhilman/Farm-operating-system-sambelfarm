@@ -364,25 +364,29 @@ export function ProdukList({ produk, activeTab, searchQuery, statusFilter }: Pro
                     <span className="text-[10px] font-bold text-muted-foreground">Sistem: {item.stokSaatIni} {item.satuanDasar}</span>
                   </div>
                   
-                  <div className="flex items-center gap-2">
+                  {/* 🚀 FIX UX: Input Stok dan Catatan disejajarkan ukurannya */}
+                  <div className="relative flex items-center w-full">
                     <input
                       type="number"
                       step="any"
                       placeholder="Stok Fisik Gudang"
                       value={stokFisik}
                       onChange={(e) => setStokFisik(e.target.value)}
-                      className="flex-1 rounded-xl border border-input bg-background px-3 py-2 text-xs outline-none focus:border-primary/50 font-bold shadow-sm"
+                      // Padding kanan (pr-12) dilebarin biar angka yang diketik ga nabrak teks satuan di kanan
+                      className="w-full rounded-xl border border-input bg-background pl-3 pr-12 py-2 text-xs outline-none focus:border-primary/50 font-bold shadow-sm"
                       autoFocus
                     />
-                    <span className="text-xs font-bold text-muted-foreground min-w-[30px] text-center">{item.satuanDasar}</span>
+                    <span className="absolute right-3 text-xs font-bold text-muted-foreground pointer-events-none">
+                      {item.satuanDasar}
+                    </span>
                   </div>
                   
                   <input
                     type="text"
-                    placeholder="Catatan (opsional, misal: hilang, tumpah)"
+                    placeholder="Catatan (opsional) misal: hilang, tumpah"
                     value={catatanStok}
                     onChange={(e) => setCatatanStok(e.target.value)}
-                    className="w-full rounded-xl border border-input bg-background px-3 py-2 text-xs outline-none focus:border-primary/50 font-medium shadow-sm"
+                    className="w-full rounded-xl border border-input bg-background px-3 py-2 text-xs outline-none focus:border-primary/50 font-medium shadow-sm mt-0.5"
                   />
                   
                   <div className="flex justify-end gap-2 mt-0.5">
