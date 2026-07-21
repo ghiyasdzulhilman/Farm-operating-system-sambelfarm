@@ -16,8 +16,9 @@ export async function adjustStock(
 ) {
   const { produkId, delta, tipe, perawatanProdukId = null, catatan = null } = params;
 
+  // 🚀 FIX: Bungkus nilai -delta ke dalam String() biar Drizzle (TypeScript) nggak protes saat ngebandingin tipe numeric
   const whereClause = delta < 0
-    ? and(eq(produkMasterTable.id, produkId), gte(produkMasterTable.stokSaatIni, -delta))
+    ? and(eq(produkMasterTable.id, produkId), gte(produkMasterTable.stokSaatIni, String(-delta)))
     : eq(produkMasterTable.id, produkId);
 
     const updated = await tx
@@ -61,3 +62,4 @@ export async function adjustStock(
   // mereka gampang memprosesnya tanpa error.
   return stokSesudahNum; 
 }
+
