@@ -248,7 +248,7 @@ export function AreaActiveGrid({ areas, allSiklus, searchQuery }: AreaActiveGrid
             
             <div className="bg-rose-500/10 border border-rose-500/20 p-4 rounded-2xl">
               <p className="text-[11px] font-semibold text-rose-700 leading-relaxed">
-                Tindakan ini tidak dapat dibatalkan. Menghapus area akan me-reset seluruh histori terkait jika tidak terikat pengaman.
+                Tindakan ini tidak dapat dibatalkan. Menghapus area akan menghapus seluruh riwayat aktivitas dan arsip terkait.
               </p>
             </div>
 
