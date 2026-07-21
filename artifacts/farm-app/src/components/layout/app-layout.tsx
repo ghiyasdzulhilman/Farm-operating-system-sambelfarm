@@ -4,12 +4,9 @@ import { useAuth } from "@clerk/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Home, 
-  NotebookText,
   FlaskConical,
   Database,
   Compass, 
-  Beaker, 
-  SlidersHorizontal, 
   Plus, 
   Wheat,
   Banknote,
@@ -25,11 +22,6 @@ import { AddPerawatanDialog } from "@/components/agronomy/AddPerawatanDialog";
 import { AddInspeksiDialog } from "@/components/agronomy/AddInspeksiDialog";
 import { AddOperasionalDialog } from "@/components/agronomy/AddOperasionalDialog";
 
-import {
-  useGetNotionConnectionStatus,
-  getGetNotionConnectionStatusQueryKey,
-} from "@workspace/api-client-react";
-
 export function AppLayout({
   children,
 }: {
@@ -39,12 +31,6 @@ export function AppLayout({
   const [location] = useLocation();
   const { isSignedIn } = useAuth();
   const [isFabOpen, setIsFabOpen] = useState(false);
-
-  const { data: connectionStatus } = useGetNotionConnectionStatus({
-    query: {
-      queryKey: getGetNotionConnectionStatusQueryKey(),
-    },
-  });
 
   useEffect(() => {
     const handleScroll = () => {
@@ -70,9 +56,8 @@ export function AppLayout({
     { href: "/settings", icon: Compass },
   ];
 
-    // URUTAN FAB MUNCUL KE ATAS (VERTIKAL LURUS) DENGAN ICON PILIHAN MANDOR
+  // URUTAN FAB MUNCUL KE ATAS (VERTIKAL LURUS) DENGAN ICON PILIHAN MANDOR
   const quickActions = [
-
     { id: "expense", component: PengeluaranFormModal, icon: Banknote, delay: 0.12 },
     { id: "inspeksi", component: AddInspeksiDialog, icon: Bug, delay: 0.09 }, 
     { id: "operasional", component: AddOperasionalDialog, icon: HardHat, delay: 0.06 }, 
@@ -98,34 +83,7 @@ export function AppLayout({
                 Sambel Farm
               </span>
             </div>
-
-            <Link href="/connect">
-              {(() => {
-                const isConnected = connectionStatus?.connected;
-                const isInvalid = isConnected && connectionStatus?.tokenStatus === "invalid";
-
-                const colorClass = isInvalid
-                  ? "text-accent bg-accent/10 border-accent/20 hover:bg-accent/20"
-                  : isConnected
-                    ? "text-primary bg-primary/10 border-primary/20 hover:bg-primary/20"
-                    : "text-destructive bg-destructive/10 border-destructive/20 hover:bg-destructive/20";
-
-                const dotClass = isInvalid
-                  ? "bg-accent animate-pulse"
-                  : isConnected
-                    ? "bg-primary"
-                    : "bg-destructive";
-
-                const label = isInvalid ? "Token Invalid" : isConnected ? "Connected" : "Disconnected";
-
-                return (
-                  <button className={"inline-flex items-center gap-2 text-xs font-medium px-3 py-1 rounded-full border w-fit transition-all " + colorClass}>
-                    <div className={"w-2 h-2 rounded-full " + dotClass} />
-                    {label}
-                  </button>
-                );
-              })()}
-            </Link>
+            {/* AUDIT UI: Tombol koneksi Notion dihapus, area ini bisa dipakai untuk User Profile Menu (Clerk) nantinya */}
           </div>
         </div>
       </header>
