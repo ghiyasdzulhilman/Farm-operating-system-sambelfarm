@@ -105,18 +105,39 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
     nama: "", jenis: "Pupuk", bentuk: "Solid" as "Solid" | "Cair", satuanDasar: "gram", satuanTampilan: "kg"
   });
 
-  const addKategoriMutation = useMutation({
+    const addKategoriMutation = useMutation({
     mutationFn: async () => {
-      // Catatan: Kalo URL endpoint lu beda, sesuaikan "/api/kategori-keuangan" ini ya bro
-      const res = await fetch("/api/kategori-keuangan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nama: newKategoriName }) });
-      if (!res.ok) throw new Error("Gagal tambah kategori");
+      // 🚀 FIX: Endpoint disesuaikan ke backend, dan kita selipkan 'tipe' secara otomatis
+      const payload = {
+        nama: newKategoriName,
+        tipe: "Pengeluaran" // Sesuaikan string ini jika di DB lu pakenya "Beban" atau "Keluar"
+      };
+      
+      const res = await fetch("/api/finance/kategori", { 
+        method: "POST", 
+        headers: { "Content-Type": "application/json" }, 
+        body: JSON.stringify(payload) 
+      });
+      
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Gagal tambah kategori");
+      }
       return res.json();
     },
-    onSuccess: (data) => {
+    onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ["pengeluaran-dropdown-options"] });
-      if (data?.id) form.setValue("kategoriId", data.id); // Auto-pilih kategori baru
-      setIsAddingKategori(false); setNewKategoriName("");
+      
+      // 🚀 FIX: Nyesuaiin struktur response dari backend lu { success: true, data: { id: ... } }
+      const newId = response?.data?.id; 
+      if (newId) form.setValue("kategoriId", String(newId)); // Auto-pilih kategori baru
+      
+      setIsAddingKategori(false); 
+      setNewKategoriName("");
       toast({ title: "Sukses", description: "Kategori ditambahkan." });
+    },
+    onError: (error) => {
+      toast({ variant: "destructive", title: "Gagal", description: error.message });
     }
   });
 
