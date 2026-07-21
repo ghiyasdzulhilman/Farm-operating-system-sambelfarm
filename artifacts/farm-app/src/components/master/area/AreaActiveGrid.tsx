@@ -1,18 +1,16 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { MapPin, Trash2, Settings2, Plus, Loader2 } from "lucide-react";
+import { MapPin, Trash2, Settings2, Plus, Loader2, ShieldAlert } from "lucide-react"; // 🚀 FIX: Tambah ShieldAlert
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
-// 🚀 SUNTIKAN BARU: Import komponen Dialog & Input dari Shadcn UI
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+// 🚀 FIX UX: Ganti Dialog jadi Sheet biar gak bikin layar freeze, mirip ProdukList
+import { 
+  Sheet, 
+  SheetContent, 
+  SheetHeader, 
+  SheetTitle 
+} from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 
 // Import komponen modal manajemen siklus yang akan kita buat nanti
@@ -215,49 +213,73 @@ export function AreaActiveGrid({ areas, allSiklus, searchQuery }: AreaActiveGrid
         />
       )}
 
-      {/* 🚀 SUNTIKAN BARU: MODAL VERIFIKASI HAPUS AREA */}
-      <Dialog 
-        open={areaToDelete !== null} 
-        onOpenChange={(open) => {
-          if (!open) {
+   {/* 🚀 FIX UX: MODAL SHEET DARI BAWAH KHUSUS HAPUS PERMANEN (Gaya ProdukList) */}
+      <Sheet 
+        open={!!areaToDelete} 
+        onOpenChange={(val) => { 
+          if (!val) {
             setAreaToDelete(null);
-            setConfirmText(""); // Reset ketikan saat ditutup
+            setConfirmText("");
           }
         }}
       >
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-red-600 font-bold">Hapus Permanen Area?</DialogTitle>
-            <DialogDescription>
-              Tindakan ini tidak dapat dibatalkan. Menghapus area akan me-reset seluruh histori terkait jika tidak terikat pengaman.
-            </DialogDescription>
-          </DialogHeader>
+        <SheetContent 
+          side="bottom" 
+          className="mx-auto max-w-md rounded-t-[2rem] border-x-0 border-b-0 p-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl shadow-[0_-16px_40px_rgba(0,0,0,0.12)] z-[100] max-h-[90vh] flex flex-col"
+        >
+          
+          {/* Drag Handle iOS */}
+          <div className="mx-auto mt-3 mb-1 h-1.5 w-12 rounded-full bg-border/60 shrink-0" />
 
-          <div className="my-2 space-y-3 rounded-xl bg-red-50 p-3 text-sm border border-red-200">
-            <p className="text-red-800 leading-relaxed">
-              Ketik <span className="font-black select-all underline">{areaToDelete?.name}</span> di bawah ini untuk mengonfirmasi penghapusan:
-            </p>
-            <Input
-              value={confirmText}
-              onChange={(e) => setConfirmText(e.target.value)}
-              placeholder="Ketik nama area persis di sini..."
-              className="bg-white border-red-300 focus-visible:ring-red-500 font-medium"
-            />
+          {/* Header Sheet */}
+          <SheetHeader className="px-6 pb-4 pt-2 flex flex-row items-center justify-between border-b border-border pr-12 shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="rounded-xl bg-rose-500/10 p-2 text-rose-600 shadow-sm">
+                <ShieldAlert className="h-5 w-5" />
+              </div>
+              <div className="text-left">
+                <SheetTitle className="text-base font-black tracking-tight text-foreground">Hapus Permanen</SheetTitle>
+                <p className="text-[10px] font-bold text-rose-600 tracking-wider uppercase">Tindakan Berbahaya</p>
+              </div>
+            </div>
+          </SheetHeader>
+
+          {/* Area Scrollable yang aman dari keyboard */}
+          <div className="px-6 py-5 space-y-5 text-left flex-1 overflow-y-auto custom-scrollbar">
+            
+            <div className="bg-rose-500/10 border border-rose-500/20 p-4 rounded-2xl">
+              <p className="text-[11px] font-semibold text-rose-700 leading-relaxed">
+                Tindakan ini tidak dapat dibatalkan. Menghapus area akan me-reset seluruh histori terkait jika tidak terikat pengaman.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-muted-foreground leading-relaxed block">
+                Ketik <span className="text-foreground select-all bg-muted px-1.5 py-0.5 rounded-md border border-border/50">{areaToDelete?.name}</span> di bawah ini untuk melanjutkan:
+              </label>
+              <Input
+                value={confirmText}
+                onChange={(e) => setConfirmText(e.target.value)}
+                placeholder="Ketik nama area disini..."
+                className="h-12 rounded-xl bg-background border-rose-500/30 focus-visible:ring-2 focus-visible:ring-rose-500/20 text-sm font-medium px-4"
+              />
+            </div>
+            
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0 mt-2">
-            <Button 
-              variant="outline" 
+          {/* Sticky Bottom Bar buat Tombol */}
+          <div className="sticky bottom-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-t border-border/50 flex items-center justify-end gap-3 px-6 pt-4 pb-6 shrink-0 mt-auto">
+            <Button
+              variant="ghost"
               onClick={() => {
                 setAreaToDelete(null);
                 setConfirmText("");
               }}
+              className="h-11 rounded-xl px-4 font-bold text-muted-foreground hover:bg-muted"
             >
               Batal
             </Button>
-            
-            <Button 
-              variant="destructive"
+            <Button
               disabled={confirmText.trim().toLowerCase() !== areaToDelete?.name?.trim().toLowerCase() || delAreaMutation.isPending}
               onClick={() => {
                 if (areaToDelete) {
@@ -269,18 +291,16 @@ export function AreaActiveGrid({ areas, allSiklus, searchQuery }: AreaActiveGrid
                   });
                 }
               }}
+              className="h-11 rounded-xl px-6 font-bold bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-50 disabled:bg-muted disabled:text-muted-foreground shadow-sm transition-colors"
             >
-              {delAreaMutation.isPending ? (
-                <span className="flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Menghapus...
-                </span>
-              ) : (
-                "Hapus Permanen"
-              )}
+              {delAreaMutation.isPending ? "Membakar..." : "Hapus Permanen"}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
+          </div>
+
+        </SheetContent>
+      </Sheet>
     </>
   );
 }
+
