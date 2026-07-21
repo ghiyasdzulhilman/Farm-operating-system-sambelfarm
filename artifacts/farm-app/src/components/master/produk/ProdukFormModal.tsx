@@ -310,7 +310,7 @@ export function ProdukFormModal({ isOpen, onClose, defaultType }: ProdukFormModa
           </div>
         </div>
 
-        {/* 🚀 FIX UX: Tombol simpan tetep nempel rapi */}
+       {/* 🚀 FIX UX: Tombol simpan tetep nempel rapi */}
         <div className="bg-white/95 dark:bg-slate-950/95 flex items-center justify-end gap-3 px-6 pt-4 pb-2 shrink-0 mt-auto">
           <Button 
             variant="ghost" 
@@ -323,7 +323,8 @@ export function ProdukFormModal({ isOpen, onClose, defaultType }: ProdukFormModa
           <Button 
             onClick={handleSubmit} 
             disabled={addMutation.isPending || !form.nama.trim()} 
-            className="h-11 rounded-xl px-6 font-bold bg-primary text-primary-foreground hover:opacity-90 transition-all shadow-sm gap-2"
+            // 🚀 FIX BUG SAFARI: Ganti transition-all jadi transition-colors
+            className="h-11 rounded-xl px-6 font-bold bg-primary text-primary-foreground hover:opacity-90 transition-colors shadow-sm gap-2"
           >
             {addMutation.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -332,6 +333,7 @@ export function ProdukFormModal({ isOpen, onClose, defaultType }: ProdukFormModa
             )}
           </Button>
         </div>
+
 
         {/* 🚀 FIX UX: Garis handle ditaruh paling bawah modal */}
         <div className="mx-auto mt-2 mb-2 h-1.5 w-12 rounded-full bg-border/60 shrink-0" />
