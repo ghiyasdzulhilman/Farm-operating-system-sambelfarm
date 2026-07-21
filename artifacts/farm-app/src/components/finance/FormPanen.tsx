@@ -99,16 +99,21 @@ export function FormPanen({ onSuccess }: { onSuccess?: () => void }) {
   });
 
   const handleNextStep = async () => {
-    const fieldsToValidate: Array<keyof PanenFormValues> = ["kegiatan", "areaId", "tanggal"];
-    
-    if (step === 1 && !form.getValues("areaId")) {
+  let fieldsToValidate: Array<keyof PanenFormValues> = [];
+  
+  if (step === 1) {
+    fieldsToValidate = ["kegiatan", "areaId", "tanggal"];
+    if (!form.getValues("areaId")) {
       toast({ variant: "destructive", title: "Oops!", description: "Pilih 1 Sumber Lahan terlebih dahulu." }); 
       return;
     }
+  } else if (step === 2) {
+    fieldsToValidate = ["kuantitasKg", "hargaJualPerKg"];
+  }
 
-    const isStepValid = await form.trigger(fieldsToValidate);
-    if (isStepValid) setStep(2);
-  };
+  const isStepValid = await form.trigger(fieldsToValidate);
+  if (isStepValid) setStep((prev) => prev + 1);
+};
 
   const onSubmit = (values: PanenFormValues) => {
     savePanen.mutate(values);
@@ -140,11 +145,11 @@ export function FormPanen({ onSuccess }: { onSuccess?: () => void }) {
             </div>
             <div className="text-left">
               <SheetTitle className="text-base font-black tracking-tight">Input Panen</SheetTitle>
-              <p className="text-[10px] font-bold text-primary tracking-wider uppercase">Step {step} dari 2</p>
+              <p className="text-[10px] font-bold text-primary tracking-wider uppercase">Step {step} dari 3</p>
             </div>
           </div>
           <div className="flex gap-1.5">
-            {[1, 2].map((i) => (
+          {[1, 2, 3].map((i) => (
               <div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${step === i ? "w-6 bg-primary" : "w-1.5 bg-border"}`} />
             ))}
           </div>
@@ -217,74 +222,82 @@ export function FormPanen({ onSuccess }: { onSuccess?: () => void }) {
                     )}
 
                     {/* ================= STEP 2: HASIL & PENDAPATAN ================= */}
-                    {step === 2 && (
-                      <motion.div key="step2" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-4 pt-1">
-                        
-                        {/* 🚀 KOTAK CARD STYLING SEPERTI OPERASIONAL */}
-                        <div className="bg-card p-4 rounded-2xl border border-border shadow-sm space-y-4">
-                          <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">1. Kalkulasi Hasil</p>
-                          
-                          <div className="grid grid-cols-2 gap-3">
-                            <FormField control={form.control} name="kuantitasKg" render={({ field }) => (
-                              <FormItem className="space-y-1.5">
-                                <FormLabel className="text-[10px] font-bold text-muted-foreground uppercase">Kuantitas (Kg)</FormLabel>
-                                <FormControl><Input type="number" step="0.01" className="h-11 rounded-xl bg-background border-input text-sm font-bold" placeholder="0.0" {...field} onChange={e => field.onChange(Number(e.target.value))} /></FormControl>
-                                <FormMessage className="text-[10px] text-red-500" />
-                              </FormItem>
-                            )} />
-                            <FormField control={form.control} name="hargaJualPerKg" render={({ field }) => (
-                              <FormItem className="space-y-1.5">
-                                <FormLabel className="text-[10px] font-bold text-muted-foreground uppercase">Harga/Kg (Rp)</FormLabel>
-                                <FormControl><Input type="number" className="h-11 rounded-xl bg-background border-input text-sm font-bold" placeholder="0" {...field} onChange={e => field.onChange(Number(e.target.value))} /></FormControl>
-                                <FormMessage className="text-[10px] text-red-500" />
-                              </FormItem>
-                            )} />
-                          </div>
+   {step === 2 && (
+  <motion.div key="step2" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-4 pt-1">
+    
+    {/* KOTAK 1 SAJA YANG TERSISA DI STEP 2 */}
+    <div className="bg-card p-4 rounded-2xl border border-border shadow-sm space-y-4">
+      <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">1. Kalkulasi Hasil</p>
+      
+      <div className="grid grid-cols-2 gap-3">
+        <FormField control={form.control} name="kuantitasKg" render={({ field }) => (
+          <FormItem className="space-y-1.5">
+            <FormLabel className="text-[10px] font-bold text-muted-foreground uppercase">Kuantitas (Kg)</FormLabel>
+            <FormControl><Input type="number" step="0.01" className="h-11 rounded-xl bg-background border-input text-sm font-bold" placeholder="0.0" {...field} onChange={e => field.onChange(Number(e.target.value))} /></FormControl>
+            <FormMessage className="text-[10px] text-red-500" />
+          </FormItem>
+        )} />
+        <FormField control={form.control} name="hargaJualPerKg" render={({ field }) => (
+          <FormItem className="space-y-1.5">
+            <FormLabel className="text-[10px] font-bold text-muted-foreground uppercase">Harga/Kg (Rp)</FormLabel>
+            <FormControl><Input type="number" className="h-11 rounded-xl bg-background border-input text-sm font-bold" placeholder="0" {...field} onChange={e => field.onChange(Number(e.target.value))} /></FormControl>
+            <FormMessage className="text-[10px] text-red-500" />
+          </FormItem>
+        )} />
+      </div>
 
-                          <div className="flex flex-col items-center justify-center rounded-xl bg-primary/10 p-3 text-primary border border-primary/20">
-                            <span className="text-[10px] font-bold uppercase tracking-wider opacity-80 mb-0.5">Total Pendapatan</span>
-                            <span className="text-2xl font-black tabular-nums">Rp {totalPendapatan.toLocaleString('id-ID')}</span>
-                          </div>
-                        </div>
+      <div className="flex flex-col items-center justify-center rounded-xl bg-primary/10 p-3 text-primary border border-primary/20">
+        <span className="text-[10px] font-bold uppercase tracking-wider opacity-80 mb-0.5">Total Pendapatan</span>
+        <span className="text-2xl font-black tabular-nums">Rp {totalPendapatan.toLocaleString('id-ID')}</span>
+      </div>
+    </div>
 
-                        {/* 🚀 KOTAK CARD STYLING SEPERTI OPERASIONAL */}
-                        <div className="bg-card p-4 rounded-2xl border border-border shadow-sm space-y-4">
-                          <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">2. Detail Opsional</p>
-                          
-                          <div className="grid grid-cols-2 gap-3">
-                            <FormField control={form.control} name="kualitas" render={({ field }) => (
-                              <FormItem className="space-y-1.5">
-                                <FormLabel className="text-[10px] font-bold text-muted-foreground uppercase"><Tag className="inline-block h-3 w-3 mr-1" />Grade</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value || ""}>
-                                  <FormControl><SelectTrigger className="h-11 rounded-xl bg-background border-input text-xs font-medium"><SelectValue placeholder="Pilih..." /></SelectTrigger></FormControl>
-                                  <SelectContent className="rounded-xl">
-                                    <SelectItem value="Grade A">Grade A</SelectItem>
-                                    <SelectItem value="Grade B">Grade B</SelectItem>
-                                    <SelectItem value="Sortiran">Sortiran</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </FormItem>
-                            )} />
-                            
-                            <FormField control={form.control} name="channelPenjualan" render={({ field }) => (
-                              <FormItem className="space-y-1.5">
-                                <FormLabel className="text-[10px] font-bold text-muted-foreground uppercase"><ShoppingCart className="inline-block h-3 w-3 mr-1" />Pembeli</FormLabel>
-                                <FormControl><Input className="h-11 rounded-xl bg-background border-input text-xs font-medium" placeholder="Cth: Tengkulak..." {...field} /></FormControl>
-                              </FormItem>
-                            )} />
-                          </div>
+  </motion.div>
+)}
 
-                          <FormField control={form.control} name="catatan" render={({ field }) => (
-                            <FormItem className="space-y-1.5 pt-1">
-                              <FormLabel className="text-[10px] font-bold text-muted-foreground uppercase">Catatan Lapangan</FormLabel>
-                              <FormControl><Textarea className="min-h-[70px] rounded-xl bg-background border-input text-xs p-3" placeholder="Kondisi cuaca atau info tambahan..." {...field} /></FormControl>
-                            </FormItem>
-                          )} />
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
+ </AnimatePresence>
+</div>
+                
+{/* ================= STEP 3: DETAIL OPSIONAL ================= */}
+{step === 3 && (
+  <motion.div key="step3" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-4 pt-1">
+    
+    <div className="bg-card p-4 rounded-2xl border border-border shadow-sm space-y-4">
+      <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Detail Opsional</p>
+      
+      <div className="grid grid-cols-2 gap-3">
+        <FormField control={form.control} name="kualitas" render={({ field }) => (
+          <FormItem className="space-y-1.5">
+            <FormLabel className="text-[10px] font-bold text-muted-foreground uppercase"><Tag className="inline-block h-3 w-3 mr-1" />Grade</FormLabel>
+            <Select onValueChange={field.onChange} value={field.value || ""}>
+              <FormControl><SelectTrigger className="h-11 rounded-xl bg-background border-input text-xs font-medium"><SelectValue placeholder="Pilih..." /></SelectTrigger></FormControl>
+              <SelectContent className="rounded-xl">
+                <SelectItem value="Grade A">Grade A</SelectItem>
+                <SelectItem value="Grade B">Grade B</SelectItem>
+                <SelectItem value="Sortiran">Sortiran</SelectItem>
+              </SelectContent>
+            </Select>
+          </FormItem>
+        )} />
+        
+        <FormField control={form.control} name="channelPenjualan" render={({ field }) => (
+          <FormItem className="space-y-1.5">
+            <FormLabel className="text-[10px] font-bold text-muted-foreground uppercase"><ShoppingCart className="inline-block h-3 w-3 mr-1" />Pembeli</FormLabel>
+            <FormControl><Input className="h-11 rounded-xl bg-background border-input text-xs font-medium" placeholder="Cth: Tengkulak..." {...field} /></FormControl>
+          </FormItem>
+        )} />
+      </div>
+
+      <FormField control={form.control} name="catatan" render={({ field }) => (
+        <FormItem className="space-y-1.5 pt-1">
+          <FormLabel className="text-[10px] font-bold text-muted-foreground uppercase">Catatan Lapangan</FormLabel>
+          <FormControl><Textarea className="min-h-[70px] rounded-xl bg-background border-input text-xs p-3" placeholder="Kondisi cuaca atau info tambahan..." {...field} /></FormControl>
+        </FormItem>
+      )} />
+    </div>
+
+  </motion.div>
+)}
 
                 {/* ================= NAVIGASI BAWAH ================= */}
                 <div className="flex justify-between items-center pt-4 border-t border-border mt-2">
@@ -298,15 +311,16 @@ export function FormPanen({ onSuccess }: { onSuccess?: () => void }) {
                     </Button>
                   )}
 
-                  {step < 2 ? (
-                    <Button type="button" className="h-11 rounded-xl px-5 font-bold bg-primary text-primary-foreground hover:opacity-90 transition-all shadow-sm" onClick={handleNextStep}>
-                      Lanjut <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  ) : (
-                    <Button type="button" className="h-11 rounded-xl px-6 font-bold bg-primary text-primary-foreground hover:opacity-90 transition-all shadow-sm" disabled={savePanen.isPending} onClick={form.handleSubmit(onSubmit)}>
-                      {savePanen.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Menyimpan...</> : <><CheckCircle2 className="mr-2 h-4 w-4" /> Simpan Data</>}
-                    </Button>
-                  )}
+                  {step < 3 ? (
+  <Button type="button" className="h-11 rounded-xl px-5 font-bold bg-primary text-primary-foreground hover:opacity-90 transition-all shadow-sm" onClick={handleNextStep}>
+    Lanjut <ArrowRight className="ml-2 h-4 w-4" />
+  </Button>
+) : (
+  <Button type="button" className="h-11 rounded-xl px-6 font-bold bg-primary text-primary-foreground hover:opacity-90 transition-all shadow-sm" disabled={savePanen.isPending} onClick={form.handleSubmit(onSubmit)}>
+    {savePanen.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Menyimpan...</> : <><CheckCircle2 className="mr-2 h-4 w-4" /> Simpan Data</>}
+  </Button>
+)}
+
                 </div>
 
               </form>
