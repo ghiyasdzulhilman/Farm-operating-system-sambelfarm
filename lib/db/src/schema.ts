@@ -1,8 +1,4 @@
 // lib/db/src/schema.ts
-export * from "./schema/notionConnections";
-export * from "./schema/oauthStates";
-export * from "./schema/fieldMappings";
-export * from "./schema/stagingData";
 
 import {
   pgTable,
