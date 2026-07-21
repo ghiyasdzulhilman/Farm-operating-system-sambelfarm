@@ -1,131 +1,219 @@
-import { Router, type IRouter } from "express";
+import { Router } from "express";
+import { db, panenTable, areasTable, siklusTanamTable } from "@workspace/db";
+import { eq, desc, and } from "drizzle-orm";
 import { getAuth } from "@clerk/express";
-import { db, fieldMappingsTable, stagingDataTable, type FieldMappingData } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
-import { AddHarvestBody, GetHarvestDropdownOptionsResponse } from "@workspace/api-zod";
-import {
-  getNotionConnection,
-  notionFetch,
-  handleNotionErrors,
-  NotionTokenInvalidError,
-} from "../lib/notionClient";
-import { notionCache, delay } from "../lib/notionCache";
+import { getPekerjaIdFromClerk } from "../lib/authHelpers";
 
-const router: IRouter = Router();
+const router = Router();
 
-interface NotionPage {
-  id: string;
-  properties: Record<string, {
-    type: string;
-    title?: Array<{ plain_text: string }>;
-    rich_text?: Array<{ plain_text: string }>;
-  }>;
-}
-
-interface NotionDatabase {
-  id: string;
-  title?: Array<{ plain_text: string }>;
-}
-
-// ---- Notion helpers ---------------------------------------------------------
-
-async function findDatabaseByName(userId: string, accessToken: string, name: string): Promise<string | null> {
+// ==========================================
+// 1. GET DROPDOWN OPTIONS (Area & Siklus Aktif)
+// ==========================================
+router.get("/harvest/dropdown", async (req, res): Promise<void> => {
   try {
-    const response = await notionFetch(userId, accessToken, "https://api.notion.com/v1/search", {
-      method: "POST",
-      body: JSON.stringify({
-        query: name,
-        filter: { value: "database", property: "object" },
-      }),
-    });
-    if (!response.ok) return null;
-    const data = await response.json() as { results: NotionDatabase[] };
-    const found = data.results.find((r) =>
-      r.title?.some((t) => t.plain_text.toLowerCase().includes(name.toLowerCase()))
-    );
-    return found?.id ?? null;
-  } catch (err) {
-    if (err instanceof NotionTokenInvalidError) throw err;
-    return null;
-  }
-}
+    const { userId } = getAuth(req);
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
-async function queryAllPages(userId: string, accessToken: string, databaseId: string): Promise<Array<{ id: string; name: string }>> {
-  try {
-    const response = await notionFetch(userId, accessToken, `https://api.notion.com/v1/databases/${databaseId}/query`, {
-      method: "POST",
-      body: JSON.stringify({ page_size: 100 }),
-    });
-    if (!response.ok) return [];
-    const data = await response.json() as { results: NotionPage[] };
-    return data.results.map((page) => {
-      const titleProp = Object.values(page.properties).find((p) => p.type === "title");
-      const name = titleProp?.title?.[0]?.plain_text ?? "Tanpa Nama";
-      return { id: page.id, name };
-    });
-  } catch (err) {
-    if (err instanceof NotionTokenInvalidError) throw err;
-    return [];
-  }
-}
-
-async function getMappingRow(userId: string, databaseType: string) {
-  const [row] = await db
-    .select()
-    .from(fieldMappingsTable)
-    .where(and(eq(fieldMappingsTable.userId, userId), eq(fieldMappingsTable.databaseType, databaseType)));
-  return row;
-}
-
-// ---- Routes -----------------------------------------------------------------
-
-router.get("/notion/harvest-dropdown-options", async (req, res): Promise<void> => {
-  const { userId } = getAuth(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-
-  try {
-    const connection = await getNotionConnection(userId);
-    const { accessToken } = connection;
-    const mappingRow = await getMappingRow(userId, "panen");
-    const mappings = mappingRow?.mappings as FieldMappingData;
-
-    const [pindahTanamDbId, labaRugiDbId] = await Promise.all([
-      mappings?.areaPindahTanam?.relatedDatabaseId || findDatabaseByName(userId, accessToken, "Pindah Tanam"),
-      mappings?.labaRugi?.relatedDatabaseId || findDatabaseByName(userId, accessToken, "Laba Rugi"),
+    const [areas, siklusAktif] = await Promise.all([
+      db.select().from(areasTable).orderBy(areasTable.name),
+      db.select()
+        .from(siklusTanamTable)
+        .where(eq(siklusTanamTable.status, "Aktif"))
+        .orderBy(siklusTanamTable.namaSiklus)
     ]);
 
-    const [pindahTanam, labaRugi] = await Promise.all([
-      pindahTanamDbId ? queryAllPages(userId, accessToken, pindahTanamDbId) : Promise.resolve([]),
-      labaRugiDbId ? queryAllPages(userId, accessToken, labaRugiDbId) : Promise.resolve([]),
-    ]);
-
-    res.json(GetHarvestDropdownOptionsResponse.parse({ pindahTanam, labaRugi }));
+    res.json({ success: true, areas, siklus: siklusAktif });
   } catch (err) {
-    if (handleNotionErrors(res, err)) return;
-    res.status(500).json({ error: "Internal Server Error" });
+    console.error("[GET HARVEST DROPDOWN ERROR]:", err);
+    res.status(500).json({ error: "Gagal mengambil data opsi panen." });
   }
 });
 
-router.post("/notion/add-harvest", async (req, res): Promise<void> => {
-  const { userId } = getAuth(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-  const parsed = AddHarvestBody.safeParse(req.body);
-  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
-
+// ==========================================
+// 2. GET SEMUA RIWAYAT PANEN
+// ==========================================
+router.get("/harvest", async (req, res): Promise<void> => {
   try {
-    const payload = { ...parsed.data, tanggal: req.body.tanggal || new Date().toISOString().split('T')[0] };
-    await db.insert(stagingDataTable).values({
-      userId,
-      databaseType: "panen",
-      data: payload,
-      status: "pending",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-    notionCache.del(`notion_dashboard_${userId}`);
-    res.status(201).json({ success: true, isStaging: true });
+    const { userId } = getAuth(req);
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+    // Join dengan areasTable dan siklusTanamTable buat dapetin nama
+    const data = await db
+      .select({
+        id: panenTable.id,
+        tanggal: panenTable.tanggal,
+        kegiatan: panenTable.kegiatan,
+        kuantitasKg: panenTable.kuantitasKg,
+        hargaJualPerKg: panenTable.hargaJualPerKg,
+        totalPendapatan: panenTable.totalPendapatan,
+        kualitas: panenTable.kualitas,
+        channelPenjualan: panenTable.channelPenjualan,
+        catatan: panenTable.catatan,
+        areaId: panenTable.areaId,
+        siklusId: panenTable.siklusId,
+        areaName: areasTable.name,
+        siklusName: siklusTanamTable.namaSiklus,
+      })
+      .from(panenTable)
+      .leftJoin(areasTable, eq(panenTable.areaId, areasTable.id))
+      .leftJoin(siklusTanamTable, eq(panenTable.siklusId, siklusTanamTable.id))
+      .orderBy(desc(panenTable.tanggal));
+
+    res.json({ success: true, data });
   } catch (err) {
-    res.status(500).json({ error: "Gagal simpan panen ke staging" });
+    console.error("[GET HARVEST ERROR]:", err);
+    res.status(500).json({ error: "Gagal mengambil data panen." });
+  }
+});
+
+// ==========================================
+// 3. POST PANEN BARU
+// ==========================================
+router.post("/harvest", async (req, res): Promise<void> => {
+  try {
+    const { userId } = getAuth(req);
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+    const {
+      areaId,
+      siklusId,
+      tanggal,
+      kegiatan,
+      kuantitasKg,
+      hargaJualPerKg,
+      kualitas,
+      channelPenjualan,
+      catatan
+    } = req.body;
+
+    // --- A. VALIDASI DASAR ---
+    if (!kuantitasKg || hargaJualPerKg === undefined || !tanggal) {
+      res.status(400).json({ error: "Tanggal, kuantitas, dan harga jual wajib diisi." });
+      return;
+    }
+
+    const qtyNum = Number(kuantitasKg);
+    const hargaNum = Math.round(Number(hargaJualPerKg));
+    
+    if (qtyNum < 0 || hargaNum < 0) {
+      res.status(400).json({ error: "Kuantitas dan harga tidak boleh negatif." });
+      return;
+    }
+
+    // 🧮 RUMUS KEJUJURAN DATA (Sesuai constraint database)
+    const totalPendapatanKalkulasi = Math.round(qtyNum * hargaNum);
+
+    const pekerjaId = await getPekerjaIdFromClerk(userId);
+
+    // --- B. INSERT DATABASE ---
+    const [newHarvest] = await db.insert(panenTable).values({
+      areaId: areaId || null,
+      siklusId: siklusId || null,
+      tanggal: new Date(tanggal),
+      kegiatan: kegiatan || "Panen Rutin",
+      kuantitasKg: String(qtyNum), // Kolom numeric Drizzle butuh string
+      hargaJualPerKg: hargaNum, // Kolom integer
+      totalPendapatan: totalPendapatanKalkulasi, // Kolom integer, dihitung paksa backend
+      kualitas: kualitas || null,
+      channelPenjualan: channelPenjualan || null,
+      catatan: catatan || null,
+      createdBy: pekerjaId,
+    }).returning();
+
+    res.status(201).json({ success: true, data: newHarvest });
+  } catch (err: any) {
+    console.error("[POST HARVEST ERROR]:", err);
+    res.status(500).json({ error: "Gagal menyimpan data panen." });
+  }
+});
+
+// ==========================================
+// 4. PUT / EDIT PANEN
+// ==========================================
+router.put("/harvest/:id", async (req, res): Promise<void> => {
+  try {
+    const { userId } = getAuth(req);
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+    const harvestId = req.params.id;
+    const {
+      areaId,
+      siklusId,
+      tanggal,
+      kegiatan,
+      kuantitasKg,
+      hargaJualPerKg,
+      kualitas,
+      channelPenjualan,
+      catatan
+    } = req.body;
+
+    // Pastikan datanya ada
+    const existing = await db.select().from(panenTable).where(eq(panenTable.id, harvestId));
+    if (existing.length === 0) {
+      res.status(404).json({ error: "Data panen tidak ditemukan." });
+      return;
+    }
+
+    const qtyNum = Number(kuantitasKg);
+    const hargaNum = Math.round(Number(hargaJualPerKg));
+    
+    if (qtyNum < 0 || hargaNum < 0) {
+      res.status(400).json({ error: "Kuantitas dan harga tidak boleh negatif." });
+      return;
+    }
+
+    // 🧮 Hitung ulang total pendapatan
+    const totalPendapatanKalkulasi = Math.round(qtyNum * hargaNum);
+
+    // --- UPDATE DATABASE ---
+    const [updatedHarvest] = await db.update(panenTable).set({
+      areaId: areaId || null,
+      siklusId: siklusId || null,
+      tanggal: tanggal ? new Date(tanggal) : undefined,
+      kegiatan: kegiatan,
+      kuantitasKg: String(qtyNum), 
+      hargaJualPerKg: hargaNum,
+      totalPendapatan: totalPendapatanKalkulasi, 
+      kualitas: kualitas || null,
+      channelPenjualan: channelPenjualan || null,
+      catatan: catatan || null,
+      updatedAt: new Date(), // Set waktu update
+    })
+    .where(eq(panenTable.id, harvestId))
+    .returning();
+
+    res.json({ success: true, data: updatedHarvest });
+  } catch (err) {
+    console.error("[PUT HARVEST ERROR]:", err);
+    res.status(500).json({ error: "Gagal mengubah data panen." });
+  }
+});
+
+// ==========================================
+// 5. DELETE PANEN
+// ==========================================
+router.delete("/harvest/:id", async (req, res): Promise<void> => {
+  try {
+    const { userId } = getAuth(req);
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+    const harvestId = req.params.id;
+
+    const [deletedHarvest] = await db
+      .delete(panenTable)
+      .where(eq(panenTable.id, harvestId))
+      .returning();
+
+    if (!deletedHarvest) {
+      res.status(404).json({ error: "Data panen tidak ditemukan." });
+      return;
+    }
+
+    res.json({ success: true, message: "Data panen berhasil dihapus." });
+  } catch (err) {
+    console.error("[DELETE HARVEST ERROR]:", err);
+    res.status(500).json({ error: "Gagal menghapus data panen." });
   }
 });
 
