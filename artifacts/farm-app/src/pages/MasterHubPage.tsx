@@ -25,8 +25,7 @@ const ERP_MODULES = [
     label: "Agronomy",
     icon: Sprout,
     children: [
-      { id: "area", label: "Area & Blok", icon: MapPin },
-      { id: "siklus", label: "Siklus Tanam", icon: CalendarDays },
+      { id: "area", label: "Area & Siklus", icon: MapPin },
       { id: "kategori", label: "Kategori Aktivitas", icon: Database },
       { id: "kendala", label: "Hama & Penyakit", icon: Bug },
     ],
@@ -37,7 +36,7 @@ const ERP_MODULES = [
     icon: Package,
     children: [
       { id: "produk", label: "Produk & Stok", icon: Package },
-      { id: "peralatan", label: "Peralatan & Mesin", icon: Wrench },
+      { id: "peralatan", label: "Peralatan", icon: Wrench },
       { id: "mutasi", label: "Mutasi Stok", icon: ArrowRightLeft },
     ],
   },
@@ -48,7 +47,6 @@ const ERP_MODULES = [
     children: [
       { id: "pekerja", label: "Karyawan", icon: Users },
       { id: "kehadiran", label: "Kehadiran", icon: ClipboardList },
-      { id: "posisi", label: "Posisi & Peran", icon: Database },
     ],
   },
   {
@@ -188,9 +186,6 @@ export function MasterHubPage({ onClose }: { onClose?: () => void }) {
       {activeChild === "area" && <AreaManager />}
       {activeChild === "kategori" && <KategoriManager />}
       {activeChild === "kendala" && <KendalaManager />}
-      {activeChild === "siklus" && (
-        <div className="p-8 text-center text-muted-foreground border border-dashed rounded-3xl">Modul Siklus Tanam (Coming Soon)</div>
-      )}
 
       {/* ======================================= */}
       {/* MODULE: INVENTORY */}
@@ -210,10 +205,7 @@ export function MasterHubPage({ onClose }: { onClose?: () => void }) {
       {activeChild === "kehadiran" && (
         <div className="p-8 text-center text-muted-foreground border border-dashed rounded-3xl">Modul Kehadiran (Coming Soon)</div>
       )}
-      {activeChild === "posisi" && (
-        <div className="p-8 text-center text-muted-foreground border border-dashed rounded-3xl">Modul Posisi & Peran (Coming Soon)</div>
-      )}
-
+      
       {/* ======================================= */}
       {/* MODULE: FINANCE */}
       {/* ======================================= */}
