@@ -107,10 +107,11 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
 
     const addKategoriMutation = useMutation({
     mutationFn: async () => {
-      // 🚀 FIX: Endpoint disesuaikan ke backend, dan kita selipkan 'tipe' secara otomatis
+      // 🚀 FIX: Payload disamakan 100% dengan KategoriKeuanganFormModal
       const payload = {
         nama: newKategoriName,
-        tipe: "Pengeluaran" // Sesuaikan string ini jika di DB lu pakenya "Beban" atau "Keluar"
+        tipe: "pengeluaran", // Wajib huruf KECIL semua sesuai skema database lu
+        keterangan: ""       // Kirim string kosong biar aman dan nggak undefined
       };
       
       const res = await fetch("/api/finance/kategori", { 
