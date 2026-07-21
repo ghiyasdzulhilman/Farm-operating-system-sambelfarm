@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Leaf, Users, Database, Trash2, Plus, Loader2, ChevronRight, MapPin, X, CalendarDays, Bug, Package, Pencil, Sprout, Wallet, Wrench, ChevronDown, ToggleLeft, ToggleRight } from "lucide-react";
+// 🚀 FIX: Nambahin import ArrowRightLeft & ClipboardList buat icon menu baru
+import { Leaf, Users, Database, Trash2, Plus, Loader2, ChevronRight, MapPin, X, CalendarDays, Bug, Package, Pencil, Sprout, Wallet, Wrench, ChevronDown, ToggleLeft, ToggleRight, ArrowRightLeft, ClipboardList } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -17,7 +18,7 @@ import { KategoriKeuanganManager } from "@/components/master/kategori-keuangan/K
 // 📂 1. DICTIONARY DOMAIN MASTER
 // ---------------------------------------------------------------------------
 
-// Struktur Kamus Baru (Berhirarki)
+// 🚀 FIX: Restrukturisasi jadi Modern ERP Style
 const ERP_MODULES = [
   {
     id: "agronomy",
@@ -25,20 +26,39 @@ const ERP_MODULES = [
     icon: Sprout,
     children: [
       { id: "area", label: "Area & Blok", icon: MapPin },
-      { id: "pekerja", label: "Karyawan", icon: Users },
+      { id: "siklus", label: "Siklus Tanam", icon: CalendarDays },
       { id: "kategori", label: "Kategori Aktivitas", icon: Database },
-      { id: "produk", label: "Produk & Stok", icon: Package },
       { id: "kendala", label: "Hama & Penyakit", icon: Bug },
     ],
   },
-    {
+  {
+    id: "inventory",
+    label: "Inventory",
+    icon: Package,
+    children: [
+      { id: "produk", label: "Produk & Stok", icon: Package },
+      { id: "peralatan", label: "Peralatan & Mesin", icon: Wrench },
+      { id: "mutasi", label: "Mutasi Stok", icon: ArrowRightLeft },
+    ],
+  },
+  {
+    id: "resources",
+    label: "Resources",
+    icon: Users,
+    children: [
+      { id: "pekerja", label: "Karyawan", icon: Users },
+      { id: "kehadiran", label: "Kehadiran", icon: ClipboardList },
+      { id: "posisi", label: "Posisi & Peran", icon: Database },
+    ],
+  },
+  {
     id: "finance",
     label: "Finance",
     icon: Wallet,
     children: [
-      { id: "kategori-keuangan", label: "Kategori Keuangan", icon: Database }, // 🚀 Menu master data baru
-      { id: "panen", label: "Data Pemanenan", icon: Package },
-      { id: "pengeluaran", label: "Lacak Pengeluaran", icon: Database },
+      { id: "pengeluaran", label: "Catat Pengeluaran", icon: Wallet },
+      { id: "pendapatan", label: "Data Pendapatan", icon: Database },
+      { id: "kategori-keuangan", label: "Kategori Keuangan", icon: Database },
     ],
   },
   {
@@ -46,7 +66,7 @@ const ERP_MODULES = [
     label: "Tools",
     icon: Wrench,
     children: [
-      { id: "weather", label: "Cuaca", icon: Package },
+      { id: "weather", label: "Cuaca", icon: Leaf },
     ],
   },
 ];
@@ -162,26 +182,61 @@ export function MasterHubPage({ onClose }: { onClose?: () => void }) {
       className="w-full"
     >
       
-      {/* 🚀 AREA MANAGER */}
+      {/* ======================================= */}
+      {/* MODULE: AGRONOMY */}
+      {/* ======================================= */}
       {activeChild === "area" && <AreaManager />}
-      
-      {/* 🚀 PEKERJA MANAGER */}
-      {activeChild === "pekerja" && <PekerjaManager />}
-
-      {/* 🚀 KATEGORI AKTIVITAS MANAGER */}
       {activeChild === "kategori" && <KategoriManager />}
-
-      {/* 🚀 KENDALA MASTER */}
       {activeChild === "kendala" && <KendalaManager />}
+      {activeChild === "siklus" && (
+        <div className="p-8 text-center text-muted-foreground border border-dashed rounded-3xl">Modul Siklus Tanam (Coming Soon)</div>
+      )}
 
-      {/* 🚀 PRODUK & STOK MASTER */}
+      {/* ======================================= */}
+      {/* MODULE: INVENTORY */}
+      {/* ======================================= */}
       {activeChild === "produk" && <ProdukManager />}
+      {activeChild === "peralatan" && (
+        <div className="p-8 text-center text-muted-foreground border border-dashed rounded-3xl">Modul Peralatan (Coming Soon)</div>
+      )}
+      {activeChild === "mutasi" && (
+        <div className="p-8 text-center text-muted-foreground border border-dashed rounded-3xl">Modul Mutasi Stok (Coming Soon)</div>
+      )}
 
-      {/* 🚀 KATEGORI KEUANGAN MASTER */}
+      {/* ======================================= */}
+      {/* MODULE: RESOURCES */}
+      {/* ======================================= */}
+      {activeChild === "pekerja" && <PekerjaManager />}
+      {activeChild === "kehadiran" && (
+        <div className="p-8 text-center text-muted-foreground border border-dashed rounded-3xl">Modul Kehadiran (Coming Soon)</div>
+      )}
+      {activeChild === "posisi" && (
+        <div className="p-8 text-center text-muted-foreground border border-dashed rounded-3xl">Modul Posisi & Peran (Coming Soon)</div>
+      )}
+
+      {/* ======================================= */}
+      {/* MODULE: FINANCE */}
+      {/* ======================================= */}
       {activeChild === "kategori-keuangan" && <KategoriKeuanganManager />}
+      {activeChild === "pengeluaran" && (
+        <div className="p-8 text-center text-muted-foreground border border-dashed rounded-3xl">Modul Pengeluaran (Coming Soon)</div>
+      )}
+      {activeChild === "pendapatan" && (
+        <div className="p-8 text-center text-muted-foreground border border-dashed rounded-3xl">Modul Pendapatan (Coming Soon)</div>
+      )}
 
-      {activeChild === "panen" && (
-        <div className="p-8 text-center text-muted-foreground border border-dashed rounded-3xl">Modul Panen (Coming Soon)</div>
+      {/* ======================================= */}
+      {/* MODULE: TOOLS */}
+      {/* ======================================= */}
+      {activeChild === "weather" && (
+        <div className="p-8 text-center text-muted-foreground border border-dashed rounded-3xl">Modul Cuaca (Coming Soon)</div>
+      )}
+
+      {/* TAMPILAN DEFAULT KETIKA BELUM ADA YANG DIKLIK */}
+      {activeChild === "" && (
+        <div className="p-8 text-center text-muted-foreground border border-dashed rounded-3xl">
+          Pilih menu di samping untuk mulai mengatur data.
+        </div>
       )}
 
     </motion.div>
