@@ -150,7 +150,8 @@ export function MasterHubPage({ onClose }: { onClose?: () => void }) {
 </aside>
 
 {/* MAIN CONTENT */}
-  <main className="space-y-4 w-full overflow-hidden">
+  {/* 🚀 FIX GLOBAL SCROLL: Ganti overflow-hidden jadi overflow-x-hidden dan pindahkan padding bawah ke sini */}
+  <main className="space-y-4 w-full overflow-x-hidden pb-32">
   <AnimatePresence mode="wait">
     <motion.div 
       key={activeChild} 
