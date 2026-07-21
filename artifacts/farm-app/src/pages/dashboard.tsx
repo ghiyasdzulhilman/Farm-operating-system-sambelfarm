@@ -1,35 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { format, formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { motion, AnimatePresence, animate } from "framer-motion";
 import {
-  AlertTriangle,
   Bot,
   ChevronDown,
-  CloudUpload,
-  Database,
-  Filter,
   Leaf,
-  RefreshCcw,
-  Satellite,
   Sparkles,
 } from "lucide-react";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  getGetDashboardSummaryQueryKey,
-  getGetNotionConnectionStatusQueryKey,
-  useGetNotionConnectionStatus,
-} from "@workspace/api-client-react";
+import { getGetDashboardSummaryQueryKey } from "@workspace/api-client-react";
 
 import { FinancialSection } from "@/components/FinancialSection";
 import { InsightSection } from "@/components/InsightSection";
 import { OperationalSection } from "@/components/OperationalSection";
 import { ProductionSection } from "@/components/ProductionSection";
-import { StagingQueueCard } from "@/components/StagingQueueCard";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -38,7 +24,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Link } from "wouter";
 
 type DashboardSection = "financial" | "production" | "operational" | "insight";
 
@@ -113,7 +98,6 @@ function AnimatedNumber({
   return <span>{displayValue}</span>;
 }
 
-// AUDIT UI: getMarginColor dihapus biar teks gak warna-warni ijo/merah.
 const getMarginBg = (margin: number) => {
   if (margin >= 15) return "border-primary/20 bg-primary/10";
   if (margin > 0) return "border-accent/20 bg-accent/10";
@@ -165,22 +149,14 @@ export function DashboardPage() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [sectionRefs]);
 
-  const { data: connectionStatus, isLoading: isLoadingConnection } =
-    useGetNotionConnectionStatus({
-      query: { queryKey: getGetNotionConnectionStatusQueryKey() },
-    });
-
-  const isConnected = connectionStatus?.connected;
-  const isTokenInvalid = isConnected && connectionStatus?.tokenStatus === "invalid";
+  // 🚀 CLEANUP: Semua hooks & states terkait Notion OAuth, Token, dan Cache dihapus!
 
   const {
     data: summary,
     isLoading: isLoadingSummary,
-    refetch,
-    isFetching,
   } = useQuery({
     queryKey: getGetDashboardSummaryQueryKey(),
-    enabled: !!isConnected,
+    // 🚀 CLEANUP: Hapus dependensi 'enabled: !!isConnected', langsung narik aja dari Postgres!
     queryFn: async () => {
       const res = await fetch("/api/dashboard/summary");
       if (!res.ok) throw new Error("Gagal mengambil data dashboard");
@@ -226,7 +202,7 @@ export function DashboardPage() {
     }).format(amount || 0);
 
   const formatDate = (dateString: string | null) => {
-    if (!dateString) return "Belum tersinkron";
+    if (!dateString) return "Baru saja";
     try {
       return format(new Date(dateString), "dd MMM yyyy, HH:mm", { locale: id });
     } catch {
@@ -246,7 +222,6 @@ export function DashboardPage() {
   const expenseActivities =
     summary?.activities?.filter((activity: any) => activity.type === "expense") || [];
 
-  // FIX: Menggunakan insight langsung dari Backend jika "Semua Area"
   const localBusinessStatus = selectedAreaId === "all" && summary?.insight?.businessStatus 
     ? summary.insight.businessStatus 
     : (displayData.margin > 0 ? "Profitable" : "Developing");
@@ -259,35 +234,6 @@ export function DashboardPage() {
           ? "Margin tipis. Optimalkan HPP per kg dan pantau jadwal panen."
           : "Unit farming sehat. Scale area paling produktif sambil menjaga HPP.");
 
-  const [isRefreshingCache, setIsRefreshingCache] = useState(false);
-
-  const handleRefreshSummary = () => {
-    queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
-    refetch();
-  };
-
-  const handleRefreshCache = async () => {
-    setIsRefreshingCache(true);
-    try {
-      await fetch("/api/dashboard/cache", { method: "DELETE" });
-      queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
-      await refetch();
-    } finally {
-      setIsRefreshingCache(false);
-    }
-  };
-
-  const cacheAge = (() => {
-    const cachedAt = summary?.cacheInfo?.cachedAt;
-    if (!cachedAt) return null;
-    try {
-      return formatDistanceToNow(new Date(cachedAt), { addSuffix: true, locale: id });
-    } catch {
-      return null;
-    }
-  })();
-
-  // --- PASTE MULAI DARI SINI ---
   const scrollToSection = (section: DashboardSection) => {
     setActiveSection(section);
     sectionRefs[section].current?.scrollIntoView({
@@ -296,8 +242,8 @@ export function DashboardPage() {
     });
   };
 
-  // 1. CEK LOADING SCREEN (Aman dari flash data 0)
-  if (isLoadingConnection || (isLoadingSummary && !summary)) {
+  // 1. CEK LOADING SCREEN
+  if (isLoadingSummary && !summary) {
     return (
       <div className="mt-4 space-y-5 px-4 md:px-6">
         <Skeleton className="h-44 rounded-[2rem]" />
@@ -311,7 +257,7 @@ export function DashboardPage() {
     );
   }
 
-  // 2. HITUNGAN VARIABEL (Hanya Dideklarasikan Sekali Di Sini)
+  // 2. HITUNGAN VARIABEL
   const hpp = displayData.pengeluaran / (displayData.harvestWeight || 1);
   
   const bepProgress = Math.min(
@@ -322,27 +268,17 @@ export function DashboardPage() {
   // 3. RENDER UI UTAMA
   return (
     <div className="flex min-h-screen flex-col pb-20 font-sans">
-
-      {/* ── Floating staging queue indicator ── */}
-      <StagingQueueCard stagingStats={summary?.stagingStats} />
+      
+      {/* 🚀 CLEANUP: StagingQueueCard Dihapus! Udah real-time ke Postgres! */}
 
       <main className="relative mx-auto w-full max-w-7xl overflow-x-clip px-4 pt-4 md:px-6">
-        {/* ALERT JIKA TOKEN NOTION PUTUS */}
-        {isTokenInvalid && (
-          <Alert variant="destructive" className="mb-4 border-red-500/50 bg-red-500/10 text-red-500 dark:bg-red-900/20">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Koneksi Notion Bermasalah</AlertTitle>
-            <AlertDescription>
-              Token integrasi tidak valid atau terputus. Silakan sambungkan ulang di menu Pengaturan.
-            </AlertDescription>
-          </Alert>
-        )}
+        
+        {/* 🚀 CLEANUP: Alert Koneksi Notion Dihapus! */}
 
         {/* --- NAVIGASI PILL & FILTER (Versi Drawer / Pull-Tab) --- */}
         <div className="sticky top-2 z-30 flex flex-col md:top-4">
           <div className="w-full overflow-hidden rounded-[1.55rem] border border-white/60 bg-white/72 p-1.5 shadow-[0_18px_50px_rgba(15,23,42,0.10)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/70">
             
-            {/* Baris 1: Segmented Control */}
             <div className="relative z-20 grid grid-cols-4 gap-1">
               {sectionItems.map((item) => (
                 <button
@@ -357,7 +293,6 @@ export function DashboardPage() {
                       transition={{ type: "spring", bounce: 0.18, duration: 0.55 }}
                     />
                   )}
-                  {/* AUDIT UI: text-primary-foreground dibuang, digembok mati pakai text-white biar steril */}
                   <span
                     className={
                       activeSection === item.key
@@ -371,7 +306,6 @@ export function DashboardPage() {
               ))}
             </div>
 
-            {/* Baris 2: Area Filter */}
             <AnimatePresence initial={false}>
               {showControls && (
                 <motion.div
@@ -439,7 +373,6 @@ export function DashboardPage() {
             <div className="mt-5 md:mt-6">
               <div className="grid grid-cols-2 gap-3 text-sm">
                 
-                {/* Kotak Margin */}
                 <div className={`rounded-2xl border p-4 transition-colors duration-500 ${getMarginBg(displayData.margin)}`}>
                   <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-white/60">Margin</p>
                   <p className="text-2xl font-black text-white">
@@ -451,7 +384,6 @@ export function DashboardPage() {
                   </p>
                 </div>
 
-                {/* Kotak HPP */}
                 <div className={`rounded-2xl border p-4 transition-colors duration-500 ${getMarginBg(displayData.margin)}`}>
                   <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-white/60">HPP / kg</p>
                   <p className="text-xl font-black text-white">
@@ -488,43 +420,11 @@ export function DashboardPage() {
               </div>
             </div>
 
-            <div className="mt-4 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 text-[10px] font-medium text-white/55 sm:text-xs">
+            {/* 🚀 CLEANUP: Tombol Upload Staging & Refresh Cache Dihapus! */}
+            <div className="mt-4 flex items-center justify-start gap-2">
+              <div className="flex items-center gap-2 rounded-xl bg-white/5 px-3 py-1.5 text-[10px] font-medium text-white/80 sm:text-xs">
                 <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" />
-                <span className="truncate">Sync: {formatDate(summary?.lastUpdated)}</span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => {
-                    const triggerBtn = document.querySelector('[aria-label="Buka staging queue"]') as HTMLButtonElement;
-                    if (triggerBtn) triggerBtn.click();
-                  }}
-                  className={[
-                    "relative flex h-8 w-8 items-center justify-center rounded-xl border transition-all sm:h-9 sm:w-9",
-                    (summary?.stagingStats?.pendingCount ?? 0) > 0
-                      ? "border-accent/40 bg-accent text-white shadow-sm hover:bg-accent/90 active:scale-95"
-                      : "border-white/10 bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/80",
-                  ].join(" ")}
-                  title={(summary?.stagingStats?.pendingCount ?? 0) > 0 ? "Ada data belum disinkron" : "Staging bersih"}
-                >
-                  {(summary?.stagingStats?.pendingCount ?? 0) > 0 && (
-                    <span className="absolute -right-1 -top-1 flex h-2.5 w-2.5 sm:h-3 sm:w-3">
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
-                      <span className="relative inline-flex h-2.5 w-2.5 rounded-full border-2 border-slate-950 bg-accent sm:h-3 sm:w-3" />
-                    </span>
-                  )}
-                  <CloudUpload className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> 
-                </button>
-
-                <button
-                  onClick={handleRefreshCache}
-                  disabled={isRefreshingCache || isFetching}
-                  className="group flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/40 transition-all hover:border-white/20 hover:bg-white/15 hover:text-primary disabled:opacity-40 sm:h-9 sm:w-9"
-                  title="Hapus cache & ambil data terbaru dari Notion"
-                >
-                  <RefreshCcw className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isRefreshingCache || isFetching ? "animate-spin text-primary" : ""}`} />
-                </button>
+                <span className="truncate">Data Terkini: {formatDate(summary?.lastUpdated)}</span>
               </div>
             </div>
           </div>
