@@ -28,17 +28,21 @@ export function AgronomyHubPage() {
   const [activeView, setActiveView] = useState<ViewKey>("kanban");
   const [feedMode, setFeedMode] = useState<FeedModeKey>("time");
   const [activeModule, setActiveModule] = useState<ModuleKey>("all");
-  const [activeFilter, setActiveFilter] = useState("Hari ini");
   
-    // 🚀 1. TAMBAHIN STATE BARU BUAT FILTER SIKLUS (Default-nya "aktif")
+  // 🚀 FIX: State filter dipecah jadi 2
+  const [activeTimeFilter, setActiveTimeFilter] = useState("Hari ini");
+  const [activeStatusFilter, setActiveStatusFilter] = useState("Semua Status");
+  
+  // 🚀 1. TAMBAHIN STATE BARU BUAT FILTER SIKLUS (Default-nya "aktif")
   const [filterSiklus, setFilterSiklus] = useState<"aktif" | "selesai">("aktif"); 
   const [selectedItem, setSelectedItem] = useState<AgronomyItem | null>(null);
 
   // 🚀 OTAK AUTO-RESET: Mencegah layar nge-blank & bentrok UI
   useEffect(() => {
-    // 1. Apapun yang terjadi, balikin modul ke "Semua" dan filter ke "Hari ini" saat ganti tab
+    // 1. Balikin semua ke default kalau ganti domain
     setActiveModule("all");
-    setActiveFilter("Hari ini");
+    setActiveTimeFilter("Hari ini");
+    setActiveStatusFilter("Semua Status");
     
     // 2. Kalau pindah ke Finance tapi view lagi di Kanban, paksa pindah ke Table
     if (activeDomain === "finance" && activeView === "kanban") {
@@ -240,20 +244,24 @@ export function AgronomyHubPage() {
       // 🚀 2. Filter Modul (Bento Deck)
       const matchModule = activeModule === "all" ? true : item.module === activeModule;
 
-      // 🚀 3. Filter Waktu & Status (Quick Filters)
-      let matchFilter = true;
-      // 🚀 FIX: Kalau milih "Semua Waktu", lolosin semua data tanpa peduli tanggalnya
-      if (activeFilter === "Semua Waktu") matchFilter = true; 
-      else if (activeFilter === "Hari ini") matchFilter = item.dateLabel === "Hari ini";
-      else if (activeFilter === "Kemarin") matchFilter = item.dateLabel === "Kemarin";
-      else if (activeFilter === "Selesai") matchFilter = item.status === "Selesai" || item.status === "Sudah ditangani";
-      else if (activeFilter === "Dalam proses") matchFilter = item.status === "Dalam proses" || item.status === "Sedang ditangani";
-      else if (activeFilter === "Belum dikerjakan") matchFilter = item.status === "Belum dikerjakan" || item.status === "Baru ditemukan";
+      // 🚀 3. Filter Waktu (Time Segregation)
+      let matchTime = true;
+      if (activeTimeFilter === "Hari ini") matchTime = item.dateLabel === "Hari ini";
+      else if (activeTimeFilter === "Kemarin") matchTime = item.dateLabel === "Kemarin";
+      // Kalau "Semua Waktu", matchTime dibiarin true
 
-      return matchModule && matchFilter;
+      // 🚀 4. Filter Status (Status Segregation - Hanya jalan di Agronomi)
+      let matchStatus = true;
+      if (activeDomain === "agronomi" && activeStatusFilter !== "Semua Status") {
+        if (activeStatusFilter === "Selesai") matchStatus = item.status === "Selesai" || item.status === "Sudah ditangani";
+        else if (activeStatusFilter === "Dalam proses") matchStatus = item.status === "Dalam proses" || item.status === "Sedang ditangani";
+        else if (activeStatusFilter === "Belum dikerjakan") matchStatus = item.status === "Belum dikerjakan" || item.status === "Baru ditemukan";
+      }
 
+      // Return kombinasi ketiganya!
+      return matchModule && matchTime && matchStatus;
     });
-  }, [feedData, activeModule, activeFilter, activeDomain]); // 🚀 Jangan lupa masukin activeDomain ke array dependency
+  }, [feedData, activeModule, activeTimeFilter, activeStatusFilter, activeDomain]); // 🚀 Array dependency di-update
 
     if (isLoading) {
     return (
@@ -305,11 +313,12 @@ export function AgronomyHubPage() {
         setActiveView={setActiveView}
         activeModule={activeModule}
         setActiveModule={setActiveModule}
-        activeFilter={activeFilter}
-        setActiveFilter={setActiveFilter}
+        activeTimeFilter={activeTimeFilter}
+        setActiveTimeFilter={setActiveTimeFilter}
+        activeStatusFilter={activeStatusFilter}
+        setActiveStatusFilter={setActiveStatusFilter}
         filterSiklus={filterSiklus}
         setFilterSiklus={setFilterSiklus}
-        // 🚀 MASUKIN PROPS BARUNYA DI SINI
         activeDomain={activeDomain}
         setActiveDomain={setActiveDomain}
       />
