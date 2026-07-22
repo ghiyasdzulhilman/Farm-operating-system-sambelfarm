@@ -22,24 +22,29 @@ export function AgronomyHubPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  // 🚀 SUNTIKAN BARU: State untuk saklar utama (Domain)
+  const [activeDomain, setActiveDomain] = useState<"agronomi" | "finance">("agronomi");
+
   const [activeView, setActiveView] = useState<ViewKey>("kanban");
   const [feedMode, setFeedMode] = useState<FeedModeKey>("time");
   const [activeModule, setActiveModule] = useState<ModuleKey>("all");
-    const [activeFilter, setActiveFilter] = useState("Hari ini");
+  const [activeFilter, setActiveFilter] = useState("Hari ini");
   
-  // 🚀 1. TAMBAHIN STATE BARU BUAT FILTER SIKLUS (Default-nya "aktif")
+    // 🚀 1. TAMBAHIN STATE BARU BUAT FILTER SIKLUS (Default-nya "aktif")
   const [filterSiklus, setFilterSiklus] = useState<"aktif" | "selesai">("aktif"); 
   const [selectedItem, setSelectedItem] = useState<AgronomyItem | null>(null);
 
-  // 🚀 SUNTIKAN BARU: Auto-Reset Filter
+  // 🚀 OTAK AUTO-RESET: Mencegah layar nge-blank & bentrok UI
   useEffect(() => {
-    const isFinance = activeModule === "pengeluaran" || activeModule === "panen";
-    if (isFinance && ["Selesai", "Dalam proses", "Belum dikerjakan"].includes(activeFilter)) {
-      setActiveFilter("Semua"); // Riset ke Semua kalau pindah ke modul keuangan
-    } else if (!isFinance && activeFilter === "Semua") {
-      setActiveFilter("Hari ini"); // Balikin ke Hari ini kalau pindah ke modul lapangan
+    // 1. Apapun yang terjadi, balikin modul ke "Semua" dan filter ke "Hari ini" saat ganti tab
+    setActiveModule("all");
+    setActiveFilter("Hari ini");
+    
+    // 2. Kalau pindah ke Finance tapi view lagi di Kanban, paksa pindah ke Table
+    if (activeDomain === "finance" && activeView === "kanban") {
+      setActiveView("table");
     }
-  }, [activeModule, activeFilter]);
+  }, [activeDomain, activeView]);
 
   // =====================================================================
   // 1. FETCH DATA (LANGSUNG DARI 3 ENDPOINT SUPABASE + MASTER PEKERJA)
@@ -221,34 +226,31 @@ export function AgronomyHubPage() {
   });
 
   // =====================================================================
-  // 3. FILTER LOGIC (Mendukung Pengeluaran & Panen)
+  // 3. FILTER LOGIC (DENGAN DOMAIN SEGREGATION)
   // =====================================================================
-  const filteredItems = useMemo(() => {
-    return feedData.filter((item) => {
+      const filteredItems = useMemo(() => {
+      return feedData.filter((item) => {
+      // 🚀 1. Filter level dewa: Singkirkan data yang bukan dari tab aktif
+      const isItemAgronomi = ["perawatan", "inspeksi", "operasional"].includes(item.module);
+      const isItemFinance = ["pengeluaran", "panen"].includes(item.module);
+      
+      if (activeDomain === "agronomi" && !isItemAgronomi) return false;
+      if (activeDomain === "finance" && !isItemFinance) return false;
+
+      // 🚀 2. Filter Modul (Bento Deck)
       const matchModule = activeModule === "all" ? true : item.module === activeModule;
 
+      // 🚀 3. Filter Waktu & Status (Quick Filters)
       let matchFilter = true;
-      
-      // 🚀 Tambahan kondisi "Semua" khusus untuk transaksi Pengeluaran & Panen
-      if (activeFilter === "Semua") matchFilter = true; 
-      
-      else if (activeFilter === "Hari ini") matchFilter = item.dateLabel === "Hari ini";
+      if (activeFilter === "Hari ini") matchFilter = item.dateLabel === "Hari ini";
       else if (activeFilter === "Kemarin") matchFilter = item.dateLabel === "Kemarin";
-      
-      else if (activeFilter === "Selesai") {
-        // Pengeluaran dan Panen otomatis numpang di filter 'Selesai' kalau di tab "Semua"
-        matchFilter = item.status === "Selesai" || item.status === "Sudah ditangani" || item.module === "pengeluaran" || item.module === "panen";
-      }
-      else if (activeFilter === "Dalam proses") {
-        matchFilter = item.status === "Dalam proses" || item.status === "Sedang ditangani";
-      }
-      else if (activeFilter === "Belum dikerjakan") {
-        matchFilter = item.status === "Belum dikerjakan" || item.status === "Baru ditemukan";
-      }
+      else if (activeFilter === "Selesai") matchFilter = item.status === "Selesai" || item.status === "Sudah ditangani";
+      else if (activeFilter === "Dalam proses") matchFilter = item.status === "Dalam proses" || item.status === "Sedang ditangani";
+      else if (activeFilter === "Belum dikerjakan") matchFilter = item.status === "Belum dikerjakan" || item.status === "Baru ditemukan";
 
       return matchModule && matchFilter;
     });
-  }, [feedData, activeModule, activeFilter]);
+  }, [feedData, activeModule, activeFilter, activeDomain]); // 🚀 Jangan lupa masukin activeDomain ke array dependency
 
     if (isLoading) {
     return (
@@ -304,6 +306,9 @@ export function AgronomyHubPage() {
         setActiveFilter={setActiveFilter}
         filterSiklus={filterSiklus}
         setFilterSiklus={setFilterSiklus}
+        // 🚀 MASUKIN PROPS BARUNYA DI SINI
+        activeDomain={activeDomain}
+        setActiveDomain={setActiveDomain}
       />
 
 <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_280px]">
