@@ -32,10 +32,10 @@ export function FilterControls({
   // 🚀 LOGIKA PEMISAH (DOMAIN SEGREGATION)
   const isFinance = activeDomain === "finance";
   
-  // 🚀 FIX: Tambahin "Semua Waktu" biar data yang usianya lebih dari 2 hari tetep bisa dilihat
+  // 🚀 FIX: "Semua Waktu" dipasang di kedua domain biar adil dan mandor bisa narik full riwayat
   const DYNAMIC_FILTERS = isFinance 
     ? ["Semua Waktu", "Hari ini", "Kemarin"] 
-    : ["Hari ini", "Kemarin", "Selesai", "Dalam proses", "Belum dikerjakan"];
+    : ["Semua Waktu", "Hari ini", "Kemarin", "Selesai", "Dalam proses", "Belum dikerjakan"];
 
   const AGRONOMI_MODULES: Array<{ key: ModuleKey; label: string; count: number; hint: string }> = [
     { key: "all", label: "Semua", count: feedData.filter(i => ["perawatan", "inspeksi", "operasional"].includes(i.module)).length, hint: "Total aktivitas" },
