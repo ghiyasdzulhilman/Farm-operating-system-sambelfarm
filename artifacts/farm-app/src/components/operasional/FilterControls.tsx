@@ -7,10 +7,13 @@ interface FilterProps {
   feedData: AgronomyItem[];
   activeView: ViewKey; setActiveView: (v: ViewKey) => void;
   activeModule: ModuleKey; setActiveModule: (m: ModuleKey) => void;
-  activeFilter: string; setActiveFilter: (f: string) => void;
+  
+  // 🚀 FIX: State filter dipecah jadi dua!
+  activeTimeFilter: string; setActiveTimeFilter: (f: string) => void;
+  activeStatusFilter: string; setActiveStatusFilter: (f: string) => void;
+  
   filterSiklus: "aktif" | "selesai"; 
   setFilterSiklus: (val: "aktif" | "selesai") => void;
-  // 🚀 SUNTIKAN BARU: Props untuk Master Tab (Domain Segregation)
   activeDomain: "agronomi" | "finance";
   setActiveDomain: (d: "agronomi" | "finance") => void;
 }
@@ -25,17 +28,17 @@ const MODULE_ICONS: Record<string, any> = {
 };
 
 export function FilterControls({ 
-  feedData, activeView, setActiveView, activeModule, setActiveModule, activeFilter, setActiveFilter,
+  feedData, activeView, setActiveView, activeModule, setActiveModule, 
+  activeTimeFilter, setActiveTimeFilter, activeStatusFilter, setActiveStatusFilter,
   filterSiklus, setFilterSiklus, activeDomain, setActiveDomain 
 }: FilterProps) {
   
   // 🚀 LOGIKA PEMISAH (DOMAIN SEGREGATION)
   const isFinance = activeDomain === "finance";
   
-  // 🚀 FIX: "Semua Waktu" dipasang di kedua domain biar adil dan mandor bisa narik full riwayat
-  const DYNAMIC_FILTERS = isFinance 
-    ? ["Semua Waktu", "Hari ini", "Kemarin"] 
-    : ["Semua Waktu", "Hari ini", "Kemarin", "Selesai", "Dalam proses", "Belum dikerjakan"];
+  // 🚀 FIX: Array Filter dipecah jadi 2 fungsi yang berbeda
+  const TIME_FILTERS = ["Hari ini", "Kemarin", "Semua Waktu"];
+  const STATUS_FILTERS = ["Semua Status", "Belum dikerjakan", "Dalam proses", "Selesai"];
 
   const AGRONOMI_MODULES: Array<{ key: ModuleKey; label: string; count: number; hint: string }> = [
     { key: "all", label: "Semua", count: feedData.filter(i => ["perawatan", "inspeksi", "operasional"].includes(i.module)).length, hint: "Total aktivitas" },
@@ -150,21 +153,37 @@ export function FilterControls({
           </div>
         </div>
 
-        {/* BARIS 2: Quick Filters (Hari ini, dll) */}
+        {/* BARIS 2: Filter Waktu (Selalu Tampil) */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar">
-          {/* 🚀 FIX: Ubah mapping jadi pakai DYNAMIC_FILTERS */}
-          {DYNAMIC_FILTERS.map((item) => (
-            <button key={item} onClick={() => setActiveFilter(item)}
+          {TIME_FILTERS.map((item) => (
+            <button key={item} onClick={() => setActiveTimeFilter(item)}
               className={cn("shrink-0 rounded-xl px-4 py-2 text-[12px] font-medium transition-all duration-300",
-                activeFilter === item 
+                activeTimeFilter === item 
                   ? "bg-primary/5 text-primary border border-primary/20 shadow-[0_2px_10px_rgba(0,0,0,0.04)]" 
                   : "bg-transparent text-muted-foreground hover:bg-muted/40 border border-transparent"
               )}>
-              {item}
+              <span className="flex items-center gap-1.5">{item}</span>
             </button>
           ))}
         </div>
+
+        {/* 🚀 BARIS 3: Filter Status (Sembunyi kalau lagi buka Finance) */}
+        {!isFinance && (
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar border-t border-border/30 pt-3 mt-1">
+            {STATUS_FILTERS.map((item) => (
+              <button key={item} onClick={() => setActiveStatusFilter(item)}
+                className={cn("shrink-0 rounded-xl px-4 py-2 text-[12px] font-medium transition-all duration-300",
+                  activeStatusFilter === item 
+                    ? "bg-primary/5 text-primary border border-primary/20 shadow-[0_2px_10px_rgba(0,0,0,0.04)]" 
+                    : "bg-transparent text-muted-foreground hover:bg-muted/40 border border-transparent"
+                )}>
+                {item}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
 }
+
