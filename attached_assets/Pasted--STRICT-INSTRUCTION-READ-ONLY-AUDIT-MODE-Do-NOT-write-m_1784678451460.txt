@@ -1,0 +1,43 @@
+🛑 STRICT INSTRUCTION: READ-ONLY AUDIT MODE 🛑
+Do NOT write, modify, delete, or alter any files in this workspace. Your sole task is to analyze the codebase and generate an audit report.
+
+BACKGROUND:
+We have just completed a database migration for the Finance modules (Expenses, Harvest, Dashboard) from the Notion API to a native PostgreSQL database. I need you to audit the success of this cleanup.
+
+CRITICAL CONTEXT & GUARDRAILS (THE "FALSE POSITIVES"):
+There is legacy naming debt in this project. Many files and API endpoints contain the word "notion" in their URL paths (e.g., `/notion/add-operasional`) but are actually 100% PostgreSQL under the hood. 
+You MUST IGNORE the word "notion" in string paths/URLs for the following files and directories, as they are completely safe and do not use the Notion API:
+- artifacts/api-server/src/routes/perawatan.ts
+- artifacts/api-server/src/routes/inspeksi.ts
+- artifacts/api-server/src/routes/operasional.ts
+- artifacts/farm-app/src/pages/AgronomyHubPage.tsx
+- artifacts/farm-app/src/pages/MasterHubPage.tsx
+- artifacts/farm-app/src/components/operasional/MasterTableView.tsx
+- artifacts/farm-app/src/components/operasional/ActivityDetailSheet.tsx
+- artifacts/farm-app/src/components/agronomy/AddInspeksiDialog.tsx
+- artifacts/farm-app/src/components/agronomy/AddPerawatanDialog.tsx
+- artifacts/farm-app/src/components/agronomy/AddOperasionalDialog.tsx
+- All files inside artifacts/farm-app/src/components/master/**
+- artifacts/farm-app/src/types/operasional.ts
+- Generated API files (e.g., lib/api-client-react/src/generated/api.ts)
+
+YOUR TASK:
+Scan the codebase and provide a structured report on the true Notion API dependencies. Check the following areas:
+
+1. Core Notion Files: Do the following files still exist? If so, are they still being imported anywhere? 
+   - artifacts/api-server/src/lib/notionClient.ts
+   - artifacts/api-server/src/lib/notionCache.ts
+   - artifacts/api-server/src/routes/notion.ts
+   - lib/db/src/schema/notionConnections.ts
+   - lib/db/src/schema/oauthStates.ts
+   - lib/db/src/schema/fieldMappings.ts
+
+2. Migrated Finance Routes: Have `dashboard.ts`, `expenses.ts`, and `harvest.ts` been successfully purged of Notion API client imports and fetch calls?
+
+3. Frontend Remnants: Are there any remaining UI elements, buttons, or imports referencing Notion in:
+   - artifacts/farm-app/src/pages/dashboard.tsx
+   - artifacts/farm-app/src/components/expenses/add-expense-dialog.tsx
+   - artifacts/farm-app/src/components/harvest/add-harvest-dialog.tsx
+
+OUTPUT FORMAT:
+Provide a clear, bulleted report categorizing what is "CLEAN" and what "NEEDS ATTENTION". Again, DO NOT make any code changes.
