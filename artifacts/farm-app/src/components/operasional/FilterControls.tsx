@@ -117,7 +117,7 @@ export function FilterControls({
         })}
       </div>
 
-      {/* 🌟 2. COMMAND BAR: SIKLUS, VIEWS & FILTER TANGGAL */}
+    {/* 🌟 2. COMMAND BAR: SIKLUS, VIEWS & FILTER TANGGAL */}
       <div className="flex flex-col gap-4 rounded-[1.25rem] border border-border/50 bg-card/60 backdrop-blur-md p-3 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)]">
         
         {/* BARIS 1: Siklus (Kiri) & Views Toggle (Kanan) */}
@@ -134,7 +134,6 @@ export function FilterControls({
           </div>
 
           <div className="flex items-center gap-1 rounded-xl bg-muted/30 p-1 border border-border/30">
-            {/* 🚀 FIX: Kanban disembunyikan kalau lagi buka Finance */}
             {!isFinance && (
               <button onClick={() => setActiveView("kanban")} title="Kanban View"
                 className={cn("rounded-lg p-2 transition-all duration-300", activeView === "kanban" ? "bg-background text-primary shadow-[0_2px_10px_rgba(0,0,0,0.06)] border border-border/50" : "text-muted-foreground hover:text-foreground")}>
@@ -142,7 +141,6 @@ export function FilterControls({
               </button>
             )}
             <button onClick={() => setActiveView("feed")} title="Feed View"
-
               className={cn("rounded-lg p-2 transition-all duration-300", activeView === "feed" ? "bg-background text-primary shadow-[0_2px_10px_rgba(0,0,0,0.06)] border border-border/50" : "text-muted-foreground hover:text-foreground")}>
               <List className="h-4 w-4" />
             </button>
@@ -153,37 +151,43 @@ export function FilterControls({
           </div>
         </div>
 
-        {/* BARIS 2: Filter Waktu (Selalu Tampil) */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar">
-          {TIME_FILTERS.map((item) => (
-            <button key={item} onClick={() => setActiveTimeFilter(item)}
-              className={cn("shrink-0 rounded-xl px-4 py-2 text-[12px] font-medium transition-all duration-300",
-                activeTimeFilter === item 
-                  ? "bg-primary/5 text-primary border border-primary/20 shadow-[0_2px_10px_rgba(0,0,0,0.04)]" 
-                  : "bg-transparent text-muted-foreground hover:bg-muted/40 border border-transparent"
-              )}>
-              <span className="flex items-center gap-1.5">{item}</span>
-            </button>
-          ))}
-        </div>
-
-        {/* 🚀 BARIS 3: Filter Status (Sembunyi kalau lagi buka Finance) */}
-        {!isFinance && (
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar border-t border-border/30 pt-3 mt-1">
-            {STATUS_FILTERS.map((item) => (
-              <button key={item} onClick={() => setActiveStatusFilter(item)}
+        {/* 🚀 WRAPPER BARU: Mengelompokkan Baris 2 dan Baris 3 biar rapat */}
+        <div className="flex flex-col">
+          
+          {/* BARIS 2: Filter Waktu (Selalu Tampil) */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 custom-scrollbar">
+            {TIME_FILTERS.map((item) => (
+              <button key={item} onClick={() => setActiveTimeFilter(item)}
                 className={cn("shrink-0 rounded-xl px-4 py-2 text-[12px] font-medium transition-all duration-300",
-                  activeStatusFilter === item 
+                  activeTimeFilter === item 
                     ? "bg-primary/5 text-primary border border-primary/20 shadow-[0_2px_10px_rgba(0,0,0,0.04)]" 
                     : "bg-transparent text-muted-foreground hover:bg-muted/40 border border-transparent"
                 )}>
-                {item}
+                <span className="flex items-center gap-1.5">{item}</span>
               </button>
             ))}
           </div>
-        )}
+
+          {/* 🚀 BARIS 3: Filter Status (Sembunyi kalau lagi buka Finance) */}
+          {!isFinance && (
+            {/* Dihapus mt-1 pt-3, diganti pt-2 biar mepet garis */}
+            <div className="flex items-center gap-2 overflow-x-auto pt-2 border-t border-border/30 custom-scrollbar">
+              {STATUS_FILTERS.map((item) => (
+                <button key={item} onClick={() => setActiveStatusFilter(item)}
+                  className={cn("shrink-0 rounded-xl px-4 py-2 text-[12px] font-medium transition-all duration-300",
+                    activeStatusFilter === item 
+                      ? "bg-primary/5 text-primary border border-primary/20 shadow-[0_2px_10px_rgba(0,0,0,0.04)]" 
+                      : "bg-transparent text-muted-foreground hover:bg-muted/40 border border-transparent"
+                  )}>
+                  {item}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 }
+
 
