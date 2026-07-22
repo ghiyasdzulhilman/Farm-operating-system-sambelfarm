@@ -37,7 +37,7 @@ export function FilterControls({
     : ["Hari ini", "Kemarin", "Selesai", "Dalam proses", "Belum dikerjakan"];
 
   const AGRONOMI_MODULES: Array<{ key: ModuleKey; label: string; count: number; hint: string }> = [
-    { key: "all", label: "Semua", count: feedData.filter(i => ["perawatan", "inspeksi", "operasional"].includes(i.module)).length, hint: "Total aktivitas fisik" },
+    { key: "all", label: "Semua", count: feedData.filter(i => ["perawatan", "inspeksi", "operasional"].includes(i.module)).length, hint: "Total aktivitas" },
     { key: "perawatan", label: "Perawatan", count: feedData.filter(i => i.module === "perawatan").length, hint: "Nutrisi & obat" },
     { key: "inspeksi", label: "Inspeksi", count: feedData.filter(i => i.module === "inspeksi").length, hint: "Observasi hama" },
     { key: "operasional", label: "Operasional", count: feedData.filter(i => i.module === "operasional").length, hint: "Tugas harian" },
@@ -62,14 +62,14 @@ export function FilterControls({
             className={cn("px-8 py-2.5 rounded-full text-[13px] font-bold transition-all duration-300", 
               !isFinance ? "bg-background text-primary shadow-md border border-border/20" : "text-muted-foreground hover:text-foreground"
             )}>
-            🌱 Agronomi
+            Agronomy
           </button>
           <button 
             onClick={() => setActiveDomain("finance")} 
             className={cn("px-8 py-2.5 rounded-full text-[13px] font-bold transition-all duration-300", 
               isFinance ? "bg-background text-primary shadow-md border border-border/20" : "text-muted-foreground hover:text-foreground"
             )}>
-            💰 Finance
+            Finance
           </button>
         </div>
       </div>
