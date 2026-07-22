@@ -53,28 +53,27 @@ export function AgronomyHubPage() {
   // =====================================================================
   // 1. FETCH DATA (LANGSUNG DARI 3 ENDPOINT SUPABASE + MASTER PEKERJA)
   // =====================================================================
-    const { data: unifiedFeedData, isLoading } = useQuery({
-    // 🚀 2. MASUKIN STATE KE QUERY KEY BIAR AUTO-REFRESH KALAU BERUBAH
+      const { data: unifiedFeedData, isLoading } = useQuery({
     queryKey: ["agronomy-feed-supabase", filterSiklus], 
-      queryFn: async () => {
-      const [resOp, resPer, resIns, resOptions] = await Promise.all([
-        // 🚀 3. TAMBAHIN PARAMETER '?statusSiklus=' KE SEMUA ENDPOINT BACKEND
+    queryFn: async () => {
+      // 🚀 UPGRADE 1: Tambah colokan ke API Pengeluaran & Harvest
+      const [resOp, resPer, resIns, resOptions, resPengeluaran, resPanen] = await Promise.all([
         fetch(`/api/notion/all-operasional?statusSiklus=${filterSiklus}`).then((res) => res.json()),
         fetch(`/api/notion/all-perawatan?statusSiklus=${filterSiklus}`).then((res) => res.json()),
         fetch(`/api/notion/all-inspeksi?statusSiklus=${filterSiklus}`).then((res) => res.json()),
         fetch("/api/notion/operasional-dropdown-options").then((res) => res.json()),
+        fetch(`/api/pengeluaran?statusSiklus=${filterSiklus}`).then((res) => res.json()),
+        fetch(`/api/harvest?statusSiklus=${filterSiklus}`).then((res) => res.json()),
       ]);
 
-    // 1. MAPPING PEKERJA
       const workerMap: Record<string, string> = {};
       resOptions?.petugas?.forEach((p: any) => {
         workerMap[p.id] = p.name;
       });
 
-     // (Mapping Area kita hapus karena backend langsung ngirim 'areaName' dan 'namaSiklus' 🚀)
-
       const formatItem = (item: any, module: ModuleKey, icon: string, titleKey: string): AgronomyItem => {
-        const rawDate = item.waktuMulai || new Date().toISOString();
+        // 🚀 UPGRADE 2: Support baca kolom 'tanggal' khusus modul Finance
+        const rawDate = item.tanggal || item.waktuMulai || new Date().toISOString();
         const cleanDate = rawDate.replace(/(Z|\+00:00)$/, '');
         const itemDate = new Date(cleanDate);
 
@@ -96,24 +95,23 @@ export function AgronomyHubPage() {
           icon: icon,
           title: item[titleKey] || "Tanpa Judul",
           time: itemDate.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
-          rawDate: item.waktuMulai || new Date().toISOString(),
-          status: item.status || "Belum dikerjakan",
+          rawDate: rawDate, 
+          // 🚀 Finance otomatis statusnya dianggap "Selesai" karena uang/barang udah lewat
+          status: item.status || "Selesai", 
           areaId: item.areaId,
-          
-          // 🚀 LANGSUNG PAKAI NAMA AREA DARI BACKEND
           area: item.areaName || "Area Master",
-          
-          // 🚀 SIMPAN DATA SIKLUS KE DALAM ITEM
           siklusId: item.siklusId,
           namaSiklus: item.namaSiklus || "-", 
-          
           workers: resolvedWorkers.length ? resolvedWorkers : ["Tim Lapangan"], 
           duration: `${item.durasiKerja || 0} jam`,
           priority: item.prioritas || "Medium",
           
-          category: item.kategori || item.tagCategory || (
+          // 🚀 UPGRADE 3: Mapping dinamis buat label kategori Finance
+          category: item.kategoriName || item.channelPenjualan || item.kategori || item.tagCategory || (
             module === "inspeksi" ? "Inspeksi" : 
             module === "perawatan" ? "Perawatan" : 
+            module === "pengeluaran" ? "Pengeluaran" :
+            module === "panen" ? "Panen" :
             "Operasional"
           ),
           
@@ -122,19 +120,25 @@ export function AgronomyHubPage() {
           timeLabel: "Disinkronkan",
           attachments: [],
           history: [{ time: "Supabase Live", text: "Data ditarik langsung dari server lokal." }],
-          metaEkstra: { ...item },
+          
+          // 🚀 PENTING: Semua data asli uang, nominal, dan qty nyangkut di sini!
+          metaEkstra: { ...item }, 
         } as unknown as AgronomyItem;
       };
 
       const ops = (resOp.data || []).map((i: any) => formatItem(i, "operasional", "wrench", "namaPekerjaan"));
       const per = (resPer.data || []).map((i: any) => formatItem(i, "perawatan", "sprout", "kegiatan"));
       const ins = (resIns.data || []).map((i: any) => formatItem(i, "inspeksi", "leaf", "kegiatan"));
+      
+      // 🚀 UPGRADE 4: Eksekusi formatItem untuk array Finance
+      const peng = (resPengeluaran.data || []).map((i: any) => formatItem(i, "pengeluaran", "banknote", "namaItem"));
+      const pan = (resPanen.data || []).map((i: any) => formatItem(i, "panen", "shoppingBasket", "kegiatan"));
 
-      return [...ops, ...per, ...ins].sort(
+      // 🚀 UPGRADE 5: Return gabungan 5 modul
+      return [...ops, ...per, ...ins, ...peng, ...pan].sort(
         (a, b) => new Date(b.rawDate).getTime() - new Date(a.rawDate).getTime()
       );
     },
-
     refetchInterval: 60000,
   });
 
@@ -207,16 +211,24 @@ export function AgronomyHubPage() {
     }
   });
 
-    // 🚀 SUNTIKAN BARU: Mutasi untuk menghapus baris aktivitas
+       // 🚀 SUNTIKAN BARU: Mutasi untuk menghapus baris aktivitas (Support Finance)
   const deleteActivityMutation = useMutation({
     mutationFn: async ({ id, module }: { id: string; module: string }) => {
-      // 🚀 Pintu khusus untuk delete perawatan agar stok balik utuh
-      const targetUrl = module === "perawatan"
-        ? `/api/notion/perawatan/${id}`
-        : `/api/notion/activity/${module}/${id}`;
+      let targetUrl = "";
+      
+      // 🚀 UPGRADE: Arahkan URL tembakan Delete sesuai module-nya
+      if (module === "pengeluaran") {
+        targetUrl = `/api/pengeluaran/${id}`;
+      } else if (module === "panen") {
+        targetUrl = `/api/harvest/${id}`;
+      } else if (module === "perawatan") {
+        targetUrl = `/api/notion/perawatan/${id}`;
+      } else {
+        targetUrl = `/api/notion/activity/${module}/${id}`;
+      }
         
       const response = await fetch(targetUrl, { method: 'DELETE' });
-      if (!response.ok) throw new Error("Gagal menghapus data aktivitas");
+      if (!response.ok) throw new Error("Gagal menghapus data baris ini");
       return response.json();
     },
 
