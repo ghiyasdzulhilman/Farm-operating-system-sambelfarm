@@ -170,10 +170,10 @@ export function FilterControls({
 
           {/* 🚀 BARIS 3: Filter Status (Sembunyi kalau lagi buka Finance) */}
           {!isFinance && (
-            {/* Dihapus mt-1 pt-3, diganti pt-2 biar mepet garis */}
             <div className="flex items-center gap-2 overflow-x-auto pt-2 border-t border-border/30 custom-scrollbar">
               {STATUS_FILTERS.map((item) => (
                 <button key={item} onClick={() => setActiveStatusFilter(item)}
+
                   className={cn("shrink-0 rounded-xl px-4 py-2 text-[12px] font-medium transition-all duration-300",
                     activeStatusFilter === item 
                       ? "bg-primary/5 text-primary border border-primary/20 shadow-[0_2px_10px_rgba(0,0,0,0.04)]" 
