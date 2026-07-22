@@ -199,11 +199,13 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
       return response.json();
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["pengeluaran-list"] });
-      await queryClient.invalidateQueries({ queryKey: ["produk-master-list"] }); // Sinkron stok gudang
+      // ✅ DISINKRONKAN: Menggunakan rumpun kunci data utama Hub agar tabel langsung berkedip update
+      await queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] });
+      await queryClient.invalidateQueries({ queryKey: ["produk-master-list"] }); 
       setSubmitted(true);
       form.reset(EMPTY_VALUES);
     },
+
     onError: (error) => {
       toast({ variant: "destructive", title: "Gagal", description: error.message });
     },
@@ -229,10 +231,14 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
         // Susun payload jujur untuk backend
     const payload = {
       tanggal: values.tanggal,
-      namaItem: values.namaItem,
+      // ✅ PENYELARASAN: Jika beli stok, gunakan format nama produk master agar sinkron dengan aturan baru backend
+      namaItem: values.isPembelianStok && selectedProduk 
+        ? `Beli Stok: ${selectedProduk.nama}` 
+        : values.namaItem,
       
       kategoriId: values.kategoriId,
       isPembelianStok: values.isPembelianStok,
+
       totalBiaya: values.isPembelianStok ? calcTotalUang : Number(values.totalBiayaLumpsum),
       produkId: values.isPembelianStok ? values.produkId : undefined,
       kuantitas: values.isPembelianStok ? String(calcTotalVolume) : undefined,
