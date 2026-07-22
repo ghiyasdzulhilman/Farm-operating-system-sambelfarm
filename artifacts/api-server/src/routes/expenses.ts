@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, pengeluaranTable, produkMasterTable, stockMovementTable, kategoriKeuanganTable, areasTable, siklusTanamTable } from "@workspace/db";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, or, isNull } from "drizzle-orm";
 import { getAuth } from "@clerk/express";
 import { getPekerjaIdFromClerk } from "../lib/authHelpers";
 
@@ -14,9 +14,53 @@ router.get("/pengeluaran", async (req, res): Promise<void> => {
     const { userId } = getAuth(req);
     if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
+    // 1. Tangkap parameter filter dari frontend
+    const statusSiklus = req.query.statusSiklus as string;
+
+    // 2. Siapkan kondisi filter
+    let conditions = [];
+    if (statusSiklus === "aktif") {
+      // Tampilkan Biaya Umum (siklus NULL) ATAU Siklus yang masih Aktif
+      conditions.push(
+        or(
+          eq(siklusTanamTable.status, "Aktif"),
+          isNull(pengeluaranTable.siklusId)
+        )
+      );
+    } else if (statusSiklus === "selesai") {
+      // Tampilkan hanya yang benar-benar masuk siklus yang sudah Selesai
+      conditions.push(eq(siklusTanamTable.status, "Selesai"));
+    }
+
+    // 3. Tarik data relasi nama area, siklus, dan kategori sekalian
     const data = await db
-      .select()
+      .select({
+        id: pengeluaranTable.id,
+        areaId: pengeluaranTable.areaId,
+        siklusId: pengeluaranTable.siklusId,
+        kategoriId: pengeluaranTable.kategoriId,
+        produkId: pengeluaranTable.produkId,
+        pekerjaId: pengeluaranTable.pekerjaId,
+        tanggal: pengeluaranTable.tanggal,
+        namaItem: pengeluaranTable.namaItem,
+        satuanKerja: pengeluaranTable.satuanKerja,
+        kuantitas: pengeluaranTable.kuantitas,
+        hargaSatuan: pengeluaranTable.hargaSatuan,
+        totalBiaya: pengeluaranTable.totalBiaya,
+        isPembelianStok: pengeluaranTable.isPembelianStok,
+        catatan: pengeluaranTable.catatan,
+        createdAt: pengeluaranTable.createdAt,
+        
+        // Data Join Tambahan (Resolusi Nama)
+        areaName: areasTable.name,
+        namaSiklus: siklusTanamTable.namaSiklus,
+        kategoriName: kategoriKeuanganTable.nama,
+      })
       .from(pengeluaranTable)
+      .leftJoin(areasTable, eq(pengeluaranTable.areaId, areasTable.id))
+      .leftJoin(siklusTanamTable, eq(pengeluaranTable.siklusId, siklusTanamTable.id))
+      .leftJoin(kategoriKeuanganTable, eq(pengeluaranTable.kategoriId, kategoriKeuanganTable.id))
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(desc(pengeluaranTable.tanggal));
 
     res.json({ success: true, data });
