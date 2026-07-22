@@ -144,15 +144,16 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
 
         const result = await db.transaction(async (tx) => {
       
-      // [AKSI 1] Insert ke tabel pengeluaran pakai DATA JUJUR
+    // [AKSI 1] Insert ke tabel pengeluaran pakai DATA JUJUR
       const [newPengeluaran] = await tx.insert(pengeluaranTable).values({
-        areaId: null, // 🚀 FIX: Set murni jadi Biaya Umum
-        siklusId: null, // 🚀 FIX: Set murni jadi Biaya Umum
+        areaId: null, 
+        siklusId: null, 
         kategoriId,
         tanggal: new Date(tanggal),
-        namaItem: keterangan ? `${fallbackNamaItem} - ${keterangan}` : fallbackNamaItem,
+        namaItem: fallbackNamaItem, // ✅ SEKARANG MURNI NAMA ITEM AJA
         totalBiaya: biayaNum,
         catatan: keterangan || null, 
+
         isPembelianStok: Boolean(isPembelianStok),
         produkId: isPembelianStok ? produkId : null,
         satuanKerja: produkSatuan, 
