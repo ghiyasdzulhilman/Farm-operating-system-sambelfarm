@@ -32,8 +32,9 @@ export function FilterControls({
   // 🚀 LOGIKA PEMISAH (DOMAIN SEGREGATION)
   const isFinance = activeDomain === "finance";
   
+  // 🚀 FIX: Tambahin "Semua Waktu" biar data yang usianya lebih dari 2 hari tetep bisa dilihat
   const DYNAMIC_FILTERS = isFinance 
-    ? ["Hari ini", "Kemarin"] // Finance nggak butuh status proses
+    ? ["Semua Waktu", "Hari ini", "Kemarin"] 
     : ["Hari ini", "Kemarin", "Selesai", "Dalam proses", "Belum dikerjakan"];
 
   const AGRONOMI_MODULES: Array<{ key: ModuleKey; label: string; count: number; hint: string }> = [
