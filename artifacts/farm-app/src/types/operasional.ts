@@ -1,9 +1,5 @@
-export type ModuleKey =
-  | "all"
-  | "perawatan"
-  | "inspeksi"
-  | "operasional"
-  | "finance";
+// 🚀 FIX: Hapus "finance", ganti jadi "pengeluaran" dan "panen"
+export type ModuleKey = "all" | "perawatan" | "inspeksi" | "operasional" | "pengeluaran" | "panen";
   
 export type ViewKey = "feed" | "modules" | "table" | "kanban";
 
