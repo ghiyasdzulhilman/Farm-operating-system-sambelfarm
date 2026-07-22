@@ -364,23 +364,33 @@ export function AgronomyHubPage() {
 
 
         {activeView === "table" && (
+          activeDomain === "finance" ? (
+            // 🚀 TABEL FINANCE (Nampil pas tab Finance aktif)
+            <FinanceTableView 
+              items={filteredItems} 
+              onDelete={(id, module) => {
+                if (confirm("Yakin ingin menghapus data transaksi ini?")) {
+                  deleteActivityMutation.mutate({ id, module });
+                }
+              }} 
+            />
+          ) : (
+            // 🌱 TABEL AGRONOMI (Nampil pas tab Agronomy aktif)
             <MasterTableView 
               items={filteredItems} 
               onItemClick={setSelectedItem} 
               onStatusChange={(id, payload) => {
-
-  const target = filteredItems.find(i => i.id === id);
-
-  if (target) {
-    const updateData = typeof payload === "string" 
-      ? { status: payload } 
-      : payload;
-    updateStatusMutation.mutate({ id, module: target.module, ...updateData });
-  }
-}}
-
+                const target = filteredItems.find(i => i.id === id);
+                if (target) {
+                  const updateData = typeof payload === "string" 
+                    ? { status: payload } 
+                    : payload;
+                  updateStatusMutation.mutate({ id, module: target.module, ...updateData });
+                }
+              }}
             />
-          )}
+          )
+        )}
 
  {/* BLOK KANBAN DI SINI */}
   {activeView === "kanban" && (
