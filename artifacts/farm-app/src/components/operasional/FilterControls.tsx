@@ -10,42 +10,69 @@ interface FilterProps {
   activeFilter: string; setActiveFilter: (f: string) => void;
   filterSiklus: "aktif" | "selesai"; 
   setFilterSiklus: (val: "aktif" | "selesai") => void;
+  // 🚀 SUNTIKAN BARU: Props untuk Master Tab (Domain Segregation)
+  activeDomain: "agronomi" | "finance";
+  setActiveDomain: (d: "agronomi" | "finance") => void;
 }
-
-// 🚀 FIX: Array FILTERS konstan dihapus, pindah ke dalam komponen biar dinamis
 
 const MODULE_ICONS: Record<string, any> = {
   all: Layers,
   perawatan: Sprout,
   inspeksi: Bug,
   operasional: HardHat,
-  pengeluaran: Banknote,       // 🚀 FIX: Icon Pengeluaran
-  panen: ShoppingBasket, // 🚀 FIX: Icon Panen
+  pengeluaran: Banknote,
+  panen: ShoppingBasket,
 };
 
 export function FilterControls({ 
   feedData, activeView, setActiveView, activeModule, setActiveModule, activeFilter, setActiveFilter,
-  filterSiklus, setFilterSiklus 
+  filterSiklus, setFilterSiklus, activeDomain, setActiveDomain 
 }: FilterProps) {
   
-  // 🚀 FIX: Logika filter dinamis berdasarkan modul yang aktif
-  const isFinanceModule = activeModule === "pengeluaran" || activeModule === "panen";
-  const DYNAMIC_FILTERS = isFinanceModule 
-    ? ["Semua", "Hari ini", "Kemarin"] 
+  // 🚀 LOGIKA PEMISAH (DOMAIN SEGREGATION)
+  const isFinance = activeDomain === "finance";
+  
+  const DYNAMIC_FILTERS = isFinance 
+    ? ["Hari ini", "Kemarin"] // Finance nggak butuh status proses
     : ["Hari ini", "Kemarin", "Selesai", "Dalam proses", "Belum dikerjakan"];
 
-  const MODULES: Array<{ key: ModuleKey; label: string; count: number; hint: string }> = [
-    { key: "all", label: "Semua", count: feedData.length, hint: "Total aktivitas" },
+  const AGRONOMI_MODULES: Array<{ key: ModuleKey; label: string; count: number; hint: string }> = [
+    { key: "all", label: "Semua", count: feedData.filter(i => ["perawatan", "inspeksi", "operasional"].includes(i.module)).length, hint: "Total aktivitas fisik" },
     { key: "perawatan", label: "Perawatan", count: feedData.filter(i => i.module === "perawatan").length, hint: "Nutrisi & obat" },
     { key: "inspeksi", label: "Inspeksi", count: feedData.filter(i => i.module === "inspeksi").length, hint: "Observasi hama" },
     { key: "operasional", label: "Operasional", count: feedData.filter(i => i.module === "operasional").length, hint: "Tugas harian" },
-    // 🚀 FIX: Pecah Finance jadi 2 modul
+  ];
+
+  const FINANCE_MODULES: Array<{ key: ModuleKey; label: string; count: number; hint: string }> = [
+    { key: "all", label: "Semua", count: feedData.filter(i => ["pengeluaran", "panen"].includes(i.module)).length, hint: "Total keuangan" },
     { key: "pengeluaran", label: "Pengeluaran", count: feedData.filter(i => i.module === "pengeluaran").length, hint: "Uang keluar" },
     { key: "panen", label: "Panen", count: feedData.filter(i => i.module === "panen").length, hint: "Hasil panen" },
   ];
 
+  const MODULES = isFinance ? FINANCE_MODULES : AGRONOMI_MODULES;
+
   return (
     <div className="mt-6 space-y-4">
+      
+      {/* 🌟 0. MASTER TAB: PILL SWITCH ELEGAN */}
+      <div className="flex justify-center mb-2">
+        <div className="inline-flex items-center p-1 rounded-full bg-muted/30 border border-border/40 shadow-inner">
+          <button 
+            onClick={() => setActiveDomain("agronomi")} 
+            className={cn("px-8 py-2.5 rounded-full text-[13px] font-bold transition-all duration-300", 
+              !isFinance ? "bg-background text-primary shadow-md border border-border/20" : "text-muted-foreground hover:text-foreground"
+            )}>
+            🌱 Agronomi
+          </button>
+          <button 
+            onClick={() => setActiveDomain("finance")} 
+            className={cn("px-8 py-2.5 rounded-full text-[13px] font-bold transition-all duration-300", 
+              isFinance ? "bg-background text-primary shadow-md border border-border/20" : "text-muted-foreground hover:text-foreground"
+            )}>
+            💰 Finance
+          </button>
+        </div>
+      </div>
       
       {/* 🌟 1. BENTO DECK: SOFT UI MODULES */}
       {/* px-2 dan -mx-2 dihapus agar sejajar sempurna (presisi) dengan Command Bar di bawahnya */}
@@ -103,11 +130,15 @@ export function FilterControls({
           </div>
 
           <div className="flex items-center gap-1 rounded-xl bg-muted/30 p-1 border border-border/30">
-            <button onClick={() => setActiveView("kanban")} title="Kanban View"
-              className={cn("rounded-lg p-2 transition-all duration-300", activeView === "kanban" ? "bg-background text-primary shadow-[0_2px_10px_rgba(0,0,0,0.06)] border border-border/50" : "text-muted-foreground hover:text-foreground")}>
-              <LayoutGrid className="h-4 w-4" />
-            </button>
+            {/* 🚀 FIX: Kanban disembunyikan kalau lagi buka Finance */}
+            {!isFinance && (
+              <button onClick={() => setActiveView("kanban")} title="Kanban View"
+                className={cn("rounded-lg p-2 transition-all duration-300", activeView === "kanban" ? "bg-background text-primary shadow-[0_2px_10px_rgba(0,0,0,0.06)] border border-border/50" : "text-muted-foreground hover:text-foreground")}>
+                <LayoutGrid className="h-4 w-4" />
+              </button>
+            )}
             <button onClick={() => setActiveView("feed")} title="Feed View"
+
               className={cn("rounded-lg p-2 transition-all duration-300", activeView === "feed" ? "bg-background text-primary shadow-[0_2px_10px_rgba(0,0,0,0.06)] border border-border/50" : "text-muted-foreground hover:text-foreground")}>
               <List className="h-4 w-4" />
             </button>
