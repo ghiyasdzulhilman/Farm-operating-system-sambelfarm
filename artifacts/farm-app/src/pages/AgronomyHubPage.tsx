@@ -15,6 +15,7 @@ import { MasterTableView } from "@/components/operasional/MasterTableView";
 import { KanbanView } from "@/components/operasional/KanbanView";
 import type { AgronomyItem, ModuleKey, ViewKey } from "@/types/operasional";
 import { useToast } from "@/hooks/use-toast";
+import { FinanceTableView } from "../components/operasional/finance/FinanceTableView";
 
 type FeedModeKey = "time" | "area";
 
