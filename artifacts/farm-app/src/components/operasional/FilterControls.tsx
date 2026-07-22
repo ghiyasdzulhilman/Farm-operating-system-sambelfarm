@@ -1,4 +1,5 @@
-import { LayoutGrid, List, TableProperties, Layers, Sprout, HardHat, Wallet, Bug } from "lucide-react";
+// 🚀 FIX: Import icon Banknote (Pengeluaran) dan ShoppingBasket (Panen)
+import { LayoutGrid, List, TableProperties, Layers, Sprout, HardHat, Wallet, Bug, Banknote, ShoppingBasket } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AgronomyItem, ModuleKey, ViewKey } from "@/types/operasional";
 
@@ -11,14 +12,15 @@ interface FilterProps {
   setFilterSiklus: (val: "aktif" | "selesai") => void;
 }
 
-const FILTERS = ["Hari ini", "Kemarin", "Selesai", "Dalam proses", "Belum dikerjakan"];
+// 🚀 FIX: Array FILTERS konstan dihapus, pindah ke dalam komponen biar dinamis
 
 const MODULE_ICONS: Record<string, any> = {
   all: Layers,
   perawatan: Sprout,
   inspeksi: Bug,
   operasional: HardHat,
-  finance: Wallet,
+  pengeluaran: Banknote,       // 🚀 FIX: Icon Pengeluaran
+  panen: ShoppingBasket, // 🚀 FIX: Icon Panen
 };
 
 export function FilterControls({ 
@@ -26,12 +28,20 @@ export function FilterControls({
   filterSiklus, setFilterSiklus 
 }: FilterProps) {
   
+  // 🚀 FIX: Logika filter dinamis berdasarkan modul yang aktif
+  const isFinanceModule = activeModule === "pengeluaran" || activeModule === "panen";
+  const DYNAMIC_FILTERS = isFinanceModule 
+    ? ["Semua", "Hari ini", "Kemarin"] 
+    : ["Hari ini", "Kemarin", "Selesai", "Dalam proses", "Belum dikerjakan"];
+
   const MODULES: Array<{ key: ModuleKey; label: string; count: number; hint: string }> = [
     { key: "all", label: "Semua", count: feedData.length, hint: "Total aktivitas" },
     { key: "perawatan", label: "Perawatan", count: feedData.filter(i => i.module === "perawatan").length, hint: "Nutrisi & obat" },
     { key: "inspeksi", label: "Inspeksi", count: feedData.filter(i => i.module === "inspeksi").length, hint: "Observasi hama" },
     { key: "operasional", label: "Operasional", count: feedData.filter(i => i.module === "operasional").length, hint: "Tugas harian" },
-    { key: "finance", label: "Finance", count: feedData.filter(i => i.module === "finance").length, hint: "Catatan biaya" },
+    // 🚀 FIX: Pecah Finance jadi 2 modul
+    { key: "pengeluaran", label: "Pengeluaran", count: feedData.filter(i => i.module === "pengeluaran").length, hint: "Uang keluar" },
+    { key: "panen", label: "Panen", count: feedData.filter(i => i.module === "panen").length, hint: "Hasil panen" },
   ];
 
   return (
@@ -110,7 +120,8 @@ export function FilterControls({
 
         {/* BARIS 2: Quick Filters (Hari ini, dll) */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar">
-          {FILTERS.map((item) => (
+          {/* 🚀 FIX: Ubah mapping jadi pakai DYNAMIC_FILTERS */}
+          {DYNAMIC_FILTERS.map((item) => (
             <button key={item} onClick={() => setActiveFilter(item)}
               className={cn("shrink-0 rounded-xl px-4 py-2 text-[12px] font-medium transition-all duration-300",
                 activeFilter === item 
@@ -121,9 +132,7 @@ export function FilterControls({
             </button>
           ))}
         </div>
-
       </div>
-
     </div>
   );
 }
