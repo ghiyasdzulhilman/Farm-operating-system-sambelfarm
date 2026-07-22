@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, panenTable, areasTable, siklusTanamTable } from "@workspace/db";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, or, isNull } from "drizzle-orm";
 import { getAuth } from "@clerk/express";
 import { getPekerjaIdFromClerk } from "../lib/authHelpers";
 
@@ -45,11 +45,29 @@ router.get("/harvest/dropdown", async (req, res): Promise<void> => {
 // 2. GET SEMUA RIWAYAT PANEN
 // ==========================================
 router.get("/harvest", async (req, res): Promise<void> => {
-  // [Tidak ada perubahan - kodenya udah aman]
   try {
     const { userId } = getAuth(req);
     if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
+    // 1. Tangkap parameter filter dari frontend
+    const statusSiklus = req.query.statusSiklus as string;
+
+    // 2. Siapkan kondisi filter
+    let conditions = [];
+    if (statusSiklus === "aktif") {
+      // Tampilkan Panen tanpa siklus (Null) ATAU Siklus yang masih Aktif
+      conditions.push(
+        or(
+          eq(siklusTanamTable.status, "Aktif"),
+          isNull(panenTable.siklusId)
+        )
+      );
+    } else if (statusSiklus === "selesai") {
+      // Tampilkan hanya yang siklusnya sudah Selesai
+      conditions.push(eq(siklusTanamTable.status, "Selesai"));
+    }
+
+    // 3. Query dengan suntikan .where()
     const data = await db
       .select({
         id: panenTable.id,
@@ -69,6 +87,7 @@ router.get("/harvest", async (req, res): Promise<void> => {
       .from(panenTable)
       .leftJoin(areasTable, eq(panenTable.areaId, areasTable.id))
       .leftJoin(siklusTanamTable, eq(panenTable.siklusId, siklusTanamTable.id))
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(desc(panenTable.tanggal));
 
     res.json({ success: true, data });
