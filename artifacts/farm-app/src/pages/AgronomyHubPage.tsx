@@ -25,11 +25,21 @@ export function AgronomyHubPage() {
   const [activeView, setActiveView] = useState<ViewKey>("kanban");
   const [feedMode, setFeedMode] = useState<FeedModeKey>("time");
   const [activeModule, setActiveModule] = useState<ModuleKey>("all");
-  const [activeFilter, setActiveFilter] = useState("Hari ini");
+    const [activeFilter, setActiveFilter] = useState("Hari ini");
   
   // 🚀 1. TAMBAHIN STATE BARU BUAT FILTER SIKLUS (Default-nya "aktif")
   const [filterSiklus, setFilterSiklus] = useState<"aktif" | "selesai">("aktif"); 
   const [selectedItem, setSelectedItem] = useState<AgronomyItem | null>(null);
+
+  // 🚀 SUNTIKAN BARU: Auto-Reset Filter
+  useEffect(() => {
+    const isFinance = activeModule === "pengeluaran" || activeModule === "panen";
+    if (isFinance && ["Selesai", "Dalam proses", "Belum dikerjakan"].includes(activeFilter)) {
+      setActiveFilter("Semua"); // Riset ke Semua kalau pindah ke modul keuangan
+    } else if (!isFinance && activeFilter === "Semua") {
+      setActiveFilter("Hari ini"); // Balikin ke Hari ini kalau pindah ke modul lapangan
+    }
+  }, [activeModule, activeFilter]);
 
   // =====================================================================
   // 1. FETCH DATA (LANGSUNG DARI 3 ENDPOINT SUPABASE + MASTER PEKERJA)
@@ -211,23 +221,30 @@ export function AgronomyHubPage() {
   });
 
   // =====================================================================
-  // 3. FILTER LOGIC
+  // 3. FILTER LOGIC (Mendukung Pengeluaran & Panen)
   // =====================================================================
   const filteredItems = useMemo(() => {
     return feedData.filter((item) => {
       const matchModule = activeModule === "all" ? true : item.module === activeModule;
 
       let matchFilter = true;
-      if (activeFilter === "Hari ini") matchFilter = item.dateLabel === "Hari ini";
+      
+      // 🚀 Tambahan kondisi "Semua" khusus untuk transaksi Pengeluaran & Panen
+      if (activeFilter === "Semua") matchFilter = true; 
+      
+      else if (activeFilter === "Hari ini") matchFilter = item.dateLabel === "Hari ini";
       else if (activeFilter === "Kemarin") matchFilter = item.dateLabel === "Kemarin";
       
-      // 🚀 TAMBAHIN KONDISI STATUS INSPEKSI DI SINI
-      else if (activeFilter === "Selesai") 
-        matchFilter = item.status === "Selesai" || item.status === "Sudah ditangani";
-      else if (activeFilter === "Dalam proses") 
+      else if (activeFilter === "Selesai") {
+        // Pengeluaran dan Panen otomatis numpang di filter 'Selesai' kalau di tab "Semua"
+        matchFilter = item.status === "Selesai" || item.status === "Sudah ditangani" || item.module === "pengeluaran" || item.module === "panen";
+      }
+      else if (activeFilter === "Dalam proses") {
         matchFilter = item.status === "Dalam proses" || item.status === "Sedang ditangani";
-      else if (activeFilter === "Belum dikerjakan") 
+      }
+      else if (activeFilter === "Belum dikerjakan") {
         matchFilter = item.status === "Belum dikerjakan" || item.status === "Baru ditemukan";
+      }
 
       return matchModule && matchFilter;
     });
