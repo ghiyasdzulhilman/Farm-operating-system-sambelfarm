@@ -10,7 +10,7 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
   const pengeluaran = items.filter((i) => i.module === "pengeluaran");
   const panen = items.filter((i) => i.module === "panen");
 
-  // 🚀 2. State untuk Filter Kolom Pengeluaran
+    // State untuk Filter Kolom Pengeluaran
   const [showPengeluaranMenu, setShowPengeluaranMenu] = React.useState(false);
   const [colPengeluaran, setColPengeluaran] = React.useState({
     tanggal: true,
@@ -26,7 +26,23 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
     setColPengeluaran((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const formatRupiah = (angka: number) =>
+  // 🚀 1. State untuk Filter Kolom Panen
+  const [showPanenMenu, setShowPanenMenu] = React.useState(false);
+  const [colPanen, setColPanen] = React.useState({
+    tanggal: true,
+    areaSiklus: true,
+    kegiatan: true,
+    kuantitas: true,
+    hargaJual: true,
+    totalPendapatan: true,
+    aksi: true,
+  });
+
+  const toggleColPanen = (key: keyof typeof colPanen) => {
+    setColPanen((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const formatRupiah = (angka: number) => ...
     new Intl.NumberFormat("id-ID", { 
       style: "currency", 
       currency: "IDR", 
@@ -154,65 +170,109 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
         </div>
       )}
 
-      {/* 🟢 TABEL PANEN */}
+    {/* TABEL PANEN */}
       {panen.length > 0 && (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
-          {/* HEADER CARD - MINIMALIST */}
           <div className="px-5 py-4 border-b border-slate-100 flex justify-between items-center">
             <h3 className="text-[13px] font-black text-slate-800 tracking-wider uppercase">Panen</h3>
-            <button 
-              type="button" 
-              className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all shadow-sm"
-            >
-              <Columns className="h-3.5 w-3.5" /> Kolom
-            </button>
+            
+            {/* 🚀 2. Wrapper Dropdown Panen */}
+            <div className="relative">
+              <button 
+                type="button" 
+                onClick={() => setShowPanenMenu(!showPanenMenu)}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl border transition-all shadow-sm text-xs font-bold ${
+                  showPanenMenu 
+                    ? "bg-slate-100 border-slate-300 text-slate-900" 
+                    : "border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                }`}
+              >
+                <Columns className="h-3.5 w-3.5" /> Kolom
+              </button>
+
+              {/* Menu Checkbox Kolom Panen */}
+              {showPanenMenu && (
+                <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-lg z-10 p-2 animate-in fade-in zoom-in-95">
+                  <div className="text-[10px] font-bold text-slate-400 mb-2 px-2 uppercase tracking-wider">Tampilkan Kolom</div>
+                  {Object.keys(colPanen).map((key) => (
+                    <label key={key} className="flex items-center gap-3 px-2 py-1.5 hover:bg-slate-50 rounded-lg cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        className="rounded border-slate-300 text-slate-800 focus:ring-slate-400"
+                        checked={colPanen[key as keyof typeof colPanen]} 
+                        onChange={() => toggleColPanen(key as keyof typeof colPanen)} 
+                      />
+                      <span className="text-xs font-medium text-slate-700 capitalize">
+                        {key === "areaSiklus" ? "Area & Siklus" : key === "hargaJual" ? "Harga Jual / Kg" : key === "totalPendapatan" ? "Total Pendapatan" : key}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
               {/* THEAD - UPPERCASE ELEGAN */}
-              <thead className="bg-slate-50/50 text-slate-500 border-b border-slate-100">
+             <thead className="bg-slate-50/50 text-slate-500 border-b border-slate-100">
                 <tr>
-                  <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider">Tanggal</th>
-                  <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider">Area & Siklus</th>
-                  <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider">Kegiatan</th>
-                  <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-right">Kuantitas</th>
-                  <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-right">Harga Jual / Kg</th>
-                  <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-right">Total Pendapatan</th>
-                  <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-center">Aksi</th>
+                  {colPanen.tanggal && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider">Tanggal</th>}
+                  {colPanen.areaSiklus && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider">Area & Siklus</th>}
+                  {colPanen.kegiatan && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider">Kegiatan</th>}
+                  {colPanen.kuantitas && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-right">Kuantitas</th>}
+                  {colPanen.hargaJual && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-right">Harga Jual / Kg</th>}
+                  {colPanen.totalPendapatan && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-right">Total Pendapatan</th>}
+                  {colPanen.aksi && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-center">Aksi</th>}
                 </tr>
               </thead>
+
               <tbody className="divide-y divide-slate-100/80">
                 {panen.map((item) => (
                   <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="px-5 py-4 whitespace-nowrap text-slate-600 font-medium">
-                      {new Date(item.rawDate).toLocaleDateString("id-ID")}
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="font-bold text-slate-800">{item.area}</div>
-                      <div className="text-[11px] font-medium text-slate-500 mt-0.5">{item.namaSiklus}</div>
-                    </td>
-                    <td className="px-5 py-4 font-bold text-slate-800">{item.title}</td>
-                    <td className="px-5 py-4 text-right text-slate-600 font-medium">
-                      {item.metaEkstra?.kuantitasKg} Kg
-                    </td>
-                    <td className="px-5 py-4 text-right text-slate-600 font-medium">
-                      {formatRupiah(item.metaEkstra?.hargaJualPerKg)}
-                    </td>
-                    <td className="px-5 py-4 text-right font-black text-slate-800">
-                      {formatRupiah(item.metaEkstra?.totalPendapatan)}
-                    </td>
-                    <td className="px-5 py-4 text-center">
-                      <button 
-                        onClick={() => onDelete(item.id, "panen")} 
-                        className="text-slate-400 hover:text-red-600 transition-colors font-bold text-xs uppercase tracking-wider"
-                      >
-                        Hapus
-                      </button>
-                    </td>
+                    {colPanen.tanggal && (
+                      <td className="px-5 py-4 whitespace-nowrap text-slate-600 font-medium">
+                        {new Date(item.rawDate).toLocaleDateString("id-ID")}
+                      </td>
+                    )}
+                    {colPanen.areaSiklus && (
+                      <td className="px-5 py-4">
+                        <div className="font-bold text-slate-800">{item.area}</div>
+                        <div className="text-[11px] font-medium text-slate-500 mt-0.5">{item.namaSiklus}</div>
+                      </td>
+                    )}
+                    {colPanen.kegiatan && (
+                      <td className="px-5 py-4 font-bold text-slate-800">{item.title}</td>
+                    )}
+                    {colPanen.kuantitas && (
+                      <td className="px-5 py-4 text-right text-slate-600 font-medium">
+                        {item.metaEkstra?.kuantitasKg} Kg
+                      </td>
+                    )}
+                    {colPanen.hargaJual && (
+                      <td className="px-5 py-4 text-right text-slate-600 font-medium">
+                        {formatRupiah(item.metaEkstra?.hargaJualPerKg)}
+                      </td>
+                    )}
+                    {colPanen.totalPendapatan && (
+                      <td className="px-5 py-4 text-right font-black text-slate-800">
+                        {formatRupiah(item.metaEkstra?.totalPendapatan)}
+                      </td>
+                    )}
+                    {colPanen.aksi && (
+                      <td className="px-5 py-4 text-center">
+                        <button 
+                          onClick={() => onDelete(item.id, "panen")} 
+                          className="text-slate-400 hover:text-red-600 transition-colors font-bold text-xs uppercase tracking-wider"
+                        >
+                          Hapus
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
+
             </table>
           </div>
         </div>
