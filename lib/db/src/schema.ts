@@ -302,12 +302,10 @@ export const pengeluaranTable = pgTable("pengeluaran", {
   check("kuantitas_non_negative", sql`${table.kuantitas} >= 0`),
   check("harga_satuan_non_negative", sql`${table.hargaSatuan} >= 0`),
   
-    // 🚀 FIX: Tambahin _v2 biar Drizzle ke-trigger buat update!
   check("satuan_kerja_valid_v2", sql`${table.satuanKerja} IN ('lumpsum', 'jam', 'hari', 'unit', 'kg', 'liter', 'botol', 'gram', 'ml')`),
-  
   check("total_biaya_konsisten_v2", sql`ABS(${table.totalBiaya} - ROUND(${table.kuantitas} * ${table.hargaSatuan})) <= (ROUND(${table.kuantitas}) + 100)`),
-  
   check("pembelian_stok_konsisten", sql`(${table.isPembelianStok} = true AND ${table.produkId} IS NOT NULL) OR (${table.isPembelianStok} = false AND ${table.produkId} IS NULL)`),
+  
   index("pengeluaran_area_idx").on(table.areaId),
   index("pengeluaran_siklus_idx").on(table.siklusId),
   index("pengeluaran_tanggal_idx").on(table.tanggal),
@@ -324,10 +322,9 @@ export const panenTable = pgTable("panen", {
   kuantitasKg: numeric("kuantitas_kg", { precision: 18, scale: 3 }).notNull(),
   hargaJualPerKg: integer("harga_jual_per_kg").notNull(),
   totalPendapatan: integer("total_pendapatan").notNull(),
-
   kualitas: varchar("kualitas", { length: 50 }),
-  channelPenjualan: varchar("channel_penjualan", { length: 100 }),
   catatan: text("catatan"),
+
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   createdBy: uuid("created_by").references(() => pekerjaTable.id, { onDelete: "set null" }),
