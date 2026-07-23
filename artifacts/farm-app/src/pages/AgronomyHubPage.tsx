@@ -107,14 +107,13 @@ export function AgronomyHubPage() {
           duration: `${item.durasiKerja || 0} jam`,
           priority: item.prioritas || "Medium",
           
-          // 🚀 UPGRADE 3: Mapping dinamis buat label kategori Finance
-          category: item.kategoriName || item.channelPenjualan || item.kategori || item.tagCategory || (
-            module === "inspeksi" ? "Inspeksi" : 
-            module === "perawatan" ? "Perawatan" : 
-            module === "pengeluaran" ? "Pengeluaran" :
-            module === "panen" ? "Panen" :
-            "Operasional"
-          ),
+  category: item.kategoriName || item.kategori || item.tagCategory || (
+  module === "inspeksi" ? "Inspeksi" : 
+  module === "perawatan" ? "Perawatan" : 
+  module === "pengeluaran" ? "Pengeluaran" :
+  module === "panen" ? "Panen" :
+  "Operasional"
+),
           
           notes: catatanRacikan,
           dateLabel: isToday ? "Hari ini" : isYesterday ? "Kemarin" : "Riwayat Lama",
