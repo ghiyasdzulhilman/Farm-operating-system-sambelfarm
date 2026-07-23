@@ -1,288 +1,313 @@
-import React from "react";
-import { Columns } from "lucide-react"; // 🚀 1. Import Ikon
+import React, { useMemo, useState } from "react";
+import { useReactTable, getCoreRowModel, flexRender, type ColumnDef } from "@tanstack/react-table";
+import { Columns3, Check, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface FinanceTableViewProps {
   items: any[];
   onDelete: (id: string, module: string) => void;
 }
 
+// 🚀 FORMATTER ANGKA & RUPIAH
+const formatRupiah = (angka: number) =>
+  new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0,
+  }).format(angka || 0);
+
+const formatAngka = (angka: any) =>
+  new Intl.NumberFormat("id-ID").format(Number(angka) || 0);
+
+// 🚀 KAMUS LABEL KOLOM
+const LABELS_PENGELUARAN: Record<string, string> = {
+  tanggal: "Tanggal",
+  kategori: "Kategori",
+  namaItem: "Nama Item",
+  qty: "Qty",
+  hargaSatuan: "Harga Satuan",
+  totalBiaya: "Total Biaya",
+  aksi: "Aksi",
+};
+
+const LABELS_PANEN: Record<string, string> = {
+  tanggal: "Tanggal",
+  areaSiklus: "Area & Siklus",
+  kegiatan: "Kegiatan",
+  kuantitas: "Kuantitas",
+  hargaJual: "Harga Jual / Kg",
+  totalPendapatan: "Total Pendapatan",
+  aksi: "Aksi",
+};
+
+// 🚀 KOMPONEN HELPER: BENTO TABLE (Biar nggak nulis ulang UI dua kali)
+function BentoTable({
+  title,
+  data,
+  columns,
+  columnLabels,
+}: {
+  title: string;
+  data: any[];
+  columns: ColumnDef<any>[];
+  columnLabels: Record<string, string>;
+}) {
+  const [columnVisibility, setColumnVisibility] = useState({});
+
+  const table = useReactTable({
+    data,
+    columns,
+    state: { columnVisibility },
+    onColumnVisibilityChange: setColumnVisibility,
+    getCoreRowModel: getCoreRowModel(),
+  });
+
+  return (
+    <div className="w-full max-w-full rounded-[1.5rem] border border-border/50 bg-card/80 backdrop-blur-md shadow-[0_8px_30px_-4px_rgba(0,0,0,0.05)] overflow-hidden text-left transition-all duration-300">
+      
+      {/* HEADER CARD & DROPDOWN FILTER KOLOM */}
+      <div className="flex items-center justify-between px-5 py-3 border-b border-border/40 bg-muted/30 backdrop-blur-sm">
+        <h2 className="text-[13px] font-bold uppercase tracking-wider text-foreground/90">
+          {title}
+        </h2>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="h-8.5 gap-2 rounded-xl bg-background/80 hover:bg-background border-border/50 text-[11px] font-bold tracking-wider text-muted-foreground hover:text-primary shadow-[0_2px_10px_rgba(0,0,0,0.03)] transition-all">
+              <Columns3 className="h-3.5 w-3.5" />
+              KOLOM
+            </Button>
+          </DropdownMenuTrigger>
+          
+          <DropdownMenuContent align="end" className="w-48 rounded-2xl p-2 shadow-lg border-border/60">
+            <div className="px-2 py-1.5 mb-1 text-[10px] font-bold tracking-wider text-muted-foreground uppercase border-b border-border/50">
+               Filter Kolom
+            </div>
+            
+            <div className="flex flex-col gap-0.5">
+              {table.getAllLeafColumns().map(column => {
+                const isChecked = column.getIsVisible();
+                return (
+                  <DropdownMenuItem
+                    key={column.id}
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      column.toggleVisibility(!isChecked);
+                    }}
+                    className={`flex items-center justify-between text-xs cursor-pointer py-2 px-3 rounded-lg transition-colors focus:bg-primary/10 focus:!text-primary ${isChecked ? 'text-primary !text-primary font-bold' : 'text-foreground font-medium'}`}
+                  >
+                    <span>{columnLabels[column.id] || column.id}</span>
+                    <div className={`flex h-4 w-4 items-center justify-center rounded-[4px] border transition-all ${isChecked ? 'bg-primary border-primary text-primary-foreground' : 'border-muted-foreground/40 bg-background'}`}>
+                      {isChecked && <Check className="h-3 w-3 stroke-[3]" />}
+                    </div>
+                  </DropdownMenuItem>
+                );
+              })}
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      {/* ISI TABEL */}
+      <div className="w-full overflow-x-auto">
+        <table className="w-full min-w-[700px] border-collapse">
+          <thead>
+            {table.getHeaderGroups().map(headerGroup => (
+              <tr key={headerGroup.id} className="border-b border-border/40 bg-muted/60 backdrop-blur-sm">
+                {headerGroup.headers.map(header => (
+                  <th key={header.id} className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground/90 whitespace-nowrap">
+                    {flexRender(header.column.columnDef.header, header.getContext())}
+                  </th>
+                ))}
+              </tr>
+            ))}
+          </thead>
+          <tbody>
+            {table.getRowModel().rows.map(row => (
+              <tr key={row.id} className="border-b border-border/40 hover:bg-muted/40 transition-all duration-200 group">
+                {row.getVisibleCells().map(cell => (
+                  <td key={cell.id} className="px-3 py-1.5 align-middle text-sm">
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// 🚀 KOMPONEN UTAMA
 export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDelete }) => {
   const pengeluaran = items.filter((i) => i.module === "pengeluaran");
   const panen = items.filter((i) => i.module === "panen");
 
-    // State untuk Filter Kolom Pengeluaran
-  const [showPengeluaranMenu, setShowPengeluaranMenu] = React.useState(false);
-  const [colPengeluaran, setColPengeluaran] = React.useState({
-    tanggal: true,
-    kategori: true,
-    namaItem: true,
-    qty: true,
-    hargaSatuan: true,
-    totalBiaya: true,
-    aksi: true,
-  });
+  // 💡 DEFINISI KOLOM PENGELUARAN
+  const pengeluaranCols = useMemo<ColumnDef<any>[]>(() => [
+    {
+      id: "tanggal",
+      header: "Tanggal",
+      cell: ({ row }) => <div className="font-medium text-muted-foreground">{new Date(row.original.rawDate).toLocaleDateString("id-ID")}</div>
+    },
+    {
+      id: "kategori",
+      header: "Kategori",
+      cell: ({ row }) => (
+        <span className="bg-muted text-muted-foreground px-2.5 py-1 rounded-md text-xs font-semibold">
+          {row.original.category}
+        </span>
+      )
+    },
+    {
+      id: "namaItem",
+      header: "Nama Item",
+      cell: ({ row }) => <div className="font-bold text-foreground/90">{row.original.title}</div>
+    },
+    {
+      id: "qty",
+      header: () => <div className="text-right w-full">Qty</div>,
+      cell: ({ row }) => (
+        <div className="text-right font-medium text-muted-foreground whitespace-nowrap">
+          {formatAngka(row.original.metaEkstra?.kuantitas || 1)} {row.original.metaEkstra?.satuanKerja}
+        </div>
+      )
+    },
+    {
+      id: "hargaSatuan",
+      header: () => <div className="text-right w-full">Harga Satuan</div>,
+      cell: ({ row }) => (
+        <div className="text-right font-medium text-muted-foreground whitespace-nowrap">
+          {formatRupiah(Number(row.original.metaEkstra?.hargaSatuan))}
+        </div>
+      )
+    },
+    {
+      id: "totalBiaya",
+      header: () => <div className="text-right w-full">Total Biaya</div>,
+      cell: ({ row }) => (
+        <div className="text-right font-black text-foreground/90 whitespace-nowrap">
+          {formatRupiah(row.original.metaEkstra?.totalBiaya)}
+        </div>
+      )
+    },
+    {
+      id: "aksi",
+      header: () => <div className="text-center w-full">Aksi</div>,
+      cell: ({ row }) => (
+        <div className="flex justify-center w-full">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => onDelete(row.original.id, "pengeluaran")}
+            className="text-destructive/30 group-hover:text-destructive group-hover:opacity-100 transition-all duration-200 h-8 w-8 p-0 hover:bg-destructive/10 hover:scale-105 rounded-lg"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      )
+    },
+  ], [onDelete]);
 
-  const toggleColPengeluaran = (key: keyof typeof colPengeluaran) => {
-    setColPengeluaran((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
-
-  // 🚀 1. State untuk Filter Kolom Panen
-  const [showPanenMenu, setShowPanenMenu] = React.useState(false);
-  const [colPanen, setColPanen] = React.useState({
-    tanggal: true,
-    areaSiklus: true,
-    kegiatan: true,
-    kuantitas: true,
-    hargaJual: true,
-    totalPendapatan: true,
-    aksi: true,
-  });
-
-  const toggleColPanen = (key: keyof typeof colPanen) => {
-    setColPanen((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
-
-    const formatRupiah = (angka: number) =>
-    new Intl.NumberFormat("id-ID", { 
-      style: "currency", 
-      currency: "IDR", 
-      maximumFractionDigits: 0 
-    }).format(angka || 0);
-
-  // 🚀 FUNGSI BARU UNTUK FORMAT QTY/KUANTITAS
-  const formatAngka = (angka: any) => 
-    new Intl.NumberFormat("id-ID").format(Number(angka) || 0);
+  // 💡 DEFINISI KOLOM PANEN
+  const panenCols = useMemo<ColumnDef<any>[]>(() => [
+    {
+      id: "tanggal",
+      header: "Tanggal",
+      cell: ({ row }) => <div className="font-medium text-muted-foreground">{new Date(row.original.rawDate).toLocaleDateString("id-ID")}</div>
+    },
+    {
+      id: "areaSiklus",
+      header: "Area & Siklus",
+      cell: ({ row }) => (
+        <div>
+          <div className="font-bold text-foreground/90">{row.original.area}</div>
+          <div className="text-[11px] font-medium text-muted-foreground mt-0.5">{row.original.namaSiklus}</div>
+        </div>
+      )
+    },
+    {
+      id: "kegiatan",
+      header: "Kegiatan",
+      cell: ({ row }) => <div className="font-bold text-foreground/90">{row.original.title}</div>
+    },
+    {
+      id: "kuantitas",
+      header: () => <div className="text-right w-full">Kuantitas</div>,
+      cell: ({ row }) => (
+        <div className="text-right font-medium text-muted-foreground whitespace-nowrap">
+          {formatAngka(row.original.metaEkstra?.kuantitasKg)} Kg
+        </div>
+      )
+    },
+    {
+      id: "hargaJual",
+      header: () => <div className="text-right w-full">Harga Jual / Kg</div>,
+      cell: ({ row }) => (
+        <div className="text-right font-medium text-muted-foreground whitespace-nowrap">
+          {formatRupiah(row.original.metaEkstra?.hargaJualPerKg)}
+        </div>
+      )
+    },
+    {
+      id: "totalPendapatan",
+      header: () => <div className="text-right w-full">Total Pendapatan</div>,
+      cell: ({ row }) => (
+        <div className="text-right font-black text-foreground/90 whitespace-nowrap">
+          {formatRupiah(row.original.metaEkstra?.totalPendapatan)}
+        </div>
+      )
+    },
+    {
+      id: "aksi",
+      header: () => <div className="text-center w-full">Aksi</div>,
+      cell: ({ row }) => (
+        <div className="flex justify-center w-full">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => onDelete(row.original.id, "panen")}
+            className="text-destructive/30 group-hover:text-destructive group-hover:opacity-100 transition-all duration-200 h-8 w-8 p-0 hover:bg-destructive/10 hover:scale-105 rounded-lg"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      )
+    },
+  ], [onDelete]);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
       
       {/* 🟢 SAKLAR KOSONG TOTAL */}
       {items.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-16 px-4 text-center bg-slate-50/50 rounded-2xl border-2 border-dashed border-slate-200">
-          <p className="text-slate-500 font-medium">
+        <div className="flex flex-col items-center justify-center py-16 px-4 text-center bg-muted/30 rounded-[1.5rem] border-2 border-dashed border-border/50">
+          <p className="text-muted-foreground font-medium">
             Tidak ada data keuangan yang ditemukan untuk filter saat ini.
           </p>
         </div>
       )}
 
-    {/* 🔴 TABEL PENGELUARAN */}
+      {/* 🔴 TABEL PENGELUARAN */}
       {pengeluaran.length > 0 && (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80">
-
-          {/* HEADER CARD - MINIMALIST */}
-          <div className="px-5 py-4 border-b border-slate-100 flex justify-between items-center">
-            <h3 className="text-[13px] font-black text-slate-800 tracking-wider uppercase">Pengeluaran</h3>
-            
-            {/* 🚀 Wrapper Dropdown Interaktif */}
-            <div className="relative">
-              <button 
-                type="button" 
-                onClick={() => setShowPengeluaranMenu(!showPengeluaranMenu)}
-                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl border transition-all shadow-sm text-xs font-bold ${
-                  showPengeluaranMenu 
-                    ? "bg-slate-100 border-slate-300 text-slate-900" 
-                    : "border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                }`}
-              >
-                <Columns className="h-3.5 w-3.5" /> Kolom
-              </button>
-
-              {/* Menu Checkbox Kolom */}
-              {showPengeluaranMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-lg z-10 p-2 animate-in fade-in zoom-in-95">
-                  <div className="text-[10px] font-bold text-slate-400 mb-2 px-2 uppercase tracking-wider">Tampilkan Kolom</div>
-                  {Object.keys(colPengeluaran).map((key) => (
-                    <label key={key} className="flex items-center gap-3 px-2 py-1.5 hover:bg-slate-50 rounded-lg cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        className="rounded border-slate-300 text-slate-800 focus:ring-slate-400"
-                        checked={colPengeluaran[key as keyof typeof colPengeluaran]} 
-                        onChange={() => toggleColPengeluaran(key as keyof typeof colPengeluaran)} 
-                      />
-                      <span className="text-xs font-medium text-slate-700 capitalize">
-                        {key === "namaItem" ? "Nama Item" : key === "hargaSatuan" ? "Harga Satuan" : key === "totalBiaya" ? "Total Biaya" : key}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-          
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left min-w-[700px]">
-
-              {/* THEAD - UPPERCASE ELEGAN */}
-              <thead className="bg-slate-50/50 text-slate-500 border-b border-slate-100">
-                <tr>
-                  {colPengeluaran.tanggal && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap min-w-[110px]">Tanggal</th>}
-                  {colPengeluaran.kategori && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap min-w-[130px]">Kategori</th>}
-                  {colPengeluaran.namaItem && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap min-w-[180px]">Nama Item</th>}
-                  {colPengeluaran.qty && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-right whitespace-nowrap min-w-[110px]">Qty</th>}
-                  {colPengeluaran.hargaSatuan && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-right whitespace-nowrap min-w-[130px]">Harga Satuan</th>}
-                  {colPengeluaran.totalBiaya && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-right whitespace-nowrap min-w-[130px]">Total Biaya</th>}
-                  {colPengeluaran.aksi && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-center whitespace-nowrap min-w-[80px]">Aksi</th>}
-                </tr>
-              </thead>
-
-              <tbody className="divide-y divide-slate-100/80">
-                {pengeluaran.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
-                    {colPengeluaran.tanggal && (
-                      <td className="px-5 py-4 whitespace-nowrap text-slate-600 font-medium">
-                        {new Date(item.rawDate).toLocaleDateString("id-ID")}
-                      </td>
-                    )}
-                    {colPengeluaran.kategori && (
-                      <td className="px-5 py-4">
-                        <span className="bg-slate-100 text-slate-600 px-2.5 py-1 rounded-md text-xs font-semibold">
-                          {item.category}
-                        </span>
-                      </td>
-                    )}
-                    {colPengeluaran.namaItem && (
-                      <td className="px-5 py-4 font-bold text-slate-800">{item.title}</td>
-                    )}
-                    {colPengeluaran.qty && (
-                      <td className="px-5 py-4 text-right text-slate-600 font-medium whitespace-nowrap">
-                        {formatAngka(item.metaEkstra?.kuantitas || 1)} {item.metaEkstra?.satuanKerja}
-                      </td>
-                    )}
-                    {colPengeluaran.hargaSatuan && (
-                      <td className="px-5 py-4 text-right text-slate-600 font-medium whitespace-nowrap">
-                        {formatRupiah(Number(item.metaEkstra?.hargaSatuan))}
-                      </td>
-                    )}
-                    {colPengeluaran.totalBiaya && (
-                      <td className="px-5 py-4 text-right font-black text-slate-800 whitespace-nowrap">
-                        {formatRupiah(item.metaEkstra?.totalBiaya)}
-                      </td>
-                    )}
-                    {colPengeluaran.aksi && (
-                      <td className="px-5 py-4 text-center">
-                        <button 
-                          onClick={() => onDelete(item.id, "pengeluaran")} 
-                          className="text-slate-400 hover:text-red-600 transition-colors font-bold text-xs uppercase tracking-wider"
-                        >
-                          Hapus
-                        </button>
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <BentoTable
+          title="Pengeluaran"
+          data={pengeluaran}
+          columns={pengeluaranCols}
+          columnLabels={LABELS_PENGELUARAN}
+        />
       )}
 
-    {/* 🟢 TABEL PANEN */}
+      {/* 🟢 TABEL PANEN */}
       {panen.length > 0 && (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80">
-          <div className="px-5 py-4 border-b border-slate-100 flex justify-between items-center">
-            <h3 className="text-[13px] font-black text-slate-800 tracking-wider uppercase">Panen</h3>
-            
-            {/* 🚀 2. Wrapper Dropdown Panen */}
-            <div className="relative">
-              <button 
-                type="button" 
-                onClick={() => setShowPanenMenu(!showPanenMenu)}
-                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl border transition-all shadow-sm text-xs font-bold ${
-                  showPanenMenu 
-                    ? "bg-slate-100 border-slate-300 text-slate-900" 
-                    : "border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                }`}
-              >
-                <Columns className="h-3.5 w-3.5" /> Kolom
-              </button>
-
-              {/* Menu Checkbox Kolom Panen */}
-              {showPanenMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-lg z-10 p-2 animate-in fade-in zoom-in-95">
-                  <div className="text-[10px] font-bold text-slate-400 mb-2 px-2 uppercase tracking-wider">Tampilkan Kolom</div>
-                  {Object.keys(colPanen).map((key) => (
-                    <label key={key} className="flex items-center gap-3 px-2 py-1.5 hover:bg-slate-50 rounded-lg cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        className="rounded border-slate-300 text-slate-800 focus:ring-slate-400"
-                        checked={colPanen[key as keyof typeof colPanen]} 
-                        onChange={() => toggleColPanen(key as keyof typeof colPanen)} 
-                      />
-                      <span className="text-xs font-medium text-slate-700 capitalize">
-                        {key === "areaSiklus" ? "Area & Siklus" : key === "hargaJual" ? "Harga Jual / Kg" : key === "totalPendapatan" ? "Total Pendapatan" : key}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left min-w-[700px]">
-
-              {/* THEAD - UPPERCASE ELEGAN */}
-            <thead className="bg-slate-50/50 text-slate-500 border-b border-slate-100">
-                <tr>
-                  {colPanen.tanggal && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap min-w-[110px]">Tanggal</th>}
-                  {colPanen.areaSiklus && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap min-w-[140px]">Area & Siklus</th>}
-                  {colPanen.kegiatan && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap min-w-[160px]">Kegiatan</th>}
-                  {colPanen.kuantitas && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-right whitespace-nowrap min-w-[110px]">Kuantitas</th>}
-                  {colPanen.hargaJual && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-right whitespace-nowrap min-w-[130px]">Harga Jual / Kg</th>}
-                  {colPanen.totalPendapatan && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-right whitespace-nowrap min-w-[140px]">Total Pendapatan</th>}
-                  {colPanen.aksi && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-center whitespace-nowrap min-w-[80px]">Aksi</th>}
-                </tr>
-              </thead>
-
-              <tbody className="divide-y divide-slate-100/80">
-                {panen.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
-                    {colPanen.tanggal && (
-                      <td className="px-5 py-4 whitespace-nowrap text-slate-600 font-medium">
-                        {new Date(item.rawDate).toLocaleDateString("id-ID")}
-                      </td>
-                    )}
-                    {colPanen.areaSiklus && (
-                      <td className="px-5 py-4">
-                        <div className="font-bold text-slate-800">{item.area}</div>
-                        <div className="text-[11px] font-medium text-slate-500 mt-0.5">{item.namaSiklus}</div>
-                      </td>
-                    )}
-                    {colPanen.kegiatan && (
-                      <td className="px-5 py-4 font-bold text-slate-800">{item.title}</td>
-                    )}
-                    {colPanen.kuantitas && (
-                      <td className="px-5 py-4 text-right text-slate-600 font-medium whitespace-nowrap">
-                        {formatAngka(item.metaEkstra?.kuantitasKg)} Kg
-                      </td>
-                    )}
-                    {colPanen.hargaJual && (
-                      <td className="px-5 py-4 text-right text-slate-600 font-medium whitespace-nowrap">
-                        {formatRupiah(item.metaEkstra?.hargaJualPerKg)}
-                      </td>
-                    )}
-                    {colPanen.totalPendapatan && (
-                      <td className="px-5 py-4 text-right font-black text-slate-800 whitespace-nowrap">
-                        {formatRupiah(item.metaEkstra?.totalPendapatan)}
-                      </td>
-                    )}
-                    {colPanen.aksi && (
-                      <td className="px-5 py-4 text-center">
-                        <button 
-                          onClick={() => onDelete(item.id, "panen")} 
-                          className="text-slate-400 hover:text-red-600 transition-colors font-bold text-xs uppercase tracking-wider"
-                        >
-                          Hapus
-                        </button>
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-
-            </table>
-          </div>
-        </div>
+        <BentoTable
+          title="Panen"
+          data={panen}
+          columns={panenCols}
+          columnLabels={LABELS_PANEN}
+        />
       )}
 
     </div>
