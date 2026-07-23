@@ -61,10 +61,11 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
         </div>
       )}
 
-      {/* 🔴 TABEL PENGELUARAN */}
+    {/* 🔴 TABEL PENGELUARAN */}
       {pengeluaran.length > 0 && (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
-                    {/* HEADER CARD - MINIMALIST */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80">
+
+          {/* HEADER CARD - MINIMALIST */}
           <div className="px-5 py-4 border-b border-slate-100 flex justify-between items-center">
             <h3 className="text-[13px] font-black text-slate-800 tracking-wider uppercase">Pengeluaran</h3>
             
@@ -170,9 +171,9 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
         </div>
       )}
 
-    {/* TABEL PANEN */}
+    {/* 🟢 TABEL PANEN */}
       {panen.length > 0 && (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80">
           <div className="px-5 py-4 border-b border-slate-100 flex justify-between items-center">
             <h3 className="text-[13px] font-black text-slate-800 tracking-wider uppercase">Panen</h3>
             
