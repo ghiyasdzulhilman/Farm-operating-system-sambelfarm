@@ -42,12 +42,16 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
     setColPanen((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const formatRupiah = (angka: number) =>
+    const formatRupiah = (angka: number) =>
     new Intl.NumberFormat("id-ID", { 
       style: "currency", 
       currency: "IDR", 
       maximumFractionDigits: 0 
     }).format(angka || 0);
+
+  // 🚀 FUNGSI BARU UNTUK FORMAT QTY/KUANTITAS
+  const formatAngka = (angka: any) => 
+    new Intl.NumberFormat("id-ID").format(Number(angka) || 0);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
@@ -141,7 +145,7 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
                     )}
                     {colPengeluaran.qty && (
                       <td className="px-5 py-4 text-right text-slate-600 font-medium whitespace-nowrap">
-                        {item.metaEkstra?.kuantitas || 1} {item.metaEkstra?.satuanKerja}
+                        {formatAngka(item.metaEkstra?.kuantitas || 1)} {item.metaEkstra?.satuanKerja}
                       </td>
                     )}
                     {colPengeluaran.hargaSatuan && (
@@ -247,9 +251,9 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
                     {colPanen.kegiatan && (
                       <td className="px-5 py-4 font-bold text-slate-800">{item.title}</td>
                     )}
-                   {colPanen.kuantitas && (
+                    {colPanen.kuantitas && (
                       <td className="px-5 py-4 text-right text-slate-600 font-medium whitespace-nowrap">
-                        {item.metaEkstra?.kuantitasKg} Kg
+                        {formatAngka(item.metaEkstra?.kuantitasKg)} Kg
                       </td>
                     )}
                     {colPanen.hargaJual && (
