@@ -42,7 +42,7 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
     setColPanen((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const formatRupiah = (angka: number) => ...
+  const formatRupiah = (angka: number) =>
     new Intl.NumberFormat("id-ID", { 
       style: "currency", 
       currency: "IDR", 
