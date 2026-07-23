@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useReactTable, getCoreRowModel, flexRender, type ColumnDef } from "@tanstack/react-table";
-import { Columns3, Check, Trash2 } from "lucide-react";
+import { Columns3, Check, Trash2, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
@@ -23,6 +23,7 @@ const formatAngka = (angka: any) =>
 // 🚀 KAMUS LABEL KOLOM
 const LABELS_PENGELUARAN: Record<string, string> = {
   tanggal: "Tanggal",
+  areaSiklus: "Area & Siklus", // 🚀 TAMBAHAN BARU
   kategori: "Kategori",
   namaItem: "Nama Item",
   qty: "Qty",
@@ -35,6 +36,7 @@ const LABELS_PANEN: Record<string, string> = {
   tanggal: "Tanggal",
   areaSiklus: "Area & Siklus",
   kegiatan: "Kegiatan",
+  kualitas: "Grade/Kualitas", // 🚀 TAMBAHAN BARU
   kuantitas: "Kuantitas",
   hargaJual: "Harga Jual / Kg",
   totalPendapatan: "Total Pendapatan",
@@ -147,10 +149,24 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
 
   // 💡 DEFINISI KOLOM PENGELUARAN
   const pengeluaranCols = useMemo<ColumnDef<any>[]>(() => [
-    {
+   {
       id: "tanggal",
       header: "Tanggal",
       cell: ({ row }) => <div className="font-medium text-muted-foreground">{new Date(row.original.rawDate).toLocaleDateString("id-ID")}</div>
+    },
+    {
+      id: "areaSiklus", // 🚀 KOLOM BARU: AREA & SIKLUS (BIAYA UMUM)
+      header: "Area & Siklus",
+      cell: ({ row }) => {
+        const area = row.original.area && row.original.area !== "Area Master" ? row.original.area : "-";
+        const siklus = row.original.namaSiklus && row.original.namaSiklus !== "-" ? row.original.namaSiklus : "Biaya Umum";
+        return (
+          <div>
+            <div className="font-bold text-foreground/90">{area}</div>
+            <div className="text-[11px] font-medium text-muted-foreground mt-0.5">{siklus}</div>
+          </div>
+        );
+      }
     },
     {
       id: "kategori",
@@ -162,10 +178,20 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
       )
     },
     {
-      id: "namaItem",
+      id: "namaItem", // 🚀 UPDATE: DITAMBAH BADGE STOK OTOMATIS
       header: "Nama Item",
-      cell: ({ row }) => <div className="font-bold text-foreground/90">{row.original.title}</div>
+      cell: ({ row }) => (
+        <div className="flex flex-col gap-1 items-start">
+          <div className="font-bold text-foreground/90">{row.original.title}</div>
+          {row.original.metaEkstra?.isPembelianStok && (
+            <span className="inline-flex items-center gap-1 bg-primary/10 text-primary border border-primary/20 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider">
+              <Package className="h-2.5 w-2.5" /> Stok
+            </span>
+          )}
+        </div>
+      )
     },
+
     {
       id: "qty",
       header: () => <div className="text-right w-full">Qty</div>,
@@ -232,6 +258,15 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
       id: "kegiatan",
       header: "Kegiatan",
       cell: ({ row }) => <div className="font-bold text-foreground/90">{row.original.title}</div>
+    },
+    {
+      id: "kualitas", // 🚀 KOLOM BARU: KUALITAS / GRADE
+      header: "Grade",
+      cell: ({ row }) => (
+        <div className="font-semibold text-muted-foreground text-xs">
+          {row.original.metaEkstra?.kualitas || "-"}
+        </div>
+      )
     },
     {
       id: "kuantitas",
