@@ -77,7 +77,6 @@ router.get("/harvest", async (req, res): Promise<void> => {
         hargaJualPerKg: panenTable.hargaJualPerKg,
         totalPendapatan: panenTable.totalPendapatan,
         kualitas: panenTable.kualitas,
-        channelPenjualan: panenTable.channelPenjualan,
         catatan: panenTable.catatan,
         areaId: panenTable.areaId,
         siklusId: panenTable.siklusId,
@@ -112,7 +111,6 @@ router.post("/harvest", async (req, res): Promise<void> => {
       kuantitasKg,
       hargaJualPerKg,
       kualitas,
-      channelPenjualan,
       catatan
     } = req.body;
 
@@ -148,7 +146,6 @@ router.post("/harvest", async (req, res): Promise<void> => {
       hargaJualPerKg: hargaNum,
       totalPendapatan: totalPendapatanKalkulasi,
       kualitas: kualitas || null,
-      channelPenjualan: channelPenjualan || null,
       catatan: catatan || null,
       createdBy: pekerjaId,
     }).returning();
@@ -169,7 +166,7 @@ router.put("/harvest/:id", async (req, res): Promise<void> => {
     if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
     const harvestId = req.params.id;
-    const { areaId, tanggal, kegiatan, kuantitasKg, hargaJualPerKg, kualitas, channelPenjualan, catatan } = req.body;
+    const { areaId, tanggal, kegiatan, kuantitasKg, hargaJualPerKg, kualitas, catatan } = req.body;
 
     // FIX 1: Ambil data existing dari database untuk jaga-jaga kalau update parsial
     const [existingHarvest] = await db
@@ -211,7 +208,6 @@ router.put("/harvest/:id", async (req, res): Promise<void> => {
       hargaJualPerKg: finalHarga,
       totalPendapatan: Math.round(finalQty * finalHarga), // FIX 3: Selalu kalkulasi ulang berdasarkan fallback
       kualitas: kualitas !== undefined ? kualitas : existingHarvest.kualitas,
-      channelPenjualan: channelPenjualan !== undefined ? channelPenjualan : existingHarvest.channelPenjualan,
       catatan: catatan !== undefined ? catatan : existingHarvest.catatan,
       updatedAt: new Date(),
     })
