@@ -81,7 +81,7 @@ router.get("/harvest", async (req, res): Promise<void> => {
         areaId: panenTable.areaId,
         siklusId: panenTable.siklusId,
         areaName: areasTable.name,
-        siklusName: siklusTanamTable.namaSiklus,
+        namaSiklus: siklusTanamTable.namaSiklus,
       })
       .from(panenTable)
       .leftJoin(areasTable, eq(panenTable.areaId, areasTable.id))
