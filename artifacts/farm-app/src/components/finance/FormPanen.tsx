@@ -86,11 +86,13 @@ export function FormPanen({ onSuccess }: { onSuccess?: () => void }) {
       return res.json();
     },
     onSuccess: (responseData) => {
-      queryClient.invalidateQueries({ queryKey: ["harvest"] });
-      setSubmittedRecords(responseData.data);
-      form.reset(EMPTY_VALUES);
-      onSuccess?.();
-    },
+  queryClient.invalidateQueries({ queryKey: ["harvest"] });
+  queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] }); 
+  
+  setSubmittedRecords(responseData.data);
+  form.reset(EMPTY_VALUES);
+  onSuccess?.();
+},
     onError: (err: any) => {
       toast({ title: "Gagal menyimpan", description: err.message, variant: "destructive" });
     },
