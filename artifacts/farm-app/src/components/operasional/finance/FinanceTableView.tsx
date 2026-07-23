@@ -106,17 +106,18 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
           </div>
           
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
+            <table className="w-full text-sm text-left min-w-[700px]">
+
               {/* THEAD - UPPERCASE ELEGAN */}
               <thead className="bg-slate-50/50 text-slate-500 border-b border-slate-100">
                 <tr>
-                  {colPengeluaran.tanggal && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider">Tanggal</th>}
-                  {colPengeluaran.kategori && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider">Kategori</th>}
-                  {colPengeluaran.namaItem && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider">Nama Item</th>}
-                  {colPengeluaran.qty && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-right">Qty</th>}
-                  {colPengeluaran.hargaSatuan && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-right">Harga Satuan</th>}
-                  {colPengeluaran.totalBiaya && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-right">Total Biaya</th>}
-                  {colPengeluaran.aksi && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-center">Aksi</th>}
+                  {colPengeluaran.tanggal && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap min-w-[110px]">Tanggal</th>}
+                  {colPengeluaran.kategori && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap min-w-[130px]">Kategori</th>}
+                  {colPengeluaran.namaItem && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap min-w-[180px]">Nama Item</th>}
+                  {colPengeluaran.qty && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-right whitespace-nowrap min-w-[110px]">Qty</th>}
+                  {colPengeluaran.hargaSatuan && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-right whitespace-nowrap min-w-[130px]">Harga Satuan</th>}
+                  {colPengeluaran.totalBiaya && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-right whitespace-nowrap min-w-[130px]">Total Biaya</th>}
+                  {colPengeluaran.aksi && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-center whitespace-nowrap min-w-[80px]">Aksi</th>}
                 </tr>
               </thead>
 
@@ -139,17 +140,17 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
                       <td className="px-5 py-4 font-bold text-slate-800">{item.title}</td>
                     )}
                     {colPengeluaran.qty && (
-                      <td className="px-5 py-4 text-right text-slate-600 font-medium">
+                      <td className="px-5 py-4 text-right text-slate-600 font-medium whitespace-nowrap">
                         {item.metaEkstra?.kuantitas || 1} {item.metaEkstra?.satuanKerja}
                       </td>
                     )}
                     {colPengeluaran.hargaSatuan && (
-                      <td className="px-5 py-4 text-right text-slate-600 font-medium">
+                      <td className="px-5 py-4 text-right text-slate-600 font-medium whitespace-nowrap">
                         {formatRupiah(Number(item.metaEkstra?.hargaSatuan))}
                       </td>
                     )}
                     {colPengeluaran.totalBiaya && (
-                      <td className="px-5 py-4 text-right font-black text-slate-800">
+                      <td className="px-5 py-4 text-right font-black text-slate-800 whitespace-nowrap">
                         {formatRupiah(item.metaEkstra?.totalBiaya)}
                       </td>
                     )}
@@ -214,17 +215,18 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
+            <table className="w-full text-sm text-left min-w-[700px]">
+
               {/* THEAD - UPPERCASE ELEGAN */}
-             <thead className="bg-slate-50/50 text-slate-500 border-b border-slate-100">
+            <thead className="bg-slate-50/50 text-slate-500 border-b border-slate-100">
                 <tr>
-                  {colPanen.tanggal && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider">Tanggal</th>}
-                  {colPanen.areaSiklus && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider">Area & Siklus</th>}
-                  {colPanen.kegiatan && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider">Kegiatan</th>}
-                  {colPanen.kuantitas && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-right">Kuantitas</th>}
-                  {colPanen.hargaJual && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-right">Harga Jual / Kg</th>}
-                  {colPanen.totalPendapatan && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-right">Total Pendapatan</th>}
-                  {colPanen.aksi && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-center">Aksi</th>}
+                  {colPanen.tanggal && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap min-w-[110px]">Tanggal</th>}
+                  {colPanen.areaSiklus && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap min-w-[140px]">Area & Siklus</th>}
+                  {colPanen.kegiatan && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap min-w-[160px]">Kegiatan</th>}
+                  {colPanen.kuantitas && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-right whitespace-nowrap min-w-[110px]">Kuantitas</th>}
+                  {colPanen.hargaJual && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-right whitespace-nowrap min-w-[130px]">Harga Jual / Kg</th>}
+                  {colPanen.totalPendapatan && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-right whitespace-nowrap min-w-[140px]">Total Pendapatan</th>}
+                  {colPanen.aksi && <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-center whitespace-nowrap min-w-[80px]">Aksi</th>}
                 </tr>
               </thead>
 
@@ -245,18 +247,18 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
                     {colPanen.kegiatan && (
                       <td className="px-5 py-4 font-bold text-slate-800">{item.title}</td>
                     )}
-                    {colPanen.kuantitas && (
-                      <td className="px-5 py-4 text-right text-slate-600 font-medium">
+                   {colPanen.kuantitas && (
+                      <td className="px-5 py-4 text-right text-slate-600 font-medium whitespace-nowrap">
                         {item.metaEkstra?.kuantitasKg} Kg
                       </td>
                     )}
                     {colPanen.hargaJual && (
-                      <td className="px-5 py-4 text-right text-slate-600 font-medium">
+                      <td className="px-5 py-4 text-right text-slate-600 font-medium whitespace-nowrap">
                         {formatRupiah(item.metaEkstra?.hargaJualPerKg)}
                       </td>
                     )}
                     {colPanen.totalPendapatan && (
-                      <td className="px-5 py-4 text-right font-black text-slate-800">
+                      <td className="px-5 py-4 text-right font-black text-slate-800 whitespace-nowrap">
                         {formatRupiah(item.metaEkstra?.totalPendapatan)}
                       </td>
                     )}
