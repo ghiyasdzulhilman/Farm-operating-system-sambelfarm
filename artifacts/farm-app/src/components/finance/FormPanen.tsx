@@ -29,7 +29,6 @@ const panenSchema = z.object({
   kuantitasKg: z.coerce.number().min(0.1, "Kuantitas wajib diisi (Min. 0.1 Kg)"),
   hargaJualPerKg: z.coerce.number().min(1, "Harga jual wajib diisi"),
   kualitas: z.string().optional(),
-  channelPenjualan: z.string().optional(),
   catatan: z.string().optional(),
 });
 
@@ -42,7 +41,6 @@ const EMPTY_VALUES: PanenFormValues = {
   kuantitasKg: 0,
   hargaJualPerKg: 0,
   kualitas: "",
-  channelPenjualan: "",
   catatan: "",
 };
 
@@ -297,13 +295,6 @@ export function FormPanen({ onSuccess }: { onSuccess?: () => void }) {
                 <SelectItem value="Sortiran">Sortiran</SelectItem>
               </SelectContent>
             </Select>
-          </FormItem>
-        )} />
-        
-        <FormField control={form.control} name="channelPenjualan" render={({ field }) => (
-          <FormItem className="space-y-1.5">
-            <FormLabel className="text-[10px] font-bold text-muted-foreground uppercase"><ShoppingCart className="inline-block h-3 w-3 mr-1" />Pembeli</FormLabel>
-            <FormControl><Input className="h-11 rounded-xl bg-background border-input text-xs font-medium" placeholder="Cth: Tengkulak..." {...field} /></FormControl>
           </FormItem>
         )} />
       </div>
