@@ -38,18 +38,17 @@ export function AgronomyHubPage() {
   const [filterSiklus, setFilterSiklus] = useState<"aktif" | "selesai">("aktif"); 
   const [selectedItem, setSelectedItem] = useState<AgronomyItem | null>(null);
 
-  // 🚀 OTAK AUTO-RESET: Mencegah layar nge-blank & bentrok UI
   useEffect(() => {
-    // 1. Balikin semua ke default kalau ganti domain
-    setActiveModule("all");
-    setActiveTimeFilter("Hari ini");
-    setActiveStatusFilter("Semua Status");
-    
-    // 2. Kalau pindah ke Finance tapi view lagi di Kanban, paksa pindah ke Table
-    if (activeDomain === "finance" && activeView === "kanban") {
-      setActiveView("table");
-    }
-  }, [activeDomain, activeView]);
+  setActiveModule("all");
+  // 🚀 FIX 1: Ubah default ke "Semua Waktu" biar data baru langsung kelihatan!
+  setActiveTimeFilter("Semua Waktu"); 
+  setActiveStatusFilter("Semua Status");
+  
+  if (activeDomain === "finance" && activeView === "kanban") {
+    setActiveView("table");
+  }
+// 🚀 FIX 2: Hapus activeView dari sini, biar filter ga ke-reset mulu pas ganti tampilan
+}, [activeDomain]); 
 
   // =====================================================================
   // 1. FETCH DATA (LANGSUNG DARI 3 ENDPOINT SUPABASE + MASTER PEKERJA)
