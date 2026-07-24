@@ -329,25 +329,3 @@ Dipanggil dari `perawatan.ts` (pemakaian produk) — fungsi tunggal yang **wajib
 9. **Frontend memanggil API langsung** — Mayoritas komponen frontend pakai `fetch("/api/...")` mentah di dalam `useQuery`/`useMutation`, BUKAN lewat hook hasil generate Orval (`@workspace/api-client-react`). Package tersebut hanya dipakai untuk `getGetDashboardSummaryQueryKey()` (invalidasi cache), bukan fetching data. `openapi.yaml` juga baru punya 2 path (`/healthz`, `/dashboard/summary`) — endpoint finance yang baru migrasi belum masuk spec.
 
 ---
-
-## 7. Temuan Kritis Yang Belum Diselesaikan
-
-Bawa ke sesi kerja berikutnya sebelum data produksi makin menumpuk:
-
-1. **Constraint `total_biaya_konsisten_v2` di `pengeluaran` terlalu longgar**: toleransi `ABS(total - kuantitas×harga) <= (ROUND(kuantitas) + 100)` bersifat proporsional ke *kuantitas*, bukan ke *uang*. Untuk pembelian stok bervolume besar, constraint ini nyaris tidak lagi menangkap kesalahan input. Perlu diklarifikasi apakah ini disengaja atau kelonggaran tak sengaja.
-2. **Pengeluaran baru selalu insert `areaId: null` & `siklusId: null`** (disengaja — dianggap "Biaya Umum"), tapi `dashboard.ts` tetap menghitung margin/profit per-area dengan agregasi `pengeluaranTable.areaId`. Akibatnya breakdown margin per-area di dashboard **tidak lagi menghitung biaya untuk transaksi baru** — berpotensi menampilkan margin per-area yang terlalu optimis.
-3. **Tidak ada migration history Drizzle** (tidak ada folder `drizzle/`, kemungkinan pakai `push` langsung) dan **nol test file** di seluruh kodebase — risikonya makin nyata karena kode finance yang menghitung uang & HPP sudah live tanpa pengaman ini.
-4. **`openapi.yaml` cuma 2 path** — endpoint finance baru (pengeluaran, harvest, finance/kategori) belum masuk spec, jadi belum dapat type-safety dari Orval codegen.
-5. **`home.tsx` masih mempromosikan "Smart Sync & Notion Pipeline"** — kontradiksi 180° dengan arsitektur aktual yang sudah 100% Postgres.
-6. **Belum ada endpoint edit/hapus untuk Pengeluaran individual** (beda dengan Panen yang CRUD-nya lengkap).
-7. **Rename `/notion/*` → `/api/agronomy/*`** masih belum dikerjakan (kosmetik, prioritas rendah).
-8. **Placeholder "Coming Soon" di `MasterHubPage`**: Peralatan, Mutasi Stok, Kehadiran, Cuaca — sudah dipetakan di UI tapi belum diimplementasikan sama sekali.
-9. **Duplikasi helper timezone** (`parseWIB`/`toWIBString`) di `perawatan.ts` dan `operasional.ts` — belum di-extract ke shared util.
-
----
-
-## 8. Cara Pakai Dokumen Ini di Percakapan Baru
-
-Copy-paste seluruh isi file ini di awal percakapan baru dengan AI apapun, lalu jelaskan task spesifik yang mau dikerjakan (misal: "mau nambah endpoint edit pengeluaran" atau "mau fix temuan #2 soal margin per-area"). AI akan langsung punya konteks penuh tanpa perlu re-audit source code dari awal.
-
-**Tips update dokumen:** Setiap kali ada perubahan besar (modul baru, migrasi selesai, endpoint baru), minta AI regenerate bagian yang relevan dari dokumen ini berdasarkan source code terbaru — jangan cuma edit manual, supaya tetap akurat 100% dengan kondisi kode aktual.
