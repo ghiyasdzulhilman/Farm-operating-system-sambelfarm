@@ -14,8 +14,8 @@ import {
   uniqueIndex,
   index,
   varchar,
+  foreignKey,
 } from "drizzle-orm/pg-core";
-import { sql } from "drizzle-orm";
 
 // ==========================================
 // 0. TENANT TABLE (MULTI-TENANT FOUNDATION)
@@ -38,6 +38,7 @@ export const areasTable = pgTable("areas", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("areas_organisasi_idx").on(table.organisasiId),
+  uniqueIndex("areas_id_org_unique").on(table.id, table.organisasiId),
 ]);
 
 export const pekerjaAtributMasterTable = pgTable("pekerja_atribut_master", {
@@ -66,6 +67,7 @@ export const pekerjaTable = pgTable("pekerja", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("pekerja_organisasi_idx").on(table.organisasiId),
+  uniqueIndex("pekerja_id_org_unique").on(table.id, table.organisasiId),
 ]);
 
 export const kategoriTable = pgTable("kategori_master", {
@@ -106,6 +108,7 @@ export const siklusTanamTable = pgTable("siklus_tanam", {
   index("siklus_organisasi_idx").on(table.organisasiId),
   check("modal_awal_non_negative", sql`${table.modalAwal} >= 0`),
   check("status_siklus_valid", sql`${table.status} IN ('Aktif', 'Selesai', 'Ditutup')`),
+  uniqueIndex("siklus_tanam_id_org_unique").on(table.id, table.organisasiId),
 ]);
 
 export const produkMasterTable = pgTable("produk_master", {
@@ -139,6 +142,7 @@ export const produkMasterTable = pgTable("produk_master", {
   check("harga_non_negative", sql`${table.hargaPerSatuanDasar} >= 0`),
   // Nama produk (case-insensitive) unik PER organisasi
   uniqueIndex("produk_master_nama_org_lower_unique").on(sql`lower(${table.nama})`, table.organisasiId),
+  uniqueIndex("produk_master_id_org_unique").on(table.id, table.organisasiId),
 ]);
 
 // ==========================================
@@ -295,16 +299,17 @@ export const kategoriKeuanganTable = pgTable("kategori_keuangan", {
   check("tipe_valid", sql`${table.tipe} IN ('pengeluaran', 'pendapatan')`),
   // Kategori keuangan spesifik per organisasi
   uniqueIndex("kategori_keuangan_nama_org_lower_unique").on(sql`lower(${table.nama})`, table.organisasiId),
+  uniqueIndex("kategori_keuangan_id_org_unique").on(table.id, table.organisasiId),
 ]);
 
 export const pengeluaranTable = pgTable("pengeluaran", {
   id: uuid("id").defaultRandom().primaryKey(),
   organisasiId: uuid("organisasi_id").references(() => organisasiTable.id, { onDelete: "cascade" }).notNull(),
-  areaId: uuid("area_id").references(() => areasTable.id, { onDelete: "set null" }),
-  siklusId: uuid("siklus_id").references(() => siklusTanamTable.id, { onDelete: "set null" }),
-  kategoriId: uuid("kategori_id").references(() => kategoriKeuanganTable.id, { onDelete: "set null" }),
-  produkId: uuid("produk_id").references(() => produkMasterTable.id, { onDelete: "set null" }),
-  pekerjaId: uuid("pekerja_id").references(() => pekerjaTable.id, { onDelete: "set null" }),
+  areaId: uuid("area_id"),
+  siklusId: uuid("siklus_id"),
+  kategoriId: uuid("kategori_id"),
+  produkId: uuid("produk_id"),
+  pekerjaId: uuid("pekerja_id"),
 
   tanggal: timestamp("tanggal").defaultNow().notNull(),
   namaItem: text("nama_item").notNull(),
@@ -319,7 +324,7 @@ export const pengeluaranTable = pgTable("pengeluaran", {
   catatan: text("catatan"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  createdBy: uuid("created_by").references(() => pekerjaTable.id, { onDelete: "set null" }),
+  createdBy: uuid("created_by"),
 }, (table) => [
   index("pengeluaran_organisasi_idx").on(table.organisasiId),
   check("kuantitas_non_negative", sql`${table.kuantitas} >= 0`),
@@ -330,13 +335,39 @@ export const pengeluaranTable = pgTable("pengeluaran", {
   index("pengeluaran_area_idx").on(table.areaId),
   index("pengeluaran_siklus_idx").on(table.siklusId),
   index("pengeluaran_tanggal_idx").on(table.tanggal),
+
+  // Composite Foreign Keys (Memaksa referensi wajib dari organisasi yang sama)
+  foreignKey({
+    columns: [table.areaId, table.organisasiId],
+    foreignColumns: [areasTable.id, areasTable.organisasiId],
+  }).onDelete("set null"),
+  foreignKey({
+    columns: [table.siklusId, table.organisasiId],
+    foreignColumns: [siklusTanamTable.id, siklusTanamTable.organisasiId],
+  }).onDelete("set null"),
+  foreignKey({
+    columns: [table.kategoriId, table.organisasiId],
+    foreignColumns: [kategoriKeuanganTable.id, kategoriKeuanganTable.organisasiId],
+  }).onDelete("set null"),
+  foreignKey({
+    columns: [table.produkId, table.organisasiId],
+    foreignColumns: [produkMasterTable.id, produkMasterTable.organisasiId],
+  }).onDelete("set null"),
+  foreignKey({
+    columns: [table.pekerjaId, table.organisasiId],
+    foreignColumns: [pekerjaTable.id, pekerjaTable.organisasiId],
+  }).onDelete("set null"),
+  foreignKey({
+    columns: [table.createdBy, table.organisasiId],
+    foreignColumns: [pekerjaTable.id, pekerjaTable.organisasiId],
+  }).onDelete("set null"),
 ]);
 
 export const panenTable = pgTable("panen", {
   id: uuid("id").defaultRandom().primaryKey(),
   organisasiId: uuid("organisasi_id").references(() => organisasiTable.id, { onDelete: "cascade" }).notNull(),
-  areaId: uuid("area_id").references(() => areasTable.id, { onDelete: "set null" }),
-  siklusId: uuid("siklus_id").references(() => siklusTanamTable.id, { onDelete: "set null" }), 
+  areaId: uuid("area_id"),
+  siklusId: uuid("siklus_id"), 
 
   tanggal: timestamp("tanggal").defaultNow().notNull(),
   kegiatan: text("kegiatan").notNull(),
@@ -349,7 +380,7 @@ export const panenTable = pgTable("panen", {
 
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  createdBy: uuid("created_by").references(() => pekerjaTable.id, { onDelete: "set null" }),
+  createdBy: uuid("created_by"),
 }, (table) => [
   index("panen_organisasi_idx").on(table.organisasiId),
   check("kuantitas_kg_non_negative", sql`${table.kuantitasKg} >= 0`),
@@ -358,6 +389,20 @@ export const panenTable = pgTable("panen", {
   index("panen_area_idx").on(table.areaId),
   index("panen_siklus_idx").on(table.siklusId),
   index("panen_tanggal_idx").on(table.tanggal),
+
+  // Composite Foreign Keys (Memaksa referensi wajib dari organisasi yang sama)
+  foreignKey({
+    columns: [table.areaId, table.organisasiId],
+    foreignColumns: [areasTable.id, areasTable.organisasiId],
+  }).onDelete("set null"),
+  foreignKey({
+    columns: [table.siklusId, table.organisasiId],
+    foreignColumns: [siklusTanamTable.id, siklusTanamTable.organisasiId],
+  }).onDelete("set null"),
+  foreignKey({
+    columns: [table.createdBy, table.organisasiId],
+    foreignColumns: [pekerjaTable.id, pekerjaTable.organisasiId],
+  }).onDelete("set null"),
 ]);
 
 // ==========================================
@@ -367,7 +412,7 @@ export const panenTable = pgTable("panen", {
 export const stockMovementTable = pgTable("stock_movement", {
   id: uuid("id").defaultRandom().primaryKey(),
   organisasiId: uuid("organisasi_id").references(() => organisasiTable.id, { onDelete: "cascade" }).notNull(),
-  produkId: uuid("produk_id").references(() => produkMasterTable.id, { onDelete: "restrict" }).notNull(),
+  produkId: uuid("produk_id").notNull(),
 
   tipe: text("tipe").notNull(), 
   delta: numeric("delta", { precision: 18, scale: 3 }).notNull(), 
@@ -388,4 +433,11 @@ export const stockMovementTable = pgTable("stock_movement", {
   check("stock_movement_source_exclusive", sql`NOT (${table.perawatanProdukId} IS NOT NULL AND ${table.pengeluaranId} IS NOT NULL)`),
   index("stock_movement_produk_idx").on(table.produkId),
   index("stock_movement_created_idx").on(table.createdAt),
+
+  // Composite Foreign Key (Memaksa referensi produk wajib dari organisasi yang sama)
+  foreignKey({
+    columns: [table.produkId, table.organisasiId],
+    foreignColumns: [produkMasterTable.id, produkMasterTable.organisasiId],
+  }).onDelete("restrict"),
 ]);
+
