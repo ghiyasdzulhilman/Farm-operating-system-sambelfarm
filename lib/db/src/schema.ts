@@ -16,6 +16,7 @@ import {
   varchar,
   foreignKey,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 // ==========================================
 // 0. TENANT TABLE (MULTI-TENANT FOUNDATION)
