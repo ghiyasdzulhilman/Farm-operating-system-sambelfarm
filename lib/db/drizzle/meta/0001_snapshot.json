@@ -1,0 +1,3133 @@
+{
+  "id": "deb1e53c-42c3-4749-81ee-2fa2dab82c76",
+  "prevId": "a5e37a30-0d3c-48ec-bb9c-baa14fa8c29a",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.areas": {
+      "name": "areas",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organisasi_id": {
+          "name": "organisasi_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "areas_organisasi_idx": {
+          "name": "areas_organisasi_idx",
+          "columns": [
+            {
+              "expression": "organisasi_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "areas_id_org_unique": {
+          "name": "areas_id_org_unique",
+          "columns": [
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "organisasi_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "areas_organisasi_id_organisasi_id_fk": {
+          "name": "areas_organisasi_id_organisasi_id_fk",
+          "tableFrom": "areas",
+          "tableTo": "organisasi",
+          "columnsFrom": [
+            "organisasi_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.inspeksi_pekerja": {
+      "name": "inspeksi_pekerja",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "inspeksi_id": {
+          "name": "inspeksi_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pekerja_id": {
+          "name": "pekerja_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "peran": {
+          "name": "peran",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "inspeksi_pekerja_unique": {
+          "name": "inspeksi_pekerja_unique",
+          "columns": [
+            {
+              "expression": "inspeksi_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "pekerja_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "inspeksi_pekerja_pekerja_idx": {
+          "name": "inspeksi_pekerja_pekerja_idx",
+          "columns": [
+            {
+              "expression": "pekerja_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "inspeksi_pekerja_inspeksi_id_inspeksi_id_fk": {
+          "name": "inspeksi_pekerja_inspeksi_id_inspeksi_id_fk",
+          "tableFrom": "inspeksi_pekerja",
+          "tableTo": "inspeksi",
+          "columnsFrom": [
+            "inspeksi_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "inspeksi_pekerja_pekerja_id_pekerja_id_fk": {
+          "name": "inspeksi_pekerja_pekerja_id_pekerja_id_fk",
+          "tableFrom": "inspeksi_pekerja",
+          "tableTo": "pekerja",
+          "columnsFrom": [
+            "pekerja_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.inspeksi": {
+      "name": "inspeksi",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organisasi_id": {
+          "name": "organisasi_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kegiatan": {
+          "name": "kegiatan",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "area_id": {
+          "name": "area_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "siklus_id": {
+          "name": "siklus_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "waktu_mulai": {
+          "name": "waktu_mulai",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "waktu_selesai": {
+          "name": "waktu_selesai",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "durasi_kerja": {
+          "name": "durasi_kerja",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "ph_tanah": {
+          "name": "ph_tanah",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tingkat_serangan": {
+          "name": "tingkat_serangan",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "radius": {
+          "name": "radius",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Baru ditemukan'"
+        },
+        "keterangan": {
+          "name": "keterangan",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "inspeksi_organisasi_idx": {
+          "name": "inspeksi_organisasi_idx",
+          "columns": [
+            {
+              "expression": "organisasi_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "inspeksi_area_idx": {
+          "name": "inspeksi_area_idx",
+          "columns": [
+            {
+              "expression": "area_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "inspeksi_siklus_idx": {
+          "name": "inspeksi_siklus_idx",
+          "columns": [
+            {
+              "expression": "siklus_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "inspeksi_organisasi_id_organisasi_id_fk": {
+          "name": "inspeksi_organisasi_id_organisasi_id_fk",
+          "tableFrom": "inspeksi",
+          "tableTo": "organisasi",
+          "columnsFrom": [
+            "organisasi_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "inspeksi_area_id_areas_id_fk": {
+          "name": "inspeksi_area_id_areas_id_fk",
+          "tableFrom": "inspeksi",
+          "tableTo": "areas",
+          "columnsFrom": [
+            "area_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "inspeksi_siklus_id_siklus_tanam_id_fk": {
+          "name": "inspeksi_siklus_id_siklus_tanam_id_fk",
+          "tableFrom": "inspeksi",
+          "tableTo": "siklus_tanam",
+          "columnsFrom": [
+            "siklus_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "inspeksi_created_by_pekerja_id_fk": {
+          "name": "inspeksi_created_by_pekerja_id_fk",
+          "tableFrom": "inspeksi",
+          "tableTo": "pekerja",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.inspeksi_temuan": {
+      "name": "inspeksi_temuan",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "inspeksi_id": {
+          "name": "inspeksi_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kendala_master_id": {
+          "name": "kendala_master_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "catatan_khusus": {
+          "name": "catatan_khusus",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "inspeksi_temuan_inspeksi_idx": {
+          "name": "inspeksi_temuan_inspeksi_idx",
+          "columns": [
+            {
+              "expression": "inspeksi_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "inspeksi_temuan_inspeksi_id_inspeksi_id_fk": {
+          "name": "inspeksi_temuan_inspeksi_id_inspeksi_id_fk",
+          "tableFrom": "inspeksi_temuan",
+          "tableTo": "inspeksi",
+          "columnsFrom": [
+            "inspeksi_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "inspeksi_temuan_kendala_master_id_kendala_master_id_fk": {
+          "name": "inspeksi_temuan_kendala_master_id_kendala_master_id_fk",
+          "tableFrom": "inspeksi_temuan",
+          "tableTo": "kendala_master",
+          "columnsFrom": [
+            "kendala_master_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.kategori_keuangan": {
+      "name": "kategori_keuangan",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organisasi_id": {
+          "name": "organisasi_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nama": {
+          "name": "nama",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tipe": {
+          "name": "tipe",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "keterangan": {
+          "name": "keterangan",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "kat_keuangan_organisasi_idx": {
+          "name": "kat_keuangan_organisasi_idx",
+          "columns": [
+            {
+              "expression": "organisasi_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "kategori_keuangan_nama_org_lower_unique": {
+          "name": "kategori_keuangan_nama_org_lower_unique",
+          "columns": [
+            {
+              "expression": "lower(\"nama\")",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "organisasi_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "kategori_keuangan_id_org_unique": {
+          "name": "kategori_keuangan_id_org_unique",
+          "columns": [
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "organisasi_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "kategori_keuangan_organisasi_id_organisasi_id_fk": {
+          "name": "kategori_keuangan_organisasi_id_organisasi_id_fk",
+          "tableFrom": "kategori_keuangan",
+          "tableTo": "organisasi",
+          "columnsFrom": [
+            "organisasi_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "kategori_keuangan_created_by_pekerja_id_fk": {
+          "name": "kategori_keuangan_created_by_pekerja_id_fk",
+          "tableFrom": "kategori_keuangan",
+          "tableTo": "pekerja",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "tipe_valid": {
+          "name": "tipe_valid",
+          "value": "\"kategori_keuangan\".\"tipe\" IN ('pengeluaran', 'pendapatan')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.kategori_master": {
+      "name": "kategori_master",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organisasi_id": {
+          "name": "organisasi_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "module": {
+          "name": "module",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "kategori_organisasi_idx": {
+          "name": "kategori_organisasi_idx",
+          "columns": [
+            {
+              "expression": "organisasi_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "kategori_master_organisasi_id_organisasi_id_fk": {
+          "name": "kategori_master_organisasi_id_organisasi_id_fk",
+          "tableFrom": "kategori_master",
+          "tableTo": "organisasi",
+          "columnsFrom": [
+            "organisasi_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.kendala_master": {
+      "name": "kendala_master",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organisasi_id": {
+          "name": "organisasi_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nama": {
+          "name": "nama",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "jenis": {
+          "name": "jenis",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "kendala_organisasi_idx": {
+          "name": "kendala_organisasi_idx",
+          "columns": [
+            {
+              "expression": "organisasi_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "kendala_nama_org_unique": {
+          "name": "kendala_nama_org_unique",
+          "columns": [
+            {
+              "expression": "nama",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "organisasi_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "kendala_master_organisasi_id_organisasi_id_fk": {
+          "name": "kendala_master_organisasi_id_organisasi_id_fk",
+          "tableFrom": "kendala_master",
+          "tableTo": "organisasi",
+          "columnsFrom": [
+            "organisasi_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.operasional_pekerja": {
+      "name": "operasional_pekerja",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "operasional_id": {
+          "name": "operasional_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pekerja_id": {
+          "name": "pekerja_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "peran": {
+          "name": "peran",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "operasional_pekerja_unique": {
+          "name": "operasional_pekerja_unique",
+          "columns": [
+            {
+              "expression": "operasional_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "pekerja_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "operasional_pekerja_pekerja_idx": {
+          "name": "operasional_pekerja_pekerja_idx",
+          "columns": [
+            {
+              "expression": "pekerja_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "operasional_pekerja_operasional_id_operasional_id_fk": {
+          "name": "operasional_pekerja_operasional_id_operasional_id_fk",
+          "tableFrom": "operasional_pekerja",
+          "tableTo": "operasional",
+          "columnsFrom": [
+            "operasional_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "operasional_pekerja_pekerja_id_pekerja_id_fk": {
+          "name": "operasional_pekerja_pekerja_id_pekerja_id_fk",
+          "tableFrom": "operasional_pekerja",
+          "tableTo": "pekerja",
+          "columnsFrom": [
+            "pekerja_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.operasional": {
+      "name": "operasional",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organisasi_id": {
+          "name": "organisasi_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nama_pekerjaan": {
+          "name": "nama_pekerjaan",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "area_id": {
+          "name": "area_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "siklus_id": {
+          "name": "siklus_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "waktu_mulai": {
+          "name": "waktu_mulai",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "waktu_selesai": {
+          "name": "waktu_selesai",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "durasi_kerja": {
+          "name": "durasi_kerja",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "kategori_id": {
+          "name": "kategori_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "prioritas": {
+          "name": "prioritas",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Medium'"
+        },
+        "jenis_tenaga_kerja_id": {
+          "name": "jenis_tenaga_kerja_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Belum dikerjakan'"
+        },
+        "catatan": {
+          "name": "catatan",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "operasional_organisasi_idx": {
+          "name": "operasional_organisasi_idx",
+          "columns": [
+            {
+              "expression": "organisasi_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "operasional_area_idx": {
+          "name": "operasional_area_idx",
+          "columns": [
+            {
+              "expression": "area_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "operasional_siklus_idx": {
+          "name": "operasional_siklus_idx",
+          "columns": [
+            {
+              "expression": "siklus_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "operasional_organisasi_id_organisasi_id_fk": {
+          "name": "operasional_organisasi_id_organisasi_id_fk",
+          "tableFrom": "operasional",
+          "tableTo": "organisasi",
+          "columnsFrom": [
+            "organisasi_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "operasional_area_id_areas_id_fk": {
+          "name": "operasional_area_id_areas_id_fk",
+          "tableFrom": "operasional",
+          "tableTo": "areas",
+          "columnsFrom": [
+            "area_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "operasional_siklus_id_siklus_tanam_id_fk": {
+          "name": "operasional_siklus_id_siklus_tanam_id_fk",
+          "tableFrom": "operasional",
+          "tableTo": "siklus_tanam",
+          "columnsFrom": [
+            "siklus_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "operasional_kategori_id_kategori_master_id_fk": {
+          "name": "operasional_kategori_id_kategori_master_id_fk",
+          "tableFrom": "operasional",
+          "tableTo": "kategori_master",
+          "columnsFrom": [
+            "kategori_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "operasional_jenis_tenaga_kerja_id_pekerja_atribut_master_id_fk": {
+          "name": "operasional_jenis_tenaga_kerja_id_pekerja_atribut_master_id_fk",
+          "tableFrom": "operasional",
+          "tableTo": "pekerja_atribut_master",
+          "columnsFrom": [
+            "jenis_tenaga_kerja_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "operasional_created_by_pekerja_id_fk": {
+          "name": "operasional_created_by_pekerja_id_fk",
+          "tableFrom": "operasional",
+          "tableTo": "pekerja",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.organisasi": {
+      "name": "organisasi",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "nama": {
+          "name": "nama",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.panen": {
+      "name": "panen",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organisasi_id": {
+          "name": "organisasi_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "area_id": {
+          "name": "area_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "siklus_id": {
+          "name": "siklus_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tanggal": {
+          "name": "tanggal",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "kegiatan": {
+          "name": "kegiatan",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kuantitas_kg": {
+          "name": "kuantitas_kg",
+          "type": "numeric(18, 3)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "harga_jual_per_kg": {
+          "name": "harga_jual_per_kg",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "total_pendapatan": {
+          "name": "total_pendapatan",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kualitas": {
+          "name": "kualitas",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "catatan": {
+          "name": "catatan",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "panen_organisasi_idx": {
+          "name": "panen_organisasi_idx",
+          "columns": [
+            {
+              "expression": "organisasi_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "panen_area_idx": {
+          "name": "panen_area_idx",
+          "columns": [
+            {
+              "expression": "area_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "panen_siklus_idx": {
+          "name": "panen_siklus_idx",
+          "columns": [
+            {
+              "expression": "siklus_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "panen_tanggal_idx": {
+          "name": "panen_tanggal_idx",
+          "columns": [
+            {
+              "expression": "tanggal",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "panen_organisasi_id_organisasi_id_fk": {
+          "name": "panen_organisasi_id_organisasi_id_fk",
+          "tableFrom": "panen",
+          "tableTo": "organisasi",
+          "columnsFrom": [
+            "organisasi_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "panen_area_id_organisasi_id_areas_id_organisasi_id_fk": {
+          "name": "panen_area_id_organisasi_id_areas_id_organisasi_id_fk",
+          "tableFrom": "panen",
+          "tableTo": "areas",
+          "columnsFrom": [
+            "area_id",
+            "organisasi_id"
+          ],
+          "columnsTo": [
+            "id",
+            "organisasi_id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "panen_siklus_id_organisasi_id_siklus_tanam_id_organisasi_id_fk": {
+          "name": "panen_siklus_id_organisasi_id_siklus_tanam_id_organisasi_id_fk",
+          "tableFrom": "panen",
+          "tableTo": "siklus_tanam",
+          "columnsFrom": [
+            "siklus_id",
+            "organisasi_id"
+          ],
+          "columnsTo": [
+            "id",
+            "organisasi_id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "panen_created_by_organisasi_id_pekerja_id_organisasi_id_fk": {
+          "name": "panen_created_by_organisasi_id_pekerja_id_organisasi_id_fk",
+          "tableFrom": "panen",
+          "tableTo": "pekerja",
+          "columnsFrom": [
+            "created_by",
+            "organisasi_id"
+          ],
+          "columnsTo": [
+            "id",
+            "organisasi_id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "kuantitas_kg_non_negative": {
+          "name": "kuantitas_kg_non_negative",
+          "value": "\"panen\".\"kuantitas_kg\" >= 0"
+        },
+        "harga_jual_non_negative": {
+          "name": "harga_jual_non_negative",
+          "value": "\"panen\".\"harga_jual_per_kg\" >= 0"
+        },
+        "total_pendapatan_konsisten": {
+          "name": "total_pendapatan_konsisten",
+          "value": "ABS(\"panen\".\"total_pendapatan\" - ROUND(\"panen\".\"kuantitas_kg\" * \"panen\".\"harga_jual_per_kg\")) <= 1"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.pekerja_atribut_master": {
+      "name": "pekerja_atribut_master",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organisasi_id": {
+          "name": "organisasi_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nama_option": {
+          "name": "nama_option",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "jenis_atribut": {
+          "name": "jenis_atribut",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "pekerja_atribut_organisasi_idx": {
+          "name": "pekerja_atribut_organisasi_idx",
+          "columns": [
+            {
+              "expression": "organisasi_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "pekerja_atribut_nama_jenis_org_unique": {
+          "name": "pekerja_atribut_nama_jenis_org_unique",
+          "columns": [
+            {
+              "expression": "nama_option",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "jenis_atribut",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "organisasi_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "pekerja_atribut_master_organisasi_id_organisasi_id_fk": {
+          "name": "pekerja_atribut_master_organisasi_id_organisasi_id_fk",
+          "tableFrom": "pekerja_atribut_master",
+          "tableTo": "organisasi",
+          "columnsFrom": [
+            "organisasi_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.pekerja": {
+      "name": "pekerja",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organisasi_id": {
+          "name": "organisasi_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "clerk_user_id": {
+          "name": "clerk_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nama": {
+          "name": "nama",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kontak": {
+          "name": "kontak",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "role_id": {
+          "name": "role_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "jenis_tenaga_kerja_id": {
+          "name": "jenis_tenaga_kerja_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status_id": {
+          "name": "status_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mulai_bekerja": {
+          "name": "mulai_bekerja",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted": {
+          "name": "deleted",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "pekerja_organisasi_idx": {
+          "name": "pekerja_organisasi_idx",
+          "columns": [
+            {
+              "expression": "organisasi_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "pekerja_id_org_unique": {
+          "name": "pekerja_id_org_unique",
+          "columns": [
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "organisasi_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "pekerja_organisasi_id_organisasi_id_fk": {
+          "name": "pekerja_organisasi_id_organisasi_id_fk",
+          "tableFrom": "pekerja",
+          "tableTo": "organisasi",
+          "columnsFrom": [
+            "organisasi_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "pekerja_role_id_pekerja_atribut_master_id_fk": {
+          "name": "pekerja_role_id_pekerja_atribut_master_id_fk",
+          "tableFrom": "pekerja",
+          "tableTo": "pekerja_atribut_master",
+          "columnsFrom": [
+            "role_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "pekerja_jenis_tenaga_kerja_id_pekerja_atribut_master_id_fk": {
+          "name": "pekerja_jenis_tenaga_kerja_id_pekerja_atribut_master_id_fk",
+          "tableFrom": "pekerja",
+          "tableTo": "pekerja_atribut_master",
+          "columnsFrom": [
+            "jenis_tenaga_kerja_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "pekerja_status_id_pekerja_atribut_master_id_fk": {
+          "name": "pekerja_status_id_pekerja_atribut_master_id_fk",
+          "tableFrom": "pekerja",
+          "tableTo": "pekerja_atribut_master",
+          "columnsFrom": [
+            "status_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "pekerja_clerk_user_id_unique": {
+          "name": "pekerja_clerk_user_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "clerk_user_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.pengeluaran": {
+      "name": "pengeluaran",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organisasi_id": {
+          "name": "organisasi_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "area_id": {
+          "name": "area_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "siklus_id": {
+          "name": "siklus_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kategori_id": {
+          "name": "kategori_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "produk_id": {
+          "name": "produk_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pekerja_id": {
+          "name": "pekerja_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tanggal": {
+          "name": "tanggal",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "nama_item": {
+          "name": "nama_item",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "satuan_kerja": {
+          "name": "satuan_kerja",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'lumpsum'"
+        },
+        "kuantitas": {
+          "name": "kuantitas",
+          "type": "numeric(18, 3)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "harga_satuan": {
+          "name": "harga_satuan",
+          "type": "numeric(18, 3)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "total_biaya": {
+          "name": "total_biaya",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_pembelian_stok": {
+          "name": "is_pembelian_stok",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "catatan": {
+          "name": "catatan",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "pengeluaran_organisasi_idx": {
+          "name": "pengeluaran_organisasi_idx",
+          "columns": [
+            {
+              "expression": "organisasi_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "pengeluaran_area_idx": {
+          "name": "pengeluaran_area_idx",
+          "columns": [
+            {
+              "expression": "area_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "pengeluaran_siklus_idx": {
+          "name": "pengeluaran_siklus_idx",
+          "columns": [
+            {
+              "expression": "siklus_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "pengeluaran_tanggal_idx": {
+          "name": "pengeluaran_tanggal_idx",
+          "columns": [
+            {
+              "expression": "tanggal",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "pengeluaran_organisasi_id_organisasi_id_fk": {
+          "name": "pengeluaran_organisasi_id_organisasi_id_fk",
+          "tableFrom": "pengeluaran",
+          "tableTo": "organisasi",
+          "columnsFrom": [
+            "organisasi_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "pengeluaran_area_id_organisasi_id_areas_id_organisasi_id_fk": {
+          "name": "pengeluaran_area_id_organisasi_id_areas_id_organisasi_id_fk",
+          "tableFrom": "pengeluaran",
+          "tableTo": "areas",
+          "columnsFrom": [
+            "area_id",
+            "organisasi_id"
+          ],
+          "columnsTo": [
+            "id",
+            "organisasi_id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "pengeluaran_siklus_id_organisasi_id_siklus_tanam_id_organisasi_id_fk": {
+          "name": "pengeluaran_siklus_id_organisasi_id_siklus_tanam_id_organisasi_id_fk",
+          "tableFrom": "pengeluaran",
+          "tableTo": "siklus_tanam",
+          "columnsFrom": [
+            "siklus_id",
+            "organisasi_id"
+          ],
+          "columnsTo": [
+            "id",
+            "organisasi_id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "pengeluaran_kategori_id_organisasi_id_kategori_keuangan_id_organisasi_id_fk": {
+          "name": "pengeluaran_kategori_id_organisasi_id_kategori_keuangan_id_organisasi_id_fk",
+          "tableFrom": "pengeluaran",
+          "tableTo": "kategori_keuangan",
+          "columnsFrom": [
+            "kategori_id",
+            "organisasi_id"
+          ],
+          "columnsTo": [
+            "id",
+            "organisasi_id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "pengeluaran_produk_id_organisasi_id_produk_master_id_organisasi_id_fk": {
+          "name": "pengeluaran_produk_id_organisasi_id_produk_master_id_organisasi_id_fk",
+          "tableFrom": "pengeluaran",
+          "tableTo": "produk_master",
+          "columnsFrom": [
+            "produk_id",
+            "organisasi_id"
+          ],
+          "columnsTo": [
+            "id",
+            "organisasi_id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "pengeluaran_pekerja_id_organisasi_id_pekerja_id_organisasi_id_fk": {
+          "name": "pengeluaran_pekerja_id_organisasi_id_pekerja_id_organisasi_id_fk",
+          "tableFrom": "pengeluaran",
+          "tableTo": "pekerja",
+          "columnsFrom": [
+            "pekerja_id",
+            "organisasi_id"
+          ],
+          "columnsTo": [
+            "id",
+            "organisasi_id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "pengeluaran_created_by_organisasi_id_pekerja_id_organisasi_id_fk": {
+          "name": "pengeluaran_created_by_organisasi_id_pekerja_id_organisasi_id_fk",
+          "tableFrom": "pengeluaran",
+          "tableTo": "pekerja",
+          "columnsFrom": [
+            "created_by",
+            "organisasi_id"
+          ],
+          "columnsTo": [
+            "id",
+            "organisasi_id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "kuantitas_non_negative": {
+          "name": "kuantitas_non_negative",
+          "value": "\"pengeluaran\".\"kuantitas\" >= 0"
+        },
+        "harga_satuan_non_negative": {
+          "name": "harga_satuan_non_negative",
+          "value": "\"pengeluaran\".\"harga_satuan\" >= 0"
+        },
+        "satuan_kerja_valid_v2": {
+          "name": "satuan_kerja_valid_v2",
+          "value": "\"pengeluaran\".\"satuan_kerja\" IN ('lumpsum', 'jam', 'hari', 'unit', 'kg', 'liter', 'botol', 'gram', 'ml')"
+        },
+        "total_biaya_konsisten_v2": {
+          "name": "total_biaya_konsisten_v2",
+          "value": "ABS(\"pengeluaran\".\"total_biaya\" - ROUND(\"pengeluaran\".\"kuantitas\" * \"pengeluaran\".\"harga_satuan\")) <= (ROUND(\"pengeluaran\".\"kuantitas\") + 100)"
+        },
+        "pembelian_stok_konsisten": {
+          "name": "pembelian_stok_konsisten",
+          "value": "(\"pengeluaran\".\"is_pembelian_stok\" = true AND \"pengeluaran\".\"produk_id\" IS NOT NULL) OR (\"pengeluaran\".\"is_pembelian_stok\" = false AND \"pengeluaran\".\"produk_id\" IS NULL)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.perawatan_pekerja": {
+      "name": "perawatan_pekerja",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "perawatan_id": {
+          "name": "perawatan_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pekerja_id": {
+          "name": "pekerja_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "peran": {
+          "name": "peran",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "waktu_mulai": {
+          "name": "waktu_mulai",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "waktu_selesai": {
+          "name": "waktu_selesai",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "durasi_kerja": {
+          "name": "durasi_kerja",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "perawatan_pekerja_unique": {
+          "name": "perawatan_pekerja_unique",
+          "columns": [
+            {
+              "expression": "perawatan_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "pekerja_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "perawatan_pekerja_pekerja_idx": {
+          "name": "perawatan_pekerja_pekerja_idx",
+          "columns": [
+            {
+              "expression": "pekerja_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "perawatan_pekerja_perawatan_idx": {
+          "name": "perawatan_pekerja_perawatan_idx",
+          "columns": [
+            {
+              "expression": "perawatan_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "perawatan_pekerja_perawatan_id_perawatan_id_fk": {
+          "name": "perawatan_pekerja_perawatan_id_perawatan_id_fk",
+          "tableFrom": "perawatan_pekerja",
+          "tableTo": "perawatan",
+          "columnsFrom": [
+            "perawatan_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "perawatan_pekerja_pekerja_id_pekerja_id_fk": {
+          "name": "perawatan_pekerja_pekerja_id_pekerja_id_fk",
+          "tableFrom": "perawatan_pekerja",
+          "tableTo": "pekerja",
+          "columnsFrom": [
+            "pekerja_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.perawatan_produk": {
+      "name": "perawatan_produk",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "perawatan_id": {
+          "name": "perawatan_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "produk_id": {
+          "name": "produk_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kuantitas_pemakaian": {
+          "name": "kuantitas_pemakaian",
+          "type": "numeric(18, 3)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "harga_tercatat_per_satuan": {
+          "name": "harga_tercatat_per_satuan",
+          "type": "numeric(18, 3)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "total_biaya": {
+          "name": "total_biaya",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "urutan": {
+          "name": "urutan",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "perawatan_produk_perawatan_idx": {
+          "name": "perawatan_produk_perawatan_idx",
+          "columns": [
+            {
+              "expression": "perawatan_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "perawatan_produk_produk_idx": {
+          "name": "perawatan_produk_produk_idx",
+          "columns": [
+            {
+              "expression": "produk_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "perawatan_produk_perawatan_id_perawatan_id_fk": {
+          "name": "perawatan_produk_perawatan_id_perawatan_id_fk",
+          "tableFrom": "perawatan_produk",
+          "tableTo": "perawatan",
+          "columnsFrom": [
+            "perawatan_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "perawatan_produk_produk_id_produk_master_id_fk": {
+          "name": "perawatan_produk_produk_id_produk_master_id_fk",
+          "tableFrom": "perawatan_produk",
+          "tableTo": "produk_master",
+          "columnsFrom": [
+            "produk_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "kuantitas_pemakaian_non_negative": {
+          "name": "kuantitas_pemakaian_non_negative",
+          "value": "\"perawatan_produk\".\"kuantitas_pemakaian\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.perawatan": {
+      "name": "perawatan",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organisasi_id": {
+          "name": "organisasi_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kegiatan": {
+          "name": "kegiatan",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "area_id": {
+          "name": "area_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "siklus_id": {
+          "name": "siklus_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "waktu_mulai": {
+          "name": "waktu_mulai",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "waktu_selesai": {
+          "name": "waktu_selesai",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "durasi_kerja": {
+          "name": "durasi_kerja",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "tag_category_id": {
+          "name": "tag_category_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Belum dikerjakan'"
+        },
+        "catatan": {
+          "name": "catatan",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "perawatan_organisasi_idx": {
+          "name": "perawatan_organisasi_idx",
+          "columns": [
+            {
+              "expression": "organisasi_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "perawatan_area_idx": {
+          "name": "perawatan_area_idx",
+          "columns": [
+            {
+              "expression": "area_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "perawatan_siklus_idx": {
+          "name": "perawatan_siklus_idx",
+          "columns": [
+            {
+              "expression": "siklus_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "perawatan_organisasi_id_organisasi_id_fk": {
+          "name": "perawatan_organisasi_id_organisasi_id_fk",
+          "tableFrom": "perawatan",
+          "tableTo": "organisasi",
+          "columnsFrom": [
+            "organisasi_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "perawatan_area_id_areas_id_fk": {
+          "name": "perawatan_area_id_areas_id_fk",
+          "tableFrom": "perawatan",
+          "tableTo": "areas",
+          "columnsFrom": [
+            "area_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "perawatan_siklus_id_siklus_tanam_id_fk": {
+          "name": "perawatan_siklus_id_siklus_tanam_id_fk",
+          "tableFrom": "perawatan",
+          "tableTo": "siklus_tanam",
+          "columnsFrom": [
+            "siklus_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "perawatan_tag_category_id_kategori_master_id_fk": {
+          "name": "perawatan_tag_category_id_kategori_master_id_fk",
+          "tableFrom": "perawatan",
+          "tableTo": "kategori_master",
+          "columnsFrom": [
+            "tag_category_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "perawatan_created_by_pekerja_id_fk": {
+          "name": "perawatan_created_by_pekerja_id_fk",
+          "tableFrom": "perawatan",
+          "tableTo": "pekerja",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "perawatan_updated_by_pekerja_id_fk": {
+          "name": "perawatan_updated_by_pekerja_id_fk",
+          "tableFrom": "perawatan",
+          "tableTo": "pekerja",
+          "columnsFrom": [
+            "updated_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.produk_master": {
+      "name": "produk_master",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organisasi_id": {
+          "name": "organisasi_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nama": {
+          "name": "nama",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "jenis": {
+          "name": "jenis",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "n": {
+          "name": "n",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "p": {
+          "name": "p",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "k": {
+          "name": "k",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "ca": {
+          "name": "ca",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "mg": {
+          "name": "mg",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "bentuk": {
+          "name": "bentuk",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Solid'"
+        },
+        "satuan_dasar": {
+          "name": "satuan_dasar",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'gram'"
+        },
+        "satuan_tampilan": {
+          "name": "satuan_tampilan",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'kg'"
+        },
+        "harga_per_satuan_dasar": {
+          "name": "harga_per_satuan_dasar",
+          "type": "numeric(18, 3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0'"
+        },
+        "stok_saat_ini": {
+          "name": "stok_saat_ini",
+          "type": "numeric(18, 3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0'"
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "deleted": {
+          "name": "deleted",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "produk_organisasi_idx": {
+          "name": "produk_organisasi_idx",
+          "columns": [
+            {
+              "expression": "organisasi_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "produk_master_nama_org_lower_unique": {
+          "name": "produk_master_nama_org_lower_unique",
+          "columns": [
+            {
+              "expression": "lower(\"nama\")",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "organisasi_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "produk_master_id_org_unique": {
+          "name": "produk_master_id_org_unique",
+          "columns": [
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "organisasi_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "produk_master_organisasi_id_organisasi_id_fk": {
+          "name": "produk_master_organisasi_id_organisasi_id_fk",
+          "tableFrom": "produk_master",
+          "tableTo": "organisasi",
+          "columnsFrom": [
+            "organisasi_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "stok_non_negative": {
+          "name": "stok_non_negative",
+          "value": "\"produk_master\".\"stok_saat_ini\" >= 0"
+        },
+        "harga_non_negative": {
+          "name": "harga_non_negative",
+          "value": "\"produk_master\".\"harga_per_satuan_dasar\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.siklus_tanam": {
+      "name": "siklus_tanam",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organisasi_id": {
+          "name": "organisasi_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "area_id": {
+          "name": "area_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nama_siklus": {
+          "name": "nama_siklus",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tanggal_pindah_tanam": {
+          "name": "tanggal_pindah_tanam",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Aktif'"
+        },
+        "modal_awal": {
+          "name": "modal_awal",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "siklus_organisasi_idx": {
+          "name": "siklus_organisasi_idx",
+          "columns": [
+            {
+              "expression": "organisasi_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "siklus_tanam_id_org_unique": {
+          "name": "siklus_tanam_id_org_unique",
+          "columns": [
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "organisasi_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "siklus_tanam_organisasi_id_organisasi_id_fk": {
+          "name": "siklus_tanam_organisasi_id_organisasi_id_fk",
+          "tableFrom": "siklus_tanam",
+          "tableTo": "organisasi",
+          "columnsFrom": [
+            "organisasi_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "siklus_tanam_area_id_areas_id_fk": {
+          "name": "siklus_tanam_area_id_areas_id_fk",
+          "tableFrom": "siklus_tanam",
+          "tableTo": "areas",
+          "columnsFrom": [
+            "area_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "siklus_tanam_created_by_pekerja_id_fk": {
+          "name": "siklus_tanam_created_by_pekerja_id_fk",
+          "tableFrom": "siklus_tanam",
+          "tableTo": "pekerja",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "siklus_tanam_updated_by_pekerja_id_fk": {
+          "name": "siklus_tanam_updated_by_pekerja_id_fk",
+          "tableFrom": "siklus_tanam",
+          "tableTo": "pekerja",
+          "columnsFrom": [
+            "updated_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "modal_awal_non_negative": {
+          "name": "modal_awal_non_negative",
+          "value": "\"siklus_tanam\".\"modal_awal\" >= 0"
+        },
+        "status_siklus_valid": {
+          "name": "status_siklus_valid",
+          "value": "\"siklus_tanam\".\"status\" IN ('Aktif', 'Selesai', 'Ditutup')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.stock_movement": {
+      "name": "stock_movement",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organisasi_id": {
+          "name": "organisasi_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "produk_id": {
+          "name": "produk_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tipe": {
+          "name": "tipe",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "delta": {
+          "name": "delta",
+          "type": "numeric(18, 3)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "stok_sebelum": {
+          "name": "stok_sebelum",
+          "type": "numeric(18, 3)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "stok_sesudah": {
+          "name": "stok_sesudah",
+          "type": "numeric(18, 3)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "harga_hpp_sebelum": {
+          "name": "harga_hpp_sebelum",
+          "type": "numeric(18, 3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "harga_hpp_sesudah": {
+          "name": "harga_hpp_sesudah",
+          "type": "numeric(18, 3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nilai_pembelian_baru": {
+          "name": "nilai_pembelian_baru",
+          "type": "numeric(18, 3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "perawatan_produk_id": {
+          "name": "perawatan_produk_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pengeluaran_id": {
+          "name": "pengeluaran_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "catatan": {
+          "name": "catatan",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "stock_movement_organisasi_idx": {
+          "name": "stock_movement_organisasi_idx",
+          "columns": [
+            {
+              "expression": "organisasi_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "stock_movement_produk_idx": {
+          "name": "stock_movement_produk_idx",
+          "columns": [
+            {
+              "expression": "produk_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "stock_movement_created_idx": {
+          "name": "stock_movement_created_idx",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "stock_movement_organisasi_id_organisasi_id_fk": {
+          "name": "stock_movement_organisasi_id_organisasi_id_fk",
+          "tableFrom": "stock_movement",
+          "tableTo": "organisasi",
+          "columnsFrom": [
+            "organisasi_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "stock_movement_perawatan_produk_id_perawatan_produk_id_fk": {
+          "name": "stock_movement_perawatan_produk_id_perawatan_produk_id_fk",
+          "tableFrom": "stock_movement",
+          "tableTo": "perawatan_produk",
+          "columnsFrom": [
+            "perawatan_produk_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "stock_movement_pengeluaran_id_pengeluaran_id_fk": {
+          "name": "stock_movement_pengeluaran_id_pengeluaran_id_fk",
+          "tableFrom": "stock_movement",
+          "tableTo": "pengeluaran",
+          "columnsFrom": [
+            "pengeluaran_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "stock_movement_produk_id_organisasi_id_produk_master_id_organisasi_id_fk": {
+          "name": "stock_movement_produk_id_organisasi_id_produk_master_id_organisasi_id_fk",
+          "tableFrom": "stock_movement",
+          "tableTo": "produk_master",
+          "columnsFrom": [
+            "produk_id",
+            "organisasi_id"
+          ],
+          "columnsTo": [
+            "id",
+            "organisasi_id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "stock_movement_source_exclusive": {
+          "name": "stock_movement_source_exclusive",
+          "value": "NOT (\"stock_movement\".\"perawatan_produk_id\" IS NOT NULL AND \"stock_movement\".\"pengeluaran_id\" IS NOT NULL)"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
