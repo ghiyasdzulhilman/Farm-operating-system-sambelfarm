@@ -15,6 +15,13 @@
       "when": 1784921682383,
       "tag": "0001_perfect_rawhide_kid",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785161606744,
+      "tag": "0002_yummy_magdalene",
+      "breakpoints": true
     }
   ]
 }
