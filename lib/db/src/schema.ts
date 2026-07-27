@@ -338,27 +338,35 @@ export const pengeluaranTable = pgTable("pengeluaran", {
   index("pengeluaran_tanggal_idx").on(table.tanggal),
 
   // Composite Foreign Keys (Memaksa referensi wajib dari organisasi yang sama)
+  // Nama custom pendek — nama auto-generate Drizzle kepanjangan (>63 karakter),
+  // kepotong diam-diam oleh Postgres tanpa error (lihat pg_constraint sebelumnya)
   foreignKey({
+    name: "fk_pengeluaran_area_org",
     columns: [table.areaId, table.organisasiId],
     foreignColumns: [areasTable.id, areasTable.organisasiId],
   }).onDelete("set null"),
   foreignKey({
+    name: "fk_pengeluaran_siklus_org",
     columns: [table.siklusId, table.organisasiId],
     foreignColumns: [siklusTanamTable.id, siklusTanamTable.organisasiId],
   }).onDelete("set null"),
   foreignKey({
+    name: "fk_pengeluaran_kategori_org",
     columns: [table.kategoriId, table.organisasiId],
     foreignColumns: [kategoriKeuanganTable.id, kategoriKeuanganTable.organisasiId],
   }).onDelete("set null"),
   foreignKey({
+    name: "fk_pengeluaran_produk_org",
     columns: [table.produkId, table.organisasiId],
     foreignColumns: [produkMasterTable.id, produkMasterTable.organisasiId],
   }).onDelete("set null"),
   foreignKey({
+    name: "fk_pengeluaran_pekerja_org",
     columns: [table.pekerjaId, table.organisasiId],
     foreignColumns: [pekerjaTable.id, pekerjaTable.organisasiId],
   }).onDelete("set null"),
   foreignKey({
+    name: "fk_pengeluaran_createdby_org",
     columns: [table.createdBy, table.organisasiId],
     foreignColumns: [pekerjaTable.id, pekerjaTable.organisasiId],
   }).onDelete("set null"),
@@ -392,15 +400,20 @@ export const panenTable = pgTable("panen", {
   index("panen_tanggal_idx").on(table.tanggal),
 
   // Composite Foreign Keys (Memaksa referensi wajib dari organisasi yang sama)
+  // Nama custom pendek — walau ini masih di bawah 63 karakter, dikasih nama
+  // eksplisit biar konsisten dan gampang dicari di pg_constraint nantinya
   foreignKey({
+    name: "fk_panen_area_org",
     columns: [table.areaId, table.organisasiId],
     foreignColumns: [areasTable.id, areasTable.organisasiId],
   }).onDelete("set null"),
   foreignKey({
+    name: "fk_panen_siklus_org",
     columns: [table.siklusId, table.organisasiId],
     foreignColumns: [siklusTanamTable.id, siklusTanamTable.organisasiId],
   }).onDelete("set null"),
   foreignKey({
+    name: "fk_panen_createdby_org",
     columns: [table.createdBy, table.organisasiId],
     foreignColumns: [pekerjaTable.id, pekerjaTable.organisasiId],
   }).onDelete("set null"),
@@ -435,8 +448,9 @@ export const stockMovementTable = pgTable("stock_movement", {
   index("stock_movement_produk_idx").on(table.produkId),
   index("stock_movement_created_idx").on(table.createdAt),
 
-  // Composite Foreign Key (Memaksa referensi produk wajib dari organisasi yang sama)
+    // Composite Foreign Key (Memaksa referensi produk wajib dari organisasi yang sama)
   foreignKey({
+    name: "fk_stockmovement_produk_org",
     columns: [table.produkId, table.organisasiId],
     foreignColumns: [produkMasterTable.id, produkMasterTable.organisasiId],
   }).onDelete("restrict"),
