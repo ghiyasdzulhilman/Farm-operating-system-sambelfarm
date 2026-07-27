@@ -30,6 +30,8 @@ ALTER TABLE "siklus_tanam" DROP CONSTRAINT "siklus_tanam_created_by_pekerja_id_f
 --> statement-breakpoint
 ALTER TABLE "siklus_tanam" DROP CONSTRAINT "siklus_tanam_updated_by_pekerja_id_fk";
 --> statement-breakpoint
+CREATE UNIQUE INDEX "kategori_id_org_unique" ON "kategori_master" USING btree ("id","organisasi_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "pekerja_atribut_id_org_unique" ON "pekerja_atribut_master" USING btree ("id","organisasi_id");
 ALTER TABLE "inspeksi" ADD CONSTRAINT "fk_inspeksi_area_org" FOREIGN KEY ("area_id","organisasi_id") REFERENCES "public"."areas"("id","organisasi_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "inspeksi" ADD CONSTRAINT "fk_inspeksi_siklus_org" FOREIGN KEY ("siklus_id","organisasi_id") REFERENCES "public"."siklus_tanam"("id","organisasi_id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "inspeksi" ADD CONSTRAINT "fk_inspeksi_createdby_org" FOREIGN KEY ("created_by","organisasi_id") REFERENCES "public"."pekerja"("id","organisasi_id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
@@ -46,5 +48,3 @@ ALTER TABLE "perawatan" ADD CONSTRAINT "fk_perawatan_updatedby_org" FOREIGN KEY 
 ALTER TABLE "siklus_tanam" ADD CONSTRAINT "fk_siklus_area_org" FOREIGN KEY ("area_id","organisasi_id") REFERENCES "public"."areas"("id","organisasi_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "siklus_tanam" ADD CONSTRAINT "fk_siklus_createdby_org" FOREIGN KEY ("created_by","organisasi_id") REFERENCES "public"."pekerja"("id","organisasi_id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "siklus_tanam" ADD CONSTRAINT "fk_siklus_updatedby_org" FOREIGN KEY ("updated_by","organisasi_id") REFERENCES "public"."pekerja"("id","organisasi_id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-CREATE UNIQUE INDEX "kategori_id_org_unique" ON "kategori_master" USING btree ("id","organisasi_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "pekerja_atribut_id_org_unique" ON "pekerja_atribut_master" USING btree ("id","organisasi_id");
