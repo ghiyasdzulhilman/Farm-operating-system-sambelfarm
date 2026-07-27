@@ -50,8 +50,9 @@ export const pekerjaAtributMasterTable = pgTable("pekerja_atribut_master", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("pekerja_atribut_organisasi_idx").on(table.organisasiId),
-  // Unik per organisasi untuk kombinasi opsi dan jenis atribut
   uniqueIndex("pekerja_atribut_nama_jenis_org_unique").on(table.namaOption, table.jenisAtribut, table.organisasiId),
+  // WAJIB ditambah untuk target composite FK
+  uniqueIndex("pekerja_atribut_id_org_unique").on(table.id, table.organisasiId),
 ]);
 
 export const pekerjaTable = pgTable("pekerja", {
@@ -79,6 +80,8 @@ export const kategoriTable = pgTable("kategori_master", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("kategori_organisasi_idx").on(table.organisasiId),
+  // WAJIB ditambah untuk target composite FK
+  uniqueIndex("kategori_id_org_unique").on(table.id, table.organisasiId),
 ]);
 
 export const kendalaMasterTable = pgTable("kendala_master", {
@@ -96,20 +99,36 @@ export const kendalaMasterTable = pgTable("kendala_master", {
 export const siklusTanamTable = pgTable("siklus_tanam", {
   id: uuid("id").defaultRandom().primaryKey(),
   organisasiId: uuid("organisasi_id").references(() => organisasiTable.id, { onDelete: "cascade" }).notNull(),
-  areaId: uuid("area_id").references(() => areasTable.id, { onDelete: "cascade" }).notNull(),
+  areaId: uuid("area_id").notNull(),
   namaSiklus: text("nama_siklus").notNull(),
   tanggalPindahTanam: date("tanggal_pindah_tanam").notNull(),
   status: text("status").default("Aktif").notNull(),
   modalAwal: integer("modal_awal").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-  createdBy: uuid("created_by").references(() => pekerjaTable.id, { onDelete: "set null" }),
-  updatedBy: uuid("updated_by").references(() => pekerjaTable.id, { onDelete: "set null" }),
+  createdBy: uuid("created_by"),
+  updatedBy: uuid("updated_by"),
   updatedAt: timestamp("updated_at"),
 }, (table) => [
   index("siklus_organisasi_idx").on(table.organisasiId),
   check("modal_awal_non_negative", sql`${table.modalAwal} >= 0`),
   check("status_siklus_valid", sql`${table.status} IN ('Aktif', 'Selesai', 'Ditutup')`),
   uniqueIndex("siklus_tanam_id_org_unique").on(table.id, table.organisasiId),
+  
+  foreignKey({
+    name: "fk_siklus_area_org",
+    columns: [table.areaId, table.organisasiId],
+    foreignColumns: [areasTable.id, areasTable.organisasiId],
+  }).onDelete("cascade"),
+  foreignKey({
+    name: "fk_siklus_createdby_org",
+    columns: [table.createdBy, table.organisasiId],
+    foreignColumns: [pekerjaTable.id, pekerjaTable.organisasiId],
+  }).onDelete("set null"),
+  foreignKey({
+    name: "fk_siklus_updatedby_org",
+    columns: [table.updatedBy, table.organisasiId],
+    foreignColumns: [pekerjaTable.id, pekerjaTable.organisasiId],
+  }).onDelete("set null"),
 ]);
 
 export const produkMasterTable = pgTable("produk_master", {
@@ -154,23 +173,49 @@ export const perawatanTable = pgTable("perawatan", {
   id: uuid("id").defaultRandom().primaryKey(),
   organisasiId: uuid("organisasi_id").references(() => organisasiTable.id, { onDelete: "cascade" }).notNull(),
   kegiatan: text("kegiatan").notNull(),
-  areaId: uuid("area_id").references(() => areasTable.id, { onDelete: "cascade" }).notNull(),
-  siklusId: uuid("siklus_id").references(() => siklusTanamTable.id, { onDelete: "set null" }), 
+  areaId: uuid("area_id").notNull(),
+  siklusId: uuid("siklus_id"), 
 
   waktuMulai: timestamp("waktu_mulai").notNull(),
   waktuSelesai: timestamp("waktu_selesai"),
   durasiKerja: integer("durasi_kerja").default(0).notNull(),
-  tagCategoryId: uuid("tag_category_id").references(() => kategoriTable.id, { onDelete: "restrict" }),
+  tagCategoryId: uuid("tag_category_id"),
   status: text("status").default("Belum dikerjakan").notNull(),
   catatan: text("catatan"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-  createdBy: uuid("created_by").references(() => pekerjaTable.id, { onDelete: "set null" }),
+  createdBy: uuid("created_by"),
   updatedAt: timestamp("updated_at"),
-  updatedBy: uuid("updated_by").references(() => pekerjaTable.id, { onDelete: "set null" }),
+  updatedBy: uuid("updated_by"),
 }, (table) => [
   index("perawatan_organisasi_idx").on(table.organisasiId),
   index("perawatan_area_idx").on(table.areaId),
   index("perawatan_siklus_idx").on(table.siklusId),
+
+  foreignKey({
+    name: "fk_perawatan_area_org",
+    columns: [table.areaId, table.organisasiId],
+    foreignColumns: [areasTable.id, areasTable.organisasiId],
+  }).onDelete("cascade"),
+  foreignKey({
+    name: "fk_perawatan_siklus_org",
+    columns: [table.siklusId, table.organisasiId],
+    foreignColumns: [siklusTanamTable.id, siklusTanamTable.organisasiId],
+  }).onDelete("set null"),
+  foreignKey({
+    name: "fk_perawatan_tag_org",
+    columns: [table.tagCategoryId, table.organisasiId],
+    foreignColumns: [kategoriTable.id, kategoriTable.organisasiId],
+  }).onDelete("restrict"),
+  foreignKey({
+    name: "fk_perawatan_createdby_org",
+    columns: [table.createdBy, table.organisasiId],
+    foreignColumns: [pekerjaTable.id, pekerjaTable.organisasiId],
+  }).onDelete("set null"),
+  foreignKey({
+    name: "fk_perawatan_updatedby_org",
+    columns: [table.updatedBy, table.organisasiId],
+    foreignColumns: [pekerjaTable.id, pekerjaTable.organisasiId],
+  }).onDelete("set null"),
 ]);
 
 // Junction table: Tidak butuh organisasiId secara langsung (otomatis aman via FK)
@@ -209,8 +254,8 @@ export const inspeksiTable = pgTable("inspeksi", {
   id: uuid("id").defaultRandom().primaryKey(),
   organisasiId: uuid("organisasi_id").references(() => organisasiTable.id, { onDelete: "cascade" }).notNull(),
   kegiatan: text("kegiatan").notNull(),
-  areaId: uuid("area_id").references(() => areasTable.id, { onDelete: "cascade" }).notNull(),
-  siklusId: uuid("siklus_id").references(() => siklusTanamTable.id, { onDelete: "set null" }),
+  areaId: uuid("area_id").notNull(),
+  siklusId: uuid("siklus_id"),
   waktuMulai: timestamp("waktu_mulai").notNull(),
   waktuSelesai: timestamp("waktu_selesai"),
   durasiKerja: integer("durasi_kerja").default(0).notNull(),
@@ -220,11 +265,27 @@ export const inspeksiTable = pgTable("inspeksi", {
   status: text("status").default("Baru ditemukan").notNull(),
   keterangan: text("keterangan"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-  createdBy: uuid("created_by").references(() => pekerjaTable.id, { onDelete: "set null" }),
+  createdBy: uuid("created_by"),
 }, (table) => [
   index("inspeksi_organisasi_idx").on(table.organisasiId),
   index("inspeksi_area_idx").on(table.areaId),
   index("inspeksi_siklus_idx").on(table.siklusId),
+
+  foreignKey({
+    name: "fk_inspeksi_area_org",
+    columns: [table.areaId, table.organisasiId],
+    foreignColumns: [areasTable.id, areasTable.organisasiId],
+  }).onDelete("cascade"),
+  foreignKey({
+    name: "fk_inspeksi_siklus_org",
+    columns: [table.siklusId, table.organisasiId],
+    foreignColumns: [siklusTanamTable.id, siklusTanamTable.organisasiId],
+  }).onDelete("set null"),
+  foreignKey({
+    name: "fk_inspeksi_createdby_org",
+    columns: [table.createdBy, table.organisasiId],
+    foreignColumns: [pekerjaTable.id, pekerjaTable.organisasiId],
+  }).onDelete("set null"),
 ]);
 
 // Junction table
@@ -241,22 +302,48 @@ export const operasionalTable = pgTable("operasional", {
   id: uuid("id").defaultRandom().primaryKey(),
   organisasiId: uuid("organisasi_id").references(() => organisasiTable.id, { onDelete: "cascade" }).notNull(),
   namaPekerjaan: text("nama_pekerjaan").notNull(),
-  areaId: uuid("area_id").references(() => areasTable.id, { onDelete: "cascade" }).notNull(),
-  siklusId: uuid("siklus_id").references(() => siklusTanamTable.id, { onDelete: "set null" }),
+  areaId: uuid("area_id").notNull(),
+  siklusId: uuid("siklus_id"),
   waktuMulai: timestamp("waktu_mulai").notNull(),
   waktuSelesai: timestamp("waktu_selesai"),
   durasiKerja: integer("durasi_kerja").default(0).notNull(),
-  kategoriId: uuid("kategori_id").references(() => kategoriTable.id, { onDelete: "restrict" }),
+  kategoriId: uuid("kategori_id"),
   prioritas: text("prioritas").default("Medium").notNull(),
-  jenisTenagaKerjaId: uuid("jenis_tenaga_kerja_id").references(() => pekerjaAtributMasterTable.id, { onDelete: "set null" }),
+  jenisTenagaKerjaId: uuid("jenis_tenaga_kerja_id"),
   status: text("status").default("Belum dikerjakan").notNull(),
   catatan: text("catatan"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-  createdBy: uuid("created_by").references(() => pekerjaTable.id, { onDelete: "set null" }),
+  createdBy: uuid("created_by"),
 }, (table) => [
   index("operasional_organisasi_idx").on(table.organisasiId),
   index("operasional_area_idx").on(table.areaId),
   index("operasional_siklus_idx").on(table.siklusId),
+
+  foreignKey({
+    name: "fk_operasional_area_org",
+    columns: [table.areaId, table.organisasiId],
+    foreignColumns: [areasTable.id, areasTable.organisasiId],
+  }).onDelete("cascade"),
+  foreignKey({
+    name: "fk_operasional_siklus_org",
+    columns: [table.siklusId, table.organisasiId],
+    foreignColumns: [siklusTanamTable.id, siklusTanamTable.organisasiId],
+  }).onDelete("set null"),
+  foreignKey({
+    name: "fk_operasional_kategori_org",
+    columns: [table.kategoriId, table.organisasiId],
+    foreignColumns: [kategoriTable.id, kategoriTable.organisasiId],
+  }).onDelete("restrict"),
+  foreignKey({
+    name: "fk_operasional_jtk_org",
+    columns: [table.jenisTenagaKerjaId, table.organisasiId],
+    foreignColumns: [pekerjaAtributMasterTable.id, pekerjaAtributMasterTable.organisasiId],
+  }).onDelete("set null"),
+  foreignKey({
+    name: "fk_operasional_createdby_org",
+    columns: [table.createdBy, table.organisasiId],
+    foreignColumns: [pekerjaTable.id, pekerjaTable.organisasiId],
+  }).onDelete("set null"),
 ]);
 
 // Junction table
