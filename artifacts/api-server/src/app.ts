@@ -10,6 +10,8 @@ import {
 } from "./middlewares/clerkProxyMiddleware";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { requireOrganisasi } from "./middlewares/requireOrganisasi";
+import onboardingRouter from "./routes/onboarding";
 
 const app: Express = express();
 
@@ -48,6 +50,7 @@ app.use(
   })),
 );
 
-app.use("/api", router);
+app.use("/api/onboarding", onboardingRouter);
+app.use("/api", requireOrganisasi, router);
 
 export default app;
