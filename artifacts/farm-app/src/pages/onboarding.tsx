@@ -41,7 +41,7 @@ export function OnboardingPage() {
     defaultValues: { namaKebun: "", namaOwner: "" },
   });
 
-  const createOrganisasi = useMutation({
+    const createOrganisasi = useMutation({
     mutationFn: async (values: OnboardingFormValues) => {
       const res = await fetch("/api/onboarding/create-organisasi", {
         method: "POST",
@@ -58,10 +58,14 @@ export function OnboardingPage() {
     },
     onSuccess: () => {
       toast({ title: "Kebun berhasil dibuat", description: "Selamat datang di SambelFarm." });
-      // Bikin RequireOnboarding di App.tsx nge-fetch ulang status, biar nggak nyangkut di /onboarding
+      // Tulis LANGSUNG ke cache (sinkron) sebelum pindah halaman — supaya RequireOnboarding
+      // di /dashboard nggak sempat baca cache lama yang masih bilang "belum onboarding"
+      queryClient.setQueryData(["onboarding-status"], { hasOrganisasi: true });
+      // Tetap invalidate juga, biar tetap ada refetch di background buat sinkron ulang sama server
       queryClient.invalidateQueries({ queryKey: ["onboarding-status"] });
       setLocation("/dashboard");
     },
+
     onError: (error) => {
       toast({
         variant: "destructive",
