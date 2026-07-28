@@ -3,7 +3,7 @@ import { ClerkProvider, SignIn, SignUp, Show, useClerk } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import { shadcn } from '@clerk/themes';
 import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from 'wouter';
-import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,7 +14,10 @@ import { DashboardPage } from "@/pages/dashboard";
 // CONNECT PAGE SUDAH DIHAPUS DARI SINI
 import { SettingsPage } from "@/pages/settings";
 import { AgronomyHubPage } from "@/pages/AgronomyHubPage";
+import { OnboardingPage } from "@/pages/onboarding";
 import NotFound from "@/pages/not-found";
+
+import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -156,6 +159,42 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   );
 }
 
+// 🚀 BARU: Gerbang onboarding — pastikan user udah punya organisasi
+// sebelum boleh akses Dashboard/Settings/Operasional
+function RequireOnboarding({ children }: { children: React.ReactNode }) {
+  const [location, setLocation] = useLocation();
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["onboarding-status"],
+    queryFn: async () => {
+      const res = await fetch("/api/onboarding/status");
+      if (!res.ok) throw new Error("Gagal cek status onboarding");
+      return res.json() as Promise<{ hasOrganisasi: boolean }>;
+    },
+  });
+
+  useEffect(() => {
+    if (!isLoading && data && !data.hasOrganisasi && location !== "/onboarding") {
+      setLocation("/onboarding");
+    }
+  }, [isLoading, data, location, setLocation]);
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[calc(100dvh-4rem)] items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Belum onboarding — komponen di atas lagi proses redirect, jangan render children dulu
+  if (data && !data.hasOrganisasi) {
+    return null;
+  }
+
+  return <>{children}</>;
+}
+
 function ClerkProviderWithRoutes() {
   const [, setLocation] = useLocation();
 
@@ -186,24 +225,37 @@ function ClerkProviderWithRoutes() {
       <QueryClientProvider client={queryClient}>
         <ClerkQueryClientCacheInvalidator />
         <AppLayout>
-          <Switch>
+       <Switch>
             <Route path="/" component={HomeRedirect} />
             <Route path="/sign-in/*?" component={SignInPage} />
             <Route path="/sign-up/*?" component={SignUpPage} />
+            {/* 🚀 BARU: Onboarding — hanya butuh login, TIDAK dibungkus RequireOnboarding
+            (justru ini yang jadi tujuan redirect kalau belum onboarding) */}
+            <Route path="/onboarding">
+              <ProtectedRoute>
+                <OnboardingPage />
+              </ProtectedRoute>
+            </Route>
             <Route path="/dashboard">
               <ProtectedRoute>
-                <DashboardPage />
+                <RequireOnboarding>
+                  <DashboardPage />
+                </RequireOnboarding>
               </ProtectedRoute>
             </Route>
             {/* ROUTE CONNECT SUDAH DIHAPUS TOTAL DARI SINI */}
             <Route path="/settings">
               <ProtectedRoute>
-                <SettingsPage />
+                <RequireOnboarding>
+                  <SettingsPage />
+                </RequireOnboarding>
               </ProtectedRoute>
             </Route>
             <Route path="/operasional">
               <ProtectedRoute>
-                <AgronomyHubPage />
+                <RequireOnboarding>
+                  <AgronomyHubPage />
+                </RequireOnboarding>
               </ProtectedRoute>
             </Route>
             <Route component={NotFound} />
