@@ -9,7 +9,7 @@
     "start": "node ./dist/index.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
-  "dependencies": {
+    "dependencies": {
     "@clerk/express": "^2.1.12",
     "@clerk/shared": "^4.9.0",
     "@workspace/api-zod": "workspace:*",
@@ -21,7 +21,8 @@
     "http-proxy-middleware": "^3.0.5",
     "node-cache": "^5.1.2",
     "pino": "^9",
-    "pino-http": "^10"
+    "pino-http": "^10",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@types/cookie-parser": "^1.4.10",
