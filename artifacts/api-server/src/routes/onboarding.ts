@@ -65,23 +65,29 @@ router.post("/create-organisasi", async (req: Request, res: Response): Promise<v
     }
 
     // Insert ke tabel organisasi dan pekerja dalam 1 transaksi (biar aman kalau gagal di tengah jalan)
-    await db.transaction(async (tx) => {
+    // PENTING: jangan panggil res.json() di dalam callback ini — callback selesai
+    // BUKAN berarti COMMIT sudah terjadi. Cukup `return` data-nya ke luar.
+    const newOrg = await db.transaction(async (tx) => {
       // 1. Bikin organisasinya
-      const [newOrg] = await tx
+      const [org] = await tx
         .insert(organisasiTable)
         .values({ nama: namaKebun })
         .returning();
 
       // 2. Daftarin user Clerk ini sebagai pekerja (Owner) di organisasi tersebut
       await tx.insert(pekerjaTable).values({
-        organisasiId: newOrg.id,
+        organisasiId: org.id,
         clerkUserId: userId,
         nama: namaOwner,
         // roleId dikosongin dulu gak apa-apa, atau lu bisa isi nanti kalau punya UUID master "Owner"
       });
 
-      res.status(201).json({ success: true, data: newOrg });
+      return org;
     });
+
+    // res.json() dipanggil DI SINI, setelah db.transaction() resolve —
+    // artinya COMMIT sudah pasti sukses sebelum client dikasih tau "berhasil"
+    res.status(201).json({ success: true, data: newOrg });
   } catch (error) {
     console.error("[CREATE ORG ERROR]:", error);
     res.status(500).json({ error: "Gagal membuat organisasi baru." });
