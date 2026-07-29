@@ -14,6 +14,8 @@ router.get("/harvest/dropdown", async (req, res): Promise<void> => {
     const { userId } = getAuth(req);
     if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
+    if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; }
+
     const dbAreas = await db
       .select({
         id: areasTable.id,
@@ -27,7 +29,8 @@ router.get("/harvest/dropdown", async (req, res): Promise<void> => {
           eq(areasTable.id, siklusTanamTable.areaId),
           eq(siklusTanamTable.status, "Aktif")
         )
-      );
+      )
+      .where(eq(areasTable.organisasiId, req.organisasiId)); // 🚀 FILTER TENANT
 
     const formattedAreas = dbAreas.map(a => ({ 
       id: a.id, 
@@ -52,8 +55,12 @@ router.get("/harvest", async (req, res): Promise<void> => {
     // 1. Tangkap parameter filter dari frontend
     const statusSiklus = req.query.statusSiklus as string;
 
+    if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; }
+
     // 2. Siapkan kondisi filter
-    let conditions = [];
+    // 🚀 INJEKSI TENANT SEBAGAI KONDISI WAJIB PERTAMA
+    let conditions = [eq(panenTable.organisasiId, req.organisasiId)];
+
     if (statusSiklus === "aktif") {
       // Tampilkan Panen tanpa siklus (Null) ATAU Siklus yang masih Aktif
       conditions.push(
@@ -128,16 +135,25 @@ router.post("/harvest", async (req, res): Promise<void> => {
       return;
     }
 
+   if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; }
+
     const [activeCycle] = await db
       .select({ id: siklusTanamTable.id })
       .from(siklusTanamTable)
-      .where(and(eq(siklusTanamTable.areaId, areaId), eq(siklusTanamTable.status, "Aktif")))
+      .where(
+        and(
+          eq(siklusTanamTable.areaId, areaId), 
+          eq(siklusTanamTable.status, "Aktif"),
+          eq(siklusTanamTable.organisasiId, req.organisasiId) // 🚀 FILTER TENANT
+        )
+      )
       .limit(1);
 
     const totalPendapatanKalkulasi = Math.round(qtyNum * hargaNum);
     const pekerjaId = await getPekerjaIdFromClerk(userId);
 
     const [newHarvest] = await db.insert(panenTable).values({
+      organisasiId: req.organisasiId, // 🚀 INJEKSI TENANT KE DATA BARU
       areaId: areaId,
       siklusId: activeCycle ? activeCycle.id : null,
       tanggal: new Date(tanggal),
@@ -168,11 +184,13 @@ router.put("/harvest/:id", async (req, res): Promise<void> => {
     const harvestId = req.params.id;
     const { areaId, tanggal, kegiatan, kuantitasKg, hargaJualPerKg, kualitas, catatan } = req.body;
 
+    if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; }
+
     // FIX 1: Ambil data existing dari database untuk jaga-jaga kalau update parsial
     const [existingHarvest] = await db
       .select()
       .from(panenTable)
-      .where(eq(panenTable.id, harvestId))
+      .where(and(eq(panenTable.id, harvestId), eq(panenTable.organisasiId, req.organisasiId))) // 🚀 FILTER TENANT
       .limit(1);
 
     if (!existingHarvest) {
@@ -191,11 +209,18 @@ router.put("/harvest/:id", async (req, res): Promise<void> => {
 
     let finalSiklusId = existingHarvest.siklusId;
     // Cek ulang siklus HANYA JIKA areaId diubah dan berbeda dari sebelumnya
-    if (areaId && areaId !== existingHarvest.areaId) {
+      if (areaId && areaId !== existingHarvest.areaId) {
       const [activeCycle] = await db.select({ id: siklusTanamTable.id })
         .from(siklusTanamTable)
-        .where(and(eq(siklusTanamTable.areaId, areaId), eq(siklusTanamTable.status, "Aktif")))
+        .where(
+          and(
+            eq(siklusTanamTable.areaId, areaId), 
+            eq(siklusTanamTable.status, "Aktif"),
+            eq(siklusTanamTable.organisasiId, req.organisasiId) // 🚀 FILTER TENANT
+          )
+        )
         .limit(1);
+
       finalSiklusId = activeCycle ? activeCycle.id : null;
     }
 
@@ -210,9 +235,10 @@ router.put("/harvest/:id", async (req, res): Promise<void> => {
       kualitas: kualitas !== undefined ? kualitas : existingHarvest.kualitas,
       catatan: catatan !== undefined ? catatan : existingHarvest.catatan,
       updatedAt: new Date(),
-    })
-    .where(eq(panenTable.id, harvestId))
+    })  
+    .where(and(eq(panenTable.id, harvestId), eq(panenTable.organisasiId, req.organisasiId))) // 🚀 FILTER TENANT
     .returning();
+
 
     res.json({ success: true, data: updatedHarvest });
   } catch (err) {
@@ -225,11 +251,21 @@ router.put("/harvest/:id", async (req, res): Promise<void> => {
 // 5. DELETE PANEN
 // ==========================================
 router.delete("/harvest/:id", async (req, res): Promise<void> => {
-  // [Tidak ada perubahan]
   try {
     const { userId } = getAuth(req);
     if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    await db.delete(panenTable).where(eq(panenTable.id, req.params.id));
+    if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; } // 🚀 PROTEKSI TENANT
+    
+    // 🚀 FILTER TENANT: Pastikan ID yang dihapus adalah miliknya sendiri
+    const deleted = await db.delete(panenTable)
+      .where(and(eq(panenTable.id, req.params.id), eq(panenTable.organisasiId, req.organisasiId)))
+      .returning();
+    
+    if (deleted.length === 0) {
+      res.status(404).json({ error: "Data panen tidak ditemukan." });
+      return;
+    }
+
     res.json({ success: true, message: "Data panen berhasil dihapus." });
   } catch (err) { res.status(500).json({ error: "Gagal menghapus data panen." }); }
 });
