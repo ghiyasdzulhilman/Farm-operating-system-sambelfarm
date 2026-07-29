@@ -12,12 +12,19 @@ router.get("/produk", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
+    if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; }
+
   try {
     // 🚀 FIX: Filter data, jangan kirim yang udah masuk tong sampah
     const rawData = await db
       .select()
       .from(produkMasterTable)
-      .where(eq(produkMasterTable.deleted, false))
+      .where(
+        and(
+          eq(produkMasterTable.deleted, false), // atau true untuk /trash
+          eq(produkMasterTable.organisasiId, req.organisasiId)
+        )
+      )
       .orderBy(desc(produkMasterTable.createdAt));
     
     // 🚀 FIX: Inject riwayat HPP terakhir ke masing-masing produk menggunakan Promise.all
@@ -99,6 +106,8 @@ router.post("/produk", async (req, res): Promise<void> => {
 
   try {
     // 💡 Transaction: insert produk + catat baris pertama ledger dalam satu operasi atomik.
+    if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; }
+
     const result = await db.transaction(async (tx) => {
     // 🚀 FIX: Pastikan harga disiapkan sebagai Number buat hitung total nilai
     const hargaNum = Number(hargaPerSatuanDasar) || 0;
@@ -108,13 +117,14 @@ router.post("/produk", async (req, res): Promise<void> => {
         bentuk: bentuk || "Solid",
         satuanDasar: satuanDasar || "gram",
         satuanTampilan: satuanTampilan || "kg",
-        hargaPerSatuanDasar: String(Number(hargaPerSatuanDasar) || 0), // 🚀 BUNGKUS DENGAN String()
-        stokSaatIni: String(stokAwalNum), // 🚀 BUNGKUS DENGAN String()
+        hargaPerSatuanDasar: String(Number(hargaPerSatuanDasar) || 0), 
+        stokSaatIni: String(stokAwalNum), 
         n: n !== undefined ? Number(n) : undefined,
         p: p !== undefined ? Number(p) : undefined,
         k: k !== undefined ? Number(k) : undefined,
         ca: ca !== undefined ? Number(ca) : undefined,
         mg: mg !== undefined ? Number(mg) : undefined,
+        organisasiId: req.organisasiId
       }).returning();
 
       if (stokAwalNum > 0) {
@@ -123,6 +133,7 @@ router.post("/produk", async (req, res): Promise<void> => {
 
         await tx.insert(stockMovementTable).values({
           produkId: newProduk.id,
+          organisasiId: req.organisasiId,
           tipe: "stok_awal",
           delta: String(stokAwalNum),
           stokSebelum: "0", 
@@ -189,16 +200,20 @@ router.patch("/produk/:id", async (req, res): Promise<void> => {
     cleanPayload.updatedAt = new Date();
 
   try {
+    if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; }
+
     // 🚀 FIX BUG: Bungkus dalam transaction untuk mencatat "Penyesuaian Harga" ke ledger
     const updatedData = await db.transaction(async (tx) => {
       // 1. Ambil data sebelum diupdate
-      const [oldData] = await tx.select().from(produkMasterTable).where(eq(produkMasterTable.id, id));
+      const [oldData] = await tx.select().from(produkMasterTable).where(
+        and(eq(produkMasterTable.id, id), eq(produkMasterTable.organisasiId, req.organisasiId))
+      );
       if (!oldData) throw new Error("NOT_FOUND");
 
       // 2. Eksekusi update master
       const [updated] = await tx.update(produkMasterTable)
         .set(cleanPayload)
-        .where(eq(produkMasterTable.id, id))
+        .where(and(eq(produkMasterTable.id, id), eq(produkMasterTable.organisasiId, req.organisasiId)))
         .returning();
 
       // 3. Cek apakah hargaHpp (hargaPerSatuanDasar) diedit
@@ -217,6 +232,7 @@ router.patch("/produk/:id", async (req, res): Promise<void> => {
 
           await tx.insert(stockMovementTable).values({
             produkId: id,
+            organisasiId: req.organisasiId,
             tipe: "penyesuaian_harga",
             delta: "0",
             stokSebelum: String(stokTerkini),
@@ -261,18 +277,22 @@ router.delete("/produk/:id", async (req, res): Promise<void> => {
 
   const { id } = req.params;
 
+    if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; }
+
   try {
     // 🚀 CEK DULU KE GUDANG: Produk ini udah punya riwayat transaksi selain stok_awal belum?
-    const riwayatStok = await db.select().from(stockMovementTable).where(eq(stockMovementTable.produkId, id));
+    const riwayatStok = await db.select().from(stockMovementTable).where(
+      and(eq(stockMovementTable.produkId, id), eq(stockMovementTable.organisasiId, req.organisasiId))
+    );
     
     // Status Clean: Belum ada riwayat, atau cuma ada 1 yaitu stok awal pas pertama dibikin.
     const isClean = riwayatStok.length === 0 || (riwayatStok.length === 1 && riwayatStok[0].tipe === "stok_awal");
 
     if (isClean) {
       // 🟢 KONDISI A: HARD DELETE (Bersih tak bersisa)
-      await db.transaction(async (tx) => {
-        await tx.delete(stockMovementTable).where(eq(stockMovementTable.produkId, id));
-        await tx.delete(produkMasterTable).where(eq(produkMasterTable.id, id));
+        await db.transaction(async (tx) => {
+        await tx.delete(stockMovementTable).where(and(eq(stockMovementTable.produkId, id), eq(stockMovementTable.organisasiId, req.organisasiId)));
+        await tx.delete(produkMasterTable).where(and(eq(produkMasterTable.id, id), eq(produkMasterTable.organisasiId, req.organisasiId)));
       });
       res.json({ success: true, message: "Produk berhasil dihapus permanen." });
     } else {
@@ -283,7 +303,7 @@ router.delete("/produk/:id", async (req, res): Promise<void> => {
           isActive: false, 
           updatedAt: new Date() 
         })
-        .where(eq(produkMasterTable.id, id));
+        .where(and(eq(produkMasterTable.id, id), eq(produkMasterTable.organisasiId, req.organisasiId)));
         
       res.json({ success: true, message: "Produk disembunyikan untuk menjaga riwayat laporan." });
     }
@@ -314,12 +334,16 @@ router.post("/produk/:id/adjust", async (req, res): Promise<void> => {
   }
 
   try {
+        if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; }
+
     const result = await db.transaction(async (tx) => {
       // 1. Ambil data produk dan angka stok sistem saat ini
       const [produk] = await tx
         .select()
         .from(produkMasterTable)
-        .where(eq(produkMasterTable.id, id));
+        .where(
+          and(eq(produkMasterTable.id, id), eq(produkMasterTable.organisasiId, req.organisasiId))
+        );
 
       if (!produk) {
         throw new Error("PRODUK_NOT_FOUND");
@@ -338,6 +362,7 @@ router.post("/produk/:id/adjust", async (req, res): Promise<void> => {
       // karena fungsi ini udah nge-handle semuanya (All-in-One).
       await adjustStock(tx, {
         produkId: id,
+        organisasiId: req.organisasiId, // 🚀 TAMBAHIN INI JANGAN LUPA
         delta: delta, 
         tipe: "stok_opname", // 🚀 Ubah tipe biar lebih deskriptif di buku gudang
         catatan: catatan || `Penyesuaian stok manual (Selisih: ${delta > 0 ? '+' : ''}${delta})`,
@@ -347,7 +372,7 @@ router.post("/produk/:id/adjust", async (req, res): Promise<void> => {
       const [updatedProduk] = await tx
         .select()
         .from(produkMasterTable)
-        .where(eq(produkMasterTable.id, id));
+        .where(and(eq(produkMasterTable.id, id), eq(produkMasterTable.organisasiId, req.organisasiId)));
 
       return {
         ...updatedProduk,
@@ -373,14 +398,20 @@ router.post("/produk/:id/adjust", async (req, res): Promise<void> => {
 // ==========================================
 router.get("/produk/trash", async (req, res): Promise<void> => {
   try {
-    const { userId } = getAuth(req);
+   const { userId } = getAuth(req);
     if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; } // 🚀 PROTEKSI
 
     // Ambil data produk yang status deleted-nya TRUE
     const rawData = await db
       .select()
       .from(produkMasterTable)
-      .where(eq(produkMasterTable.deleted, true))
+      .where(
+        and(
+          eq(produkMasterTable.deleted, true),
+          eq(produkMasterTable.organisasiId, req.organisasiId) // 🚀 FILTER
+        )
+      )
       .orderBy(desc(produkMasterTable.updatedAt));
     
     // 🚀 FIX: Inject riwayat HPP terakhir sama persis kayak di GET produk aktif
@@ -443,8 +474,9 @@ router.get("/produk/trash", async (req, res): Promise<void> => {
 // ==========================================
 router.post("/produk/:id/restore", async (req, res): Promise<void> => {
   try {
-    const { userId } = getAuth(req);
+   const { userId } = getAuth(req);
     if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; } // 🚀 PROTEKSI
 
     const { id } = req.params;
 
@@ -455,7 +487,7 @@ router.post("/produk/:id/restore", async (req, res): Promise<void> => {
         isActive: true, 
         updatedAt: new Date() 
       })
-      .where(eq(produkMasterTable.id, id));
+      .where(and(eq(produkMasterTable.id, id), eq(produkMasterTable.organisasiId, req.organisasiId))); // 🚀 FILTER
 
     res.json({ success: true, message: "Produk berhasil dipulihkan kembali." });
   } catch (err) {
@@ -474,20 +506,27 @@ router.delete("/produk/:id/force", async (req, res): Promise<void> => {
 
     const { id } = req.params;
 
+        if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; }
+
     // 🚀 Eksekusi berantai di dalam satu transaksi aman (All or Nothing)
     await db.transaction(async (tx) => {
+      // WAJIB VERIFIKASI KEPEMILIKAN DULU SEBELUM CASCADE
+      const [owned] = await tx.select().from(produkMasterTable).where(
+        and(eq(produkMasterTable.id, id), eq(produkMasterTable.organisasiId, req.organisasiId))
+      );
+      if (!owned) throw new Error("UNAUTHORIZED");
+
       // 1. Hapus riwayat di buku gudang (stock movement)
-      await tx.delete(stockMovementTable).where(eq(stockMovementTable.produkId, id));
+      await tx.delete(stockMovementTable).where(and(eq(stockMovementTable.produkId, id), eq(stockMovementTable.organisasiId, req.organisasiId)));
       
-      // 2. Hapus riwayat pemakaian barang di modul perawatan kebun
+      // 2. Hapus riwayat pemakaian barang di modul perawatan kebun (junction table ikut produkId)
       await tx.delete(perawatanProdukTable).where(eq(perawatanProdukTable.produkId, id));
       
       // 3. Hapus transaksi pembelian uangnya di modul pengeluaran
-      // Kita hapus karena tabel pengeluaran lu punya check constraint ketat (pembelian_stok_konsisten)
-      await tx.delete(pengeluaranTable).where(eq(pengeluaranTable.produkId, id));
+      await tx.delete(pengeluaranTable).where(and(eq(pengeluaranTable.produkId, id), eq(pengeluaranTable.organisasiId, req.organisasiId)));
       
       // 4. Setelah semua anaknya bersih, hapus produk induknya dari master produk
-      await tx.delete(produkMasterTable).where(eq(produkMasterTable.id, id));
+      await tx.delete(produkMasterTable).where(and(eq(produkMasterTable.id, id), eq(produkMasterTable.organisasiId, req.organisasiId)));
     });
 
     res.json({ success: true, message: "Produk beserta seluruh riwayatnya berhasil dimusnahkan selamanya." });
