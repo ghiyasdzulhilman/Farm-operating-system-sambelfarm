@@ -519,9 +519,11 @@ if (module === "operasional") {
 // ==========================================
 // 6. ENDPOINT ADD & DELETE MASTER AREA
 // ==========================================
+
 router.post("/notion/areas", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; }
 
   const { name } = req.body;
   if (!name || typeof name !== "string" || name.trim() === "") {
@@ -530,7 +532,7 @@ router.post("/notion/areas", async (req, res): Promise<void> => {
 
   try {
     const [newArea] = await db.insert(areasTable)
-      .values({ name: name.trim() })
+      .values({ name: name.trim(), organisasiId: req.organisasiId })
       .returning();
       
     res.status(201).json({ success: true, data: newArea });
@@ -542,13 +544,14 @@ router.post("/notion/areas", async (req, res): Promise<void> => {
 router.delete("/notion/areas/:id", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; }
 
   const { id } = req.params;
   if (!id) { res.status(400).json({ error: "ID area wajib disertakan." }); return; }
 
   try {
     const [deletedArea] = await db.delete(areasTable)
-      .where(eq(areasTable.id, id))
+      .where(and(eq(areasTable.id, id), eq(areasTable.organisasiId, req.organisasiId)))
       .returning();
 
     if (!deletedArea) {
@@ -769,9 +772,11 @@ router.delete("/notion/kategori/:id", async (req, res): Promise<void> => {
 // ==========================================
 
 // A. Ambil semua siklus tanam aktif beserta nama areanya
+ 
 router.get("/notion/siklus-tanam", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; }
 
   try {
     const data = await db
@@ -784,7 +789,8 @@ router.get("/notion/siklus-tanam", async (req, res): Promise<void> => {
         status: siklusTanamTable.status,
       })
       .from(siklusTanamTable)
-      .leftJoin(areasTable, eq(siklusTanamTable.areaId, areasTable.id));
+      .leftJoin(areasTable, eq(siklusTanamTable.areaId, areasTable.id))
+      .where(eq(siklusTanamTable.organisasiId, req.organisasiId));
 
     res.json({ success: true, data });
   } catch (err) {
@@ -793,44 +799,50 @@ router.get("/notion/siklus-tanam", async (req, res): Promise<void> => {
 });
 
 // B. Tambah/Daftarkan Siklus Tanam Baru (Pindah Tanam)
+
 router.post("/notion/siklus-tanam", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; }
 
-  // 🕵️‍♂️ 1. Suruh si detektif nyari ID Pekerja asli dari token Clerk
   const pekerjaId = await getPekerjaIdFromClerk(userId);
 
-  // 🚀 2. Ekstraksi body (modalAwal sudah ada)
   const { areaId, namaSiklus, tanggalPindahTanam, modalAwal } = req.body;
   if (!areaId || !namaSiklus || !tanggalPindahTanam) {
     res.status(400).json({ error: "Area, Nama Siklus, dan Tanggal Pindah Tanam wajib diisi." });
     return;
   }
 
-  // 🚀 3. Pastikan modalAwal adalah angka dan tidak minus
   const parsedModal = Math.max(0, parseInt(modalAwal as string) || 0);
 
   try {
-    // Opsional: Otomatis ubah siklus lama di area yang sama menjadi "Selesai" jika ada siklus baru aktif
     await db.update(siklusTanamTable)
       .set({ status: "Selesai" }) 
-      .where(and(eq(siklusTanamTable.areaId, areaId), eq(siklusTanamTable.status, "Aktif")));
+      .where(and(
+        eq(siklusTanamTable.areaId, areaId),
+        eq(siklusTanamTable.status, "Aktif"),
+        eq(siklusTanamTable.organisasiId, req.organisasiId)
+      ));
 
     const [newSiklus] = await db.insert(siklusTanamTable)
       .values({
+        organisasiId: req.organisasiId,
         areaId,
         namaSiklus,
         tanggalPindahTanam: tanggalPindahTanam, 
         status: "Aktif",
         modalAwal: parsedModal,
-        createdBy: pekerjaId, // 🛡️ 4. Tanamkan jejak pembuatnya (Audit Trail)
-        updatedBy: pekerjaId  // 🛡️ Karena baru dibuat, yang update juga orang yang sama
+        createdBy: pekerjaId,
+        updatedBy: pekerjaId
       })
       .returning();
 
     res.status(201).json({ success: true, data: newSiklus });
   } catch (err: any) {
     console.error("[DB ERROR SIKLUS TANAM]:", err);
+    // Kalau areaId ternyata milik organisasi lain, composite FK
+    // fk_siklus_area_org bakal nolak di sini dengan kode 23503 —
+    // itu perilaku yang benar (pertahanan tambahan di level DB).
     res.status(500).json({ error: "Gagal menambahkan siklus tanam baru." });
   }
 });
