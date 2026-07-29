@@ -8,18 +8,26 @@ export async function adjustStock(
   tx: DbOrTx,
   params: {
     produkId: string;
+    organisasiId: string; // 🚀 WAJIB DITERIMA SEKARANG
     delta: number; // negatif = potong (pemakaian), positif = tambah (reversal)
     tipe: string;
     perawatanProdukId?: string | null;
     catatan?: string | null;
   }
 ) {
-  const { produkId, delta, tipe, perawatanProdukId = null, catatan = null } = params;
+  const { produkId, organisasiId, delta, tipe, perawatanProdukId = null, catatan = null } = params;
 
-  // 🚀 FIX: Bungkus nilai -delta ke dalam String() biar Drizzle (TypeScript) nggak protes saat ngebandingin tipe numeric
+    // 🚀 FIX: Bungkus nilai -delta ke dalam String() biar Drizzle (TypeScript) nggak protes saat ngebandingin tipe numeric
   const whereClause = delta < 0
-    ? and(eq(produkMasterTable.id, produkId), gte(produkMasterTable.stokSaatIni, String(-delta)))
-    : eq(produkMasterTable.id, produkId);
+    ? and(
+        eq(produkMasterTable.id, produkId), 
+        eq(produkMasterTable.organisasiId, organisasiId), // 🚀 FILTER TENANT
+        gte(produkMasterTable.stokSaatIni, String(-delta))
+      )
+    : and(
+        eq(produkMasterTable.id, produkId),
+        eq(produkMasterTable.organisasiId, organisasiId) // 🚀 FILTER TENANT
+      );
 
     const updated = await tx
     .update(produkMasterTable)
@@ -45,6 +53,7 @@ export async function adjustStock(
 
   await tx.insert(stockMovementTable).values({
     produkId, 
+    organisasiId, // 🚀 INJEKSI TENANT
     tipe, 
     // 💡 BEST PRACTICE: Kita kembalikan jadi String ke DB supaya presisi numeric(18,3) terjaga
     delta: String(delta), 
