@@ -76,29 +76,32 @@ interface AddOperasionalBody {
 // ==========================================
 // 2. ENDPOINT DROPDOWN OPTIONS
 // ==========================================
+
 router.get("/notion/operasional-dropdown-options", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
   if (!userId) { 
     res.status(401).json({ error: "Unauthorized" }); 
     return; 
   }
+  if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; }
 
   try {
-    // 💡 REVISI: Join areasTable dengan siklusTanamTable (hanya yang aktif)
     const dbAreas = await db
       .select({
         id: areasTable.id,
         name: areasTable.name,
-        namaSiklus: siklusTanamTable.namaSiklus, // Tarik nama tanaman
+        namaSiklus: siklusTanamTable.namaSiklus,
       })
       .from(areasTable)
       .leftJoin(
         siklusTanamTable,
         and(
           eq(areasTable.id, siklusTanamTable.areaId),
-          eq(siklusTanamTable.status, "Aktif")
+          eq(siklusTanamTable.status, "Aktif"),
+          eq(siklusTanamTable.organisasiId, req.organisasiId)
         )
-      );
+      )
+      .where(eq(areasTable.organisasiId, req.organisasiId));
 
     // 💡 GABUNGKAN STRING DI SINI SEBELUM DIKIRIM
     const formattedAreas = dbAreas.map(a => ({ 
