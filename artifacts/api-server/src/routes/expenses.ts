@@ -13,12 +13,15 @@ router.get("/pengeluaran", async (req, res): Promise<void> => {
   try {
     const { userId } = getAuth(req);
     if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; } // 🚀 PROTEKSI TENANT
 
     // 1. Tangkap parameter filter dari frontend
     const statusSiklus = req.query.statusSiklus as string;
 
     // 2. Siapkan kondisi filter
-    let conditions = [];
+    // 🚀 INJEKSI TENANT SEBAGAI KONDISI WAJIB PERTAMA
+    let conditions = [eq(pengeluaranTable.organisasiId, req.organisasiId)];
+
     if (statusSiklus === "aktif") {
       // Tampilkan Biaya Umum (siklus NULL) ATAU Siklus yang masih Aktif
       conditions.push(
@@ -120,16 +123,31 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
       hargaSatuanNum = (biayaNum / qtyNum).toFixed(3);
     }
 
+    // 🚀 PINDAHKAN CEK TENANT KE ATAS BIAR NGGAK ADA QUERY DATABASE YANG JALAN SIA-SIA
+    if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; }
+
     // Lacak identitas pekerja yang melakukan input
     const pekerjaId = await getPekerjaIdFromClerk(userId);
 
     // Ambil nama kategori & data produk master
-    const [kategoriData] = await db.select({ nama: kategoriKeuanganTable.nama }).from(kategoriKeuanganTable).where(eq(kategoriKeuanganTable.id, kategoriId));
+    const [kategoriData] = await db.select({ nama: kategoriKeuanganTable.nama })
+      .from(kategoriKeuanganTable)
+      .where(
+        and(eq(kategoriKeuanganTable.id, kategoriId), eq(kategoriKeuanganTable.organisasiId, req.organisasiId)) // 🚀 WAJIB FILTER TENANT
+      );
+      
     let produkNama = null;
     let produkSatuan = "lumpsum";
-    
+
     if (isPembelianStok) {
-      const [p] = await db.select({ nama: produkMasterTable.nama, satuanDasar: produkMasterTable.satuanDasar }).from(produkMasterTable).where(eq(produkMasterTable.id, produkId));
+
+      // 🚀 FILTER TENANT: Pastikan yang dicari beneran produk dari organisasinya
+      const [p] = await db.select({ nama: produkMasterTable.nama, satuanDasar: produkMasterTable.satuanDasar })
+        .from(produkMasterTable)
+        .where(
+          and(eq(produkMasterTable.id, produkId), eq(produkMasterTable.organisasiId, req.organisasiId))
+        );
+
       if (p) {
         produkNama = p.nama;
         produkSatuan = p.satuanDasar;
@@ -144,8 +162,9 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
 
         const result = await db.transaction(async (tx) => {
       
-    // [AKSI 1] Insert ke tabel pengeluaran pakai DATA JUJUR
+      // [AKSI 1] Insert ke tabel pengeluaran pakai DATA JUJUR
       const [newPengeluaran] = await tx.insert(pengeluaranTable).values({
+        organisasiId: req.organisasiId, // 🚀 INJEKSI TENANT KE PENGELUARAN
         areaId: null, 
         siklusId: null, 
         kategoriId,
@@ -162,7 +181,7 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
         createdBy: pekerjaId,
       }).returning();
 
-    // Jika BUKAN pembelian stok, urusan selesai di sini.
+      // Jika BUKAN pembelian stok, urusan selesai di sini.
       if (!isPembelianStok) {
         return newPengeluaran;
       }
@@ -176,7 +195,9 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
           hargaPerSatuanDasar: produkMasterTable.hargaPerSatuanDasar 
         })
         .from(produkMasterTable)
-        .where(eq(produkMasterTable.id, produkId));
+        .where(
+          and(eq(produkMasterTable.id, produkId), eq(produkMasterTable.organisasiId, req.organisasiId)) // 🚀 FILTER TENANT
+        );
 
       if (!produk) {
         throw new Error("PRODUK_NOT_FOUND");
@@ -201,6 +222,7 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
       // [AKSI 2] Catat ke Ledger/Buku Jurnal Stok
       await tx.insert(stockMovementTable).values({
         produkId: produk.id,
+        organisasiId: req.organisasiId, // 🚀 INJEKSI TENANT KE LEDGER
         tipe: "pembelian", 
         delta: String(qtyNum), 
         stokSebelum: String(stokSebelum), 
@@ -213,14 +235,16 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
         catatan: `Pembelian via pengeluaran (Ref: ${newPengeluaran.id})`,
       });
 
-      // [AKSI 3] Update Cache Stok DAN Otomatis Update Harga Master Terbaru
+     // [AKSI 3] Update Cache Stok DAN Otomatis Update Harga Master Terbaru
       await tx.update(produkMasterTable)
         .set({ 
           stokSaatIni: String(stokSesudah), 
           hargaPerSatuanDasar: hppBaruString, // 🚀 FIX: Timpa dengan HPP Moving Average
           updatedAt: new Date()
         })
-        .where(eq(produkMasterTable.id, produk.id));
+        .where(
+          and(eq(produkMasterTable.id, produk.id), eq(produkMasterTable.organisasiId, req.organisasiId)) // 🚀 FILTER TENANT
+        );
 
       return {
         ...newPengeluaran,
@@ -249,10 +273,13 @@ router.get("/kategori-keuangan", async (req, res): Promise<void> => {
     const { userId } = getAuth(req);
     if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
+        if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; }
+
     // 🚀 FIX: Kembalikan query murni narik dari tabel kategori keuangan
     const data = await db
       .select()
       .from(kategoriKeuanganTable)
+      .where(eq(kategoriKeuanganTable.organisasiId, req.organisasiId)) // 🚀 FILTER TENANT
       .orderBy(kategoriKeuanganTable.nama);
 
     res.json({ success: true, data });
@@ -270,11 +297,18 @@ router.get("/pengeluaran-dropdown-options", async (req, res): Promise<void> => {
     const { userId } = getAuth(req);
     if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
+        if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; }
+
     // 🚀 FIX: Query areasTable dihapus karena form pengeluaran murni untuk Biaya Umum & Stok
     const dbKategoriKeuangan = await db
       .select()
       .from(kategoriKeuanganTable)
-      .where(eq(kategoriKeuanganTable.tipe, 'pengeluaran'))
+      .where(
+        and(
+          eq(kategoriKeuanganTable.tipe, 'pengeluaran'),
+          eq(kategoriKeuanganTable.organisasiId, req.organisasiId) // 🚀 FILTER TENANT
+        )
+      )
       .orderBy(kategoriKeuanganTable.nama);
 
     res.json({ 
