@@ -134,6 +134,8 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
         ? body.produkPerArea[currentAreaId] 
         : (body.logProduk || []);
 
+            if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; }
+
       // 🔍 CARI SIKLUS TANAM YANG SEDANG AKTIF DI AREA INI
       const [activeCycle] = await db
         .select({ id: siklusTanamTable.id })
@@ -141,19 +143,18 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
         .where(
           and(
             eq(siklusTanamTable.areaId, currentAreaId),
-            eq(siklusTanamTable.status, "Aktif")
+            eq(siklusTanamTable.status, "Aktif"),
+            eq(siklusTanamTable.organisasiId, req.organisasiId) // 🚀 FILTER TENANT
           )
         )
         .limit(1);
 
-       // 🔒 Transaction membungkus: insert perawatan + validasi produk + potong stok + insert perawatan_produk.
-      // Kalau salah satu produk gagal (stok kurang / harga 0), SELURUH blok area ini di-rollback —
-      // termasuk insert perawatanTable-nya, supaya tidak ada "perawatan tanpa produk" nyangkut di DB
-      // akibat kegagalan di tengah proses.
+       // 🔒 Transaction membungkus: insert perawatan...
       const insertedPerawatan = await db.transaction(async (tx) => {
         
       // 1. Simpan Data Induk (Tanpa pekerjaIds)
         const [newPerawatan] = await tx.insert(perawatanTable).values({
+          organisasiId: req.organisasiId, // 🚀 INJEKSI TENANT KE DATA BARU
           kegiatan: kegiatan,
           areaId: currentAreaId,
           siklusId: activeCycle ? activeCycle.id : null,
@@ -218,13 +219,15 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
               urutan: urutanIndex++,
             }).returning(); // Wajib pakai .returning() buat dapetin ID-nya
 
-            // 🚀 FIX BUG: Setelah dapet ID racikannya, baru suruh adjustStock nyatet riwayatnya
+          // 🚀 FIX BUG: Setelah dapet ID racikannya, baru suruh adjustStock nyatet riwayatnya
             await adjustStock(tx, {
               produkId: item.produkId,
+              organisasiId: req.organisasiId, // 🚀 TERUSKAN KE HELPER STOCK
               delta: -item.kuantitasPemakaian,
               tipe: "pemakaian",
               perawatanProdukId: insertedRacikan.id, // Sodorin ID-nya ke sini!
             });
+
           }
         }
 
@@ -281,8 +284,10 @@ router.get("/notion/all-perawatan", async (req, res): Promise<void> => {
   const { statusSiklus } = req.query;
 
   try {
+        if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; }
+
     // 1. Ambil data induk perawatan + nama area + NAMA TANAMAN
-    const indukData = await db
+      const indukData = await db
       .select({
         id: perawatanTable.id,
         kegiatan: perawatanTable.kegiatan,
@@ -306,8 +311,8 @@ router.get("/notion/all-perawatan", async (req, res): Promise<void> => {
       .leftJoin(areasTable, eq(perawatanTable.areaId, areasTable.id))
       .leftJoin(kategoriTable, eq(perawatanTable.tagCategoryId, kategoriTable.id))
       // 🚀 SIMPLE JOIN LANGSUNG KE SIKLUS ID!
-      .leftJoin(siklusTanamTable, eq(perawatanTable.siklusId, siklusTanamTable.id));
-
+      .leftJoin(siklusTanamTable, eq(perawatanTable.siklusId, siklusTanamTable.id))
+      .where(eq(perawatanTable.organisasiId, req.organisasiId)); // 🚀 FILTER TENANT
 
     // 🚀 3. FILTER DATANYA SEBELUM DI-MAP
     let filteredIndukData = indukData;
@@ -400,21 +405,28 @@ router.get("/notion/all-perawatan", async (req, res): Promise<void> => {
 router.delete("/notion/perawatan/:id", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; } // 🚀 Pengecekan aman di atas
 
   const { id } = req.params;
 
   try {
     await db.transaction(async (tx) => {
+      // 🚀 VERIFIKASI KEPEMILIKAN SEBELUM EKSEKUSI APAPUN
+      const [owned] = await tx.select().from(perawatanTable).where(
+        and(eq(perawatanTable.id, id), eq(perawatanTable.organisasiId, req.organisasiId))
+      );
+      if (!owned) { throw new Error("PERAWATAN_TIDAK_DITEMUKAN"); }
+
       const produkRows = await tx
         .select()
         .from(perawatanProdukTable)
         .where(eq(perawatanProdukTable.perawatanId, id));
 
-      // Reverse stok untuk tiap produk yang pernah dipakai — HARUS sebelum baris
-      // perawatan_produk dihapus, kalau tidak kita kehilangan info kuantitas yang perlu dikembalikan.
+      // Reverse stok untuk tiap produk yang pernah dipakai
       for (const row of produkRows) {
         await adjustStock(tx, {
           produkId: row.produkId,
+          organisasiId: req.organisasiId, // 🚀 TERUSKAN KE HELPER STOCK
           delta: row.kuantitasPemakaian, // positif = kembalikan stok
           tipe: "reversal_delete",
           perawatanProdukId: null,
@@ -423,7 +435,9 @@ router.delete("/notion/perawatan/:id", async (req, res): Promise<void> => {
 
       await tx.delete(perawatanProdukTable).where(eq(perawatanProdukTable.perawatanId, id));
 
-      const [deleted] = await tx.delete(perawatanTable).where(eq(perawatanTable.id, id)).returning();
+      const [deleted] = await tx.delete(perawatanTable)
+        .where(and(eq(perawatanTable.id, id), eq(perawatanTable.organisasiId, req.organisasiId))) // 🚀 PROTEKSI GANDA
+        .returning();
 
       if (!deleted) {
         throw new Error("PERAWATAN_TIDAK_DITEMUKAN");
@@ -479,13 +493,15 @@ router.patch("/notion/perawatan/:id", async (req, res): Promise<void> => {
     const updated = await db.transaction(async (tx) => {
       let updatedPerawatan;
 
+      if (!req.organisasiId) { throw new Error("UNAUTHORIZED"); } // Lempar error untuk di-catch
+
       if (Object.keys(basicPayload).length > 0) {
         [updatedPerawatan] = await tx.update(perawatanTable)
           .set(basicPayload)
-          .where(eq(perawatanTable.id, id))
+          .where(and(eq(perawatanTable.id, id), eq(perawatanTable.organisasiId, req.organisasiId))) // 🚀 FILTER TENANT
           .returning();
       } else {
-        [updatedPerawatan] = await tx.select().from(perawatanTable).where(eq(perawatanTable.id, id));
+        [updatedPerawatan] = await tx.select().from(perawatanTable).where(and(eq(perawatanTable.id, id), eq(perawatanTable.organisasiId, req.organisasiId))); // 🚀 FILTER TENANT
       }
 
             if (!updatedPerawatan) {
@@ -537,8 +553,9 @@ router.patch("/notion/perawatan/:id", async (req, res): Promise<void> => {
 
        // --- EKSEKUSI EMBER A: DIHAPUS (Kembalikan stok penuh & hapus baris) ---
         for (const item of toDelete) {
-          await adjustStock(tx, {
+         await adjustStock(tx, {
             produkId: item.produkId,
+            organisasiId: req.organisasiId, // 🚀 TERUSKAN KE HELPER STOCK
             delta: item.kuantitasPemakaian, // kembalikan (positif)
             tipe: "reversal_edit",
             perawatanProdukId: item.id, // 🚀 FIX: Sodorin ID racikan lama yang mau dihapus
@@ -577,6 +594,7 @@ router.patch("/notion/perawatan/:id", async (req, res): Promise<void> => {
             // 🚀 FIX: Baru suruh motong stok dan sodorin ID racikannya
             await adjustStock(tx, {
               produkId: item.produkId,
+              organisasiId: req.organisasiId, // 🚀 TERUSKAN KE HELPER STOCK
               delta: -item.kuantitasPemakaian, // potong (negatif)
               tipe: "pemakaian",
               perawatanProdukId: insertedRacikan.id, // 🚀 Sodorin ID barunya ke sini
@@ -598,6 +616,7 @@ router.patch("/notion/perawatan/:id", async (req, res): Promise<void> => {
           if (deltaQty !== 0) {
             await adjustStock(tx, {
               produkId: item.produkId,
+              organisasiId: req.organisasiId, // 🚀 TERUSKAN KE HELPER STOCK
               delta: deltaQty,
               tipe: deltaQty > 0 ? "reversal_edit" : "pemakaian", // disamakan tipenya agar log rapi
               perawatanProdukId: item.oldData.id, // 🚀 FIX: Comot ID racikan dari memori oldData
