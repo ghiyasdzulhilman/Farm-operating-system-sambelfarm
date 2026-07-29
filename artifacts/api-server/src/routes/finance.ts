@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, kategoriKeuanganTable } from "@workspace/db";
-import { eq, desc } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { getAuth } from "@clerk/express";
 import { getPekerjaIdFromClerk } from "../lib/authHelpers";
 
@@ -11,14 +11,17 @@ const router = Router();
 // ---------------------------------------------------------------------------
 
 // A. Ambil Semua Kategori (GET /api/finance/kategori)
+
 router.get("/kategori", async (req, res): Promise<void> => {
   try {
     const { userId } = getAuth(req);
     if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; }
 
     const data = await db
       .select()
       .from(kategoriKeuanganTable)
+      .where(eq(kategoriKeuanganTable.organisasiId, req.organisasiId))
       .orderBy(desc(kategoriKeuanganTable.createdAt));
 
     res.json({ success: true, data });
@@ -29,10 +32,12 @@ router.get("/kategori", async (req, res): Promise<void> => {
 });
 
 // B. Tambah Kategori Baru (POST /api/finance/kategori)
+
 router.post("/kategori", async (req, res): Promise<void> => {
   try {
     const { userId } = getAuth(req);
     if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; }
 
     const { nama, tipe, keterangan } = req.body;
     if (!nama || !tipe) {
@@ -40,7 +45,6 @@ router.post("/kategori", async (req, res): Promise<void> => {
       return;
     }
 
-    // 🕵️‍♂️ Lacak siapa yang input menggunakan Helper Detektif
     const pekerjaId = await getPekerjaIdFromClerk(userId);
 
     const [newKategori] = await db.insert(kategoriKeuanganTable)
@@ -48,14 +52,14 @@ router.post("/kategori", async (req, res): Promise<void> => {
         nama,
         tipe,
         keterangan: keterangan || null,
-        createdBy: pekerjaId
+        createdBy: pekerjaId,
+        organisasiId: req.organisasiId
       })
       .returning();
 
     res.status(201).json({ success: true, data: newKategori });
   } catch (err: any) {
     console.error("[POST KATEGORI KEUANGAN ERROR]:", err);
-    // 🛡️ Tangkap error constraint unique nama (case-insensitive di schema)
     if (err.code === "23505" || err.message?.includes("unique")) {
       res.status(400).json({ error: "Kategori dengan nama ini sudah ada." });
       return;
@@ -65,10 +69,12 @@ router.post("/kategori", async (req, res): Promise<void> => {
 });
 
 // C. Update Kategori (PUT /api/finance/kategori/:id)
+
 router.put("/kategori/:id", async (req, res): Promise<void> => {
   try {
     const { userId } = getAuth(req);
     if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; }
 
     const { id } = req.params;
     const { nama, tipe, keterangan } = req.body;
@@ -84,9 +90,16 @@ router.put("/kategori/:id", async (req, res): Promise<void> => {
         tipe,
         keterangan: keterangan || null
       })
-      .where(eq(kategoriKeuanganTable.id, id))
+      .where(
+        and(
+          eq(kategoriKeuanganTable.id, id),
+          eq(kategoriKeuanganTable.organisasiId, req.organisasiId)
+        )
+      )
       .returning();
 
+    // 404 di sini juga otomatis menutup kemungkinan org lain tahu
+    // apakah ID tersebut ada tapi cuma "bukan milik dia" — nggak bocorin info.
     if (!updatedKategori) {
       res.status(404).json({ error: "Kategori tidak ditemukan." });
       return;
@@ -104,19 +117,34 @@ router.put("/kategori/:id", async (req, res): Promise<void> => {
 });
 
 // D. Hapus Kategori (DELETE /api/finance/kategori/:id)
+
 router.delete("/kategori/:id", async (req, res): Promise<void> => {
   try {
     const { userId } = getAuth(req);
     if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; }
 
     const { id } = req.params;
 
-    await db.delete(kategoriKeuanganTable).where(eq(kategoriKeuanganTable.id, id));
+    const deleted = await db.delete(kategoriKeuanganTable)
+      .where(
+        and(
+          eq(kategoriKeuanganTable.id, id),
+          eq(kategoriKeuanganTable.organisasiId, req.organisasiId)
+        )
+      )
+      .returning({ id: kategoriKeuanganTable.id });
+
+    // Fix bug lama: sebelumnya endpoint ini selalu balas "sukses" walau
+    // 0 baris kehapus (id salah, atau sekarang: id milik organisasi lain).
+    if (deleted.length === 0) {
+      res.status(404).json({ error: "Kategori tidak ditemukan." });
+      return;
+    }
 
     res.json({ success: true, message: "Kategori berhasil dihapus." });
   } catch (err: any) {
     console.error("[DELETE KATEGORI KEUANGAN ERROR]:", err);
-    // 🛡️ Tangkap error jika kategori sedang dipakai di tabel pengeluaran 
     if (err.code === "23503") {
       res.status(400).json({ error: "Gagal menghapus! Kategori ini sudah dipakai di transaksi." });
       return;
