@@ -321,9 +321,9 @@ router.get("/pengeluaran-dropdown-options", async (req, res): Promise<void> => {
     const { userId } = getAuth(req);
     if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
-        if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; }
+    if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; }
 
-    // 🚀 FIX: Query areasTable dihapus karena form pengeluaran murni untuk Biaya Umum & Stok
+    // 1. Tarik Kategori Keuangan
     const dbKategoriKeuangan = await db
       .select()
       .from(kategoriKeuanganTable)
@@ -335,9 +335,32 @@ router.get("/pengeluaran-dropdown-options", async (req, res): Promise<void> => {
       )
       .orderBy(kategoriKeuanganTable.nama);
 
+    // 🚀 SUNTIKAN BARU: Tarik Data Area + Siklus Aktif (Sama persis kayak di harvest.ts)
+    const dbAreas = await db
+      .select({
+        id: areasTable.id,
+        name: areasTable.name,
+        namaSiklus: siklusTanamTable.namaSiklus,
+      })
+      .from(areasTable)
+      .leftJoin(
+        siklusTanamTable,
+        and(
+          eq(areasTable.id, siklusTanamTable.areaId),
+          eq(siklusTanamTable.status, "Aktif")
+        )
+      )
+      .where(eq(areasTable.organisasiId, req.organisasiId)); // 🚀 FILTER TENANT
+
+    const formattedAreas = dbAreas.map(a => ({ 
+      id: a.id, 
+      name: a.namaSiklus ? `${a.name} - ${a.namaSiklus}` : a.name 
+    }));
+
     res.json({ 
       success: true,
-      kategoriKeuangan: dbKategoriKeuangan 
+      kategoriKeuangan: dbKategoriKeuangan,
+      areas: formattedAreas // 🚀 Kirim array area ke frontend!
     });
 
   } catch (err) {
@@ -345,5 +368,6 @@ router.get("/pengeluaran-dropdown-options", async (req, res): Promise<void> => {
     res.status(500).json({ error: "Gagal mengambil opsi dropdown pengeluaran." }); 
   }
 });
+
 
 export default router;
