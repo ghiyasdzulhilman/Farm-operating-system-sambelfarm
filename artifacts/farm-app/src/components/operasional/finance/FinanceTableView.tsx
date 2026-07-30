@@ -120,7 +120,7 @@ function BentoTable({
 
     {/* ISI TABEL */}
       <div className="w-full overflow-x-auto custom-scrollbar">
-        <table className="w-full min-w-[1100px] border-collapse">
+        <table className="w-full min-w-[900px] border-collapse">
           <thead>
 
             {table.getHeaderGroups().map(headerGroup => (
@@ -213,11 +213,11 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
         </div>
       )
     },
-    {
+        {
       id: "namaItem", 
       header: "Nama Item",
       cell: ({ row }) => (
-        <div className="font-bold text-foreground/90 min-w-[200px]">{row.original.title}</div>
+        <div className="font-bold text-foreground/90 min-w-[140px]">{row.original.title}</div>
       )
     },
 
@@ -286,13 +286,13 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
     {
       id: "kegiatan",
       header: "Kegiatan",
-      cell: ({ row }) => <div className="font-bold text-foreground/90 min-w-[160px] whitespace-nowrap">{row.original.title}</div>
+      cell: ({ row }) => <div className="font-bold text-foreground/90 min-w-[110px] whitespace-nowrap">{row.original.title}</div>
     },
     {
       id: "kualitas", // 🚀 KOLOM BARU: KUALITAS / GRADE
       header: "Grade",
       cell: ({ row }) => (
-        <div className="font-semibold text-muted-foreground text-xs min-w-[100px] whitespace-nowrap">
+        <div className="font-semibold text-muted-foreground text-xs min-w-[70px] whitespace-nowrap">
           {row.original.metaEkstra?.kualitas || "-"}
         </div>
       )
