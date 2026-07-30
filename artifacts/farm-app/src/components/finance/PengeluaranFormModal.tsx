@@ -23,10 +23,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 // ==========================================
 // 1. ZOD SCHEMA (VALIDASI KETAT)
 // ==========================================
-const pengeluaranSchema = z.object({
+  const pengeluaranSchema = z.object({
   tanggal: z.string().min(1, "Tanggal wajib diisi"),
-  namaItem: z.string().min(1, "Nama pengeluaran wajib diisi"),
-  
+  namaItem: z.string().optional(), // 🚀 FIX: Dibikin opsional biar fallback backend jalan
+
   // 🚀 SUNTIKAN BARU: Tipe Transaksi & Area
   tipeTransaksi: z.enum(["BELI_STOK", "BIAYA_AREA", "BIAYA_UMUM"]),
   areaId: z.string().optional(),
@@ -224,23 +224,26 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
     if (isStepValid) setStep((prev) => prev + 1);
   };
 
-    function onSubmit(values: PengeluaranFormValues) {
-    // 🚀 SUNTIKAN BARU: Terjemahkan tipeTransaksi untuk backend
+   function onSubmit(values: PengeluaranFormValues) {
     const isBeliStok = values.tipeTransaksi === "BELI_STOK";
     const finalAreaId = values.tipeTransaksi === "BIAYA_AREA" ? values.areaId : undefined;
 
-    // Racik teks laporan
+    // 🚀 FIX: Racik teks laporan yang jauh lebih elegan & human-readable
     const hppKalkulasi = Number(values.beratPerPcs || 0) > 0 ? (Number(values.hargaPerPcs || 0) / Number(values.beratPerPcs)) : 0;
+    const hppFinalFormatted = hppKalkulasi.toLocaleString("id-ID", { maximumFractionDigits: 2 });
+    
+    // Cari nama kategori untuk preview kalau input namanya dikosongin
+    const matchedKategori = kategoriList.find((k: any) => k.id === values.kategoriId);
+    const fallbackNama = values.namaItem || (matchedKategori?.nama ? `Biaya ${matchedKategori.nama}` : "Biaya Operasional");
+
     const autoLaporanTeks = isBeliStok && selectedProduk
-      ? `Beli ${selectedProduk.nama}: ${values.qtyPcs} kemasan (@${values.beratPerPcs}${satuan}). Masuk: ${calcTotalVolume}${satuan}. HPP: Rp${hppKalkulasi.toLocaleString("id-ID", { maximumFractionDigits: 2 })}/${satuan}.`
-      : `Pengeluaran ${values.namaItem} sebesar Rp${Number(values.totalBiayaLumpsum || 0).toLocaleString("id-ID")}.`;
+      ? `Stok Masuk: ${calcTotalVolume} ${satuan} ${selectedProduk.nama} (Beli ${values.qtyPcs} x ${values.beratPerPcs}${satuan}). HPP Baru: Rp${hppFinalFormatted} per ${satuan}.`
+      : `Pencatatan pengeluaran untuk ${fallbackNama} sejumlah Rp${Number(values.totalBiayaLumpsum || 0).toLocaleString("id-ID")}.`;
 
     // Susun payload jujur untuk backend
     const payload = {
       tanggal: values.tanggal,
-      namaItem: isBeliStok && selectedProduk 
-        ? `Beli Stok: ${selectedProduk.nama}` 
-        : values.namaItem,
+      namaItem: values.namaItem || undefined, // 🚀 Biarkan Backend yang mikir fallback-nya!
       kategoriId: values.kategoriId,
       
       // 🚀 SUNTIKAN BARU: Payload yang dikirim ke backend
@@ -367,10 +370,10 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
                             </FormItem>
                           )} />
 
-                          <FormField control={form.control} name="namaItem" render={({ field }) => (
+                         <FormField control={form.control} name="namaItem" render={({ field }) => (
                             <FormItem className="space-y-1.5 col-span-2">
-                              <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80"><Tag className="inline-block h-3.5 w-3.5 mr-1" /> Nama Pengeluaran</FormLabel>
-                              <FormControl><Input placeholder="Cth: Beli Kopi Hitam" className="h-11 rounded-xl bg-background border border-input shadow-sm text-sm font-medium" {...field} /></FormControl>
+                              <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80"><Tag className="inline-block h-3.5 w-3.5 mr-1" /> Nama Pengeluaran (Opsional)</FormLabel>
+                              <FormControl><Input placeholder="Kosongkan untuk penamaan otomatis" className="h-11 rounded-xl bg-background border border-input shadow-sm text-sm font-medium" {...field} value={field.value || ""} /></FormControl>
                               <FormMessage className="text-xs text-red-500" />
                             </FormItem>
                           )} />
@@ -525,8 +528,8 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
                         {isAutoCatatan ? (
                             <div className="p-3.5 rounded-xl border border-dashed border-primary/40 bg-primary/5 text-xs font-medium text-foreground leading-relaxed">
                               {isPembelianStok && selectedProduk
-                                ? `Beli ${selectedProduk.nama}: ${qtyPcs} kemasan (@${beratPerPcs}${satuan}). Masuk: ${calcTotalVolume}${satuan}. HPP: Rp${hppFormatted}/${satuan}.`
-                                : `Pengeluaran ${form.getValues("namaItem")} sebesar Rp${Number(form.getValues("totalBiayaLumpsum") || 0).toLocaleString("id-ID")}.`}
+                                ? `Stok Masuk: ${calcTotalVolume} ${satuan} ${selectedProduk.nama} (Beli ${qtyPcs} x ${beratPerPcs}${satuan}). HPP Baru: Rp${hppFormatted} per ${satuan}.`
+                                : `Pencatatan pengeluaran untuk ${form.getValues("namaItem") || "beban operasional"} sejumlah Rp${Number(form.getValues("totalBiayaLumpsum") || 0).toLocaleString("id-ID")}.`}
                             </div>
                           ) : (
 
