@@ -122,9 +122,9 @@ router.get("/notion/operasional-dropdown-options", async (req, res): Promise<voi
         jenisTenagaName: tenagaAtribut.namaOption, 
         deleted: pekerjaTable.deleted, // 🚀 TARIK STATUS BENDERANYA
       })
-
       .from(pekerjaTable)
-      .leftJoin(tenagaAtribut, eq(pekerjaTable.jenisTenagaKerjaId, tenagaAtribut.id));
+      .leftJoin(tenagaAtribut, eq(pekerjaTable.jenisTenagaKerjaId, tenagaAtribut.id))
+      .where(eq(pekerjaTable.organisasiId, req.organisasiId)); // 🚀 FILTER TENANT PEKERJA
 
     // 💡 GABUNGKAN NAMA DAN JENIS TENAGA KERJA DI SINI
     const formattedPetugas = dbPekerja.map((p) => ({ 
@@ -136,16 +136,16 @@ router.get("/notion/operasional-dropdown-options", async (req, res): Promise<voi
       deleted: p.deleted // 🚀 MASUKKAN KE FORMAT DATA FRONTEND
     }));
 
-    const dbKategori = await db.select().from(kategoriTable);
+    const dbKategori = await db.select().from(kategoriTable).where(eq(kategoriTable.organisasiId, req.organisasiId)); // 🚀 FILTER TENANT KATEGORI
     
     // 💡 Fetch Atribut Master (Notion-style tags)
-    const dbAtribut = await db.select().from(pekerjaAtributMasterTable);
+    const dbAtribut = await db.select().from(pekerjaAtributMasterTable).where(eq(pekerjaAtributMasterTable.organisasiId, req.organisasiId)); // 🚀 FILTER TENANT ATRIBUT
     const roles = dbAtribut.filter(a => a.jenisAtribut === "role").map(a => ({ id: a.id, name: a.namaOption }));
     const jenisTenaga = dbAtribut.filter(a => a.jenisAtribut === "jenis_tenaga").map(a => ({ id: a.id, name: a.namaOption }));
     const statuses = dbAtribut.filter(a => a.jenisAtribut === "status").map(a => ({ id: a.id, name: a.namaOption }));
 
     // 💡 SINKRONISASI INSPEKSI: Tarik master hama & penyakit (Pastikan kendalaMasterTable diimport di atas)
-    const dbKendala = await db.select().from(kendalaMasterTable);
+    const dbKendala = await db.select().from(kendalaMasterTable).where(eq(kendalaMasterTable.organisasiId, req.organisasiId)); // 🚀 FILTER TENANT KENDALA
     const formattedKendala = dbKendala.map((k) => ({
       id: k.id,
       name: k.nama,
@@ -180,7 +180,8 @@ router.post("/notion/add-operasional", async (req, res): Promise<void> => {
     res.status(401).json({ error: "Unauthorized" }); 
     return; 
   }
-  
+  if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; } // 🚀 PROTEKSI TENANT DI AWAL
+
   const body = req.body as Partial<AddOperasionalBody>;
   const namaPekerjaan = (body.namaPekerjaan ?? "").trim();
   const areaIds: string[] = Array.isArray(body.areaIds) ? body.areaIds.filter(Boolean) : [];
@@ -210,7 +211,7 @@ router.post("/notion/add-operasional", async (req, res): Promise<void> => {
       const prioritasStr = body.modeAtribut === "broadcast" ? body.prioritasBroadcast : (body.prioritasPerArea?.[currentAreaId] || body.prioritasBroadcast);
       const jenisStr = body.modeAtribut === "broadcast" ? body.jenisTenagaKerjaBroadcast : (body.jenisTenagaKerjaPerArea?.[currentAreaId] || body.jenisTenagaKerjaBroadcast);
 
-            // 5. Ekstrak Catatan
+      // 5. Ekstrak Catatan
       const catatanStr = body.modeCatatan === "broadcast" ? (body.catatanBroadcast || "") : (body.catatanPerArea?.[currentAreaId] || "");
 
       // 🔍 6. CARI SIKLUS TANAM YANG SEDANG AKTIF DI AREA INI
@@ -220,15 +221,17 @@ router.post("/notion/add-operasional", async (req, res): Promise<void> => {
         .where(
           and(
             eq(siklusTanamTable.areaId, currentAreaId),
-            eq(siklusTanamTable.status, "Aktif")
+            eq(siklusTanamTable.status, "Aktif"),
+            eq(siklusTanamTable.organisasiId, req.organisasiId) // 🚀 FILTER TENANT
           )
         )
         .limit(1);
 
      // 🚀 UBAH JADI TRANSACTION: Simpan Data Induk lalu Simpan Relasi Pekerja
       const insertedOperasional = await db.transaction(async (tx) => {
-    // 1. Insert ke tabel induk (TANPA pekerjaIds)
+        // 1. Insert ke tabel induk (TANPA pekerjaIds)
         const [inserted] = await tx.insert(operasionalTable).values({
+          organisasiId: req.organisasiId, // 🚀 INJEKSI TENANT
           namaPekerjaan: namaPekerjaan,
           areaId: currentAreaId,
           siklusId: activeCycle ? activeCycle.id : null, 
@@ -280,6 +283,7 @@ router.post("/notion/add-operasional", async (req, res): Promise<void> => {
 router.get("/notion/all-operasional", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; } // 🚀 PROTEKSI TENANT DI AWAL
 
   // 🚀 1. TANGKAP QUERY FILTER SIKLUS STATUS DARI FRONTEND
   const { statusSiklus } = req.query; 
@@ -314,7 +318,8 @@ router.get("/notion/all-operasional", async (req, res): Promise<void> => {
       .leftJoin(areasTable, eq(operasionalTable.areaId, areasTable.id)) 
       .leftJoin(kategoriTable, eq(operasionalTable.kategoriId, kategoriTable.id))
       .leftJoin(jenisTenagaAttr, eq(operasionalTable.jenisTenagaKerjaId, jenisTenagaAttr.id))
-      .leftJoin(siklusTanamTable, eq(operasionalTable.siklusId, siklusTanamTable.id));
+      .leftJoin(siklusTanamTable, eq(operasionalTable.siklusId, siklusTanamTable.id))
+      .where(eq(operasionalTable.organisasiId, req.organisasiId)); // 🚀 FILTER TENANT DITAMBAHKAN DI SINI
 
     // 🚀 NEW: STRATEGI TARIK DATA PEKERJA (RELASIONAL)
     // 1. Kumpulkan semua ID operasional yang didapat
@@ -358,7 +363,7 @@ router.get("/notion/all-operasional", async (req, res): Promise<void> => {
       filteredData = dataWithPekerja.filter(item => item.statusSiklus === "Aktif" || !item.statusSiklus);
     }
 
-        // 🚀 SERIALIZE KE FORMAT WIB STRING SEBELUM DIKIRIM
+    // 🚀 SERIALIZE KE FORMAT WIB STRING SEBELUM DIKIRIM
     const serializedData = filteredData.map(item => ({ 
       ...item,
       waktuMulai: toWIBString(item.waktuMulai as Date),
@@ -367,7 +372,6 @@ router.get("/notion/all-operasional", async (req, res): Promise<void> => {
 
     res.json({ success: true, data: serializedData });
   } catch (err: any) {
-
     console.error("[DB ERROR GET ALL OPERASIONAL]:", err);
     res.status(500).json({ error: "Gagal mengambil riwayat operasional.", detail: err.message });
   }
@@ -382,6 +386,7 @@ router.patch("/notion/edit-activity/:id", async (req, res): Promise<void> => {
     res.status(401).json({ error: "Unauthorized" }); 
     return; 
   }
+  if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; } // 🚀 PROTEKSI TENANT DI AWAL
 
   const { id } = req.params;
   // 💡 Kita pisahkan 'module' dari sisa data yang mau di-update
@@ -413,91 +418,92 @@ router.patch("/notion/edit-activity/:id", async (req, res): Promise<void> => {
        return;
     }
 
-// 🔑 ATOMIC UPDATE: Jika areaId berubah, cari siklus aktif di area baru
-// dan sertakan siklusId baru ke payload sebelum disimpan
-if (cleanPayload.areaId) {
-  const [activeCycle] = await db
-    .select({ id: siklusTanamTable.id })
-    .from(siklusTanamTable)
-    .where(
-      and(
-        eq(siklusTanamTable.areaId, cleanPayload.areaId as string), // 🚀 AMAN: Cast ke string
-        eq(siklusTanamTable.status, "Aktif")
-      )
-    )
-    .limit(1);
+    // 🔑 ATOMIC UPDATE: Jika areaId berubah, cari siklus aktif di area baru
+    // dan sertakan siklusId baru ke payload sebelum disimpan
+    if (cleanPayload.areaId) {
+      const [activeCycle] = await db
+        .select({ id: siklusTanamTable.id })
+        .from(siklusTanamTable)
+        .where(
+          and(
+            eq(siklusTanamTable.areaId, cleanPayload.areaId as string), // 🚀 AMAN: Cast ke string
+            eq(siklusTanamTable.status, "Aktif"),
+            eq(siklusTanamTable.organisasiId, req.organisasiId) // 🚀 FILTER TENANT UNTUK SIKLUS
+          )
+        )
+        .limit(1);
 
-  // Timpa siklusId dengan yang aktif di area baru (null jika belum ada siklus)
-  cleanPayload.siklusId = activeCycle ? activeCycle.id : null;
-}
-
-// 💡 EKSTRAK pekerjaIds SEBELUM MASUK KE LOGIKA UPDATE
-const { pekerjaIds, ...mainPayload } = cleanPayload;
-
-if (module === "operasional") {
-  // 🚀 HAPUS pekerjaIds DARI ALLOWED
-  const allowed = ["namaPekerjaan", "areaId", "siklusId", "waktuMulai", "waktuSelesai", "durasiKerja", "kategoriId", "prioritas", "jenisTenagaKerjaId", "status", "catatan"];
-  const filteredPayload = Object.fromEntries(Object.entries(mainPayload).filter(([k]) => allowed.includes(k)));
-
-  result = await db.transaction(async (tx) => {
-    let updatedRecord = [];
-    
-    // 1. Update tabel utama JIKA ada perubahan di luar pekerja
-    if (Object.keys(filteredPayload).length > 0) {
-      updatedRecord = await tx.update(operasionalTable)
-        .set(filteredPayload)
-        .where(eq(operasionalTable.id, id))
-        .returning();
-    } else {
-      // Kalau yg di-edit CUMA pekerja, ambil record lamanya biar variabel result gak kosong
-      updatedRecord = await tx.select().from(operasionalTable).where(eq(operasionalTable.id, id));
+      // Timpa siklusId dengan yang aktif di area baru (null jika belum ada siklus)
+      cleanPayload.siklusId = activeCycle ? activeCycle.id : null;
     }
 
-    // 2. Sinkronisasi Relasi Pekerja (Junction Table)
-    if (pekerjaIds !== undefined) {
-      // Hapus semua relasi pekerja yang lama untuk operasional ini
-      await tx.delete(operasionalPekerjaTable).where(eq(operasionalPekerjaTable.operasionalId, id));
-      
-      // Insert relasi baru jika array tidak kosong
-      if (Array.isArray(pekerjaIds) && pekerjaIds.length > 0) {
-        const insertData = pekerjaIds.map((pId: string) => ({ operasionalId: id, pekerjaId: pId }));
-        await tx.insert(operasionalPekerjaTable).values(insertData);
-      }
-    }
-    return updatedRecord;
-  });
+    // 💡 EKSTRAK pekerjaIds SEBELUM MASUK KE LOGIKA UPDATE
+    const { pekerjaIds, ...mainPayload } = cleanPayload;
 
-} else if (module === "inspeksi") {
-  // 🚀 HAPUS pekerjaIds DARI ALLOWED
-  const allowed = ["kegiatan", "areaId", "siklusId", "waktuMulai", "waktuSelesai", "durasiKerja", "phTanah", "tingkatSerangan", "radius", "status", "keterangan"];
-  const filteredPayload = Object.fromEntries(Object.entries(mainPayload).filter(([k]) => allowed.includes(k)));
+    if (module === "operasional") {
+      // 🚀 HAPUS pekerjaIds DARI ALLOWED
+      const allowed = ["namaPekerjaan", "areaId", "siklusId", "waktuMulai", "waktuSelesai", "durasiKerja", "kategoriId", "prioritas", "jenisTenagaKerjaId", "status", "catatan"];
+      const filteredPayload = Object.fromEntries(Object.entries(mainPayload).filter(([k]) => allowed.includes(k)));
 
-  result = await db.transaction(async (tx) => {
-    let updatedRecord = [];
-    
-    if (Object.keys(filteredPayload).length > 0) {
-      updatedRecord = await tx.update(inspeksiTable)
-        .set(filteredPayload)
-        .where(eq(inspeksiTable.id, id))
-        .returning();
-    } else {
-      updatedRecord = await tx.select().from(inspeksiTable).where(eq(inspeksiTable.id, id));
-    }
+      result = await db.transaction(async (tx) => {
+        let updatedRecord = [];
+        
+        // 1. Update tabel utama JIKA ada perubahan di luar pekerja
+        if (Object.keys(filteredPayload).length > 0) {
+          updatedRecord = await tx.update(operasionalTable)
+            .set(filteredPayload)
+            .where(and(eq(operasionalTable.id, id), eq(operasionalTable.organisasiId, req.organisasiId))) // 🚀 FILTER TENANT
+            .returning();
+        } else {
+          // Kalau yg di-edit CUMA pekerja, ambil record lamanya biar variabel result gak kosong
+          updatedRecord = await tx.select().from(operasionalTable).where(and(eq(operasionalTable.id, id), eq(operasionalTable.organisasiId, req.organisasiId))); // 🚀 FILTER TENANT
+        }
 
-    // Sinkronisasi Relasi Pekerja
-    if (pekerjaIds !== undefined) {
-      await tx.delete(inspeksiPekerjaTable).where(eq(inspeksiPekerjaTable.inspeksiId, id));
-      
-      if (Array.isArray(pekerjaIds) && pekerjaIds.length > 0) {
-        const insertData = pekerjaIds.map((pId: string) => ({ inspeksiId: id, pekerjaId: pId }));
-        await tx.insert(inspeksiPekerjaTable).values(insertData);
-      }
+        // 2. Sinkronisasi Relasi Pekerja (Junction Table)
+        if (pekerjaIds !== undefined) {
+          // Hapus semua relasi pekerja yang lama untuk operasional ini
+          await tx.delete(operasionalPekerjaTable).where(eq(operasionalPekerjaTable.operasionalId, id));
+          
+          // Insert relasi baru jika array tidak kosong
+          if (Array.isArray(pekerjaIds) && pekerjaIds.length > 0) {
+            const insertData = pekerjaIds.map((pId: string) => ({ operasionalId: id, pekerjaId: pId }));
+            await tx.insert(operasionalPekerjaTable).values(insertData);
+          }
+        }
+        return updatedRecord;
+      });
+
+    } else if (module === "inspeksi") {
+      // 🚀 HAPUS pekerjaIds DARI ALLOWED
+      const allowed = ["kegiatan", "areaId", "siklusId", "waktuMulai", "waktuSelesai", "durasiKerja", "phTanah", "tingkatSerangan", "radius", "status", "keterangan"];
+      const filteredPayload = Object.fromEntries(Object.entries(mainPayload).filter(([k]) => allowed.includes(k)));
+
+      result = await db.transaction(async (tx) => {
+        let updatedRecord = [];
+        
+        if (Object.keys(filteredPayload).length > 0) {
+          updatedRecord = await tx.update(inspeksiTable)
+            .set(filteredPayload)
+            .where(and(eq(inspeksiTable.id, id), eq(inspeksiTable.organisasiId, req.organisasiId))) // 🚀 FILTER TENANT
+            .returning();
+        } else {
+          updatedRecord = await tx.select().from(inspeksiTable).where(and(eq(inspeksiTable.id, id), eq(inspeksiTable.organisasiId, req.organisasiId))); // 🚀 FILTER TENANT
+        }
+
+        // Sinkronisasi Relasi Pekerja
+        if (pekerjaIds !== undefined) {
+          await tx.delete(inspeksiPekerjaTable).where(eq(inspeksiPekerjaTable.inspeksiId, id));
+          
+          if (Array.isArray(pekerjaIds) && pekerjaIds.length > 0) {
+            const insertData = pekerjaIds.map((pId: string) => ({ inspeksiId: id, pekerjaId: pId }));
+            await tx.insert(inspeksiPekerjaTable).values(insertData);
+          }
+        }
+        return updatedRecord;
+      });
     }
-    return updatedRecord;
-  });
-}
-      
-      else {
+          
+    else {
       res.status(400).json({ error: "Modul tidak valid." });
       return;
     }
@@ -526,7 +532,7 @@ if (module === "operasional") {
 router.post("/notion/areas", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-  if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; }
+  if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; } // 🚀 PROTEKSI TENANT
 
   const { name } = req.body;
   if (!name || typeof name !== "string" || name.trim() === "") {
@@ -535,7 +541,10 @@ router.post("/notion/areas", async (req, res): Promise<void> => {
 
   try {
     const [newArea] = await db.insert(areasTable)
-      .values({ name: name.trim(), organisasiId: req.organisasiId })
+      .values({ 
+        name: name.trim(), 
+        organisasiId: req.organisasiId // 🚀 INJEKSI TENANT
+      })
       .returning();
       
     res.status(201).json({ success: true, data: newArea });
@@ -547,14 +556,14 @@ router.post("/notion/areas", async (req, res): Promise<void> => {
 router.delete("/notion/areas/:id", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-  if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; }
+  if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; } // 🚀 PROTEKSI TENANT
 
   const { id } = req.params;
   if (!id) { res.status(400).json({ error: "ID area wajib disertakan." }); return; }
 
   try {
     const [deletedArea] = await db.delete(areasTable)
-      .where(and(eq(areasTable.id, id), eq(areasTable.organisasiId, req.organisasiId)))
+      .where(and(eq(areasTable.id, id), eq(areasTable.organisasiId, req.organisasiId))) // 🚀 FILTER TENANT
       .returning();
 
     if (!deletedArea) {
@@ -562,7 +571,7 @@ router.delete("/notion/areas/:id", async (req, res): Promise<void> => {
     }
     
     res.json({ success: true, message: "Area berhasil dihapus.", data: deletedArea });
-    } catch (err: any) {
+  } catch (err: any) {
     // 💡 Tampilkan error asli di terminal Replit untuk keperluan debugging
     console.error("[DB ERROR HAPUS AREA]:", err);
 
@@ -589,13 +598,13 @@ router.delete("/notion/areas/:id", async (req, res): Promise<void> => {
   }
 });
 
-
 // ==========================================
 // 7. ENDPOINT ADD, EDIT, & DELETE MASTER PEKERJA
 // ==========================================
 router.post("/notion/pekerja", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; } // 🚀 PROTEKSI TENANT
 
   const { nama, kontak, roleId, jenisTenagaKerjaId, statusId } = req.body;
   
@@ -606,6 +615,7 @@ router.post("/notion/pekerja", async (req, res): Promise<void> => {
   try {
     const [newPekerja] = await db.insert(pekerjaTable)
       .values({ 
+        organisasiId: req.organisasiId, // 🚀 INJEKSI TENANT
         nama: nama.trim(),
         kontak: kontak || null,
         roleId: roleId || null,
@@ -624,6 +634,7 @@ router.post("/notion/pekerja", async (req, res): Promise<void> => {
 router.patch("/notion/pekerja/:id", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; } // 🚀 PROTEKSI TENANT
 
   const { id } = req.params;
   const { roleId, jenisTenagaKerjaId, statusId } = req.body;
@@ -638,11 +649,15 @@ router.patch("/notion/pekerja/:id", async (req, res): Promise<void> => {
       res.status(400).json({ error: "Tidak ada data yang diupdate." }); return;
     }
 
-    // 🚀 FIX: Mengembalikan fungsi update atribut yang benar
+    // 🚀 FIX: Mengembalikan fungsi update atribut yang benar dengan filter tenant
     const [updatedPekerja] = await db.update(pekerjaTable)
       .set(cleanPayload)
-      .where(eq(pekerjaTable.id, id))
+      .where(and(eq(pekerjaTable.id, id), eq(pekerjaTable.organisasiId, req.organisasiId))) // 🚀 FILTER TENANT
       .returning();
+
+    if (!updatedPekerja) {
+      res.status(404).json({ error: "Pekerja tidak ditemukan." }); return;
+    }
 
     res.json({ success: true, message: "Data pekerja diperbarui.", data: updatedPekerja });
   } catch (err) { 
@@ -653,15 +668,16 @@ router.patch("/notion/pekerja/:id", async (req, res): Promise<void> => {
 router.delete("/notion/pekerja/:id", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; } // 🚀 PROTEKSI TENANT
 
   const { id } = req.params;
   if (!id) { res.status(400).json({ error: "ID pekerja wajib disertakan." }); return; }
 
   try {
-    // 🚀 UBAH JADI UPDATE BENDERA SOFT DELETE
+    // 🚀 UBAH JADI UPDATE BENDERA SOFT DELETE DENGAN FILTER TENANT
     const [updatedPekerja] = await db.update(pekerjaTable)
       .set({ deleted: true })
-      .where(eq(pekerjaTable.id, id))
+      .where(and(eq(pekerjaTable.id, id), eq(pekerjaTable.organisasiId, req.organisasiId))) // 🚀 FILTER TENANT
       .returning();
 
     if (!updatedPekerja) {
@@ -675,24 +691,30 @@ router.delete("/notion/pekerja/:id", async (req, res): Promise<void> => {
   }
 });
 
-
 // ==========================================
 // 8. ENDPOINT DELETE ACTIVITY ROW (BARIS TABEL)
 // ==========================================
 router.delete("/notion/activity/:module/:id", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; } // 🚀 PROTEKSI TENANT
 
   const { id, module } = req.params;
 
   try {
     let result;
     if (module === "operasional") {
-      result = await db.delete(operasionalTable).where(eq(operasionalTable.id, id)).returning();
+      result = await db.delete(operasionalTable)
+        .where(and(eq(operasionalTable.id, id), eq(operasionalTable.organisasiId, req.organisasiId))) // 🚀 FILTER TENANT
+        .returning();
     } else if (module === "perawatan") {
-      result = await db.delete(perawatanTable).where(eq(perawatanTable.id, id)).returning();
+      result = await db.delete(perawatanTable)
+        .where(and(eq(perawatanTable.id, id), eq(perawatanTable.organisasiId, req.organisasiId))) // 🚀 FILTER TENANT
+        .returning();
     } else if (module === "inspeksi") {
-      result = await db.delete(inspeksiTable).where(eq(inspeksiTable.id, id)).returning();
+      result = await db.delete(inspeksiTable)
+        .where(and(eq(inspeksiTable.id, id), eq(inspeksiTable.organisasiId, req.organisasiId))) // 🚀 FILTER TENANT
+        .returning();
     } else {
       res.status(400).json({ error: "Modul tidak valid." }); return;
     }
@@ -713,6 +735,7 @@ router.delete("/notion/activity/:module/:id", async (req, res): Promise<void> =>
 router.post("/notion/kategori", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; } // 🚀 PROTEKSI TENANT
 
   const { name, module } = req.body;
   if (!name || typeof name !== "string" || name.trim() === "") {
@@ -724,7 +747,11 @@ router.post("/notion/kategori", async (req, res): Promise<void> => {
 
   try {
     const [newKategori] = await db.insert(kategoriTable)
-      .values({ name: name.trim(), module })
+      .values({ 
+        organisasiId: req.organisasiId, // 🚀 INJEKSI TENANT
+        name: name.trim(), 
+        module 
+      })
       .returning();
     res.status(201).json({ success: true, data: newKategori });
   } catch (err) {
@@ -735,12 +762,14 @@ router.post("/notion/kategori", async (req, res): Promise<void> => {
 router.delete("/notion/kategori/:id", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; } // 🚀 PROTEKSI TENANT
 
   const { id } = req.params;
   try {
     const [deletedKategori] = await db.delete(kategoriTable)
-      .where(eq(kategoriTable.id, id))
+      .where(and(eq(kategoriTable.id, id), eq(kategoriTable.organisasiId, req.organisasiId))) // 🚀 FILTER TENANT
       .returning();
+      
     if (!deletedKategori) {
       res.status(404).json({ error: "Kategori tidak ditemukan." }); return;
     }
@@ -769,17 +798,15 @@ router.delete("/notion/kategori/:id", async (req, res): Promise<void> => {
   }
 });
 
-
 // ==========================================
 // 10. ENDPOINT MANAGEMENT SIKLUS TANAM
 // ==========================================
 
 // A. Ambil semua siklus tanam aktif beserta nama areanya
- 
 router.get("/notion/siklus-tanam", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-  if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; }
+  if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; } // 🚀 PROTEKSI TENANT
 
   try {
     const data = await db
@@ -793,7 +820,7 @@ router.get("/notion/siklus-tanam", async (req, res): Promise<void> => {
       })
       .from(siklusTanamTable)
       .leftJoin(areasTable, eq(siklusTanamTable.areaId, areasTable.id))
-      .where(eq(siklusTanamTable.organisasiId, req.organisasiId));
+      .where(eq(siklusTanamTable.organisasiId, req.organisasiId)); // 🚀 FILTER TENANT
 
     res.json({ success: true, data });
   } catch (err) {
@@ -802,11 +829,10 @@ router.get("/notion/siklus-tanam", async (req, res): Promise<void> => {
 });
 
 // B. Tambah/Daftarkan Siklus Tanam Baru (Pindah Tanam)
-
 router.post("/notion/siklus-tanam", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-  if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; }
+  if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; } // 🚀 PROTEKSI TENANT
 
   const pekerjaId = await getPekerjaIdFromClerk(userId);
 
@@ -819,17 +845,19 @@ router.post("/notion/siklus-tanam", async (req, res): Promise<void> => {
   const parsedModal = Math.max(0, parseInt(modalAwal as string) || 0);
 
   try {
+    // 🚀 UPDATE SIKLUS LAMA JADI SELESAI (DENGAN FILTER TENANT)
     await db.update(siklusTanamTable)
       .set({ status: "Selesai" }) 
       .where(and(
         eq(siklusTanamTable.areaId, areaId),
         eq(siklusTanamTable.status, "Aktif"),
-        eq(siklusTanamTable.organisasiId, req.organisasiId)
+        eq(siklusTanamTable.organisasiId, req.organisasiId) // 🚀 FILTER TENANT
       ));
 
+    // 🚀 INSERT SIKLUS BARU
     const [newSiklus] = await db.insert(siklusTanamTable)
       .values({
-        organisasiId: req.organisasiId,
+        organisasiId: req.organisasiId, // 🚀 INJEKSI TENANT
         areaId,
         namaSiklus,
         tanggalPindahTanam: tanggalPindahTanam, 
@@ -856,25 +884,48 @@ router.post("/notion/siklus-tanam", async (req, res): Promise<void> => {
 router.post("/notion/pekerja-atribut", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; } // 🚀 PROTEKSI TENANT
 
   const { namaOption, jenisAtribut } = req.body;
+  if (!namaOption || !jenisAtribut) {
+    res.status(400).json({ error: "Nama opsi dan jenis atribut wajib diisi." }); return;
+  }
+
   try {
     const [newAtribut] = await db.insert(pekerjaAtributMasterTable)
-      .values({ namaOption: namaOption.trim(), jenisAtribut })
+      .values({ 
+        organisasiId: req.organisasiId, // 🚀 INJEKSI TENANT
+        namaOption: namaOption.trim(), 
+        jenisAtribut 
+      })
       .returning();
     res.status(201).json({ success: true, data: newAtribut });
-  } catch (err) { res.status(500).json({ error: "Gagal menambah atribut." }); }
+  } catch (err) { 
+    res.status(500).json({ error: "Gagal menambah atribut." }); 
+  }
 });
 
 router.delete("/notion/pekerja-atribut/:id", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; } // 🚀 PROTEKSI TENANT
 
   const { id } = req.params;
+  if (!id) { res.status(400).json({ error: "ID atribut wajib disertakan." }); return; }
+
   try {
-    await db.delete(pekerjaAtributMasterTable).where(eq(pekerjaAtributMasterTable.id, id));
-    res.json({ success: true, message: "Berhasil dihapus" });
-  } catch (err) { res.status(500).json({ error: "Gagal menghapus atribut." }); }
+    const [deletedAtribut] = await db.delete(pekerjaAtributMasterTable)
+      .where(and(eq(pekerjaAtributMasterTable.id, id), eq(pekerjaAtributMasterTable.organisasiId, req.organisasiId))) // 🚀 FILTER TENANT
+      .returning();
+
+    if (!deletedAtribut) {
+      res.status(404).json({ error: "Atribut tidak ditemukan." }); return;
+    }
+
+    res.json({ success: true, message: "Berhasil dihapus", data: deletedAtribut });
+  } catch (err) { 
+    res.status(500).json({ error: "Gagal menghapus atribut." }); 
+  }
 });
 
 // ==========================================
@@ -883,6 +934,7 @@ router.delete("/notion/pekerja-atribut/:id", async (req, res): Promise<void> => 
 router.post("/notion/kendala", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; } // 🚀 PROTEKSI TENANT
 
   const { nama, jenis } = req.body;
   if (!nama || typeof nama !== "string" || nama.trim() === "") {
@@ -894,7 +946,11 @@ router.post("/notion/kendala", async (req, res): Promise<void> => {
 
   try {
     const [newKendala] = await db.insert(kendalaMasterTable)
-      .values({ nama: nama.trim(), jenis })
+      .values({ 
+        organisasiId: req.organisasiId, // 🚀 INJEKSI TENANT
+        nama: nama.trim(), 
+        jenis 
+      })
       .returning();
       
     res.status(201).json({ success: true, data: newKendala });
@@ -911,11 +967,12 @@ router.post("/notion/kendala", async (req, res): Promise<void> => {
 router.delete("/notion/kendala/:id", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; } // 🚀 PROTEKSI TENANT
 
   const { id } = req.params;
   try {
     const [deletedKendala] = await db.delete(kendalaMasterTable)
-      .where(eq(kendalaMasterTable.id, id))
+      .where(and(eq(kendalaMasterTable.id, id), eq(kendalaMasterTable.organisasiId, req.organisasiId))) // 🚀 FILTER TENANT
       .returning();
 
     if (!deletedKendala) {
