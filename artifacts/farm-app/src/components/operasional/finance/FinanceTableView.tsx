@@ -118,10 +118,11 @@ function BentoTable({
         </DropdownMenu>
       </div>
 
-      {/* ISI TABEL */}
-      <div className="w-full overflow-x-auto">
-        <table className="w-full min-w-[700px] border-collapse">
+    {/* ISI TABEL */}
+      <div className="w-full overflow-x-auto custom-scrollbar">
+        <table className="w-full min-w-[1100px] border-collapse">
           <thead>
+
             {table.getHeaderGroups().map(headerGroup => (
               <tr key={headerGroup.id} className="border-b border-border/40 bg-muted/60 backdrop-blur-sm">
                 {headerGroup.headers.map(header => (
@@ -201,20 +202,22 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
       }
     },
 
-    {
+        {
       id: "kategori",
       header: "Kategori",
       cell: ({ row }) => (
-        <span className="bg-muted text-muted-foreground px-2.5 py-1 rounded-md text-xs font-semibold">
-          {row.original.category}
-        </span>
+        <div className="min-w-[120px]">
+          <span className="inline-block bg-muted text-muted-foreground px-2.5 py-1 rounded-md text-xs font-semibold whitespace-nowrap">
+            {row.original.category}
+          </span>
+        </div>
       )
     },
     {
       id: "namaItem", 
       header: "Nama Item",
       cell: ({ row }) => (
-        <div className="font-bold text-foreground/90">{row.original.title}</div>
+        <div className="font-bold text-foreground/90 min-w-[200px]">{row.original.title}</div>
       )
     },
 
@@ -283,17 +286,18 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
     {
       id: "kegiatan",
       header: "Kegiatan",
-      cell: ({ row }) => <div className="font-bold text-foreground/90">{row.original.title}</div>
+      cell: ({ row }) => <div className="font-bold text-foreground/90 min-w-[160px] whitespace-nowrap">{row.original.title}</div>
     },
     {
       id: "kualitas", // 🚀 KOLOM BARU: KUALITAS / GRADE
       header: "Grade",
       cell: ({ row }) => (
-        <div className="font-semibold text-muted-foreground text-xs">
+        <div className="font-semibold text-muted-foreground text-xs min-w-[100px] whitespace-nowrap">
           {row.original.metaEkstra?.kualitas || "-"}
         </div>
       )
     },
+
     {
       id: "kuantitas",
       header: () => <div className="text-right w-full">Kuantitas</div>,
