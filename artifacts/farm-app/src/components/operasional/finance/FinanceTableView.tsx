@@ -176,7 +176,7 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
         if (isBeliStok) {
           return (
             <div className="inline-flex items-center gap-1.5 bg-primary/10 text-primary border border-primary/20 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider">
-              <Package className="h-3 w-3" /> Masuk Gudang
+              <Package className="h-3 w-3" /> Stok
             </div>
           );
         }
