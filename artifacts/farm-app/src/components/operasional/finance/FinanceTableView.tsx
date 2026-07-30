@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useReactTable, getCoreRowModel, flexRender, type ColumnDef } from "@tanstack/react-table";
-import { Columns3, Check, Trash2, Package } from "lucide-react";
+import { Columns3, Check, Trash2, Package, Building2 } from "lucide-react"; // 🚀 FIX: Tambah Building2
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
@@ -9,7 +9,14 @@ interface FinanceTableViewProps {
   onDelete: (id: string, module: string) => void;
 }
 
-// 🚀 FORMATTER ANGKA & RUPIAH
+// 🚀 FORMATTER TANGGAL, ANGKA & RUPIAH
+const formatTanggal = (dateStr: string) => {
+  if (!dateStr) return "-";
+  try {
+    return new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(dateStr));
+  } catch { return "-"; }
+};
+
 const formatRupiah = (angka: number) =>
   new Intl.NumberFormat("id-ID", {
     style: "currency",
@@ -147,23 +154,35 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
   const pengeluaran = items.filter((i) => i.module === "pengeluaran");
   const panen = items.filter((i) => i.module === "panen");
 
-  // 💡 DEFINISI KOLOM PENGELUARAN
+    // 💡 DEFINISI KOLOM PENGELUARAN
   const pengeluaranCols = useMemo<ColumnDef<any>[]>(() => [
    {
       id: "tanggal",
       header: "Tanggal",
-      cell: ({ row }) => <div className="font-medium text-muted-foreground">{new Date(row.original.rawDate).toLocaleDateString("id-ID")}</div>
+      cell: ({ row }) => <div className="font-medium text-muted-foreground whitespace-nowrap">{formatTanggal(row.original.rawDate)}</div>
     },
     {
-      id: "areaSiklus", // 🚀 KOLOM BARU: AREA & SIKLUS (BIAYA UMUM)
+      id: "areaSiklus", 
       header: "Area & Siklus",
       cell: ({ row }) => {
-        const area = row.original.area && row.original.area !== "Area Master" ? row.original.area : "-";
-        const siklus = row.original.namaSiklus && row.original.namaSiklus !== "-" ? row.original.namaSiklus : "Biaya Umum";
+        const area = row.original.area;
+        // 🚀 FIX: Deteksi otomatis apakah ini Biaya Umum/Overhead
+        const isOverhead = !area || area === "Area Master" || area === "-";
+
+        if (isOverhead) {
+          return (
+            <div className="inline-flex items-center gap-1.5 bg-amber-500/10 text-amber-600 border border-amber-500/20 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider">
+              <Building2 className="h-3 w-3" /> Overhead
+            </div>
+          );
+        }
+
         return (
           <div>
-            <div className="font-bold text-foreground/90">{area}</div>
-            <div className="text-[11px] font-medium text-muted-foreground mt-0.5">{siklus}</div>
+            <div className="font-bold text-foreground/90 whitespace-nowrap">{area}</div>
+            <div className="text-[11px] font-medium text-muted-foreground mt-0.5 whitespace-nowrap">
+              {row.original.namaSiklus && row.original.namaSiklus !== "-" ? row.original.namaSiklus : "Siklus Aktif"}
+            </div>
           </div>
         );
       }
@@ -237,12 +256,12 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
     },
   ], [onDelete]);
 
-  // 💡 DEFINISI KOLOM PANEN
+    // 💡 DEFINISI KOLOM PANEN
   const panenCols = useMemo<ColumnDef<any>[]>(() => [
     {
       id: "tanggal",
       header: "Tanggal",
-      cell: ({ row }) => <div className="font-medium text-muted-foreground">{new Date(row.original.rawDate).toLocaleDateString("id-ID")}</div>
+      cell: ({ row }) => <div className="font-medium text-muted-foreground whitespace-nowrap">{formatTanggal(row.original.rawDate)}</div>
     },
     {
       id: "areaSiklus",
