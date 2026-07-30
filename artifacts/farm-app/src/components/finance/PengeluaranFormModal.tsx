@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, ArrowRight, CheckCircle2, Banknote, 
   Calendar, Tag, ToggleLeft, ToggleRight, Loader2, Wallet, X, Check,
-  Plus, ChevronDown, PackagePlus // 🚀 FIX: Tambah ikon buat modal bertumpuk
+  Plus, MapPin, Building2, ChevronDown, PackagePlus // 🚀 FIX: Tambah ikon buat modal bertumpuk
 } from "lucide-react";
 
 import { useToast } from "@/hooks/use-toast";
