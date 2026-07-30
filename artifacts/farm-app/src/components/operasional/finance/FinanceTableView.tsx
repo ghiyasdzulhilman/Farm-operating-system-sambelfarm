@@ -161,14 +161,26 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
       header: "Tanggal",
       cell: ({ row }) => <div className="font-medium text-muted-foreground whitespace-nowrap">{formatTanggal(row.original.rawDate)}</div>
     },
+
     {
       id: "areaSiklus", 
       header: "Area & Siklus",
       cell: ({ row }) => {
+        // 🚀 TANGKAP STATUS BELI STOK
+        const isBeliStok = row.original.metaEkstra?.isPembelianStok;
         const area = row.original.area;
-        // 🚀 FIX: Deteksi otomatis apakah ini Biaya Umum/Overhead
         const isOverhead = !area || area === "Area Master" || area === "-";
 
+        // 1. KONDISI A: Uang berubah jadi Aset Gudang
+        if (isBeliStok) {
+          return (
+            <div className="inline-flex items-center gap-1.5 bg-primary/10 text-primary border border-primary/20 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider">
+              <Package className="h-3 w-3" /> Masuk Gudang
+            </div>
+          );
+        }
+
+        // 2. KONDISI B: Uang hangus untuk biaya global kebun
         if (isOverhead) {
           return (
             <div className="inline-flex items-center gap-1.5 bg-amber-500/10 text-amber-600 border border-amber-500/20 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider">
@@ -177,6 +189,7 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
           );
         }
 
+        // 3. KONDISI C: Uang hangus khusus untuk satu Blok/Area
         return (
           <div>
             <div className="font-bold text-foreground/90 whitespace-nowrap">{area}</div>
@@ -187,6 +200,7 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
         );
       }
     },
+
     {
       id: "kategori",
       header: "Kategori",
@@ -197,17 +211,10 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
       )
     },
     {
-      id: "namaItem", // 🚀 UPDATE: DITAMBAH BADGE STOK OTOMATIS
+      id: "namaItem", 
       header: "Nama Item",
       cell: ({ row }) => (
-        <div className="flex flex-col gap-1 items-start">
-          <div className="font-bold text-foreground/90">{row.original.title}</div>
-          {row.original.metaEkstra?.isPembelianStok && (
-            <span className="inline-flex items-center gap-1 bg-primary/10 text-primary border border-primary/20 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider">
-              <Package className="h-2.5 w-2.5" /> Stok
-            </span>
-          )}
-        </div>
+        <div className="font-bold text-foreground/90">{row.original.title}</div>
       )
     },
 
