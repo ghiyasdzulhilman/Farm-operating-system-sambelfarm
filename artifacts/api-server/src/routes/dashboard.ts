@@ -6,8 +6,9 @@ import {
   siklusTanamTable, 
   panenTable, 
   pengeluaranTable 
-} from "@workspace/db"; // Sesuaikan path jika berbeda
-import { sql, desc } from "drizzle-orm";
+} from "@workspace/db"; 
+// 🚀 FIX: Tambahkan import 'eq' dari drizzle-orm untuk kebutuhan filter
+import { sql, desc, eq } from "drizzle-orm";
 import { formatDistanceToNow } from "date-fns";
 import { id } from "date-fns/locale";
 
@@ -22,6 +23,12 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
+  
+  // 🚀 PROTEKSI TENANT DI AWAL: Pastikan request punya organisasiId
+  if (!req.organisasiId) { 
+    res.status(403).json({ error: "BELUM_ONBOARDING" }); 
+    return; 
+  }
 
   try {
     // ── 1. AMBIL SEMUA DATA AGREGASI SECARA PARALEL (SUPER KILAT) ──
@@ -33,45 +40,64 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
       recentPanen,
       recentPengeluaran
     ] = await Promise.all([
-      // Ambil daftar area
-      db.select({ id: areasTable.id, name: areasTable.name }).from(areasTable),
+      // Ambil daftar area (🚀 FILTER TENANT)
+      db.select({ id: areasTable.id, name: areasTable.name })
+        .from(areasTable)
+        .where(eq(areasTable.organisasiId, req.organisasiId)),
       
-      // Aggregate Modal Awal per Area
+      // Aggregate Modal Awal per Area (🚀 FILTER TENANT)
       db.select({
         areaId: siklusTanamTable.areaId,
         totalModal: sql<number>`SUM(${siklusTanamTable.modalAwal})`.mapWith(Number)
-      }).from(siklusTanamTable).groupBy(siklusTanamTable.areaId),
+      })
+      .from(siklusTanamTable)
+      .where(eq(siklusTanamTable.organisasiId, req.organisasiId))
+      .groupBy(siklusTanamTable.areaId),
 
-      // Aggregate Panen per Area (Pendapatan & Berat)
+      // Aggregate Panen per Area (Pendapatan & Berat) (🚀 FILTER TENANT)
       db.select({
         areaId: panenTable.areaId,
         totalPendapatan: sql<number>`SUM(${panenTable.totalPendapatan})`.mapWith(Number),
         totalBerat: sql<number>`SUM(${panenTable.kuantitasKg})`.mapWith(Number)
-      }).from(panenTable).groupBy(panenTable.areaId),
+      })
+      .from(panenTable)
+      .where(eq(panenTable.organisasiId, req.organisasiId))
+      .groupBy(panenTable.areaId),
 
-      // Aggregate Pengeluaran per Area (Total Biaya)
+      // Aggregate Pengeluaran per Area (Total Biaya) (🚀 FILTER TENANT)
       db.select({
         areaId: pengeluaranTable.areaId,
         totalBiaya: sql<number>`SUM(${pengeluaranTable.totalBiaya})`.mapWith(Number)
-      }).from(pengeluaranTable).groupBy(pengeluaranTable.areaId),
+      })
+      .from(pengeluaranTable)
+      .where(eq(pengeluaranTable.organisasiId, req.organisasiId))
+      .groupBy(pengeluaranTable.areaId),
 
-      // Ambil 5 Aktivitas Panen Terakhir
+      // Ambil 5 Aktivitas Panen Terakhir (🚀 FILTER TENANT)
       db.select({
         id: panenTable.id,
         areaId: panenTable.areaId,
         kegiatan: panenTable.kegiatan,
         kuantitasKg: panenTable.kuantitasKg,
         tanggal: panenTable.tanggal,
-      }).from(panenTable).orderBy(desc(panenTable.createdAt)).limit(5),
+      })
+      .from(panenTable)
+      .where(eq(panenTable.organisasiId, req.organisasiId))
+      .orderBy(desc(panenTable.createdAt))
+      .limit(5),
 
-      // Ambil 5 Aktivitas Pengeluaran Terakhir
+      // Ambil 5 Aktivitas Pengeluaran Terakhir (🚀 FILTER TENANT)
       db.select({
         id: pengeluaranTable.id,
         areaId: pengeluaranTable.areaId,
         namaItem: pengeluaranTable.namaItem,
         totalBiaya: pengeluaranTable.totalBiaya,
         tanggal: pengeluaranTable.tanggal,
-      }).from(pengeluaranTable).orderBy(desc(pengeluaranTable.createdAt)).limit(5)
+      })
+      .from(pengeluaranTable)
+      .where(eq(pengeluaranTable.organisasiId, req.organisasiId))
+      .orderBy(desc(pengeluaranTable.createdAt))
+      .limit(5)
     ]);
 
     // ── 2. OLAH DATA PER AREA (GABUNGAN) ──
