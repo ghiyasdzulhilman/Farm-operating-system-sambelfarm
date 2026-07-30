@@ -27,9 +27,9 @@ export function KendalaFormModal({ isOpen, onClose, defaultType }: KendalaFormMo
     }
   }, [isOpen, defaultType]);
 
-  const addMutation = useMutation({
+    const addMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch("/api/notion/kendala", { 
+      const res = await fetch("/api/notion/kendala-master", { // 🚀 FIX: SESUAIKAN DENGAN ROUTE BACKEND
         method: "POST", 
         headers: { "Content-Type": "application/json" }, 
         body: JSON.stringify({ nama: newName, jenis: kendalaType }) 
