@@ -26,15 +26,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 const pengeluaranSchema = z.object({
   tanggal: z.string().min(1, "Tanggal wajib diisi"),
   namaItem: z.string().min(1, "Nama pengeluaran wajib diisi"),
-  siklusId: z.string().optional(), // Biarin aja buat jaga-jaga
+  
+  // 🚀 SUNTIKAN BARU: Tipe Transaksi & Area
+  tipeTransaksi: z.enum(["BELI_STOK", "BIAYA_AREA", "BIAYA_UMUM"]),
+  areaId: z.string().optional(),
   
   kategoriId: z.string().min(1, "Kategori wajib dipilih"),
-  isPembelianStok: z.boolean().default(false),
   
-  // Kondisi A: Jika bukan beli stok
   totalBiayaLumpsum: z.coerce.number().optional(),
-  
-  // Kondisi B: Jika beli stok
   produkId: z.string().optional(),
   hargaPerPcs: z.coerce.number().optional(),
   beratPerPcs: z.coerce.number().optional(),
@@ -43,13 +42,16 @@ const pengeluaranSchema = z.object({
   isAutoCatatan: z.boolean().default(true),
   keteranganManual: z.string().optional(),
 }).superRefine((data, ctx) => {
-  // Validasi dinamis berdasarkan posisi toggle
-  if (data.isPembelianStok) {
+  // 🚀 SUNTIKAN BARU: Validasi Dinamis 3 Kondisi
+  if (data.tipeTransaksi === "BELI_STOK") {
     if (!data.produkId) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Produk wajib dipilih", path: ["produkId"] });
     if (!data.hargaPerPcs || data.hargaPerPcs <= 0) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Harga wajib diisi", path: ["hargaPerPcs"] });
     if (!data.beratPerPcs || data.beratPerPcs <= 0) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Berat wajib diisi", path: ["beratPerPcs"] });
     if (!data.qtyPcs || data.qtyPcs <= 0) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Kuantitas wajib diisi", path: ["qtyPcs"] });
-  } else {
+  } else if (data.tipeTransaksi === "BIAYA_AREA") {
+    if (!data.areaId) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Area wajib dipilih", path: ["areaId"] });
+    if (!data.totalBiayaLumpsum || data.totalBiayaLumpsum <= 0) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Total biaya wajib diisi", path: ["totalBiayaLumpsum"] });
+  } else if (data.tipeTransaksi === "BIAYA_UMUM") {
     if (!data.totalBiayaLumpsum || data.totalBiayaLumpsum <= 0) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Total biaya wajib diisi", path: ["totalBiayaLumpsum"] });
   }
 });
@@ -58,10 +60,10 @@ type PengeluaranFormValues = z.infer<typeof pengeluaranSchema>;
 
 const EMPTY_VALUES: PengeluaranFormValues = {
   tanggal: format(new Date(), "yyyy-MM-dd"),
+  tipeTransaksi: "BIAYA_AREA", // Default yang sering dipakai
+  areaId: "",
   namaItem: "",
-  siklusId: "",
   kategoriId: "",
-  isPembelianStok: false,
   totalBiayaLumpsum: 0,
   produkId: "",
   hargaPerPcs: 0,
@@ -167,8 +169,9 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
     shouldUnregister: false,
   });
 
-  // --- WATCHERS UNTUK KALKULASI OTOMATIS ---
-  const isPembelianStok = useWatch({ control: form.control, name: "isPembelianStok" });
+   // --- WATCHERS UNTUK KALKULASI OTOMATIS ---
+  const tipeTransaksi = useWatch({ control: form.control, name: "tipeTransaksi" });
+  const isPembelianStok = tipeTransaksi === "BELI_STOK"; // 🚀 Otomatis bernilai true jika beli stok
   const produkId = useWatch({ control: form.control, name: "produkId" });
   const hargaPerPcs = useWatch({ control: form.control, name: "hargaPerPcs" });
   const beratPerPcs = useWatch({ control: form.control, name: "beratPerPcs" });
@@ -222,26 +225,31 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
   };
 
     function onSubmit(values: PengeluaranFormValues) {
+    // 🚀 SUNTIKAN BARU: Terjemahkan tipeTransaksi untuk backend
+    const isBeliStok = values.tipeTransaksi === "BELI_STOK";
+    const finalAreaId = values.tipeTransaksi === "BIAYA_AREA" ? values.areaId : undefined;
+
     // Racik teks laporan
     const hppKalkulasi = Number(values.beratPerPcs || 0) > 0 ? (Number(values.hargaPerPcs || 0) / Number(values.beratPerPcs)) : 0;
-    const autoLaporanTeks = values.isPembelianStok && selectedProduk
+    const autoLaporanTeks = isBeliStok && selectedProduk
       ? `Beli ${selectedProduk.nama}: ${values.qtyPcs} kemasan (@${values.beratPerPcs}${satuan}). Masuk: ${calcTotalVolume}${satuan}. HPP: Rp${hppKalkulasi.toLocaleString("id-ID", { maximumFractionDigits: 2 })}/${satuan}.`
       : `Pengeluaran ${values.namaItem} sebesar Rp${Number(values.totalBiayaLumpsum || 0).toLocaleString("id-ID")}.`;
 
-        // Susun payload jujur untuk backend
+    // Susun payload jujur untuk backend
     const payload = {
       tanggal: values.tanggal,
-      // ✅ PENYELARASAN: Jika beli stok, gunakan format nama produk master agar sinkron dengan aturan baru backend
-      namaItem: values.isPembelianStok && selectedProduk 
+      namaItem: isBeliStok && selectedProduk 
         ? `Beli Stok: ${selectedProduk.nama}` 
         : values.namaItem,
-      
       kategoriId: values.kategoriId,
-      isPembelianStok: values.isPembelianStok,
+      
+      // 🚀 SUNTIKAN BARU: Payload yang dikirim ke backend
+      isPembelianStok: isBeliStok,
+      areaId: finalAreaId, 
 
-      totalBiaya: values.isPembelianStok ? calcTotalUang : Number(values.totalBiayaLumpsum),
-      produkId: values.isPembelianStok ? values.produkId : undefined,
-      kuantitas: values.isPembelianStok ? String(calcTotalVolume) : undefined,
+      totalBiaya: isBeliStok ? calcTotalUang : Number(values.totalBiayaLumpsum),
+      produkId: isBeliStok ? values.produkId : undefined,
+      kuantitas: isBeliStok ? String(calcTotalVolume) : undefined,
       keterangan: values.isAutoCatatan ? autoLaporanTeks : values.keteranganManual,
     };
 
@@ -302,25 +310,71 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
                 <div className="max-h-[55vh] overflow-y-auto pr-1 pb-2 space-y-5 overflow-x-hidden">
                   <AnimatePresence mode="wait">
 
-                    {/* ================= STEP 1: IDENTITAS ================= */}
+                  {/* ================= STEP 1: IDENTITAS & JENIS TRANSAKSI ================= */}
                     {step === 1 && (
                       <motion.div key="step1" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-5 pt-1">
-                       <FormField control={form.control} name="tanggal" render={({ field }) => (
-                          <FormItem className="space-y-1.5">
-                            <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80"><Calendar className="inline-block h-3.5 w-3.5 mr-1" /> Tanggal Transaksi</FormLabel>
-                            {/* 🚀 FIX: Tambah 'appearance-none' (kunci utama buat Safari) dan 'px-4' biar rapi */}
-                            <FormControl><Input type="date" className="appearance-none w-full px-4 h-11 rounded-xl bg-background border border-input focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm text-sm font-medium" {...field} /></FormControl>
-                            <FormMessage className="text-xs text-red-500" />
-                          </FormItem>
-                        )} />
+                       
+                        {/* 🚀 SUNTIKAN BARU: 3 Pilihan Tipe Transaksi */}
+                        <div className="space-y-2.5">
+                          <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Uang Keluar Untuk Apa?</FormLabel>
+                          <div className="grid gap-3">
+                            
+                            {/* OPSI 1: BIAYA AREA */}
+                            <div 
+                              onClick={() => form.setValue("tipeTransaksi", "BIAYA_AREA")}
+                              className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 ${tipeTransaksi === "BIAYA_AREA" ? "border-primary bg-primary/5 shadow-sm" : "border-border bg-card hover:bg-muted/50"}`}
+                            >
+                              <div className={`p-2 rounded-lg ${tipeTransaksi === "BIAYA_AREA" ? "bg-primary text-white" : "bg-muted text-muted-foreground"}`}><MapPin className="h-5 w-5"/></div>
+                              <div>
+                                <p className="text-sm font-bold text-foreground">Biaya Kebun / Blok</p>
+                                <p className="text-[10.5px] text-muted-foreground mt-0.5 leading-tight">Uang habis untuk satu area (Cth: Upah rawat Blok A).</p>
+                              </div>
+                            </div>
 
-                        <FormField control={form.control} name="namaItem" render={({ field }) => (
-                          <FormItem className="space-y-1.5">
-                            <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80"><Tag className="inline-block h-3.5 w-3.5 mr-1" /> Nama Pengeluaran</FormLabel>
-                            <FormControl><Input placeholder="" className="h-12 rounded-xl bg-background border border-input shadow-sm text-sm font-medium" {...field} /></FormControl>
-                            <FormMessage className="text-xs text-red-500" />
-                          </FormItem>
-                        )} />
+                            {/* OPSI 2: BELI STOK */}
+                            <div 
+                              onClick={() => form.setValue("tipeTransaksi", "BELI_STOK")}
+                              className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 ${tipeTransaksi === "BELI_STOK" ? "border-primary bg-primary/5 shadow-sm" : "border-border bg-card hover:bg-muted/50"}`}
+                            >
+                              <div className={`p-2 rounded-lg ${tipeTransaksi === "BELI_STOK" ? "bg-primary text-white" : "bg-muted text-muted-foreground"}`}><PackagePlus className="h-5 w-5"/></div>
+                              <div>
+                                <p className="text-sm font-bold text-foreground">Beli Stok Gudang</p>
+                                <p className="text-[10.5px] text-muted-foreground mt-0.5 leading-tight">Beli barang untuk disimpan (Cth: 10 sak Pupuk NPK).</p>
+                              </div>
+                            </div>
+
+                            {/* OPSI 3: BIAYA UMUM */}
+                            <div 
+                              onClick={() => form.setValue("tipeTransaksi", "BIAYA_UMUM")}
+                              className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 ${tipeTransaksi === "BIAYA_UMUM" ? "border-primary bg-primary/5 shadow-sm" : "border-border bg-card hover:bg-muted/50"}`}
+                            >
+                              <div className={`p-2 rounded-lg ${tipeTransaksi === "BIAYA_UMUM" ? "bg-primary text-white" : "bg-muted text-muted-foreground"}`}><Building2 className="h-5 w-5"/></div>
+                              <div>
+                                <p className="text-sm font-bold text-foreground">Biaya Umum (Overhead)</p>
+                                <p className="text-[10.5px] text-muted-foreground mt-0.5 leading-tight">Biaya global (Cth: Beli kopi pekerja, sewa WiFi).</p>
+                              </div>
+                            </div>
+
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 pt-2">
+                          <FormField control={form.control} name="tanggal" render={({ field }) => (
+                            <FormItem className="space-y-1.5 col-span-2">
+                              <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80"><Calendar className="inline-block h-3.5 w-3.5 mr-1" /> Tanggal Transaksi</FormLabel>
+                              <FormControl><Input type="date" className="appearance-none w-full px-4 h-11 rounded-xl bg-background border border-input focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm text-sm font-medium" {...field} /></FormControl>
+                              <FormMessage className="text-xs text-red-500" />
+                            </FormItem>
+                          )} />
+
+                          <FormField control={form.control} name="namaItem" render={({ field }) => (
+                            <FormItem className="space-y-1.5 col-span-2">
+                              <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80"><Tag className="inline-block h-3.5 w-3.5 mr-1" /> Nama Pengeluaran</FormLabel>
+                              <FormControl><Input placeholder="Cth: Beli Kopi Hitam" className="h-11 rounded-xl bg-background border border-input shadow-sm text-sm font-medium" {...field} /></FormControl>
+                              <FormMessage className="text-xs text-red-500" />
+                            </FormItem>
+                          )} />
+                        </div>
 
                       </motion.div>
                     )}
@@ -354,17 +408,31 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
                           )} />
                         </div>
 
-                        <div className="bg-card p-4 rounded-2xl border border-border shadow-sm space-y-4">
-                          {/* SAKLAR BELI STOK */}
-                          <div className="flex items-center justify-between p-3 rounded-xl border border-primary/20 bg-primary/5">
-                            <div className="flex flex-col">
-                              <span className="text-sm font-bold text-foreground">Tambah Stok?</span>
-                              <span className="text-[10px] text-muted-foreground">Aktifkan untuk menambah stok produk</span>
-                            </div>
-                            <button type="button" onClick={() => form.setValue("isPembelianStok", !isPembelianStok)} className="transition-all focus:outline-none">
-                              {isPembelianStok ? <ToggleRight className="h-8 w-8 text-primary" /> : <ToggleLeft className="h-8 w-8 text-muted-foreground" />}
-                            </button>
-                          </div>
+                        <div className="bg-card p-4 rounded-2xl border border-border shadow-sm space-y-4 mt-4">
+                          
+                          {/* 🚀 SUNTIKAN BARU: HANYA MUNCUL JIKA PILIH BIAYA AREA */}
+                          {tipeTransaksi === "BIAYA_AREA" && (
+                            <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="space-y-1.5 pb-2 border-b border-border">
+                              <FormField control={form.control} name="areaId" render={({ field }) => (
+                                <FormItem className="space-y-1.5">
+                                  <FormLabel className="text-xs font-bold text-primary uppercase tracking-wider">Pilih Kebun / Blok</FormLabel>
+                                  <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl>
+                                      <SelectTrigger className="h-11 rounded-xl bg-background border-primary/50 text-xs font-bold text-primary">
+                                        <SelectValue placeholder="Pilih Area..." />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent className="rounded-xl z-[9999]">
+                                      {areasList.map((a: any) => (
+                                        <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage className="text-xs text-red-500" />
+                                </FormItem>
+                              )} />
+                            </motion.div>
+                          )}
 
                           {/* KONDISI B: BELI STOK */}
                           {isPembelianStok ? (
