@@ -185,7 +185,7 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
         if (isOverhead) {
           return (
             <div className="inline-flex items-center gap-1.5 bg-amber-500/10 text-amber-600 border border-amber-500/20 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider">
-              <Building2 className="h-3 w-3" /> Overhead
+              <Building2 className="h-3 w-3" /> Umum
             </div>
           );
         }
