@@ -121,14 +121,17 @@ router.post("/notion/add-inspeksi", async (req, res): Promise<void> => {
             // 4. Ekstrak Detail Temuan
       const temuanArray = body.modeKendala === "broadcast" ? (body.temuanBroadcast || []) : (body.temuanPerArea?.[currentAreaId] || []);
 
-            // 🔍 5. CARI SIKLUS TANAM YANG SEDANG AKTIF DI AREA INI
+      if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; }
+
+      // 🔍 5. CARI SIKLUS TANAM YANG SEDANG AKTIF DI AREA INI
       const [activeCycle] = await db
         .select({ id: siklusTanamTable.id })
         .from(siklusTanamTable)
         .where(
           and(
             eq(siklusTanamTable.areaId, currentAreaId as string), // 🚀 DITAMBAH: as string
-            eq(siklusTanamTable.status, "Aktif")
+            eq(siklusTanamTable.status, "Aktif"),
+            eq(siklusTanamTable.organisasiId, req.organisasiId) // 🚀 FILTER TENANT
           )
         )
         .limit(1);
@@ -137,6 +140,7 @@ router.post("/notion/add-inspeksi", async (req, res): Promise<void> => {
       const insertedInspeksi = await db.transaction(async (tx) => {
         // 1. Simpan Data Induk Inspeksi (Tanpa pekerjaIds)
         const [newInspeksi] = await tx.insert(inspeksiTable).values({
+          organisasiId: req.organisasiId, // 🚀 INJEKSI TENANT
           kegiatan: kegiatan,
           areaId: currentAreaId,
           siklusId: activeCycle ? activeCycle.id : null,
@@ -201,10 +205,12 @@ router.get("/notion/all-inspeksi", async (req, res): Promise<void> => {
     return; 
   }
 
-  // 🚀 1. TANGKAP QUERY FILTER SIKLUS STATUS DARI FRONTEND
+    // 🚀 1. TANGKAP QUERY FILTER SIKLUS STATUS DARI FRONTEND
   const { statusSiklus } = req.query; 
 
   try {
+    if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; }
+
     // 1. Ambil data induk inspeksi (Ditambah namaSiklus)
     const indukData = await db
       .select({
@@ -230,8 +236,8 @@ router.get("/notion/all-inspeksi", async (req, res): Promise<void> => {
       .from(inspeksiTable)
       .leftJoin(areasTable, eq(inspeksiTable.areaId, areasTable.id))
       // 🚀 SIMPLE JOIN LANGSUNG KE SIKLUS ID!
-      .leftJoin(siklusTanamTable, eq(inspeksiTable.siklusId, siklusTanamTable.id));
-
+      .leftJoin(siklusTanamTable, eq(inspeksiTable.siklusId, siklusTanamTable.id))
+      .where(eq(inspeksiTable.organisasiId, req.organisasiId)); // 🚀 FILTER TENANT
 
     // 🚀 3. FILTER DATANYA SEBELUM DI-MAP
     let filteredIndukData = indukData;
@@ -344,7 +350,9 @@ router.post("/notion/kendala-master", async (req, res): Promise<void> => {
     return; 
   }
 
-  try {
+    try {
+    if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; }
+
     const { nama, jenis } = req.body;
     
     if (!nama || !jenis) {
@@ -354,6 +362,7 @@ router.post("/notion/kendala-master", async (req, res): Promise<void> => {
 
     // Insert ke tabel master
     const [newKendala] = await db.insert(kendalaMasterTable).values({
+      organisasiId: req.organisasiId, // 🚀 INJEKSI TENANT
       nama: nama.trim(),
       jenis: jenis.toLowerCase() // pastikan masuk ke DB sebagai 'hama' atau 'penyakit'
     }).returning();
