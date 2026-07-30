@@ -86,10 +86,10 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
       tanggal,
       totalBiaya,
       keterangan,
-      siklusId,
       isPembelianStok,
       produkId,
-      kuantitas
+      kuantitas,
+      areaId // 🚀 SUNTIKAN BARU: Tangkap areaId dari frontend
     } = req.body;
 
     // --- A. VALIDASI DASAR ---
@@ -123,8 +123,28 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
       hargaSatuanNum = (biayaNum / qtyNum).toFixed(3);
     }
 
-    // 🚀 PINDAHKAN CEK TENANT KE ATAS BIAR NGGAK ADA QUERY DATABASE YANG JALAN SIA-SIA
+   // 🚀 PINDAHKAN CEK TENANT KE ATAS BIAR NGGAK ADA QUERY DATABASE YANG JALAN SIA-SIA
     if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; }
+
+    // 🚀 SUNTIKAN BARU: Cari Siklus Tanam yang Aktif jika areaId dikirim
+    let activeSiklusId = null;
+    if (areaId) {
+      const [activeCycle] = await db
+        .select({ id: siklusTanamTable.id })
+        .from(siklusTanamTable)
+        .where(
+          and(
+            eq(siklusTanamTable.areaId, areaId),
+            eq(siklusTanamTable.status, "Aktif"),
+            eq(siklusTanamTable.organisasiId, req.organisasiId) // 🚀 FILTER TENANT
+          )
+        )
+        .limit(1);
+      
+      if (activeCycle) {
+        activeSiklusId = activeCycle.id;
+      }
+    }
 
     // Lacak identitas pekerja yang melakukan input
     const pekerjaId = await getPekerjaIdFromClerk(userId);
@@ -158,18 +178,22 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
       ? `Beli Stok: ${produkNama}`
       : kategoriData?.nama ? `Biaya ${kategoriData.nama}` : "Biaya Operasional";
 
-    // 🚀 --- C. THE 3-IN-1 COMBO TRANSACTION ---
+     // 🚀 --- C. THE 3-IN-1 COMBO TRANSACTION ---
 
         const result = await db.transaction(async (tx) => {
       
       // [AKSI 1] Insert ke tabel pengeluaran pakai DATA JUJUR
       const [newPengeluaran] = await tx.insert(pengeluaranTable).values({
         organisasiId: req.organisasiId, // 🚀 INJEKSI TENANT KE PENGELUARAN
-        areaId: null, 
-        siklusId: null, 
+        
+        // 🚀 FIX: Masukkan areaId dan siklusId secara dinamis!
+        areaId: areaId || null, 
+        siklusId: activeSiklusId, 
+        
         kategoriId,
         tanggal: new Date(tanggal),
         namaItem: fallbackNamaItem, // ✅ SEKARANG MURNI NAMA ITEM AJA
+
         totalBiaya: biayaNum,
         catatan: keterangan || null, 
 
