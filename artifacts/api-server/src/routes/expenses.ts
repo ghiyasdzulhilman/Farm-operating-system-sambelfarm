@@ -89,7 +89,8 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
       isPembelianStok,
       produkId,
       kuantitas,
-      areaId // 🚀 SUNTIKAN BARU: Tangkap areaId dari frontend
+      areaId, // 🚀 SUNTIKAN BARU: Tangkap areaId dari frontend
+      namaItem // 🚀 FIX: Tangkap hasil ketikan user dari frontend!
     } = req.body;
 
     // --- A. VALIDASI DASAR ---
@@ -174,11 +175,14 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
       }
     }
     
-    const fallbackNamaItem = isPembelianStok && produkNama 
-      ? `Beli Stok: ${produkNama}`
-      : kategoriData?.nama ? `Biaya ${kategoriData.nama}` : "Biaya Operasional";
+    // 🚀 FIX: Prioritaskan namaItem ketikan user. Kalau frontend nggak ngirim, baru pakai otomatis.
+    const finalNamaItem = namaItem
+      ? namaItem.trim()
+      : (isPembelianStok && produkNama 
+          ? `Beli Stok: ${produkNama}`
+          : kategoriData?.nama ? `Biaya ${kategoriData.nama}` : "Biaya Operasional");
 
-     // 🚀 --- C. THE 3-IN-1 COMBO TRANSACTION ---
+    // 🚀 --- C. THE 3-IN-1 COMBO TRANSACTION ---
 
         const result = await db.transaction(async (tx) => {
       
@@ -186,13 +190,13 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
       const [newPengeluaran] = await tx.insert(pengeluaranTable).values({
         organisasiId: req.organisasiId, // 🚀 INJEKSI TENANT KE PENGELUARAN
         
-        // 🚀 FIX: Masukkan areaId dan siklusId secara dinamis!
+    // 🚀 FIX: Masukkan areaId dan siklusId secara dinamis!
         areaId: areaId || null, 
         siklusId: activeSiklusId, 
         
         kategoriId,
         tanggal: new Date(tanggal),
-        namaItem: fallbackNamaItem, // ✅ SEKARANG MURNI NAMA ITEM AJA
+        namaItem: finalNamaItem, // ✅ SEKARANG PAKAI NAMA DARI FRONTEND
 
         totalBiaya: biayaNum,
         catatan: keterangan || null, 
