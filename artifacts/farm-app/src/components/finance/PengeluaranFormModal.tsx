@@ -314,9 +314,9 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
                     {step === 1 && (
                       <motion.div key="step1" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-5 pt-1">
                        
-                        {/* 🚀 SUNTIKAN BARU: 3 Pilihan Tipe Transaksi */}
+                      {/* 🚀 SUNTIKAN BARU: 3 Pilihan Tipe Transaksi */}
                         <div className="space-y-2.5">
-                          <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Uang Keluar Untuk Apa?</FormLabel>
+                          <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80 flex">Uang Keluar Untuk Apa?</label>
                           <div className="grid gap-3">
                             
                             {/* OPSI 1: BIAYA AREA */}
