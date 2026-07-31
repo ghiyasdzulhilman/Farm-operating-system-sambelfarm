@@ -319,7 +319,7 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
                        
                       {/* 🚀 SUNTIKAN BARU: 3 Pilihan Tipe Transaksi */}
                         <div className="space-y-2.5">
-                          <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80 flex">Uang Keluar Untuk Apa?</label>
+                          <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80 flex">Pilih Jenis Pengeluaran</label>
                           <div className="grid gap-3">
                             
                             {/* OPSI 1: BIAYA AREA */}
@@ -329,8 +329,8 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
                             >
                               <div className={`p-2 rounded-lg ${tipeTransaksi === "BIAYA_AREA" ? "bg-primary text-white" : "bg-muted text-muted-foreground"}`}><MapPin className="h-5 w-5"/></div>
                               <div>
-                                <p className="text-sm font-bold text-foreground">Biaya Kebun / Blok</p>
-                                <p className="text-[10.5px] text-muted-foreground mt-0.5 leading-tight">Uang habis untuk satu area (Cth: Upah rawat Blok A).</p>
+                                <p className="text-sm font-bold text-foreground">Biaya Area - Siklus</p>
+                                <p className="text-[10.5px] text-muted-foreground mt-0.5 leading-tight">Untuk Keperluan Area - Siklus</p>
                               </div>
                             </div>
 
@@ -341,8 +341,8 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
                             >
                               <div className={`p-2 rounded-lg ${tipeTransaksi === "BELI_STOK" ? "bg-primary text-white" : "bg-muted text-muted-foreground"}`}><PackagePlus className="h-5 w-5"/></div>
                               <div>
-                                <p className="text-sm font-bold text-foreground">Beli Stok Gudang</p>
-                                <p className="text-[10.5px] text-muted-foreground mt-0.5 leading-tight">Beli barang untuk disimpan (Cth: 10 sak Pupuk NPK).</p>
+                                <p className="text-sm font-bold text-foreground">Beli Stok</p>
+                                <p className="text-[10.5px] text-muted-foreground mt-0.5 leading-tight">Tambah Stok / Beli Baru</p>
                               </div>
                             </div>
 
@@ -353,8 +353,8 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
                             >
                               <div className={`p-2 rounded-lg ${tipeTransaksi === "BIAYA_UMUM" ? "bg-primary text-white" : "bg-muted text-muted-foreground"}`}><Building2 className="h-5 w-5"/></div>
                               <div>
-                                <p className="text-sm font-bold text-foreground">Biaya Umum (Overhead)</p>
-                                <p className="text-[10.5px] text-muted-foreground mt-0.5 leading-tight">Biaya global (Cth: Beli kopi pekerja, sewa WiFi).</p>
+                                <p className="text-sm font-bold text-foreground">Biaya Umum</p>
+                                <p className="text-[10.5px] text-muted-foreground mt-0.5 leading-tight">Biaya Global</p>
                               </div>
                             </div>
 
@@ -373,7 +373,7 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
                          <FormField control={form.control} name="namaItem" render={({ field }) => (
                             <FormItem className="space-y-1.5 col-span-2">
                               <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80"><Tag className="inline-block h-3.5 w-3.5 mr-1" /> Nama Pengeluaran (Opsional)</FormLabel>
-                              <FormControl><Input placeholder="Kosongkan untuk penamaan otomatis" className="h-11 rounded-xl bg-background border border-input shadow-sm text-sm font-medium" {...field} value={field.value || ""} /></FormControl>
+                              <FormControl><Input placeholder="Nama item" className="h-11 rounded-xl bg-background border border-input shadow-sm text-sm font-medium" {...field} value={field.value || ""} /></FormControl>
                               <FormMessage className="text-xs text-red-500" />
                             </FormItem>
                           )} />
