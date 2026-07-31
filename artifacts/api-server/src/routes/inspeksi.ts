@@ -249,15 +249,22 @@ router.get("/notion/all-inspeksi", async (req, res): Promise<void> => {
     }
 
     // 2. Ambil semua data temuan dan JOIN ke master kendala
-    const semuaTemuan = await db
-      .select({
-        inspeksiId: inspeksiTemuanTable.inspeksiId,
-        catatanKhusus: inspeksiTemuanTable.catatanKhusus,
-        namaKendala: kendalaMasterTable.nama,
-        jenisKendala: kendalaMasterTable.jenis,
-      })
-      .from(inspeksiTemuanTable)
-      .leftJoin(kendalaMasterTable, eq(inspeksiTemuanTable.kendalaMasterId, kendalaMasterTable.id));
+    // 🚀 FILTER TENANT: cuma tarik temuan yang inspeksiId-nya ada di filteredIndukData
+    // (yang sudah tenant-scoped di atas), bukan seluruh temuan dari SEMUA organisasi
+    const scopedInspeksiIds = filteredIndukData.map((d) => d.id);
+
+    const semuaTemuan = scopedInspeksiIds.length > 0
+      ? await db
+          .select({
+            inspeksiId: inspeksiTemuanTable.inspeksiId,
+            catatanKhusus: inspeksiTemuanTable.catatanKhusus,
+            namaKendala: kendalaMasterTable.nama,
+            jenisKendala: kendalaMasterTable.jenis,
+          })
+          .from(inspeksiTemuanTable)
+          .leftJoin(kendalaMasterTable, eq(inspeksiTemuanTable.kendalaMasterId, kendalaMasterTable.id))
+          .where(inArray(inspeksiTemuanTable.inspeksiId, scopedInspeksiIds))
+      : [];
 
     // 🚀 2.5 STRATEGI TARIK DATA PEKERJA (RELASIONAL)
     const inspeksiIds = filteredIndukData.map(d => d.id);
