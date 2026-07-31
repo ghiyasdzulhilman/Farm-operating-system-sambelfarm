@@ -178,12 +178,17 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
 
         // 2. Validasi SEMUA produk dulu, sebelum ada mutation stok apapun —
         // supaya tidak ada produk ke-1,2 yang sudah kepotong sebelum produk ke-3 ketahuan gagal.
-        if (produkArray && produkArray.length > 0) {
+         if (produkArray && produkArray.length > 0) {
           const produkIds = produkArray.map((p) => p.produkId);
           const produkRows = await tx
             .select()
             .from(produkMasterTable)
-            .where(inArray(produkMasterTable.id, produkIds));
+            .where(
+              and(
+                inArray(produkMasterTable.id, produkIds),
+                eq(produkMasterTable.organisasiId, req.organisasiId) // 🚀 FILTER TENANT
+              )
+            );
 
           const produkMap = new Map(produkRows.map((p) => [p.id, p]));
 
@@ -250,14 +255,21 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
     } catch (err: any) {
     console.error("[DB ERROR ADD PERAWATAN]:", err);
     console.error("[CAUSE]:", err.cause);
-    if (typeof err.message === 'string' && err.message.startsWith('STOK_TIDAK_CUKUP:')) {
+        if (typeof err.message === 'string' && err.message.startsWith('STOK_TIDAK_CUKUP:')) {
       const produkId = err.message.split(':')[1];
       
       // 🚀 CARI NAMA PRODUK KE DB BIAR PESAN ERROR HUMAN-READABLE
+      // 🚀 FILTER TENANT: kalau produkId ternyata milik organisasi lain,
+      // query ini sengaja TIDAK ketemu, biar nggak bocorin nama produk org lain
       const [produkGagal] = await db
         .select({ nama: produkMasterTable.nama })
         .from(produkMasterTable)
-        .where(eq(produkMasterTable.id, produkId));
+        .where(
+          and(
+            eq(produkMasterTable.id, produkId),
+            eq(produkMasterTable.organisasiId, req.organisasiId!)
+          )
+        );
         
       const namaProduk = produkGagal ? produkGagal.nama : `ID ${produkId}`;
 
@@ -268,7 +280,6 @@ router.post("/notion/add-perawatan", async (req, res): Promise<void> => {
     res.status(400).json({ error: err instanceof Error ? err.message : "Internal Server Error" });
   }
 });
-
 
 // ==========================================
 // 3. ENDPOINT GET ALL PERAWATAN (SUPABASE REALTIME + NAMA AREA + DETAIL PRODUK)
@@ -564,9 +575,15 @@ router.patch("/notion/perawatan/:id", async (req, res): Promise<void> => {
         }
 
          // --- EKSEKUSI EMBER B: TAMBAH BARU (Potong stok & pakai harga master TERBARU) ---
-        if (toInsert.length > 0) {
+          if (toInsert.length > 0) {
           const insertIds = toInsert.map((p) => p.produkId);
-          const masterRows = await tx.select().from(produkMasterTable).where(inArray(produkMasterTable.id, insertIds));
+          const masterRows = await tx.select().from(produkMasterTable).where(
+            and(
+              inArray(produkMasterTable.id, insertIds),
+              eq(produkMasterTable.organisasiId, req.organisasiId) // 🚀 FILTER TENANT
+            )
+          );
+
           const masterMap = new Map(masterRows.map((p) => [p.id, p]));
 
           for (const item of toInsert) {
@@ -646,16 +663,23 @@ router.patch("/notion/perawatan/:id", async (req, res): Promise<void> => {
       res.status(404).json({ error: "Data perawatan tidak ditemukan." });
       return;
     }
-        console.error("[DB ERROR EDIT PERAWATAN]:", err);
+    console.error("[DB ERROR EDIT PERAWATAN]:", err);
     console.error("[CAUSE]:", err.cause);
-    if (typeof err.message === 'string' && err.message.startsWith('STOK_TIDAK_CUKUP:')) {
+        if (typeof err.message === 'string' && err.message.startsWith('STOK_TIDAK_CUKUP:')) {
       const produkId = err.message.split(':')[1];
       
       // 🚀 CARI NAMA PRODUK KE DB BIAR PESAN ERROR HUMAN-READABLE
+      // 🚀 FILTER TENANT: kalau produkId ternyata milik organisasi lain,
+      // query ini sengaja TIDAK ketemu, biar nggak bocorin nama produk org lain
       const [produkGagal] = await db
         .select({ nama: produkMasterTable.nama })
         .from(produkMasterTable)
-        .where(eq(produkMasterTable.id, produkId));
+        .where(
+          and(
+            eq(produkMasterTable.id, produkId),
+            eq(produkMasterTable.organisasiId, req.organisasiId!)
+          )
+        );
         
       const namaProduk = produkGagal ? produkGagal.nama : `ID ${produkId}`;
 
