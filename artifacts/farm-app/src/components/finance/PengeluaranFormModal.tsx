@@ -404,7 +404,7 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
                                   <Button type="button" size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive/10 rounded-md shrink-0 transition-colors" onClick={() => setIsAddingKategori(false)}><X className="h-4 w-4"/></Button>
                                 </div>
                               ) : (
-                                <button type="button" onClick={() => setIsAddingKategori(true)} className="text-[10px] font-bold text-primary flex items-center hover:underline pl-1 pt-0.5 w-fit"><Plus className="h-3 w-3 mr-0.5"/> Tambah Kategori Baru</button>
+                                <button type="button" onClick={() => setIsAddingKategori(true)} className="text-[10px] font-bold text-primary flex items-center hover:underline pl-1 pt-0.5 w-fit"><Plus className="h-3 w-3 mr-0.5"/> Tambah Kategori</button>
                               )}
                               <FormMessage className="text-xs text-red-500" />
                             </FormItem>
@@ -449,7 +449,7 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
                                     </SelectContent>
                                   </Select>
                                   {/* 🚀 SUNTIKAN UX: Tombol pemicu Modal Bertumpuk Produk */}
-                                  <button type="button" onClick={() => setIsAddingProduk(true)} className="text-[10px] font-bold text-primary flex items-center hover:underline pl-1 pt-0.5 w-fit"><Plus className="h-3 w-3 mr-0.5"/> Tambah Produk Master</button>
+                                  <button type="button" onClick={() => setIsAddingProduk(true)} className="text-[10px] font-bold text-primary flex items-center hover:underline pl-1 pt-0.5 w-fit"><Plus className="h-3 w-3 mr-0.5"/> Tambah Produk</button>
                                   <FormMessage className="text-xs text-red-500" />
                                 </FormItem>
                               )} />
