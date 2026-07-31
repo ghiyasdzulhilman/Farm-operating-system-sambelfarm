@@ -329,7 +329,7 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
                             >
                               <div className={`p-2 rounded-lg ${tipeTransaksi === "BIAYA_AREA" ? "bg-primary text-white" : "bg-muted text-muted-foreground"}`}><MapPin className="h-5 w-5"/></div>
                               <div>
-                                <p className="text-sm font-bold text-foreground">Biaya Area - Siklus</p>
+                                <p className="text-sm font-bold text-foreground">Biaya Kebun</p>
                                 <p className="text-[10.5px] text-muted-foreground mt-0.5 leading-tight">Untuk Keperluan Area - Siklus</p>
                               </div>
                             </div>
@@ -418,7 +418,7 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
                             <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="space-y-1.5 pb-2 border-b border-border">
                               <FormField control={form.control} name="areaId" render={({ field }) => (
                                 <FormItem className="space-y-1.5">
-                                  <FormLabel className="text-xs font-bold text-primary uppercase tracking-wider">Pilih Kebun / Blok</FormLabel>
+                                  <FormLabel className="text-xs font-bold text-primary uppercase tracking-wider">Pilih Area - Siklus</FormLabel>
                                   <Select onValueChange={field.onChange} value={field.value}>
                                     <FormControl>
                                       <SelectTrigger className="h-11 rounded-xl bg-background border-primary/50 text-xs font-bold text-primary">
