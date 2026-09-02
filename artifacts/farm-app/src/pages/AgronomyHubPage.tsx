@@ -226,10 +226,16 @@ export function AgronomyHubPage() {
         targetUrl = `/api/notion/activity/${module}/${id}`;
       }
         
-      const response = await fetch(targetUrl, { method: 'DELETE' });
-      if (!response.ok) throw new Error("Gagal menghapus data baris ini");
-      return response.json();
-    },
+     const response = await fetch(targetUrl, { method: 'DELETE' });
+        
+        // 🚀 THE FIX: Baca pesan error dari backend kalau response gagal
+        if (!response.ok) {
+          const errBody = await response.json().catch(() => ({}));
+          throw new Error(errBody.error || "Gagal menghapus data baris ini");
+        }
+        
+        return response.json();
+      },
 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] });
