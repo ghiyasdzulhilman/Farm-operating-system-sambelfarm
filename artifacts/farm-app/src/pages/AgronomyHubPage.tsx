@@ -158,29 +158,43 @@ export function AgronomyHubPage() {
   // =====================================================================
   // 2. MUTATION: UNIVERSAL DYNAMIC UPDATE + PERAWATAN FIELD ONLY DAN PRODUK
   // =====================================================================
-  const updateStatusMutation = useMutation({
+    const updateStatusMutation = useMutation({
     mutationFn: async ({ id, module, ...updateData }: { id: string; module: string; [key: string]: any }) => {
-      const isPerawatan = module === "perawatan";
+      let targetUrl = "";
+      let method = "PATCH"; // Default agronomi pakai PATCH
+      let body: any = {};
 
-      const url = isPerawatan
-        ? `/api/notion/perawatan/${id}`
-        : `/api/notion/edit-activity/${id}`;
+      // 🚀 UPGRADE: Routing pintar untuk Update Multi-Modul (Agronomi + Finance)
+      if (module === "pengeluaran") {
+        targetUrl = `/api/pengeluaran/${id}`;
+        method = "PUT"; // 🚀 Finance pakai PUT sesuai API kita
+        body = updateData; 
+      } else if (module === "panen") {
+        targetUrl = `/api/harvest/${id}`;
+        method = "PUT"; // 🚀 Finance pakai PUT
+        body = updateData;
+      } else if (module === "perawatan") {
+        targetUrl = `/api/notion/perawatan/${id}`;
+        body = updateData;
+      } else {
+        // Operasional / Inspeksi
+        targetUrl = `/api/notion/edit-activity/${id}`;
+        body = { module, ...updateData };
+      }
 
-      const body = isPerawatan
-        ? updateData
-        : { module, ...updateData };
-
-      const response = await fetch(url, {
-        method: "PATCH",
+      const response = await fetch(targetUrl, {
+        method: method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
+      
       if (!response.ok) {
         const errBody = await response.json().catch(() => ({}));
         throw new Error(errBody.error || "Gagal menyimpan perubahan");
       }
       return response.json();
     },
+
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] });
     },
