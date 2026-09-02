@@ -394,7 +394,7 @@ router.delete("/pengeluaran/:id", async (req, res): Promise<void> => {
     // 🚀 TANGKAP ERROR PROTEKSI LEDGER DAN KASIH PESAN KE USER
     if (err.message === "LEDGER_BLOCKED") {
       res.status(400).json({ 
-        error: "Gagal: Produk ini sudah dipakai di transaksi lain (misal: Perawatan) setelah pembelian ini. Hapus riwayat pemakaian yang lebih baru terlebih dahulu." 
+        error: "Gagal dihapus. Stok dari nota ini sudah terpakai di perawatan atau tertimpa pembelian baru. Hapus riwayat terlebih dahulu untuk melanjutkan." 
       });
       return;
     }
