@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, pengeluaranTable, produkMasterTable, stockMovementTable, kategoriKeuanganTable, areasTable, siklusTanamTable } from "@workspace/db";
-import { eq, desc, and, or, isNull } from "drizzle-orm";
+import { eq, desc, and, or, isNull, gt } from "drizzle-orm";
 import { getAuth } from "@clerk/express";
 import { getPekerjaIdFromClerk } from "../lib/authHelpers";
 
@@ -330,8 +330,10 @@ router.delete("/pengeluaran/:id", async (req, res): Promise<void> => {
           .from(stockMovementTable)
           .where(eq(stockMovementTable.pengeluaranId, existing.id));
 
-        if (movement) {
-          // 🚀 PROTEKSI FATAL: Cek apakah ada pergerakan stok (misal: Perawatan) SETELAH pembelian ini?
+       if (movement) {
+          // 🚀 PROTEKSI FATAL: Cek Garis Waktu Jurnal (Ledger Timeline)
+          // Karena ID pakai UUID (acak), kita WAJIB cek berdasarkan waktu (createdAt).
+          // Adakah pergerakan stok untuk produk ini setelah waktu pembelian ini?
           const [newerMovement] = await tx
             .select({ id: stockMovementTable.id })
             .from(stockMovementTable)
@@ -339,8 +341,8 @@ router.delete("/pengeluaran/:id", async (req, res): Promise<void> => {
               and(
                 eq(stockMovementTable.produkId, existing.produkId),
                 eq(stockMovementTable.organisasiId, req.organisasiId),
-                // Asumsi ID sequential: jika ada ID ledger lebih besar, berarti ada transaksi lebih baru
-                gt(stockMovementTable.id, movement.id) 
+                // Bandingkan TIMESTAMP, bukan ID!
+                gt(stockMovementTable.createdAt, movement.createdAt) 
               )
             )
             .limit(1);
@@ -355,7 +357,7 @@ router.delete("/pengeluaran/:id", async (req, res): Promise<void> => {
             .set({
               stokSaatIni: movement.stokSebelum,
               hargaPerSatuanDasar: movement.hargaHppSebelum,
-              updatedAt: new Date()
+              updatedAt: new Date() // Waktu master diupdate saat ini
             })
             .where(
               and(
