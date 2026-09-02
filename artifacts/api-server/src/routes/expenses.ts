@@ -404,6 +404,91 @@ router.delete("/pengeluaran/:id", async (req, res): Promise<void> => {
 });
 
 // ==========================================
+// 2.6 PUT / EDIT PENGELUARAN (HANYA METADATA - NO NOMINAL)
+// ==========================================
+router.put("/pengeluaran/:id", async (req, res): Promise<void> => {
+  try {
+    const { userId } = getAuth(req);
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; } // 🚀 PROTEKSI TENANT
+
+    const expenseId = req.params.id;
+    
+    // 🚀 HANYA EKSTRAK DATA YANG AMAN (Angka/Kuantitas diabaikan)
+    const {
+      kategoriId,
+      tanggal,
+      keterangan,
+      areaId, 
+      namaItem 
+    } = req.body;
+
+    // 1. Cek apakah pengeluaran ini milik tenant yang bersangkutan
+    const [existing] = await db
+      .select()
+      .from(pengeluaranTable)
+      .where(
+        and(
+          eq(pengeluaranTable.id, expenseId),
+          eq(pengeluaranTable.organisasiId, req.organisasiId)
+        )
+      );
+
+    if (!existing) {
+      res.status(404).json({ error: "Data pengeluaran tidak ditemukan." });
+      return;
+    }
+
+    // 2. Otomatisasi Siklus jika Area diubah
+    let newSiklusId = existing.siklusId;
+    
+    // Jika areaId dikirim dari frontend dan berbeda dari yang lama
+    if (areaId !== undefined && areaId !== existing.areaId) {
+      if (areaId === null) {
+        // Jika area dikosongkan (menjadi Biaya Umum)
+        newSiklusId = null;
+      } else {
+        // Jika dipindah ke Area tertentu, cari Siklus Aktifnya
+        const [activeCycle] = await db
+          .select({ id: siklusTanamTable.id })
+          .from(siklusTanamTable)
+          .where(
+            and(
+              eq(siklusTanamTable.areaId, areaId),
+              eq(siklusTanamTable.status, "Aktif"),
+              eq(siklusTanamTable.organisasiId, req.organisasiId)
+            )
+          )
+          .limit(1);
+          
+        newSiklusId = activeCycle ? activeCycle.id : null;
+      }
+    }
+
+    // 3. Eksekusi Update ke Database
+    const finalNamaItem = namaItem ? namaItem.trim() : existing.namaItem;
+    
+    const [updated] = await db.update(pengeluaranTable)
+      .set({
+        kategoriId: kategoriId !== undefined ? kategoriId : existing.kategoriId,
+        tanggal: tanggal ? new Date(tanggal) : existing.tanggal,
+        namaItem: finalNamaItem,
+        catatan: keterangan !== undefined ? keterangan : existing.catatan,
+        areaId: areaId !== undefined ? areaId : existing.areaId,
+        siklusId: newSiklusId,
+        updatedAt: new Date()
+      })
+      .where(eq(pengeluaranTable.id, existing.id))
+      .returning();
+
+    res.json({ success: true, data: updated, message: "Metadata pengeluaran berhasil diperbarui." });
+  } catch (err) {
+    console.error("[PUT PENGELUARAN ERROR]:", err);
+    res.status(500).json({ error: "Gagal memperbarui data pengeluaran." });
+  }
+});
+
+// ==========================================
 // 3. GET KATEGORI KEUANGAN (Legacy / Global)
 // ==========================================
 
