@@ -391,8 +391,13 @@ export function AgronomyHubPage() {
                   deleteActivityMutation.mutate({ id, module });
                 }
               }} 
+              // 🚀 SUNTIKAN BARU: Prop onUpdate buat edit inline table
+              onUpdate={(id, module, payload) => {
+                updateStatusMutation.mutate({ id, module, ...payload });
+              }}
             />
           ) : (
+
             // 🌱 TABEL AGRONOMI (Nampil pas tab Agronomy aktif)
             <MasterTableView 
               items={filteredItems} 
