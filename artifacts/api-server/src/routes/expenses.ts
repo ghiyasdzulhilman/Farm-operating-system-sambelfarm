@@ -282,7 +282,7 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
 
     });
 
-        res.status(201).json({ success: true, data: result });
+  res.status(201).json({ success: true, data: result });
   } catch (err: any) {
     console.error("[POST PENGELUARAN ERROR]:", err);
     if (err.message === "PRODUK_NOT_FOUND") {
@@ -294,8 +294,82 @@ router.post("/pengeluaran", async (req, res): Promise<void> => {
 });
 
 // ==========================================
+// 2.5 DELETE PENGELUARAN (Rollback Stok & HPP)
+// ==========================================
+router.delete("/pengeluaran/:id", async (req, res): Promise<void> => {
+  try {
+    const { userId } = getAuth(req);
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    if (!req.organisasiId) { res.status(403).json({ error: "BELUM_ONBOARDING" }); return; } // 🚀 PROTEKSI TENANT
+
+    const expenseId = req.params.id;
+
+    // 1. Cek eksistensi data dan kepemilikan tenant
+    const [existing] = await db
+      .select()
+      .from(pengeluaranTable)
+      .where(
+        and(
+          eq(pengeluaranTable.id, expenseId),
+          eq(pengeluaranTable.organisasiId, req.organisasiId)
+        )
+      );
+
+    if (!existing) {
+      res.status(404).json({ error: "Data pengeluaran tidak ditemukan." });
+      return;
+    }
+
+    // 2. Eksekusi Hapus dalam Transaksi untuk menjaga keamanan data
+    await db.transaction(async (tx) => {
+      // Jika ini pembelian stok, kita WAJIB rollback ledger dan master produk
+      if (existing.isPembelianStok && existing.produkId) {
+        // Cari catatan pergerakan stok (ledger) yang terikat dengan transaksi ini
+        const [movement] = await tx
+          .select()
+          .from(stockMovementTable)
+          .where(eq(stockMovementTable.pengeluaranId, existing.id));
+
+        if (movement) {
+          // A. Rollback Stok & HPP Master ke kondisi SEBELUM transaksi ini masuk
+          await tx
+            .update(produkMasterTable)
+            .set({
+              stokSaatIni: movement.stokSebelum,
+              hargaPerSatuanDasar: movement.hargaHppSebelum,
+              updatedAt: new Date()
+            })
+            .where(
+              and(
+                eq(produkMasterTable.id, existing.produkId),
+                eq(produkMasterTable.organisasiId, req.organisasiId)
+              )
+            );
+
+          // B. Hapus riwayat jejak dari ledger
+          await tx
+            .delete(stockMovementTable)
+            .where(eq(stockMovementTable.id, movement.id));
+        }
+      }
+
+      // 3. Terakhir, hapus data pengeluaran utama
+      await tx
+        .delete(pengeluaranTable)
+        .where(eq(pengeluaranTable.id, existing.id));
+    });
+
+    res.json({ success: true, message: "Pengeluaran berhasil dihapus dan stok telah di-rollback (jika ada)." });
+  } catch (err) {
+    console.error("[DELETE PENGELUARAN ERROR]:", err);
+    res.status(500).json({ error: "Gagal menghapus data pengeluaran." });
+  }
+});
+
+// ==========================================
 // 3. GET KATEGORI KEUANGAN (Legacy / Global)
 // ==========================================
+
 router.get("/kategori-keuangan", async (req, res): Promise<void> => {
   try {
     const { userId } = getAuth(req);
