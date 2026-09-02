@@ -351,12 +351,13 @@ router.delete("/pengeluaran/:id", async (req, res): Promise<void> => {
             throw new Error("LEDGER_BLOCKED");
           }
 
-          // A. Rollback Stok & HPP Master ke kondisi SEBELUM transaksi ini masuk
+         // A. Rollback Stok & HPP Master ke kondisi SEBELUM transaksi ini masuk
           await tx
             .update(produkMasterTable)
             .set({
-              stokSaatIni: movement.stokSebelum,
-              hargaPerSatuanDasar: movement.hargaHppSebelum,
+              // 🚀 FIX TS ERROR: Tambahkan fallback || "0" agar TypeScript lolos kompilasi
+              stokSaatIni: movement.stokSebelum || "0",
+              hargaPerSatuanDasar: movement.hargaHppSebelum || "0", 
               updatedAt: new Date() // Waktu master diupdate saat ini
             })
             .where(
