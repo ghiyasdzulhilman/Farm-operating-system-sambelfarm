@@ -331,6 +331,24 @@ router.delete("/pengeluaran/:id", async (req, res): Promise<void> => {
           .where(eq(stockMovementTable.pengeluaranId, existing.id));
 
         if (movement) {
+          // 🚀 PROTEKSI FATAL: Cek apakah ada pergerakan stok (misal: Perawatan) SETELAH pembelian ini?
+          const [newerMovement] = await tx
+            .select({ id: stockMovementTable.id })
+            .from(stockMovementTable)
+            .where(
+              and(
+                eq(stockMovementTable.produkId, existing.produkId),
+                eq(stockMovementTable.organisasiId, req.organisasiId),
+                // Asumsi ID sequential: jika ada ID ledger lebih besar, berarti ada transaksi lebih baru
+                gt(stockMovementTable.id, movement.id) 
+              )
+            )
+            .limit(1);
+
+          if (newerMovement) {
+            throw new Error("LEDGER_BLOCKED");
+          }
+
           // A. Rollback Stok & HPP Master ke kondisi SEBELUM transaksi ini masuk
           await tx
             .update(produkMasterTable)
@@ -359,9 +377,18 @@ router.delete("/pengeluaran/:id", async (req, res): Promise<void> => {
         .where(eq(pengeluaranTable.id, existing.id));
     });
 
-    res.json({ success: true, message: "Pengeluaran berhasil dihapus dan stok telah di-rollback (jika ada)." });
-  } catch (err) {
+    res.json({ success: true, message: "Pengeluaran berhasil dihapus dan stok telah di-rollback." });
+  } catch (err: any) {
     console.error("[DELETE PENGELUARAN ERROR]:", err);
+    
+    // 🚀 TANGKAP ERROR PROTEKSI LEDGER DAN KASIH PESAN KE USER
+    if (err.message === "LEDGER_BLOCKED") {
+      res.status(400).json({ 
+        error: "Gagal: Produk ini sudah dipakai di transaksi lain (misal: Perawatan) setelah pembelian ini. Hapus riwayat pemakaian yang lebih baru terlebih dahulu." 
+      });
+      return;
+    }
+
     res.status(500).json({ error: "Gagal menghapus data pengeluaran." });
   }
 });
