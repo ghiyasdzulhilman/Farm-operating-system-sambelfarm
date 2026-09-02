@@ -331,34 +331,41 @@ router.delete("/pengeluaran/:id", async (req, res): Promise<void> => {
           .where(eq(stockMovementTable.pengeluaranId, existing.id));
 
        if (movement) {
-          // 🚀 PROTEKSI FATAL: Cek Garis Waktu Jurnal (Ledger Timeline)
-          // Karena ID pakai UUID (acak), kita WAJIB cek berdasarkan waktu (createdAt).
-          // Adakah pergerakan stok untuk produk ini setelah waktu pembelian ini?
-          const [newerMovement] = await tx
-            .select({ id: stockMovementTable.id })
-            .from(stockMovementTable)
+          // 🚀 PROTEKSI FATAL: State Matching Algorithm (Bebas Bug Waktu & UUID)
+          // Tarik data langsung dari gudang fisik (Master Produk)
+          const [currentProduct] = await tx
+            .select({ 
+              stokSaatIni: produkMasterTable.stokSaatIni,
+              hargaPerSatuanDasar: produkMasterTable.hargaPerSatuanDasar
+            })
+            .from(produkMasterTable)
             .where(
               and(
-                eq(stockMovementTable.produkId, existing.produkId),
-                eq(stockMovementTable.organisasiId, req.organisasiId),
-                // Bandingkan TIMESTAMP, bukan ID!
-                gt(stockMovementTable.createdAt, movement.createdAt) 
+                eq(produkMasterTable.id, existing.produkId),
+                eq(produkMasterTable.organisasiId, req.organisasiId)
               )
-            )
-            .limit(1);
+            );
 
-          if (newerMovement) {
+          // Pastikan parsing aman jadi Number
+          const currentStock = parseFloat(currentProduct?.stokSaatIni?.toString() || "0");
+          const expectedStock = parseFloat(movement.stokSesudah?.toString() || "0");
+          
+          const currentHpp = parseFloat(currentProduct?.hargaPerSatuanDasar?.toString() || "0");
+          const expectedHpp = parseFloat(movement.hargaHppSesudah?.toString() || "0");
+
+          // Jika angka di gudang BEDA dengan angka akhir nota ini, berarti sudah ada transaksi lanjutan! BLOKIR!
+          if (currentStock.toFixed(3) !== expectedStock.toFixed(3) || 
+              currentHpp.toFixed(3) !== expectedHpp.toFixed(3)) {
             throw new Error("LEDGER_BLOCKED");
           }
 
-         // A. Rollback Stok & HPP Master ke kondisi SEBELUM transaksi ini masuk
+          // A. Rollback Stok & HPP Master ke kondisi SEBELUM transaksi ini masuk
           await tx
             .update(produkMasterTable)
             .set({
-              // 🚀 FIX TS ERROR: Tambahkan fallback || "0" agar TypeScript lolos kompilasi
               stokSaatIni: movement.stokSebelum || "0",
-              hargaPerSatuanDasar: movement.hargaHppSebelum || "0", 
-              updatedAt: new Date() // Waktu master diupdate saat ini
+              hargaPerSatuanDasar: movement.hargaHppSebelum || "0",
+              updatedAt: new Date()
             })
             .where(
               and(
