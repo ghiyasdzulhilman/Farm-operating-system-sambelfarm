@@ -1,12 +1,18 @@
 import React, { useMemo, useState } from "react";
 import { useReactTable, getCoreRowModel, flexRender, type ColumnDef } from "@tanstack/react-table";
-import { Columns3, Check, Trash2, Package, Building2 } from "lucide-react"; // 🚀 FIX: Tambah Building2
+import { Columns3, Check, Trash2, Package, Building2 } from "lucide-react"; 
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useQuery } from "@tanstack/react-query";
+
+// 🚀 IMPORT EDITABLE CELL DARI PARENT FOLDER
+import { EditableCell } from "../EditableCell";
 
 interface FinanceTableViewProps {
   items: any[];
   onDelete: (id: string, module: string) => void;
+  // 🚀 PROPS BARU UNTUK EDIT INLINE
+  onUpdate: (id: string, module: string, payload: any) => void;
 }
 
 // 🚀 FORMATTER TANGGAL, ANGKA & RUPIAH
@@ -30,7 +36,7 @@ const formatAngka = (angka: any) =>
 // 🚀 KAMUS LABEL KOLOM
 const LABELS_PENGELUARAN: Record<string, string> = {
   tanggal: "Tanggal",
-  areaSiklus: "Area & Siklus", // 🚀 TAMBAHAN BARU
+  areaSiklus: "Area & Siklus",
   kategori: "Kategori",
   namaItem: "Nama Item",
   qty: "Qty",
@@ -43,14 +49,14 @@ const LABELS_PANEN: Record<string, string> = {
   tanggal: "Tanggal",
   areaSiklus: "Area & Siklus",
   kegiatan: "Kegiatan",
-  kualitas: "Grade/Kualitas", // 🚀 TAMBAHAN BARU
+  kualitas: "Grade/Kualitas",
   kuantitas: "Kuantitas",
   hargaJual: "Harga Jual / Kg",
   totalPendapatan: "Total Pendapatan",
   aksi: "Aksi",
 };
 
-// 🚀 KOMPONEN HELPER: BENTO TABLE (Biar nggak nulis ulang UI dua kali)
+// 🚀 KOMPONEN HELPER: BENTO TABLE
 function BentoTable({
   title,
   data,
@@ -75,7 +81,6 @@ function BentoTable({
   return (
     <div className="w-full max-w-full rounded-[1.5rem] border border-border/50 bg-card/80 backdrop-blur-md shadow-[0_8px_30px_-4px_rgba(0,0,0,0.05)] overflow-hidden text-left transition-all duration-300">
       
-      {/* HEADER CARD & DROPDOWN FILTER KOLOM */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-border/40 bg-muted/30 backdrop-blur-sm">
         <h2 className="text-[13px] font-bold uppercase tracking-wider text-foreground/90">
           {title}
@@ -118,11 +123,9 @@ function BentoTable({
         </DropdownMenu>
       </div>
 
-    {/* ISI TABEL */}
       <div className="w-full overflow-x-auto custom-scrollbar">
         <table className="w-full min-w-[900px] border-collapse">
           <thead>
-
             {table.getHeaderGroups().map(headerGroup => (
               <tr key={headerGroup.id} className="border-b border-border/40 bg-muted/60 backdrop-blur-sm">
                 {headerGroup.headers.map(header => (
@@ -151,28 +154,53 @@ function BentoTable({
 }
 
 // 🚀 KOMPONEN UTAMA
-export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDelete }) => {
+export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDelete, onUpdate }) => {
   const pengeluaran = items.filter((i) => i.module === "pengeluaran");
   const panen = items.filter((i) => i.module === "panen");
 
-    // 💡 DEFINISI KOLOM PENGELUARAN
+  // 🚀 FETCH OPSI DROPDOWN KHUSUS FINANCE
+  const { data: dropdownOptions } = useQuery({
+    queryKey: ["pengeluaran-options-list"],
+    queryFn: async () => fetch("/api/pengeluaran-dropdown-options").then(res => res.json())
+  });
+
+  const areaOptions = useMemo(() => {
+    const dbAreas = (dropdownOptions?.areas || []).map((a: any) => ({ label: a.name, value: a.id }));
+    // Tambahkan opsi khusus untuk mengembalikan pengeluaran jadi Biaya Umum (tanpa area)
+    return [{ label: "-- Biaya Umum (Tanpa Area) --", value: null }, ...dbAreas];
+  }, [dropdownOptions]);
+
+  const kategoriOptions = useMemo(() => {
+    return (dropdownOptions?.kategoriKeuangan || []).map((k: any) => ({ label: k.nama, value: k.id }));
+  }, [dropdownOptions]);
+
+  // 💡 DEFINISI KOLOM PENGELUARAN
   const pengeluaranCols = useMemo<ColumnDef<any>[]>(() => [
-   {
+    {
       id: "tanggal",
       header: "Tanggal",
-      cell: ({ row }) => <div className="font-medium text-muted-foreground whitespace-nowrap">{formatTanggal(row.original.rawDate)}</div>
+      cell: ({ row }) => (
+        <div className="font-medium text-muted-foreground whitespace-nowrap min-w-[120px]">
+          <EditableCell
+            value={row.original.rawDate ? row.original.rawDate.split('T')[0] : ""}
+            type="date"
+            onSave={(val) => {
+              if(val) onUpdate(row.original.id, "pengeluaran", { tanggal: val });
+            }}
+          />
+        </div>
+      )
     },
 
     {
       id: "areaSiklus", 
       header: "Area & Siklus",
       cell: ({ row }) => {
-        // 🚀 TANGKAP STATUS BELI STOK
         const isBeliStok = row.original.metaEkstra?.isPembelianStok;
-        const area = row.original.area;
-        const isOverhead = !area || area === "Area Master" || area === "-";
+        const areaId = row.original.metaEkstra?.areaId;
+        const isOverhead = !row.original.area || row.original.area === "Area Master" || row.original.area === "-";
 
-        // 1. KONDISI A: Uang berubah jadi Aset Gudang
+        // KONDISI A: Uang berubah jadi Aset Gudang (Dikunci)
         if (isBeliStok) {
           return (
             <div className="inline-flex items-center gap-1.5 bg-primary/10 text-primary border border-primary/20 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider">
@@ -181,51 +209,63 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
           );
         }
 
-        // 2. KONDISI B: Uang hangus untuk biaya global kebun
-        if (isOverhead) {
-          return (
-            <div className="inline-flex items-center gap-1.5 bg-amber-500/10 text-amber-600 border border-amber-500/20 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider">
-              <Building2 className="h-3 w-3" /> Umum
-            </div>
-          );
-        }
+        // KONDISI B & C: Bebas pindah Area
+        const displayLabel = isOverhead 
+          ? "Biaya Umum" 
+          : `${row.original.area} ${row.original.namaSiklus && row.original.namaSiklus !== "-" ? `- ${row.original.namaSiklus}` : ""}`;
 
-        // 3. KONDISI C: Uang hangus khusus untuk satu Blok/Area
         return (
-          <div>
-            <div className="font-bold text-foreground/90 whitespace-nowrap">{area}</div>
-            <div className="text-[11px] font-medium text-muted-foreground mt-0.5 whitespace-nowrap">
-              {row.original.namaSiklus && row.original.namaSiklus !== "-" ? row.original.namaSiklus : "Siklus Aktif"}
-            </div>
+          <div className="min-w-[160px]">
+            <EditableCell
+              value={areaId}
+              type="select"
+              options={areaOptions}
+              placeholder={displayLabel}
+              onSave={(val) => onUpdate(row.original.id, "pengeluaran", { areaId: val })}
+            />
           </div>
         );
       }
     },
 
-        {
+    {
       id: "kategori",
       header: "Kategori",
-      cell: ({ row }) => (
-        <div className="min-w-[120px]">
-          <span className="inline-block bg-muted text-muted-foreground px-2.5 py-1 rounded-md text-xs font-semibold whitespace-nowrap">
-            {row.original.category}
-          </span>
-        </div>
-      )
+      cell: ({ row }) => {
+        const currentKatId = row.original.metaEkstra?.kategoriId;
+        return (
+          <div className="min-w-[140px]">
+             <EditableCell
+                value={currentKatId}
+                type="select"
+                options={kategoriOptions}
+                placeholder={row.original.category}
+                onSave={(val) => onUpdate(row.original.id, "pengeluaran", { kategoriId: val })}
+              />
+          </div>
+        );
+      }
     },
-        {
+    
+    {
       id: "namaItem", 
       header: "Nama Item",
       cell: ({ row }) => (
-        <div className="font-bold text-foreground/90 min-w-[140px]">{row.original.title}</div>
+        <div className="font-bold text-foreground/90 min-w-[140px]">
+          <EditableCell
+            value={row.original.title}
+            onSave={(val) => onUpdate(row.original.id, "pengeluaran", { namaItem: val })}
+          />
+        </div>
       )
     },
 
+    // 🔒 KOLOM ANGKA: READ-ONLY SEPENUHNYA
     {
       id: "qty",
       header: () => <div className="text-right w-full">Qty</div>,
       cell: ({ row }) => (
-        <div className="text-right font-medium text-muted-foreground whitespace-nowrap">
+        <div className="text-right font-medium text-muted-foreground whitespace-nowrap bg-muted/10 px-2 py-1 rounded-md">
           {formatAngka(row.original.metaEkstra?.kuantitas || 1)} {row.original.metaEkstra?.satuanKerja}
         </div>
       )
@@ -234,7 +274,7 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
       id: "hargaSatuan",
       header: () => <div className="text-right w-full">Harga Satuan</div>,
       cell: ({ row }) => (
-        <div className="text-right font-medium text-muted-foreground whitespace-nowrap">
+        <div className="text-right font-medium text-muted-foreground whitespace-nowrap bg-muted/10 px-2 py-1 rounded-md">
           {formatRupiah(Number(row.original.metaEkstra?.hargaSatuan))}
         </div>
       )
@@ -243,7 +283,7 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
       id: "totalBiaya",
       header: () => <div className="text-right w-full">Total Biaya</div>,
       cell: ({ row }) => (
-        <div className="text-right font-black text-foreground/90 whitespace-nowrap">
+        <div className="text-right font-black text-foreground/90 whitespace-nowrap bg-muted/20 px-2 py-1 rounded-md">
           {formatRupiah(row.original.metaEkstra?.totalBiaya)}
         </div>
       )
@@ -264,45 +304,78 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
         </div>
       )
     },
-  ], [onDelete]);
+  ], [onDelete, onUpdate, areaOptions, kategoriOptions]);
 
-    // 💡 DEFINISI KOLOM PANEN
+  // 💡 DEFINISI KOLOM PANEN
   const panenCols = useMemo<ColumnDef<any>[]>(() => [
     {
       id: "tanggal",
       header: "Tanggal",
-      cell: ({ row }) => <div className="font-medium text-muted-foreground whitespace-nowrap">{formatTanggal(row.original.rawDate)}</div>
+      cell: ({ row }) => (
+        <div className="font-medium text-muted-foreground whitespace-nowrap min-w-[120px]">
+          <EditableCell
+            value={row.original.rawDate ? row.original.rawDate.split('T')[0] : ""}
+            type="date"
+            onSave={(val) => {
+              if(val) onUpdate(row.original.id, "panen", { tanggal: val });
+            }}
+          />
+        </div>
+      )
     },
     {
       id: "areaSiklus",
       header: "Area & Siklus",
-      cell: ({ row }) => (
-        <div>
-          <div className="font-bold text-foreground/90">{row.original.area}</div>
-          <div className="text-[11px] font-medium text-muted-foreground mt-0.5">{row.original.namaSiklus}</div>
-        </div>
-      )
+      cell: ({ row }) => {
+        const areaId = row.original.metaEkstra?.areaId;
+        const displayLabel = `${row.original.area} ${row.original.namaSiklus && row.original.namaSiklus !== "-" ? `- ${row.original.namaSiklus}` : ""}`;
+        
+        return (
+          <div className="min-w-[160px]">
+            <EditableCell
+              value={areaId}
+              type="select"
+              // Panen biasanya wajib nempel ke area, jadi filter opsi "Biaya Umum" (null)
+              options={areaOptions.filter(a => a.value !== null)} 
+              placeholder={displayLabel}
+              onSave={(val) => onUpdate(row.original.id, "panen", { areaId: val })}
+            />
+          </div>
+        );
+      }
     },
     {
       id: "kegiatan",
       header: "Kegiatan",
-      cell: ({ row }) => <div className="font-bold text-foreground/90 min-w-[110px] whitespace-nowrap">{row.original.title}</div>
+      cell: ({ row }) => (
+        <div className="font-bold text-foreground/90 min-w-[140px]">
+          <EditableCell
+            value={row.original.title}
+            onSave={(val) => onUpdate(row.original.id, "panen", { kegiatan: val })}
+          />
+        </div>
+      )
     },
     {
-      id: "kualitas", // 🚀 KOLOM BARU: KUALITAS / GRADE
+      id: "kualitas",
       header: "Grade",
       cell: ({ row }) => (
-        <div className="font-semibold text-muted-foreground text-xs min-w-[70px] whitespace-nowrap">
-          {row.original.metaEkstra?.kualitas || "-"}
+        <div className="font-semibold text-muted-foreground text-xs min-w-[100px]">
+          <EditableCell
+            value={row.original.metaEkstra?.kualitas || ""}
+            placeholder="Grade..."
+            onSave={(val) => onUpdate(row.original.id, "panen", { kualitas: val })}
+          />
         </div>
       )
     },
 
+    // 🔒 KOLOM ANGKA: READ-ONLY SEPENUHNYA
     {
       id: "kuantitas",
       header: () => <div className="text-right w-full">Kuantitas</div>,
       cell: ({ row }) => (
-        <div className="text-right font-medium text-muted-foreground whitespace-nowrap">
+        <div className="text-right font-medium text-muted-foreground whitespace-nowrap bg-muted/10 px-2 py-1 rounded-md">
           {formatAngka(row.original.metaEkstra?.kuantitasKg)} Kg
         </div>
       )
@@ -311,7 +384,7 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
       id: "hargaJual",
       header: () => <div className="text-right w-full">Harga Jual / Kg</div>,
       cell: ({ row }) => (
-        <div className="text-right font-medium text-muted-foreground whitespace-nowrap">
+        <div className="text-right font-medium text-muted-foreground whitespace-nowrap bg-muted/10 px-2 py-1 rounded-md">
           {formatRupiah(row.original.metaEkstra?.hargaJualPerKg)}
         </div>
       )
@@ -320,7 +393,7 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
       id: "totalPendapatan",
       header: () => <div className="text-right w-full">Total Pendapatan</div>,
       cell: ({ row }) => (
-        <div className="text-right font-black text-foreground/90 whitespace-nowrap">
+        <div className="text-right font-black text-foreground/90 whitespace-nowrap bg-muted/20 px-2 py-1 rounded-md">
           {formatRupiah(row.original.metaEkstra?.totalPendapatan)}
         </div>
       )
@@ -341,12 +414,11 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
         </div>
       )
     },
-  ], [onDelete]);
+  ], [onDelete, onUpdate, areaOptions]);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
       
-      {/* 🟢 SAKLAR KOSONG TOTAL */}
       {items.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 px-4 text-center bg-muted/30 rounded-[1.5rem] border-2 border-dashed border-border/50">
           <p className="text-muted-foreground font-medium">
@@ -355,7 +427,6 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
         </div>
       )}
 
-      {/* 🔴 TABEL PENGELUARAN */}
       {pengeluaran.length > 0 && (
         <BentoTable
           title="Pengeluaran"
@@ -365,7 +436,6 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
         />
       )}
 
-      {/* 🟢 TABEL PANEN */}
       {panen.length > 0 && (
         <BentoTable
           title="Panen"
