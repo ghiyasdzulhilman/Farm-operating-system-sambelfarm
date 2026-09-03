@@ -212,7 +212,7 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
         // KONDISI B & C: Bebas pindah Area
         // 🚀 THE FIX: Buat Label Historis
         const historisLabel = isOverhead 
-          ? "-- Biaya Umum (Tanpa Area) --" 
+          ? "Biaya Umum" 
           : `${row.original.area} ${row.original.namaSiklus && row.original.namaSiklus !== "-" ? `- ${row.original.namaSiklus}` : ""}`;
 
         // 🚀 THE FIX: Suntik Label Historis ke Opsi Dropdown khusus untuk baris ini!
