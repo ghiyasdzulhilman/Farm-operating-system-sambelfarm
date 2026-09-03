@@ -197,7 +197,7 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
       header: "Area & Siklus",
       cell: ({ row }) => {
         const isBeliStok = row.original.metaEkstra?.isPembelianStok;
-        const areaId = row.original.metaEkstra?.areaId;
+        const areaId = row.original.metaEkstra?.areaId || null; // Pastikan fallback ke null
         const isOverhead = !row.original.area || row.original.area === "Area Master" || row.original.area === "-";
 
         // KONDISI A: Uang berubah jadi Aset Gudang (Dikunci)
@@ -210,17 +210,25 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
         }
 
         // KONDISI B & C: Bebas pindah Area
-        const displayLabel = isOverhead 
-          ? "Biaya Umum" 
+        // 🚀 THE FIX: Buat Label Historis
+        const historisLabel = isOverhead 
+          ? "-- Biaya Umum (Tanpa Area) --" 
           : `${row.original.area} ${row.original.namaSiklus && row.original.namaSiklus !== "-" ? `- ${row.original.namaSiklus}` : ""}`;
+
+        // 🚀 THE FIX: Suntik Label Historis ke Opsi Dropdown khusus untuk baris ini!
+        const optionsWithHistoris = areaOptions.map(opt =>
+          opt.value === areaId
+            ? { ...opt, label: historisLabel } // Override label dengan data historis masa lalu
+            : opt
+        );
 
         return (
           <div className="min-w-[160px]">
             <EditableCell
               value={areaId}
               type="select"
-              options={areaOptions}
-              placeholder={displayLabel}
+              options={optionsWithHistoris} // 👈 Pakai opsi yang udah disuntik
+              placeholder={historisLabel}
               onSave={(val) => onUpdate(row.original.id, "pengeluaran", { areaId: val })}
             />
           </div>
@@ -328,22 +336,33 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
       header: "Area & Siklus",
       cell: ({ row }) => {
         const areaId = row.original.metaEkstra?.areaId;
-        const displayLabel = `${row.original.area} ${row.original.namaSiklus && row.original.namaSiklus !== "-" ? `- ${row.original.namaSiklus}` : ""}`;
         
+        // 🚀 THE FIX: Buat Label Historis
+        const historisLabel = `${row.original.area} ${row.original.namaSiklus && row.original.namaSiklus !== "-" ? `- ${row.original.namaSiklus}` : ""}`;
+        
+        // 🚀 THE FIX: Suntik Label Historis (Dan filter opsi Biaya Umum karena panen wajib punya area)
+        const optionsWithHistoris = areaOptions
+          .filter(a => a.value !== null) 
+          .map(opt =>
+            opt.value === areaId
+              ? { ...opt, label: historisLabel } // Override label dengan data historis
+              : opt
+          );
+
         return (
           <div className="min-w-[160px]">
             <EditableCell
               value={areaId}
               type="select"
-              // Panen biasanya wajib nempel ke area, jadi filter opsi "Biaya Umum" (null)
-              options={areaOptions.filter(a => a.value !== null)} 
-              placeholder={displayLabel}
+              options={optionsWithHistoris} // 👈 Pakai opsi yang udah disuntik
+              placeholder={historisLabel}
               onSave={(val) => onUpdate(row.original.id, "panen", { areaId: val })}
             />
           </div>
         );
       }
     },
+
     {
       id: "kegiatan",
       header: "Kegiatan",
