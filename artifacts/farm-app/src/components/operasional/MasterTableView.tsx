@@ -13,10 +13,12 @@ type RichAgronomyItem = AgronomyItem & { metaEkstra?: Record<string, any> };
 
 export function MasterTableView({ 
   items, 
+  filterSiklus, // 🚀 TAMBAHAN
   onItemClick, 
   onDeleteClick 
 }: { 
   items: RichAgronomyItem[]; 
+  filterSiklus: "aktif" | "selesai"; // 🚀 TAMBAHAN
   onItemClick: (item: RichAgronomyItem) => void;
   onDeleteClick?: (id: string) => void;
 }) {
@@ -252,17 +254,19 @@ export function MasterTableView({
         : opt
     );
 
-    if (item.module === "perawatan") {
+    // 🚀 THE FIX: Gembok jika modul Perawatan ATAU jika tab Selesai sedang aktif
+    if (item.module === "perawatan" || filterSiklus === "selesai") {
       return (
-        <div className="min-w-[160px] flex items-center gap-1.5 px-2 py-1.5 text-xs text-muted-foreground bg-muted/30 rounded-md w-fit">
-          <Lock className="h-3 w-3" />
-          <span>{historisLabel}</span>
+        <div className="min-w-[160px] flex items-center gap-1.5 px-2 py-1.5 text-xs text-muted-foreground bg-muted/30 border border-border/40 rounded-md w-fit">
+          <Lock className="h-3 w-3 shrink-0" />
+          <span className="font-semibold">{historisLabel}</span>
         </div>
       );
     }
 
     return (
       <div className="min-w-[160px]">
+
         <EditableCell
           value={item.areaId} 
           type="select"
@@ -526,9 +530,10 @@ export function MasterTableView({
           <Trash2 className="h-4 w-4" />
         </Button>
       ),
-    },
+     },
 
-  ], [updateMutation, addAreaMutation, deleteAreaMutation, addKategoriMutation, deleteKategoriMutation, onItemClick, onDeleteClick, areaOptions, workerOptions, kategoriOptions]);
+  // 🚀 THE FIX: Tambahkan filterSiklus di akhir array supaya React tahu kalau tabnya dipindah
+  ], [updateMutation, addAreaMutation, deleteAreaMutation, addKategoriMutation, deleteKategoriMutation, onItemClick, onDeleteClick, areaOptions, workerOptions, kategoriOptions, filterSiklus]);
 
   // 💡 SORTING DATA DARI YANG TERBARU KE TERLAMA (DESCENDING)
   const sortedItems = useMemo(() => {
