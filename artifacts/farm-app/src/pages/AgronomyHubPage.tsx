@@ -397,13 +397,15 @@ export function AgronomyHubPage() {
                 updateStatusMutation.mutate({ id, module, ...payload });
               }}
             />
-          ) : (
+           ) : (
 
             // 🌱 TABEL AGRONOMI (Nampil pas tab Agronomy aktif)
             <MasterTableView 
               items={filteredItems} 
+              filterSiklus={filterSiklus} // 🚀 TAMBAHAN: Lempar state filterSiklus
               onItemClick={setSelectedItem} 
               onStatusChange={(id, payload) => {
+
                 const target = filteredItems.find(i => i.id === id);
                 if (target) {
                   const updateData = typeof payload === "string" 
