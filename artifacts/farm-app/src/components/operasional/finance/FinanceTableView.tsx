@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { useReactTable, getCoreRowModel, flexRender, type ColumnDef } from "@tanstack/react-table";
-import { Columns3, Check, Trash2, Package, Building2 } from "lucide-react"; 
+// 🚀 FIX: Tambahkan Lock ke dalam import lucide-react
+import { Columns3, Check, Trash2, Package, Building2, Lock } from "lucide-react"; 
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useQuery } from "@tanstack/react-query";
@@ -10,6 +11,7 @@ import { EditableCell } from "../EditableCell";
 
 interface FinanceTableViewProps {
   items: any[];
+  filterSiklus: "aktif" | "selesai"; // 🚀 TAMBAHAN: Daftarkan prop filterSiklus
   onDelete: (id: string, module: string) => void;
   // 🚀 PROPS BARU UNTUK EDIT INLINE
   onUpdate: (id: string, module: string, payload: any) => void;
@@ -154,7 +156,9 @@ function BentoTable({
 }
 
 // 🚀 KOMPONEN UTAMA
-export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDelete, onUpdate }) => {
+// 🚀 FIX: Tangkap filterSiklus di parameter
+export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, filterSiklus, onDelete, onUpdate }) => {
+
   const pengeluaran = items.filter((i) => i.module === "pengeluaran");
   const panen = items.filter((i) => i.module === "panen");
 
@@ -214,6 +218,16 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
         const historisLabel = isOverhead 
           ? "Biaya Umum" 
           : `${row.original.area} ${row.original.namaSiklus && row.original.namaSiklus !== "-" ? `- ${row.original.namaSiklus}` : ""}`;
+
+        // 🚀 GEMBOK AREA JIKA TAB SELESAI AKTIF
+        if (filterSiklus === "selesai") {
+          return (
+            <div className="flex items-center gap-1.5 px-2 py-1.5 text-xs text-muted-foreground bg-muted/30 border border-border/40 rounded-md w-fit">
+              <Lock className="h-3 w-3 shrink-0" />
+              <span className="font-semibold">{historisLabel}</span>
+            </div>
+          );
+        }
 
         // 🚀 THE FIX: Suntik Label Historis ke Opsi Dropdown khusus untuk baris ini!
         const optionsWithHistoris = areaOptions.map(opt =>
@@ -340,6 +354,16 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
         // 🚀 THE FIX: Buat Label Historis
         const historisLabel = `${row.original.area} ${row.original.namaSiklus && row.original.namaSiklus !== "-" ? `- ${row.original.namaSiklus}` : ""}`;
         
+        // 🚀 GEMBOK AREA JIKA TAB SELESAI AKTIF
+        if (filterSiklus === "selesai") {
+          return (
+            <div className="flex items-center gap-1.5 px-2 py-1.5 text-xs text-muted-foreground bg-muted/30 border border-border/40 rounded-md w-fit">
+              <Lock className="h-3 w-3 shrink-0" />
+              <span className="font-semibold">{historisLabel}</span>
+            </div>
+          );
+        }
+
         // 🚀 THE FIX: Suntik Label Historis (Dan filter opsi Biaya Umum karena panen wajib punya area)
         const optionsWithHistoris = areaOptions
           .filter(a => a.value !== null) 
