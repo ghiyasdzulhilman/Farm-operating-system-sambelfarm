@@ -167,7 +167,7 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, onDel
   const areaOptions = useMemo(() => {
     const dbAreas = (dropdownOptions?.areas || []).map((a: any) => ({ label: a.name, value: a.id }));
     // Tambahkan opsi khusus untuk mengembalikan pengeluaran jadi Biaya Umum (tanpa area)
-    return [{ label: "-- Biaya Umum (Tanpa Area) --", value: null }, ...dbAreas];
+    return [{ label: "Biaya Umum", value: null }, ...dbAreas];
   }, [dropdownOptions]);
 
   const kategoriOptions = useMemo(() => {
