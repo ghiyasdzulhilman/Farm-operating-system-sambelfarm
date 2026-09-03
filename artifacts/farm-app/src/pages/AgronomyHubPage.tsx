@@ -386,6 +386,7 @@ export function AgronomyHubPage() {
             // 🚀 TABEL FINANCE (Nampil pas tab Finance aktif)
             <FinanceTableView 
               items={filteredItems} 
+              filterSiklus={filterSiklus} // 🚀 TAMBAHAN: Lempar state filterSiklus
               onDelete={(id, module) => {
                 if (confirm("Yakin ingin menghapus data transaksi ini?")) {
                   deleteActivityMutation.mutate({ id, module });
