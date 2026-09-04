@@ -23,7 +23,8 @@ import {
   X,
   Calendar,
   Timer,
-  Inbox
+  Inbox,
+  Package // 🚀 THE FIX: Tambahkan ikon Package
 } from "lucide-react";
 
 import {
@@ -369,20 +370,25 @@ useEffect(() => {
                 </div>
               </div>
 
-             {/* Property: Area */}
+            {/* Property: Area */}
               <div className="flex items-center min-h-[34px] group">
                 <div className="w-[140px] shrink-0 text-[13px] font-medium text-muted-foreground/80 flex items-center gap-2.5">
                   <MapPin className="h-4 w-4 opacity-50" /> Area
                 </div>
                 <div className="flex-1 flex items-center gap-2 flex-wrap">
-                  {/* 🚀 THE FIX: Gembok kalau modul perawatan ATAU tab Selesai sedang aktif */}
-                  {(item.module === "perawatan" || filterSiklus === "selesai") ? (
+                  {/* 🚀 THE FIX: 1. Cek apakah ini Pembelian Stok (Kunci jadi teks Stok) */}
+                  {item.metaEkstra?.isPembelianStok ? (
+                    <div className="inline-flex items-center gap-1.5 bg-primary/10 text-primary border border-primary/20 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider select-none">
+                      <Package className="h-3 w-3" /> Stok
+                    </div>
+                  ) : /* 🚀 2. Gembok kalau modul perawatan ATAU tab Selesai sedang aktif */
+                  (item.module === "perawatan" || filterSiklus === "selesai") ? (
                     <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-foreground/90">
                       <Lock className="h-3 w-3 opacity-40" />
                       {item.metaEkstra?.namaSiklus ? `${item.area} - ${item.metaEkstra.namaSiklus}` : item.area}
                     </span>
                   ) : (
-                     <div className="relative inline-flex max-w-full group/select">
+                    <div className="relative inline-flex max-w-full group/select">
                       <select
                         value={item.areaId || ""}
                         // 🚀 THE FIX: Kalau string kosong, kirim null ke backend (Jadi Biaya Umum)
