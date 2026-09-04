@@ -420,8 +420,9 @@ useEffect(() => {
 
             </div>
 
-           {/* SEGMEN SPESIFIKASI LAPANGAN (GRID 2x2 YANG PRESISI) */}
-            {item.metaEkstra && Object.keys(item.metaEkstra).length > 0 && (item.module === "inspeksi" || item.module === "operasional" || item.module === "perawatan") && (
+          {/* SEGMEN SPESIFIKASI LAPANGAN (GRID 2x2 YANG PRESISI) */}
+            {/* 🚀 THE FIX: Tambahkan `|| isFinance` supaya widget masuk ke layar! */}
+            {item.metaEkstra && Object.keys(item.metaEkstra).length > 0 && (item.module === "inspeksi" || item.module === "operasional" || item.module === "perawatan" || isFinance) && (
               <section className="mt-6 space-y-3">
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]" />
