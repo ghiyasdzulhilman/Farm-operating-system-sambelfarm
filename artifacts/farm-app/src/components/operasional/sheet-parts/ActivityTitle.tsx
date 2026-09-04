@@ -13,10 +13,18 @@ export function ActivityTitle({ item, onStatusChange }: ActivityTitleProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [localValue, setLocalValue] = useState("");
 
-  const handleSave = () => {
+    const handleSave = () => {
     setIsEditing(false);
     const valStr = localValue.trim();
-    const field = item.module === "operasional" ? "namaPekerjaan" : "kegiatan";
+    
+    // 🚀 THE FIX: Mapping field sesuai kemauan masing-masing backend
+    let field = "kegiatan"; // Default untuk perawatan, inspeksi, dan panen
+    
+    if (item.module === "operasional") {
+      field = "namaPekerjaan";
+    } else if (item.module === "pengeluaran") {
+      field = "namaItem"; // 🚀 Sesuai dengan payload yang diminta expenses.ts
+    }
     
     if (valStr && valStr !== item.title) {
       onStatusChange?.(item.id, { [field]: valStr });
