@@ -238,7 +238,10 @@ useEffect(() => {
     onStatusChange?.(item.id, payload);
   };
 
-  if (!item) return null;
+    if (!item) return null;
+
+  // 🚀 SAKLAR UTAMA FINANCE
+    const isFinance = item.module === "pengeluaran" || item.module === "panen";
 
     const formatJamMendalam = (dateStr?: string) => {
     if (!dateStr) return "-";
@@ -334,16 +337,22 @@ useEffect(() => {
                   <CalendarDays className="h-4 w-4 opacity-50" /> Waktu
                 </div>
                 {/* 🚀 Selaraskan: text-foreground/90 */}
-                <div className="flex-1 flex flex-wrap items-center gap-2 text-[13px] font-medium text-foreground/90 hover:bg-muted/50 rounded-lg px-2 py-1 -ml-2 transition-all w-fit cursor-default">
+                 <div className="flex-1 flex flex-wrap items-center gap-2 text-[13px] font-medium text-foreground/90 hover:bg-muted/50 rounded-lg px-2 py-1 -ml-2 transition-all w-fit cursor-default">
                   <span>{formatTanggalLengkap(item.rawDate)}</span>
-                  <span className="text-muted-foreground/30 text-[10px]">●</span>
-                  <span>{item.time}</span>
                   
-                  {/* ✨ BADGE HST : Tetap dipertahankan dengan warna tema */}
-                  {calculateHST() && (
-                    <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20 px-1.5 py-0 rounded-sm font-bold shrink-0 ml-1 shadow-sm">
-                      {calculateHST()}
-                    </Badge>
+                  {/* 🚀 THE FIX: Sembunyikan Jam & HST kalau ini nota Finance */}
+                  {!isFinance && (
+                    <>
+                      <span className="text-muted-foreground/30 text-[10px]">●</span>
+                      <span>{item.time}</span>
+                      
+                      {/* ✨ BADGE HST : Tetap dipertahankan dengan warna tema */}
+                      {calculateHST() && (
+                        <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20 px-1.5 py-0 rounded-sm font-bold shrink-0 ml-1 shadow-sm">
+                          {calculateHST()}
+                        </Badge>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
@@ -460,7 +469,7 @@ useEffect(() => {
       <p className="text-lg font-black text-foreground truncate">
         {formatRupiah(costCalculation.total)}
       </p>
-      {costCalculation.subtext && (
+         {costCalculation.subtext && (
         <p className="text-[10px] text-muted-foreground/70 mt-1">
           {costCalculation.subtext}
         </p>
@@ -468,17 +477,74 @@ useEffect(() => {
     </div>
   </>
       )}
+
+      {/* 🚀 4. WIDGET SPESIAL KHUSUS FINANCE (READ-ONLY) */}
+      {isFinance && (
+        <>
+          {/* Box Utama: Total Uang (Full width) */}
+          <div className="col-span-2 rounded-3xl border border-border/40 bg-card p-4 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.04)] select-none">
+            <div className="flex items-center gap-2 text-muted-foreground/80 mb-1">
+              <Banknote className="h-4 w-4 opacity-70" />
+              <span className="text-[11px] font-bold uppercase tracking-widest">
+                {item.module === "pengeluaran" ? "Total Biaya" : "Total Pendapatan"}
+              </span>
+            </div>
+            <p className="text-2xl font-black text-foreground truncate">
+              {formatRupiah(item.module === "pengeluaran" ? item.metaEkstra?.totalBiaya : item.metaEkstra?.totalPendapatan)}
+            </p>
+          </div>
+
+          {/* Sub-Box 1: Kuantitas */}
+          <div className="rounded-3xl border border-border/30 bg-muted/30 p-3.5 shadow-[inset_0_1px_4px_rgba(255,255,255,0.2)] select-none">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 block mb-1">
+              {item.module === "pengeluaran" ? "Qty" : "Kuantitas"}
+            </span>
+            <p className="text-base font-bold text-muted-foreground">
+              {item.module === "pengeluaran" 
+                ? `${item.metaEkstra?.kuantitas || 1} ${item.metaEkstra?.satuanKerja || ""}`
+                : `${item.metaEkstra?.kuantitasKg || 0} Kg`}
+            </p>
+          </div>
+
+          {/* Sub-Box 2: Harga Satuan */}
+          <div className="rounded-3xl border border-border/30 bg-muted/30 p-3.5 shadow-[inset_0_1px_4px_rgba(255,255,255,0.2)] select-none">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 block mb-1">
+              {item.module === "pengeluaran" ? "Harga Satuan" : "Harga / Kg"}
+            </span>
+            <p className="text-base font-bold text-muted-foreground truncate">
+              {formatRupiah(item.module === "pengeluaran" ? item.metaEkstra?.hargaSatuan : item.metaEkstra?.hargaJualPerKg)}
+            </p>
+          </div>
+
+          {/* Sub-Box 3: Grade / Kualitas (Khusus Panen - Bisa Edit) */}
+          {item.module === "panen" && (
+            <div className="col-span-2 rounded-3xl border border-border/40 bg-card p-3.5 shadow-sm mt-1">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 block mb-1">Grade / Kualitas</span>
+              <input 
+                type="text" 
+                value={item.metaEkstra?.kualitas || ""}
+                onChange={(e) => onStatusChange?.(item.id, { kualitas: e.target.value })}
+                placeholder="Masukkan grade/kualitas panen..."
+                className="w-full bg-transparent text-sm font-semibold text-foreground outline-none placeholder:text-muted-foreground/50 border-b border-transparent focus:border-border/50 pb-1 transition-all"
+              />
+            </div>
+          )}
+        </>
+      )}
+
       </div>
       </section>
       )}
 
-           {/* 💡 SEGMEN JADWAL PELAKSANAAN (SPATIAL UI STYLE - FIXED MOBILE OVERFLOW) */}
-          <JadwalPelaksanaan 
-            item={item} 
-            formatDateValue={formatDateValue} 
-            formatTimeValue={formatTimeValue} 
-            handleDateTimeSave={handleDateTimeSave} 
-          />
+          {/* 💡 SEGMEN JADWAL PELAKSANAAN (Sembunyikan untuk Finance) */}
+          {!isFinance && (
+            <JadwalPelaksanaan 
+              item={item} 
+              formatDateValue={formatDateValue} 
+              formatTimeValue={formatTimeValue} 
+              handleDateTimeSave={handleDateTimeSave} 
+            />
+          )}
 
           {/* 💡 CATATAN TEMUAN (KHUSUS INSPEKSI) */}
           <CatatanTemuan 
@@ -501,16 +567,30 @@ useEffect(() => {
           {/* SEGMEN CATATAN UMUM (Diisolasi anti-lag) */}
           <CatatanUmum item={item} onStatusChange={onStatusChange} />
 
-         {/* SEGMEN PEKERJA */}
-          <TimKebun item={item} dropdownOptions={dropdownOptions} />
+         {/* SEGMEN PEKERJA (Sembunyikan untuk Finance) */}
+          {!isFinance && (
+            <TimKebun item={item} dropdownOptions={dropdownOptions} />
+          )}
             
           </div> {/* penutup div flex-1 overflow-y-auto px-6 py-6 ... */}
           
           {/* ✨ BOTTOM ACTION BAR: Status (Kiri), Garis (Tengah), X (Kanan) */}
           <div className="shrink-0 px-6 pb-5 pt-3 flex items-center justify-between relative border-t border-white/10 dark:border-white/5">
             
-            {/* KIRI: IKON STATUS MURNI (Tanpa Teks) */}
+          {/* KIRI: IKON STATUS MURNI (Tanpa Teks) */}
             {(() => {
+              // 🚀 THE FIX: Jika Finance, tampilkan gembok hijau mutlak (gak bisa diklik)
+              if (isFinance) {
+                return (
+                  <div 
+                    className="relative flex items-center justify-center h-10 w-10 rounded-full border shadow-sm backdrop-blur-md text-emerald-600 bg-emerald-500/15 border-emerald-500/30 dark:text-emerald-400 cursor-not-allowed"
+                    title="Transaksi Terkunci (Read-Only)"
+                  >
+                    <Lock className="h-5 w-5" strokeWidth={2.5} />
+                  </div>
+                );
+              }
+
               let StatusIcon = Calendar;
               let statusColor = "text-slate-500 bg-slate-500/10 border-slate-500/20";
               
