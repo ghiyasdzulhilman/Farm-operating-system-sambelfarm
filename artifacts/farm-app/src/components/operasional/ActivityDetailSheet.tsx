@@ -92,6 +92,14 @@ export function ActivityDetailSheet({
   const [editedProducts, setEditedProducts] = useState<Array<{ produkId: string; kuantitasPemakaian: number; namaProduk?: string; satuanDasar?: string }>>([]);
   const [isDirty, setIsDirty] = useState(false);
 
+  // 🚀 THE FIX: State lokal & Sinkronisasi buat ketikan Grade/Kualitas (Biar gak lag/lompat)
+  const [localKualitas, setLocalKualitas] = useState("");
+  useEffect(() => {
+    if (incomingItem?.module === "panen") {
+      setLocalKualitas(incomingItem.metaEkstra?.kualitas || "");
+    }
+  }, [incomingItem]);
+
 // 💡 Sinkronisasi otomatis: Saat sheet dibuka, salin array logProduk dari database ke state lokal
 // 🚀 FIX BUG: dependency diganti ke `incomingItem` (bukan `item` turunan).
 // `item` = incomingItem || cachedItem, dan cachedItem bikin nilainya tetap "ada" selama transisi tutup,
@@ -567,8 +575,20 @@ useEffect(() => {
               <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 block mb-1">Grade / Kualitas</span>
               <input 
                 type="text" 
-                value={item.metaEkstra?.kualitas || ""}
-                onChange={(e) => onStatusChange?.(item.id, { kualitas: e.target.value })}
+                // 🚀 THE FIX: Baca dari memori lokal (super cepat)
+                value={localKualitas}
+                // 🚀 THE FIX: Pas ngetik, simpan di memori lokal aja dulu
+                onChange={(e) => setLocalKualitas(e.target.value)}
+                // 🚀 THE FIX: Pas user selesai ngetik (onBlur), baru lempar ke backend 1 kali!
+                onBlur={() => {
+                  if (localKualitas !== (item.metaEkstra?.kualitas || "")) {
+                    onStatusChange?.(item.id, { kualitas: localKualitas });
+                  }
+                }}
+                // 🚀 THE FIX: Kalau user pencet Enter, samain kayak onBlur (Optional tapi bagus buat UX)
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') e.currentTarget.blur();
+                }}
                 placeholder="Masukkan grade/kualitas panen..."
                 className="w-full bg-transparent text-sm font-semibold text-foreground outline-none placeholder:text-muted-foreground/50 border-b border-transparent focus:border-border/50 pb-1 transition-all"
               />
