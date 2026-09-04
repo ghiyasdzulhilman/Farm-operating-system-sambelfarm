@@ -267,6 +267,16 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, filte
       id: "kategori",
       header: "Kategori",
       cell: ({ row }) => {
+        // 🚀 THE FIX: Gembok Kategori jika tab Selesai aktif
+        if (filterSiklus === "selesai") {
+          return (
+            <div className="flex items-center gap-1.5 px-2 py-1.5 text-xs text-muted-foreground bg-muted/30 border border-border/40 rounded-md w-fit">
+              <Lock className="h-3 w-3 shrink-0" />
+              <span className="font-semibold">{row.original.category || "-"}</span>
+            </div>
+          );
+        }
+
         const currentKatId = row.original.metaEkstra?.kategoriId;
         return (
           <div className="min-w-[140px]">
