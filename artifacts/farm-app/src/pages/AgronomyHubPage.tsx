@@ -383,20 +383,22 @@ export function AgronomyHubPage() {
 
         {activeView === "table" && (
           activeDomain === "finance" ? (
-            // 🚀 TABEL FINANCE (Nampil pas tab Finance aktif)
+             // 🚀 TABEL FINANCE (Nampil pas tab Finance aktif)
             <FinanceTableView 
               items={filteredItems} 
-              filterSiklus={filterSiklus} // 🚀 TAMBAHAN: Lempar state filterSiklus
+              filterSiklus={filterSiklus}
+              // 🚀 THE FIX: Suntik fungsi setSelectedItem ke prop onItemClick baru kita!
+              onItemClick={setSelectedItem} 
               onDelete={(id, module) => {
                 if (confirm("Yakin ingin menghapus data transaksi ini?")) {
                   deleteActivityMutation.mutate({ id, module });
                 }
               }} 
-              // 🚀 SUNTIKAN BARU: Prop onUpdate buat edit inline table
               onUpdate={(id, module, payload) => {
                 updateStatusMutation.mutate({ id, module, ...payload });
               }}
             />
+
            ) : (
 
             // 🌱 TABEL AGRONOMI (Nampil pas tab Agronomy aktif)
