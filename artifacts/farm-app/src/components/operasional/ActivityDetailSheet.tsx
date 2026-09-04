@@ -398,7 +398,7 @@ useEffect(() => {
                       >
                         {/* 🚀 THE FIX: Opsi khusus untuk Pengeluaran (Bisa kosong) */}
                         {item.module === "pengeluaran" ? (
-                          <option value="">-- Biaya Umum (Tanpa Area) --</option>
+                          <option value="">Biaya Umum</option>
                         ) : (
                           <option value="" disabled>Pilih Area...</option>
                         )}
