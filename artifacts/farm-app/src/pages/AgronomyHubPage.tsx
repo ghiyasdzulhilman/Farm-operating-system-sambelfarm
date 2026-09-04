@@ -30,9 +30,12 @@ export function AgronomyHubPage() {
   const [feedMode, setFeedMode] = useState<FeedModeKey>("time");
   const [activeModule, setActiveModule] = useState<ModuleKey>("all");
   
-  // 🚀 FIX: State filter dipecah jadi 2
+ // 🚀 FIX: State filter dipecah jadi 2
   const [activeTimeFilter, setActiveTimeFilter] = useState("Hari ini");
   const [activeStatusFilter, setActiveStatusFilter] = useState("Semua Status");
+  
+  // 🚀 SUNTIKAN BARU: State untuk menyimpan form "Rentang Waktu"
+  const [customDateRange, setCustomDateRange] = useState<{ start: string; end: string } | null>(null);
   
   // 🚀 1. TAMBAHIN STATE BARU BUAT FILTER SIKLUS (Default-nya "aktif")
   const [filterSiklus, setFilterSiklus] = useState<"aktif" | "selesai">("aktif"); 
@@ -353,6 +356,9 @@ export function AgronomyHubPage() {
         setActiveTimeFilter={setActiveTimeFilter}
         activeStatusFilter={activeStatusFilter}
         setActiveStatusFilter={setActiveStatusFilter}
+        // 🚀 SUNTIKAN BARU: Oper mangkok tanggalnya ke dalam filter
+        customDateRange={customDateRange}
+        setCustomDateRange={setCustomDateRange}
         filterSiklus={filterSiklus}
         setFilterSiklus={setFilterSiklus}
         activeDomain={activeDomain}
