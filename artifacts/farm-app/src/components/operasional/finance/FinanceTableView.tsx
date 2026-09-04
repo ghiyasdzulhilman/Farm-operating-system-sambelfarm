@@ -52,6 +52,7 @@ const LABELS_PANEN: Record<string, string> = {
   tanggal: "Tanggal",
   areaSiklus: "Area & Siklus",
   kegiatan: "Kegiatan",
+  hst: "Umur (HST)", // 🚀 THE FIX: Daftarkan label kolom baru
   kualitas: "Grade/Kualitas",
   kuantitas: "Kuantitas",
   hargaJual: "Harga Jual / Kg",
@@ -423,7 +424,7 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, filte
       }
     },
 
-    {
+        {
       id: "kegiatan",
       header: "Kegiatan",
       cell: ({ row }) => (
@@ -435,6 +436,55 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, filte
         </div>
       )
     },
+    
+    // 🚀 THE FIX: SUNTIKAN KOLOM HST KHUSUS PANEN
+    {
+      id: "hst",
+      header: "HST",
+      cell: ({ row }) => {
+        const item = row.original;
+        const tglTanamStr = item.metaEkstra?.tanggalPindahTanam || item.tanggalPindahTanam;
+        let hstDisplay = "-";
+
+        if (tglTanamStr) {
+          try {
+            // 1. Ambil YYYY-MM-DD murni dari tanggal tanam
+            const dateOnlyTanam = tglTanamStr.split('T')[0];
+            const plantDate = new Date(`${dateOnlyTanam}T00:00:00`);
+
+            // 2. Ambil YYYY-MM-DD dari tanggal aktivitas (Pakai format lokal WIB)
+            // Khusus Panen pakai rawDate atau tanggal dari metaEkstra
+            const dateAktivitasRaw = new Date(item.rawDate || item.metaEkstra?.tanggal || new Date());
+            const dateOnlyAktivitas = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(dateAktivitasRaw);
+            const activityDate = new Date(`${dateOnlyAktivitas}T00:00:00`);
+
+            if (!isNaN(plantDate.getTime()) && !isNaN(activityDate.getTime())) {
+              // 3. Hitung selisih hari murni (Tanggal Aktivitas - Tanggal Tanam)
+              const diffTime = activityDate.getTime() - plantDate.getTime();
+              const hst = Math.round(diffTime / (1000 * 60 * 60 * 24));
+              
+              // 4. Kondisi label umur tanaman murni
+              if (hst < 0) {
+                hstDisplay = "Pra-tanam";
+              } else if (hst === 0) {
+                hstDisplay = "0 HST (Tanam)";
+              } else {
+                hstDisplay = `${hst} HST`;
+              }
+            }
+          } catch {
+            hstDisplay = "-";
+          }
+        }
+
+        return (
+          <div className="min-w-[80px] px-2 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-500/10 border border-emerald-500/20 rounded-md text-center">
+            {hstDisplay}
+          </div>
+        );
+      },
+    },
+
     {
       id: "kualitas",
       header: "Grade",
