@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { useReactTable, getCoreRowModel, flexRender, type ColumnDef } from "@tanstack/react-table";
-// 🚀 FIX: Tambahkan Lock ke dalam import lucide-react
-import { Columns3, Check, Trash2, Package, Building2, Lock } from "lucide-react"; 
+// 🚀 THE FIX: Tambahkan Eye ke dalam import lucide-react
+import { Columns3, Check, Trash2, Package, Building2, Lock, Eye } from "lucide-react"; 
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useQuery } from "@tanstack/react-query";
@@ -11,10 +11,11 @@ import { EditableCell } from "../EditableCell";
 
 interface FinanceTableViewProps {
   items: any[];
-  filterSiklus: "aktif" | "selesai"; // 🚀 TAMBAHAN: Daftarkan prop filterSiklus
+  filterSiklus: "aktif" | "selesai"; 
   onDelete: (id: string, module: string) => void;
-  // 🚀 PROPS BARU UNTUK EDIT INLINE
   onUpdate: (id: string, module: string, payload: any) => void;
+  // 🚀 THE FIX: Daftarkan prop onItemClick
+  onItemClick: (item: any) => void;
 }
 
 // 🚀 FORMATTER TANGGAL, ANGKA & RUPIAH
@@ -156,8 +157,8 @@ function BentoTable({
 }
 
 // 🚀 KOMPONEN UTAMA
-// 🚀 FIX: Tangkap filterSiklus di parameter
-export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, filterSiklus, onDelete, onUpdate }) => {
+// 🚀 FIX: Tangkap filterSiklus dan onItemClick di parameter
+export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, filterSiklus, onDelete, onUpdate, onItemClick }) => {
 
   const pengeluaran = items.filter((i) => i.module === "pengeluaran");
   const panen = items.filter((i) => i.module === "panen");
@@ -184,14 +185,26 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, filte
       id: "tanggal",
       header: "Tanggal",
       cell: ({ row }) => (
-        <div className="font-medium text-muted-foreground whitespace-nowrap min-w-[120px]">
-          <EditableCell
-            value={row.original.rawDate ? row.original.rawDate.split('T')[0] : ""}
-            type="date"
-            onSave={(val) => {
-              if(val) onUpdate(row.original.id, "pengeluaran", { tanggal: val });
-            }}
-          />
+        // 🚀 THE FIX: Bungkus pakai flex & group biar tombol Mata sejajar di kolom pertama
+        <div className="flex items-center gap-2 group min-w-[140px]">
+          <div className="flex-1 font-medium text-muted-foreground whitespace-nowrap">
+            <EditableCell
+              value={row.original.rawDate ? row.original.rawDate.split('T')[0] : ""}
+              type="date"
+              onSave={(val) => {
+                if(val) onUpdate(row.original.id, "pengeluaran", { tanggal: val });
+              }}
+            />
+          </div>
+          {/* ✨ Tombol Mata Detail */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onItemClick(row.original)}
+            className="text-muted-foreground/40 group-hover:text-primary group-hover:opacity-100 transition-all duration-200 h-7 w-7 p-0 hover:scale-110 hover:bg-primary/10 rounded-lg shrink-0"
+          >
+            <Eye className="h-4 w-4" />
+          </Button>
         </div>
       )
     },
@@ -330,21 +343,34 @@ export const FinanceTableView: React.FC<FinanceTableViewProps> = ({ items, filte
 
   // 💡 DEFINISI KOLOM PANEN
   const panenCols = useMemo<ColumnDef<any>[]>(() => [
-    {
+     {
       id: "tanggal",
       header: "Tanggal",
       cell: ({ row }) => (
-        <div className="font-medium text-muted-foreground whitespace-nowrap min-w-[120px]">
-          <EditableCell
-            value={row.original.rawDate ? row.original.rawDate.split('T')[0] : ""}
-            type="date"
-            onSave={(val) => {
-              if(val) onUpdate(row.original.id, "panen", { tanggal: val });
-            }}
-          />
+        // 🚀 THE FIX: Bungkus pakai flex & group biar tombol Mata sejajar di kolom pertama
+        <div className="flex items-center gap-2 group min-w-[140px]">
+          <div className="flex-1 font-medium text-muted-foreground whitespace-nowrap">
+            <EditableCell
+              value={row.original.rawDate ? row.original.rawDate.split('T')[0] : ""}
+              type="date"
+              onSave={(val) => {
+                if(val) onUpdate(row.original.id, "panen", { tanggal: val });
+              }}
+            />
+          </div>
+          {/* ✨ Tombol Mata Detail */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onItemClick(row.original)}
+            className="text-muted-foreground/40 group-hover:text-primary group-hover:opacity-100 transition-all duration-200 h-7 w-7 p-0 hover:scale-110 hover:bg-primary/10 rounded-lg shrink-0"
+          >
+            <Eye className="h-4 w-4" />
+          </Button>
         </div>
       )
     },
+
     {
       id: "areaSiklus",
       header: "Area & Siklus",
