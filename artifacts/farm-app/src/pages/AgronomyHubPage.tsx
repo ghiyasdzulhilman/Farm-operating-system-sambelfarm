@@ -443,12 +443,14 @@ export function AgronomyHubPage() {
       </div>
       </div>
 
-    <ActivityDetailSheet 
+  <ActivityDetailSheet 
   item={selectedItem} 
+  filterSiklus={filterSiklus} // 🚀 TAMBAHAN: Lempar state filterSiklus
   onClose={() => setSelectedItem(null)} 
   isUpdating={updateStatusMutation.isPending}
   isUpdatingProduk={updateProdukMutation.isPending}
   onStatusChange={(id, payload) => {
+
     if (selectedItem) {
       const updateData = typeof payload === "string" ? { status: payload } : payload;
       updateStatusMutation.mutate({ id, module: selectedItem.module, ...updateData });
