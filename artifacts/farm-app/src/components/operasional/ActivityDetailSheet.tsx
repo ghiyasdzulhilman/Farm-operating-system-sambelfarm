@@ -541,36 +541,36 @@ useEffect(() => {
   </>
       )}
 
-      {/* 🚀 4. WIDGET SPESIAL KHUSUS FINANCE (READ-ONLY) */}
+     {/* 🚀 4. WIDGET SPESIAL KHUSUS FINANCE (KONSISTEN & PROPORSIONAL) */}
       {isFinance && (
         <>
-          {/* Box Utama: Total Uang (Full width) */}
-          <div className="col-span-2 rounded-3xl border border-border/40 bg-card p-4 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.04)] select-none">
-            <div className="flex items-center gap-2 text-muted-foreground/80 mb-1">
-              <Banknote className="h-4 w-4 opacity-70" />
-              <span className="text-[11px] font-bold uppercase tracking-widest">
-                {item.module === "pengeluaran" ? "Total Biaya" : "Total Pendapatan"}
+          {/* Box 1: Total Uang (Ukurannya diseragamkan dengan Qty & Harga) */}
+          <div className="rounded-3xl border border-border/30 bg-muted/30 p-3.5 shadow-[inset_0_1px_4px_rgba(255,255,255,0.2)] select-none">
+            <div className="flex items-center gap-1.5 text-muted-foreground/70 mb-1">
+              <Banknote className="h-3 w-3" />
+              <span className="text-[10px] font-bold uppercase tracking-widest">
+                {item.module === "pengeluaran" ? "Total Biaya" : "Pendapatan"}
               </span>
             </div>
-            <p className="text-2xl font-black text-foreground truncate">
+            {/* 🚀 THE FIX: Font diperkecil jadi text-base dan warna disamakan */}
+            <p className="text-base font-bold text-muted-foreground truncate">
               {formatRupiah(item.module === "pengeluaran" ? item.metaEkstra?.totalBiaya : item.metaEkstra?.totalPendapatan)}
             </p>
           </div>
 
-          {/* Sub-Box 1: Kuantitas */}
+          {/* Box 2: Kuantitas */}
           <div className="rounded-3xl border border-border/30 bg-muted/30 p-3.5 shadow-[inset_0_1px_4px_rgba(255,255,255,0.2)] select-none">
             <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 block mb-1">
               {item.module === "pengeluaran" ? "Qty" : "Kuantitas"}
             </span>
-            <p className="text-base font-bold text-muted-foreground">
-              {/* 🚀 THE FIX: Bungkus angka dengan formatAngka */}
+            <p className="text-base font-bold text-muted-foreground truncate">
               {item.module === "pengeluaran" 
                 ? `${formatAngka(item.metaEkstra?.kuantitas || 1)} ${item.metaEkstra?.satuanKerja || ""}`
                 : `${formatAngka(item.metaEkstra?.kuantitasKg || 0)} Kg`}
             </p>
           </div>
 
-          {/* Sub-Box 2: Harga Satuan */}
+          {/* Box 3: Harga Satuan */}
           <div className="rounded-3xl border border-border/30 bg-muted/30 p-3.5 shadow-[inset_0_1px_4px_rgba(255,255,255,0.2)] select-none">
             <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 block mb-1">
               {item.module === "pengeluaran" ? "Harga Satuan" : "Harga / Kg"}
@@ -580,28 +580,25 @@ useEffect(() => {
             </p>
           </div>
 
-          {/* Sub-Box 3: Grade / Kualitas (Khusus Panen - Bisa Edit) */}
+          {/* Box 4: Grade / Kualitas (Khusus Panen - Bisa Edit, jadi warnanya putih/bg-card) */}
           {item.module === "panen" && (
-            <div className="col-span-2 rounded-3xl border border-border/40 bg-card p-3.5 shadow-sm mt-1">
+            <div className="rounded-3xl border border-border/40 bg-card p-3.5 shadow-sm">
               <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 block mb-1">Grade / Kualitas</span>
               <input 
                 type="text" 
-                // 🚀 THE FIX: Baca dari memori lokal (super cepat)
                 value={localKualitas}
-                // 🚀 THE FIX: Pas ngetik, simpan di memori lokal aja dulu
                 onChange={(e) => setLocalKualitas(e.target.value)}
-                // 🚀 THE FIX: Pas user selesai ngetik (onBlur), baru lempar ke backend 1 kali!
                 onBlur={() => {
                   if (localKualitas !== (item.metaEkstra?.kualitas || "")) {
                     onStatusChange?.(item.id, { kualitas: localKualitas });
                   }
                 }}
-                // 🚀 THE FIX: Kalau user pencet Enter, samain kayak onBlur (Optional tapi bagus buat UX)
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') e.currentTarget.blur();
                 }}
-                placeholder="Masukkan grade/kualitas panen..."
-                className="w-full bg-transparent text-sm font-semibold text-foreground outline-none placeholder:text-muted-foreground/50 border-b border-transparent focus:border-border/50 pb-1 transition-all"
+                placeholder="Grade..."
+                // 🚀 THE FIX: Input text diseragamkan sizenya
+                className="w-full bg-transparent text-base font-bold text-foreground outline-none placeholder:text-muted-foreground/50 border-b border-transparent focus:border-border/50 transition-all"
               />
             </div>
           )}
