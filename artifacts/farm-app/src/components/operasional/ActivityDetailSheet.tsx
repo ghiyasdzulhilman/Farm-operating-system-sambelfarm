@@ -372,19 +372,28 @@ useEffect(() => {
                     <span className="cursor-default">{formatTanggalLengkap(item.rawDate)}</span>
                   )}
                   
-                  {/* 🚀 THE FIX: Sembunyikan Jam & HST kalau ini nota Finance */}
-                  {!isFinance && (
+                {/* 🚀 THE FIX: Sembunyikan Jam untuk Finance, TAPI kembalikan HST khusus Panen! */}
+                  {!isFinance ? (
                     <>
                       <span className="text-muted-foreground/30 text-[10px] cursor-default">●</span>
                       <span className="cursor-default">{item.time}</span>
                       
-                      {/* ✨ BADGE HST : Tetap dipertahankan dengan warna tema */}
                       {calculateHST() && (
                         <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20 px-1.5 py-0 rounded-sm font-bold shrink-0 ml-1 shadow-sm cursor-default">
                           {calculateHST()}
                         </Badge>
                       )}
                     </>
+                  ) : (
+                    /* ✨ KHUSUS PANEN: Jam tetap sembunyi, tapi umur HST siklus tetap tampil! */
+                    item.module === "panen" && calculateHST() && (
+                      <>
+                         <span className="text-muted-foreground/30 text-[10px] cursor-default">●</span>
+                         <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20 px-1.5 py-0 rounded-sm font-bold shrink-0 shadow-sm cursor-default">
+                           {calculateHST()}
+                         </Badge>
+                      </>
+                    )
                   )}
                 </div>
               </div>
