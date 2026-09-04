@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { 
-  Sprout, HardHat, Bug, Banknote, ChevronRight, ChevronDown, MapPin, CalendarClock, Trash2, GripVertical, ShoppingBasket, Package, Lock 
+  Sprout, HardHat, Bug, Banknote, ChevronRight, ChevronDown, MapPin, CalendarClock, Trash2, GripVertical, ShoppingBasket, Building2, Package, Lock 
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -113,23 +113,30 @@ export function LiveFeedView({
               if (item.status === "Selesai" || item.status === "Sudah ditangani") statusDot = "bg-emerald-500";
               else if (item.status === "Dalam proses" || item.status === "Sedang ditangani") statusDot = "bg-amber-500";
 
-              // 3. LOGIKA FORMAT JADWAL 
-              const startDate = new Date(item.rawDate);
-              const endDate = item.metaEkstra?.waktuSelesai ? new Date(item.metaEkstra.waktuSelesai) : null;
-              
+             // 3. LOGIKA FORMAT JADWAL 
+              let scheduleDisplay = "";
               const formatDate = (d: Date) => d.toLocaleDateString("id-ID", { day: '2-digit', month: '2-digit', year: 'numeric' });
               const formatTime = (d: Date) => d.toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' }).replace(':', '.');
-              
-              const startDStr = formatDate(startDate);
-              const startTStr = formatTime(startDate);
-              let scheduleDisplay = `${startDStr} • ${startTStr}`; 
-              
-              if (endDate) {
-                const endDStr = formatDate(endDate);
-                const endTStr = formatTime(endDate);
-                scheduleDisplay = startDStr === endDStr 
-                  ? `${startDStr} • ${startTStr} - ${endTStr}` 
-                  : `${startDStr} - ${endDStr} • ${startTStr} - ${endTStr}`;
+
+              if (item.module === "pengeluaran" || item.module === "panen") {
+                // 🚀 THE FIX: Buang jam untuk Finance & Panen biar rapi
+                const d = item.rawDate ? new Date(item.rawDate) : new Date();
+                scheduleDisplay = formatDate(d);
+              } else {
+                const startDate = new Date(item.rawDate);
+                const endDate = item.metaEkstra?.waktuSelesai ? new Date(item.metaEkstra.waktuSelesai) : null;
+                
+                const startDStr = formatDate(startDate);
+                const startTStr = formatTime(startDate);
+                scheduleDisplay = `${startDStr} • ${startTStr}`; 
+                
+                if (endDate) {
+                  const endDStr = formatDate(endDate);
+                  const endTStr = formatTime(endDate);
+                  scheduleDisplay = startDStr === endDStr 
+                    ? `${startDStr} • ${startTStr} - ${endTStr}` 
+                    : `${startDStr} - ${endDStr} • ${startTStr} - ${endTStr}`;
+                }
               }
 
               return (
@@ -169,12 +176,15 @@ export function LiveFeedView({
                           )}
                         </div>
 
-                     {/* Waktu Relatif & Status Dot */}
+                        {/* Waktu Relatif & Status Dot */}
                         <div className="flex items-center gap-1.5 shrink-0">
                           <span className={cn("h-2 w-2 rounded-full", statusDot)} title={`Status: ${item.status}`} />
-                          <span className="text-[11px] font-medium text-muted-foreground/80 tracking-tight">
-                            {item.time}
-                          </span>
+                          {/* 🚀 THE FIX: Sembunyikan '00.00' di pojok kanan atas khusus Finance */}
+                          {item.module !== "pengeluaran" && item.module !== "panen" && (
+                            <span className="text-[11px] font-medium text-muted-foreground/80 tracking-tight">
+                              {item.time}
+                            </span>
+                          )}
                         </div>
                       </div>
 
@@ -195,7 +205,8 @@ export function LiveFeedView({
                               </>
                             ) : item.module === "pengeluaran" && (!item.areaId || item.area === "Area Master" || item.area === "-") ? (
                               <>
-                                <Banknote className="h-3.5 w-3.5 shrink-0 text-primary/70" />
+                                {/* 🚀 THE FIX: Ganti Banknote dengan Building2 agar tidak redundant */}
+                                <Building2 className="h-3.5 w-3.5 shrink-0 text-primary/70" />
                                 <span className="truncate">Biaya Umum</span>
                               </>
                             ) : (
