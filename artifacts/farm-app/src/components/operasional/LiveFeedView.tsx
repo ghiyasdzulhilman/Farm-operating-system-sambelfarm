@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { 
-  Sprout, HardHat, Bug, Banknote, ChevronRight, ChevronDown, MapPin, CalendarClock, Trash2, GripVertical 
+  Sprout, HardHat, Bug, Banknote, ChevronRight, ChevronDown, MapPin, CalendarClock, Trash2, GripVertical, Package, Lock 
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -82,17 +82,20 @@ export function LiveFeedView({
               let RenderIcon = <Sprout className="h-4 w-4" />;
               let iconColorClass = "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20";
               
-             if (item.module === "operasional") {
+              if (item.module === "operasional") {
                 RenderIcon = <HardHat className="h-4 w-4" />;
-                iconColorClass = "bg-indigo-500/10 text-indigo-600 border border-indigo-500/20"; // ✨ Indigo: Kontras tegas dari Hijau/Rose
+                iconColorClass = "bg-indigo-500/10 text-indigo-600 border border-indigo-500/20"; 
               } else if (item.module === "inspeksi") {
                 RenderIcon = <Bug className="h-4 w-4" />;
-                iconColorClass = "bg-rose-500/10 text-rose-600 border border-rose-500/20"; // ✨ Pakai Rose untuk alert
-              } else if (item.module === "finance") {
+                iconColorClass = "bg-rose-500/10 text-rose-600 border border-rose-500/20"; 
+              } else if (item.module === "pengeluaran") {
+                // 🚀 THE FIX: Pengeluaran pakai warna Rose (Uang Keluar)
                 RenderIcon = <Banknote className="h-4 w-4" />;
-                iconColorClass = item.category === "Pengeluaran" 
-                  ? "bg-rose-500/10 text-rose-600 border border-rose-500/20" 
-                  : "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20";
+                iconColorClass = "bg-rose-500/10 text-rose-600 border border-rose-500/20";
+              } else if (item.module === "panen") {
+                // 🚀 THE FIX: Panen pakai warna Emerald (Uang Masuk/Hasil) & Ikon Package
+                RenderIcon = <Package className="h-4 w-4" />;
+                iconColorClass = "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20";
               }
 
               // ✨ 2. LOGIKA WARNA STATUS DOT (Biar user tahu status tanpa swipe)
@@ -137,13 +140,21 @@ export function LiveFeedView({
                             {item.isPendingStaging && <span className="absolute -left-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-background bg-amber-500 animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.6)]" />}
                           </div>
                           
-                          <Badge variant="secondary" className="rounded-lg bg-muted/70 text-muted-foreground px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider border border-border/30">
+                         <Badge variant="secondary" className="rounded-lg bg-muted/70 text-muted-foreground px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider border border-border/30">
                             {item.category}
                           </Badge>
 
-                          {item.module === "finance" && item.metaEkstra?.nominal && (
+                          {/* 🚀 THE FIX: Nominal Uang untuk Pengeluaran (Warna Merah/Rose) */}
+                          {item.module === "pengeluaran" && item.metaEkstra?.totalBiaya && (
+                            <Badge variant="outline" className="rounded-lg bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/30 px-2 py-0.5 text-[11px] font-mono font-bold">
+                              Rp {(item.metaEkstra.totalBiaya).toLocaleString('id-ID')}
+                            </Badge>
+                          )}
+
+                          {/* 🚀 THE FIX: Nominal Uang untuk Panen (Warna Hijau/Emerald) */}
+                          {item.module === "panen" && item.metaEkstra?.totalPendapatan && (
                             <Badge variant="outline" className="rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 px-2 py-0.5 text-[11px] font-mono font-bold">
-                              Rp {(item.metaEkstra.nominal).toLocaleString('id-ID')}
+                              Rp {(item.metaEkstra.totalPendapatan).toLocaleString('id-ID')}
                             </Badge>
                           )}
                         </div>
@@ -192,35 +203,43 @@ export function LiveFeedView({
                     <div className="flex shrink-0 snap-center items-center justify-end gap-2.5 bg-muted/40 px-5 border-l border-border/50">
                       
                       {/* DROPDOWN STATUS TERSORONG (Sinkron dengan warna Slate/Amber/Emerald) */}
-                      <div className="relative inline-block">
-                        <select
-                          value={item.status}
-                          onChange={(e) => onStatusChange?.(item.id, e.target.value)}
-                          disabled={item.isPendingStaging}
-                          className={cn(
-                            "appearance-none rounded-xl px-3.5 py-2 pr-8 text-[11px] font-bold uppercase tracking-wider outline-none cursor-pointer border transition-all shadow-sm",
-                            (item.status === "Selesai" || item.status === "Sudah ditangani") ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400" :
-                            (item.status === "Dalam proses" || item.status === "Sedang ditangani") ? "border-amber-500/30 bg-amber-500/15 text-amber-700 dark:text-amber-400" :
-                            "border-slate-500/30 bg-slate-500/15 text-slate-700 dark:text-slate-400",
-                            item.isPendingStaging && "opacity-50 cursor-not-allowed"
-                          )}
-                        >
-                          {item.module === "inspeksi" ? (
-                            <>
-                              <option value="Baru ditemukan">Baru</option>
-                              <option value="Sedang ditangani">Proses</option>
-                              <option value="Sudah ditangani">Selesai</option>
-                            </>
-                          ) : (
-                            <>
-                              <option value="Belum dikerjakan">Belum</option>
-                              <option value="Dalam proses">Proses</option>
-                              <option value="Selesai">Selesai</option>
-                            </>
-                          )}
-                        </select>
-                        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none opacity-70" />
-                      </div>
+                       {item.module === "pengeluaran" || item.module === "panen" ? (
+                        // 🚀 THE FIX: Tampilan Gembok khusus transaksi Finance & Panen
+                        <div className="flex items-center justify-center h-9 px-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 shadow-sm cursor-not-allowed" title="Status Permanen (Selesai)">
+                          <Lock className="h-4 w-4 mr-1.5 opacity-70" />
+                          <span className="text-[11px] font-bold uppercase tracking-wider">Selesai</span>
+                        </div>
+                      ) : (
+                        <div className="relative inline-block">
+                          <select
+                            value={item.status}
+                            onChange={(e) => onStatusChange?.(item.id, e.target.value)}
+                            disabled={item.isPendingStaging}
+                            className={cn(
+                              "appearance-none rounded-xl px-3.5 py-2 pr-8 text-[11px] font-bold uppercase tracking-wider outline-none cursor-pointer border transition-all shadow-sm",
+                              (item.status === "Selesai" || item.status === "Sudah ditangani") ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400" :
+                              (item.status === "Dalam proses" || item.status === "Sedang ditangani") ? "border-amber-500/30 bg-amber-500/15 text-amber-700 dark:text-amber-400" :
+                              "border-slate-500/30 bg-slate-500/15 text-slate-700 dark:text-slate-400",
+                              item.isPendingStaging && "opacity-50 cursor-not-allowed"
+                            )}
+                          >
+                            {item.module === "inspeksi" ? (
+                              <>
+                                <option value="Baru ditemukan">Baru</option>
+                                <option value="Sedang ditangani">Proses</option>
+                                <option value="Sudah ditangani">Selesai</option>
+                              </>
+                            ) : (
+                              <>
+                                <option value="Belum dikerjakan">Belum</option>
+                                <option value="Dalam proses">Proses</option>
+                                <option value="Selesai">Selesai</option>
+                              </>
+                            )}
+                          </select>
+                          <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none opacity-70" />
+                        </div>
+                      )}
 
                       {/* TOMBOL HAPUS */}
                       <button 
