@@ -336,12 +336,12 @@ export function AgronomyHubPage() {
         </div>
       </div>
 
-      <SummaryHeader 
-  feedData={filteredItems} 
-  meta={...} 
-  // 🚀 THE FIX: Lempar mode finance jika tab yang aktif adalah "finance"
-  mode={activeTab === "finance" ? "finance" : "agronomi"} 
-/>
+        <SummaryHeader 
+        feedData={filteredItems} 
+        meta={meta} 
+        // 🚀 THE FIX: Pake 'activeDomain' karena itu nama state-nya!
+        mode={activeDomain === "finance" ? "finance" : "agronomi"} 
+      />
 
       <FilterControls
         feedData={feedData}
