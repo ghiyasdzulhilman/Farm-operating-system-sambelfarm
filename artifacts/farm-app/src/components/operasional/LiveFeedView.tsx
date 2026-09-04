@@ -36,9 +36,19 @@ export function LiveFeedView({
       })).filter(group => group.items.length > 0);
     } 
     
-    const areaMap = new Map<string, RichAgronomyItem[]>();
+   const areaMap = new Map<string, RichAgronomyItem[]>();
     items.forEach(item => {
-      const areaName = item.area || "Area Tanpa Blok";
+      // 🚀 THE FIX: Deteksi Biaya Umum dan Stok untuk Filter Mode Area
+      let areaName = item.area || "Area Tanpa Blok";
+      
+      if (item.module === "pengeluaran") {
+        if (item.metaEkstra?.isPembelianStok) {
+          areaName = "Stok / Aset";
+        } else if (!item.areaId || item.area === "Area Master" || item.area === "-") {
+          areaName = "Biaya Umum";
+        }
+      }
+
       if (!areaMap.has(areaName)) areaMap.set(areaName, []);
       areaMap.get(areaName)!.push(item);
     });
@@ -104,22 +114,30 @@ export function LiveFeedView({
               else if (item.status === "Dalam proses" || item.status === "Sedang ditangani") statusDot = "bg-amber-500";
 
               // 3. LOGIKA FORMAT JADWAL 
-              const startDate = new Date(item.rawDate);
-              const endDate = item.metaEkstra?.waktuSelesai ? new Date(item.metaEkstra.waktuSelesai) : null;
-              
+              let scheduleDisplay = "";
               const formatDate = (d: Date) => d.toLocaleDateString("id-ID", { day: '2-digit', month: '2-digit', year: 'numeric' });
               const formatTime = (d: Date) => d.toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' }).replace(':', '.');
-              
-              const startDStr = formatDate(startDate);
-              const startTStr = formatTime(startDate);
-              let scheduleDisplay = `${startDStr} • ${startTStr}`; // ✨ Pakai bullet agar lebih rapi dari pipe |
-              
-              if (endDate) {
-                const endDStr = formatDate(endDate);
-                const endTStr = formatTime(endDate);
-                scheduleDisplay = startDStr === endDStr 
-                  ? `${startDStr} • ${startTStr} - ${endTStr}` 
-                  : `${startDStr} - ${endDStr} • ${startTStr} - ${endTStr}`;
+
+              if (item.module === "pengeluaran" || item.module === "panen") {
+                // 🚀 THE FIX: Finance & Panen cuma butuh Tanggal, buang jamnya biar rapi!
+                const d = item.rawDate ? new Date(item.rawDate) : new Date();
+                scheduleDisplay = formatDate(d);
+              } else {
+                // 💡 Logika normal buat Agronomi (Perawatan, Inspeksi, dll)
+                const startDate = new Date(item.rawDate);
+                const endDate = item.metaEkstra?.waktuSelesai ? new Date(item.metaEkstra.waktuSelesai) : null;
+                
+                const startDStr = formatDate(startDate);
+                const startTStr = formatTime(startDate);
+                scheduleDisplay = `${startDStr} • ${startTStr}`; 
+                
+                if (endDate) {
+                  const endDStr = formatDate(endDate);
+                  const endTStr = formatTime(endDate);
+                  scheduleDisplay = startDStr === endDStr 
+                    ? `${startDStr} • ${startTStr} - ${endTStr}` 
+                    : `${startDStr} - ${endDStr} • ${startTStr} - ${endTStr}`;
+                }
               }
 
               return (
@@ -159,12 +177,15 @@ export function LiveFeedView({
                           )}
                         </div>
 
-                        {/* Waktu Relatif & Status Dot */}
+                     {/* Waktu Relatif & Status Dot */}
                         <div className="flex items-center gap-1.5 shrink-0">
                           <span className={cn("h-2 w-2 rounded-full", statusDot)} title={`Status: ${item.status}`} />
-                          <span className="text-[11px] font-medium text-muted-foreground/80 tracking-tight">
-                            {item.time}
-                          </span>
+                          {/* 🚀 THE FIX: Sembunyikan jam relatif untuk Finance/Panen */}
+                          {item.module !== "pengeluaran" && item.module !== "panen" && (
+                            <span className="text-[11px] font-medium text-muted-foreground/80 tracking-tight">
+                              {item.time}
+                            </span>
+                          )}
                         </div>
                       </div>
 
@@ -177,10 +198,25 @@ export function LiveFeedView({
                           </h3>
                           
                           <div className="mt-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground/80 truncate">
-                            <MapPin className="h-3.5 w-3.5 shrink-0 text-primary/70" />
-                            <span className="truncate">
-                              {item.namaSiklus && item.namaSiklus !== "-" ? `${item.area} - ${item.namaSiklus}` : item.area}
-                            </span>
+                            {/* 🚀 THE FIX: Logika Tampilan Area Khusus Finance (Stok & Biaya Umum) */}
+                            {item.module === "pengeluaran" && item.metaEkstra?.isPembelianStok ? (
+                              <>
+                                <Package className="h-3.5 w-3.5 shrink-0 text-primary/70" />
+                                <span className="truncate font-semibold text-foreground/80">Stok / Aset Gudang</span>
+                              </>
+                            ) : item.module === "pengeluaran" && (!item.areaId || item.area === "Area Master" || item.area === "-") ? (
+                              <>
+                                <Banknote className="h-3.5 w-3.5 shrink-0 text-primary/70" />
+                                <span className="truncate font-semibold text-foreground/80">Biaya Umum</span>
+                              </>
+                            ) : (
+                              <>
+                                <MapPin className="h-3.5 w-3.5 shrink-0 text-primary/70" />
+                                <span className="truncate">
+                                  {item.namaSiklus && item.namaSiklus !== "-" ? `${item.area} - ${item.namaSiklus}` : item.area}
+                                </span>
+                              </>
+                            )}
                           </div>
                         </div>
 
