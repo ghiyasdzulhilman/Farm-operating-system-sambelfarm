@@ -2,7 +2,6 @@ import { Clipboard, Inbox, Timer, Calendar, ShoppingBasket, MapPin, Package, Bui
 import { cn } from "@/lib/utils";
 import type { AgronomyItem } from "@/types/operasional";
 
-// 🚀 THE FIX: Tambahkan prop `mode` dengan default "agronomi"
 export function SummaryHeader({ 
   feedData, 
   meta, 
@@ -24,33 +23,35 @@ export function SummaryHeader({
   // ==========================================
   // 2. KALKULASI MODE FINANCE
   // ==========================================
-  let totalPanenRp = 0, totalPanenKg = 0;
-  let biayaArea = 0, biayaStok = 0, biayaUmum = 0;
+  // 🚀 THE FIX: Siapkan variabel untuk ngitung Jumlah Data (Count) DAN Total Uang (Sum)
+  let panenTotalRp = 0, panenCount = 0;
+  let biayaAreaTotal = 0, biayaAreaCount = 0;
+  let biayaStokTotal = 0, biayaStokCount = 0;
+  let biayaUmumTotal = 0, biayaUmumCount = 0;
 
   if (mode === "finance") {
     feedData.forEach(item => {
       if (item.module === "panen") {
-        totalPanenRp += (item.metaEkstra?.totalPendapatan || 0);
-        totalPanenKg += Number(item.metaEkstra?.kuantitasKg || 0);
+        panenTotalRp += Number(item.metaEkstra?.totalPendapatan || 0);
+        panenCount++;
       } else if (item.module === "pengeluaran") {
-        const biaya = item.metaEkstra?.totalBiaya || 0;
+        const biaya = Number(item.metaEkstra?.totalBiaya || 0);
         if (item.metaEkstra?.isPembelianStok) {
-          biayaStok += biaya;
+          biayaStokTotal += biaya;
+          biayaStokCount++;
         } else if (!item.areaId || item.area === "Area Master" || item.area === "-") {
-          biayaUmum += biaya;
+          biayaUmumTotal += biaya;
+          biayaUmumCount++;
         } else {
-          biayaArea += biaya;
+          biayaAreaTotal += biaya;
+          biayaAreaCount++;
         }
       }
     });
   }
 
-  // HELPER: Format Angka Cerdas (Singkat M/Jt untuk nominal besar biar rapi di HP)
-  const formatUang = (angka: number) => {
-    if (angka >= 1_000_000_000) return `Rp ${(angka / 1_000_000_000).toLocaleString('id-ID', { maximumFractionDigits: 1 })} M`;
-    if (angka >= 1_000_000) return `Rp ${(angka / 1_000_000).toLocaleString('id-ID', { maximumFractionDigits: 1 })} Jt`;
-    return `Rp ${angka.toLocaleString('id-ID')}`;
-  };
+  // Helper untuk format rupiah yang rapi (titik ribuan)
+  const formatUang = (angka: number) => `Rp ${angka.toLocaleString('id-ID')}`;
 
   // ==========================================
   // 3. RENDER KARTU FINANCE
@@ -61,8 +62,8 @@ export function SummaryHeader({
         {/* 1. Panen - Emerald */}
         <SummaryCard 
           title="Hasil Panen" 
-          value={formatUang(totalPanenRp)} 
-          detail={`${totalPanenKg.toLocaleString('id-ID')} Kg ditarik`} 
+          value={`${panenCount} log`} // 🚀 THE FIX: Angka besar nampilin jumlah baris data
+          detail={formatUang(panenTotalRp)} // 🚀 THE FIX: Tulisan kecil nampilin total uang
           icon={ShoppingBasket} 
           tint="bg-emerald-500/10 text-emerald-600" 
           hoverGlow="hover:shadow-[0_16px_40px_-4px_rgba(16,185,129,0.15)] hover:border-emerald-500/30"
@@ -70,8 +71,8 @@ export function SummaryHeader({
         {/* 2. Biaya Kebun - Indigo */}
         <SummaryCard 
           title="Biaya Kebun" 
-          value={formatUang(biayaArea)} 
-          detail="operasional area" 
+          value={`${biayaAreaCount} log`} 
+          detail={formatUang(biayaAreaTotal)} 
           icon={MapPin} 
           tint="bg-indigo-500/10 text-indigo-600" 
           hoverGlow="hover:shadow-[0_16px_40px_-4px_rgba(99,102,241,0.15)] hover:border-indigo-500/30"
@@ -79,8 +80,8 @@ export function SummaryHeader({
         {/* 3. Aset Gudang - Teal */}
         <SummaryCard 
           title="Beli Stok" 
-          value={formatUang(biayaStok)} 
-          detail="masuk gudang" 
+          value={`${biayaStokCount} log`} 
+          detail={formatUang(biayaStokTotal)} 
           icon={Package} 
           tint="bg-teal-500/10 text-teal-600" 
           hoverGlow="hover:shadow-[0_16px_40px_-4px_rgba(20,184,166,0.15)] hover:border-teal-500/30"
@@ -88,8 +89,8 @@ export function SummaryHeader({
         {/* 4. Biaya Umum - Rose */}
         <SummaryCard 
           title="Biaya Umum" 
-          value={formatUang(biayaUmum)} 
-          detail="gaji & overhead" 
+          value={`${biayaUmumCount} log`} 
+          detail={formatUang(biayaUmumTotal)} 
           icon={Building2} 
           tint="bg-rose-500/10 text-rose-600" 
           hoverGlow="hover:shadow-[0_16px_40px_-4px_rgba(244,63,94,0.15)] hover:border-rose-500/30"
@@ -143,7 +144,7 @@ export function SummaryHeader({
   );
 }
 
-// Komponen Card tidak berubah, tetap di bawah sini
+// 💡 KOMPONEN KARTU BAWAAN (TIDAK PERLU DIUBAH CSS-NYA KARENA TEKS BESAR SUDAH PASTI MUAT)
 function SummaryCard({ title, value, detail, icon: Icon, tint, hoverGlow }: any) {
   return (
     <div className={cn(
@@ -153,7 +154,6 @@ function SummaryCard({ title, value, detail, icon: Icon, tint, hoverGlow }: any)
     )}>
       
       <div className="pr-12">
-        {/* ✨ Sengaja pake truncate biar kalau layarnya kekecilan teksnya tetap rapi */}
         <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/80 truncate">{title}</p>
         <p className="mt-1.5 text-2xl font-bold tracking-tight text-foreground truncate" title={String(value)}>{value}</p>
         <p className="mt-1 text-[11px] font-medium tracking-wide text-muted-foreground/80 truncate">{detail}</p>
