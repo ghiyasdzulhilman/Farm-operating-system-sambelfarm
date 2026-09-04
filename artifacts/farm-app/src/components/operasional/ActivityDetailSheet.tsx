@@ -197,6 +197,11 @@ useEffect(() => {
     }).format(angka);
   };
 
+  // 🚀 THE FIX: Helper Format Angka (Buang desimal .000 berlebih & tambah pemisah ribuan)
+  const formatAngka = (angka: any) => {
+    return new Intl.NumberFormat("id-ID").format(Number(angka) || 0);
+  };
+
  // 💡 Helper format Tanggal & Waktu (NAIVE STRATEGY)
   const formatDateValue = (raw?: string) => {
     if (!raw) return "";
@@ -501,9 +506,10 @@ useEffect(() => {
               {item.module === "pengeluaran" ? "Qty" : "Kuantitas"}
             </span>
             <p className="text-base font-bold text-muted-foreground">
+              {/* 🚀 THE FIX: Bungkus angka dengan formatAngka */}
               {item.module === "pengeluaran" 
-                ? `${item.metaEkstra?.kuantitas || 1} ${item.metaEkstra?.satuanKerja || ""}`
-                : `${item.metaEkstra?.kuantitasKg || 0} Kg`}
+                ? `${formatAngka(item.metaEkstra?.kuantitas || 1)} ${item.metaEkstra?.satuanKerja || ""}`
+                : `${formatAngka(item.metaEkstra?.kuantitasKg || 0)} Kg`}
             </p>
           </div>
 
