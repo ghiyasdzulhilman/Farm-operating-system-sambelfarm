@@ -336,7 +336,12 @@ export function AgronomyHubPage() {
         </div>
       </div>
 
-      <SummaryHeader feedData={feedData} meta={meta} />
+      <SummaryHeader 
+  feedData={filteredItems} 
+  meta={...} 
+  // 🚀 THE FIX: Lempar mode finance jika tab yang aktif adalah "finance"
+  mode={activeTab === "finance" ? "finance" : "agronomi"} 
+/>
 
       <FilterControls
         feedData={feedData}
