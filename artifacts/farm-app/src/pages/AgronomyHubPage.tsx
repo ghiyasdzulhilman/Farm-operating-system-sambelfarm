@@ -281,41 +281,57 @@ export function AgronomyHubPage() {
       // 🚀 3. Filter Waktu (Time Segregation Lanjutan)
       let matchTime = true;
       const itemDate = new Date(item.rawDate);
+      
       const now = new Date();
+      // 🚀 THE FIX 1: Batas atas bukan "detik ini", tapi "Akhir Hari Ini (23:59)"
+      // Ini mencegah data "masa depan" (efek UTC+7) ikut kebuang!
+      const endOfToday = new Date();
+      endOfToday.setHours(23, 59, 59, 999);
 
       if (activeTimeFilter === "Hari ini") {
         matchTime = item.dateLabel === "Hari ini";
       } else if (activeTimeFilter === "Kemarin") {
         matchTime = item.dateLabel === "Kemarin";
       } else if (activeTimeFilter === "1 Bulan") {
-        const oneMonthAgo = new Date(now);
+        const oneMonthAgo = new Date();
         oneMonthAgo.setMonth(now.getMonth() - 1);
-        matchTime = itemDate >= oneMonthAgo && itemDate <= now;
+        oneMonthAgo.setHours(0, 0, 0, 0);
+        matchTime = itemDate >= oneMonthAgo && itemDate <= endOfToday;
       } else if (activeTimeFilter === "3 Bulan") {
-        const threeMonthsAgo = new Date(now);
+        const threeMonthsAgo = new Date();
         threeMonthsAgo.setMonth(now.getMonth() - 3);
-        matchTime = itemDate >= threeMonthsAgo && itemDate <= now;
+        threeMonthsAgo.setHours(0, 0, 0, 0);
+        matchTime = itemDate >= threeMonthsAgo && itemDate <= endOfToday;
       } else if (activeTimeFilter === "1 Tahun") {
-        const oneYearAgo = new Date(now);
+        const oneYearAgo = new Date();
         oneYearAgo.setFullYear(now.getFullYear() - 1);
-        matchTime = itemDate >= oneYearAgo && itemDate <= now;
+        oneYearAgo.setHours(0, 0, 0, 0);
+        matchTime = itemDate >= oneYearAgo && itemDate <= endOfToday;
       } else if (activeTimeFilter === "Rentang Waktu") {
-        // Logika kalender manual (Start & End Date)
-        if (customDateRange?.start && customDateRange?.end) {
-          const startDate = new Date(customDateRange.start);
-          startDate.setHours(0, 0, 0, 0); // Mulai dari jam 00:00
-          
-          const endDate = new Date(customDateRange.end);
-          endDate.setHours(23, 59, 59, 999); // Sampai jam 23:59
-          
-          matchTime = itemDate >= startDate && itemDate <= endDate;
+        // 🚀 THE FIX 2: Proteksi ekstra untuk kalender manual
+        if (customDateRange && customDateRange.start && customDateRange.end) {
+          try {
+            const startDate = new Date(customDateRange.start);
+            startDate.setHours(0, 0, 0, 0); 
+            
+            const endDate = new Date(customDateRange.end);
+            endDate.setHours(23, 59, 59, 999); 
+            
+            // Validasi: Kalau inputan tanggalnya bener (bukan Invalid Date)
+            if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+              matchTime = itemDate >= startDate && itemDate <= endDate;
+            } else {
+              matchTime = true; 
+            }
+          } catch (err) {
+            matchTime = true; // Kalau error transisi, amanin aja biar gak crash
+          }
         } else {
-          matchTime = true; // Jika user belum pilih tanggal, tampilkan semua biar nggak kosong
+          matchTime = true; 
         }
       }
-      // Kalau "Semua Waktu", matchTime tetap true sejak awal
 
-      // 🚀 4. Filter Status (Status Segregation - Hanya jalan di Agronomi)
+      // 🚀 4. Filter Status (Status Segregation)
       let matchStatus = true;
       if (activeDomain === "agronomi" && activeStatusFilter !== "Semua Status") {
         if (activeStatusFilter === "Selesai") matchStatus = item.status === "Selesai" || item.status === "Sudah ditangani";
@@ -323,10 +339,9 @@ export function AgronomyHubPage() {
         else if (activeStatusFilter === "Belum dikerjakan") matchStatus = item.status === "Belum dikerjakan" || item.status === "Baru ditemukan";
       }
 
-      // Return kombinasi ketiganya!
       return matchModule && matchTime && matchStatus;
     });
-  // 🚀 THE FIX: WAJIB nambahin customDateRange ke dalam array ini biar React tahu kapan harus ngerender ulang datanya!
+  // Pastikan customDateRange ada di array dependency ini!
   }, [feedData, activeModule, activeTimeFilter, activeStatusFilter, activeDomain, customDateRange]); 
 
     if (isLoading) {
