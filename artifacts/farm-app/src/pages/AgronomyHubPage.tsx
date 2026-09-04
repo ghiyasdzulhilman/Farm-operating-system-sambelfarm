@@ -278,11 +278,42 @@ export function AgronomyHubPage() {
       // 🚀 2. Filter Modul (Bento Deck)
       const matchModule = activeModule === "all" ? true : item.module === activeModule;
 
-      // 🚀 3. Filter Waktu (Time Segregation)
+      // 🚀 3. Filter Waktu (Time Segregation Lanjutan)
       let matchTime = true;
-      if (activeTimeFilter === "Hari ini") matchTime = item.dateLabel === "Hari ini";
-      else if (activeTimeFilter === "Kemarin") matchTime = item.dateLabel === "Kemarin";
-      // Kalau "Semua Waktu", matchTime dibiarin true
+      const itemDate = new Date(item.rawDate);
+      const now = new Date();
+
+      if (activeTimeFilter === "Hari ini") {
+        matchTime = item.dateLabel === "Hari ini";
+      } else if (activeTimeFilter === "Kemarin") {
+        matchTime = item.dateLabel === "Kemarin";
+      } else if (activeTimeFilter === "1 Bulan") {
+        const oneMonthAgo = new Date(now);
+        oneMonthAgo.setMonth(now.getMonth() - 1);
+        matchTime = itemDate >= oneMonthAgo && itemDate <= now;
+      } else if (activeTimeFilter === "3 Bulan") {
+        const threeMonthsAgo = new Date(now);
+        threeMonthsAgo.setMonth(now.getMonth() - 3);
+        matchTime = itemDate >= threeMonthsAgo && itemDate <= now;
+      } else if (activeTimeFilter === "1 Tahun") {
+        const oneYearAgo = new Date(now);
+        oneYearAgo.setFullYear(now.getFullYear() - 1);
+        matchTime = itemDate >= oneYearAgo && itemDate <= now;
+      } else if (activeTimeFilter === "Rentang Waktu") {
+        // Logika kalender manual (Start & End Date)
+        if (customDateRange?.start && customDateRange?.end) {
+          const startDate = new Date(customDateRange.start);
+          startDate.setHours(0, 0, 0, 0); // Mulai dari jam 00:00
+          
+          const endDate = new Date(customDateRange.end);
+          endDate.setHours(23, 59, 59, 999); // Sampai jam 23:59
+          
+          matchTime = itemDate >= startDate && itemDate <= endDate;
+        } else {
+          matchTime = true; // Jika user belum pilih tanggal, tampilkan semua biar nggak kosong
+        }
+      }
+      // Kalau "Semua Waktu", matchTime tetap true sejak awal
 
       // 🚀 4. Filter Status (Status Segregation - Hanya jalan di Agronomi)
       let matchStatus = true;
@@ -295,7 +326,8 @@ export function AgronomyHubPage() {
       // Return kombinasi ketiganya!
       return matchModule && matchTime && matchStatus;
     });
-  }, [feedData, activeModule, activeTimeFilter, activeStatusFilter, activeDomain]); // 🚀 Array dependency di-update
+  // 🚀 THE FIX: WAJIB nambahin customDateRange ke dalam array ini biar React tahu kapan harus ngerender ulang datanya!
+  }, [feedData, activeModule, activeTimeFilter, activeStatusFilter, activeDomain, customDateRange]); 
 
     if (isLoading) {
     return (
