@@ -36,6 +36,8 @@ const MODULE_ICONS: Record<string, any> = {
 export function FilterControls({ 
   feedData, activeView, setActiveView, activeModule, setActiveModule, 
   activeTimeFilter, setActiveTimeFilter, activeStatusFilter, setActiveStatusFilter,
+  // 🚀 THE FIX: Destructure prop kalendernya di sini bro!
+  customDateRange, setCustomDateRange,
   filterSiklus, setFilterSiklus, activeDomain, setActiveDomain 
 }: FilterProps) {
   
