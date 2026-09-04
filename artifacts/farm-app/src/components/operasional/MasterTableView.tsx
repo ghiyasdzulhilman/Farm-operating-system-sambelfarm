@@ -186,18 +186,18 @@ export function MasterTableView({
       },
     },
             
-   {
+      {
       id: "tagCategory",
       header: "Kategori",
       cell: ({ row }) => {
         const item = row.original;
         
-        // 💡 Inspeksi di-lock
-        if (item.module === "inspeksi") {
+        // 🚀 THE FIX: Lock untuk Inspeksi ATAU jika tab Selesai sedang aktif
+        if (item.module === "inspeksi" || filterSiklus === "selesai") {
           return (
-            <div className="flex items-center gap-1.5 px-2 py-1.5 text-xs text-muted-foreground bg-muted/30 rounded-md w-fit">
-              <Lock className="h-3 w-3" />
-              <span>{item.category || ""}</span>
+            <div className="flex items-center gap-1.5 px-2 py-1.5 text-xs text-muted-foreground bg-muted/30 border border-border/40 rounded-md w-fit">
+              <Lock className="h-3 w-3 shrink-0" />
+              <span className="font-semibold">{item.category || "-"}</span>
             </div>
           );
         }
