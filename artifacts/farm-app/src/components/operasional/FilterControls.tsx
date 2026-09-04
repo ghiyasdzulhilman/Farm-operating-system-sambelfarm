@@ -1,7 +1,9 @@
-// 🚀 FIX: Import icon Banknote (Pengeluaran) dan ShoppingBasket (Panen)
-import { LayoutGrid, List, TableProperties, Layers, Sprout, HardHat, Wallet, Bug, Banknote, ShoppingBasket } from "lucide-react";
+ // 🚀 FIX: Import icon Banknote (Pengeluaran) dan ShoppingBasket (Panen)
+import { LayoutGrid, List, TableProperties, Layers, Sprout, HardHat, Wallet, Bug, Banknote, ShoppingBasket, CalendarDays, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AgronomyItem, ModuleKey, ViewKey } from "@/types/operasional";
+// 🚀 THE FIX: Import komponen Dropdown bawaan UI kita
+import { DropdownMenu, DropdownMenuItem, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 
 interface FilterProps {
   feedData: AgronomyItem[];
@@ -11,6 +13,10 @@ interface FilterProps {
   // 🚀 FIX: State filter dipecah jadi dua!
   activeTimeFilter: string; setActiveTimeFilter: (f: string) => void;
   activeStatusFilter: string; setActiveStatusFilter: (f: string) => void;
+  
+  // 🚀 SUNTIKAN BARU: Props buat nangkep Kalender Custom
+  customDateRange: { start: string; end: string } | null;
+  setCustomDateRange: (range: { start: string; end: string } | null) => void;
   
   filterSiklus: "aktif" | "selesai"; 
   setFilterSiklus: (val: "aktif" | "selesai") => void;
@@ -154,18 +160,105 @@ export function FilterControls({
         {/* 🚀 WRAPPER BARU: Mengelompokkan Baris 2 dan Baris 3 biar rapat */}
         <div className="flex flex-col">
           
-          {/* BARIS 2: Filter Waktu (Selalu Tampil) */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 custom-scrollbar">
+         {/* BARIS 2: Filter Waktu (Selalu Tampil) */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 custom-scrollbar pr-4">
             {TIME_FILTERS.map((item) => (
-              <button key={item} onClick={() => setActiveTimeFilter(item)}
+              // 🚀 THE FIX: Kalau ngeklik filter cepat (Hari ini/Kemarin), otomatis reset Custom Range-nya
+              <button key={item} onClick={() => { setActiveTimeFilter(item); setCustomDateRange(null); }}
                 className={cn("shrink-0 rounded-xl px-4 py-2 text-[12px] font-medium transition-all duration-300",
                   activeTimeFilter === item 
-                    ? "bg-primary/5 text-primary border border-primary/20 shadow-[0_2px_10px_rgba(0,0,0,0.04)]" 
+                    ? "bg-primary/10 text-primary border border-primary/30 shadow-[0_2px_10px_rgba(0,0,0,0.04)]" 
                     : "bg-transparent text-muted-foreground hover:bg-muted/40 border border-transparent"
                 )}>
                 <span className="flex items-center gap-1.5">{item}</span>
               </button>
             ))}
+
+            {/* 🌟 THE FIX: IKON MENU FILTER LANJUTAN */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className={cn("shrink-0 flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-[12px] font-medium transition-all duration-300",
+                    ["1 Bulan", "3 Bulan", "1 Tahun", "Rentang Waktu"].includes(activeTimeFilter)
+                      ? "bg-primary text-primary-foreground shadow-[0_4px_15px_-4px_rgba(var(--primary),0.4)]"
+                      : "bg-muted/30 text-muted-foreground hover:bg-muted/50 border border-border/30"
+                  )}>
+                  <CalendarDays className="h-4 w-4" />
+                  
+                  {/* Kalau user milih 1 Bulan / 3 Bulan, munculin namanya */}
+                  {["1 Bulan", "3 Bulan", "1 Tahun"].includes(activeTimeFilter) && (
+                    <span className="font-bold tracking-wide">{activeTimeFilter}</span>
+                  )}
+                  
+                  {/* Kalau milih Rentang Waktu, munculin tanggal (cth: 09-01 s/d 09-30) */}
+                  {activeTimeFilter === "Rentang Waktu" && (
+                    <span className="font-bold tracking-wide text-[11px]">
+                      {customDateRange?.start && customDateRange?.end 
+                        ? `${customDateRange.start.slice(5)} - ${customDateRange.end.slice(5)}` 
+                        : "Pilih Tanggal"}
+                    </span>
+                  )}
+                  <ChevronDown className="h-3 w-3 opacity-60 ml-0.5" />
+                </button>
+              </DropdownMenuTrigger>
+              
+              <DropdownMenuContent align="end" className="w-56 rounded-[1.5rem] p-2.5 shadow-[0_12px_40px_-4px_rgba(0,0,0,0.12)] border-border/50 bg-card/90 backdrop-blur-xl">
+                <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  Periode Lanjutan
+                </div>
+                
+                {["1 Bulan", "3 Bulan", "1 Tahun"].map(item => (
+                  <DropdownMenuItem 
+                    key={item} 
+                    onSelect={() => { setActiveTimeFilter(item); setCustomDateRange(null); }}
+                    className={cn("rounded-xl px-3 py-2.5 text-xs font-bold cursor-pointer transition-colors", 
+                      activeTimeFilter === item ? "bg-primary/10 text-primary" : "text-foreground focus:bg-muted"
+                    )}
+                  >
+                    {item}
+                  </DropdownMenuItem>
+                ))}
+                
+                <DropdownMenuSeparator className="my-1.5 border-border/40" />
+                
+                <DropdownMenuItem 
+                  onSelect={(e) => {
+                    // 🚀 TRICK: Cegah dropdown ketutup otomatis saat klik "Rentang Waktu"
+                    e.preventDefault(); 
+                    setActiveTimeFilter("Rentang Waktu");
+                  }}
+                  className={cn("rounded-xl px-3 py-2.5 text-xs font-bold cursor-pointer transition-colors", 
+                    activeTimeFilter === "Rentang Waktu" ? "bg-primary/10 text-primary" : "text-foreground focus:bg-muted"
+                  )}
+                >
+                  Rentang Waktu...
+                </DropdownMenuItem>
+
+                {/* 🌟 FORM RENTANG WAKTU NATIVE (Muncul di dalam Dropdown) */}
+                {activeTimeFilter === "Rentang Waktu" && (
+                  <div className="mt-2 p-3 rounded-2xl bg-muted/30 border border-border/40 space-y-3" onClick={e => e.stopPropagation()}>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Dari Tanggal</label>
+                      <input 
+                        type="date" 
+                        value={customDateRange?.start || ""}
+                        onChange={e => setCustomDateRange({ start: e.target.value, end: customDateRange?.end || "" })}
+                        className="w-full text-xs font-medium p-2 rounded-xl bg-background border border-border/50 shadow-sm outline-none focus:border-primary/50" 
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Sampai</label>
+                      <input 
+                        type="date" 
+                        value={customDateRange?.end || ""}
+                        onChange={e => setCustomDateRange({ start: customDateRange?.start || "", end: e.target.value })}
+                        className="w-full text-xs font-medium p-2 rounded-xl bg-background border border-border/50 shadow-sm outline-none focus:border-primary/50" 
+                      />
+                    </div>
+                  </div>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {/* 🚀 BARIS 3: Filter Status (Sembunyi kalau lagi buka Finance) */}
