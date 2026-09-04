@@ -89,6 +89,8 @@ router.get("/harvest", async (req, res): Promise<void> => {
         siklusId: panenTable.siklusId,
         areaName: areasTable.name,
         namaSiklus: siklusTanamTable.namaSiklus,
+        // 🚀 THE FIX: Tarik tanggal tanam biar UI bisa ngitung umur HST saat panen!
+        tanggalPindahTanam: siklusTanamTable.tanggalPindahTanam, 
       })
       .from(panenTable)
       .leftJoin(areasTable, eq(panenTable.areaId, areasTable.id))
