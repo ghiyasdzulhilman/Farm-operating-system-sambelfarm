@@ -62,7 +62,7 @@ export function SummaryHeader({
         {/* 1. Panen - Emerald */}
         <SummaryCard 
           title="Hasil Panen" 
-          value={`${panenCount} log`} // 🚀 THE FIX: Angka besar nampilin jumlah baris data
+          value={`${panenCount} `} // 🚀 THE FIX: Angka besar nampilin jumlah baris data
           detail={formatUang(panenTotalRp)} // 🚀 THE FIX: Tulisan kecil nampilin total uang
           icon={ShoppingBasket} 
           tint="bg-emerald-500/10 text-emerald-600" 
@@ -71,7 +71,7 @@ export function SummaryHeader({
         {/* 2. Biaya Kebun - Indigo */}
         <SummaryCard 
           title="Biaya Kebun" 
-          value={`${biayaAreaCount} log`} 
+          value={`${biayaAreaCount} `} 
           detail={formatUang(biayaAreaTotal)} 
           icon={MapPin} 
           tint="bg-indigo-500/10 text-indigo-600" 
@@ -80,7 +80,7 @@ export function SummaryHeader({
         {/* 3. Aset Gudang - Teal */}
         <SummaryCard 
           title="Beli Stok" 
-          value={`${biayaStokCount} log`} 
+          value={`${biayaStokCount} `} 
           detail={formatUang(biayaStokTotal)} 
           icon={Package} 
           tint="bg-teal-500/10 text-teal-600" 
@@ -89,7 +89,7 @@ export function SummaryHeader({
         {/* 4. Biaya Umum - Rose */}
         <SummaryCard 
           title="Biaya Umum" 
-          value={`${biayaUmumCount} log`} 
+          value={`${biayaUmumCount} `} 
           detail={formatUang(biayaUmumTotal)} 
           icon={Building2} 
           tint="bg-rose-500/10 text-rose-600" 
