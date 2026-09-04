@@ -32,19 +32,16 @@ export function CatatanUmum({ item, onStatusChange }: CatatanUmumProps) {
     }
   }, [item, isEditing]);
 
-  const handleSave = () => {
+    const handleSave = () => {
     setIsEditing(false);
     const valStr = localValue.trim();
     
     if (valStr !== getCleanCatatan()) {
       const payload: any = {};
       
-      // 🚀 THE FIX: Mapping Bahasa Payload ke Backend
-      if (item.module === "inspeksi") {
+      // 🚀 THE FIX: Sesuai backend expenses.ts, Pengeluaran butuh "keterangan"
+      if (item.module === "inspeksi" || item.module === "pengeluaran") {
         payload.keterangan = valStr;
-      } else if (item.module === "pengeluaran") {
-        // 🚀 Backend Pengeluaran butuhnya 'catatanKhusus'
-        payload.catatanKhusus = valStr; 
       } else {
         // 🚀 Agronomi dan Panen pakai 'catatan'
         payload.catatan = valStr;
