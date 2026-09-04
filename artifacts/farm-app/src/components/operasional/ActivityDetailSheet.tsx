@@ -80,10 +80,13 @@ export function ActivityDetailSheet({
     }
   }, [incomingItem]);
 
-  // ✨ 3. Tentukan data yang dipakai: Kalau data asli hilang (lagi proses nutup), pakai data cache!
+    // ✨ 3. Tentukan data yang dipakai: Kalau data asli hilang (lagi proses nutup), pakai data cache!
   const item = incomingItem || cachedItem;
 
-  // 🚀 activeField dan localValue DIHAPUS karena sudah diisolasi ke sub-komponen (Booster Performa)
+  // 🚀 THE FIX: Deklarasi isFinance HARUS di atas sebelum React Hooks (useQuery/useState) berjalan!
+  // Kita pakai item?.module (tanda tanya) untuk mencegah error saat item masih kosong
+  const isFinance = item?.module === "pengeluaran" || item?.module === "panen";
+
   // 💡 State khusus penampung array racikan produk yang lagi diedit
   const [editedProducts, setEditedProducts] = useState<Array<{ produkId: string; kuantitasPemakaian: number; namaProduk?: string; satuanDasar?: string }>>([]);
   const [isDirty, setIsDirty] = useState(false);
@@ -251,10 +254,8 @@ useEffect(() => {
 
     if (!item) return null;
 
-  // 🚀 SAKLAR UTAMA FINANCE
-    const isFinance = item.module === "pengeluaran" || item.module === "panen";
-
     const formatJamMendalam = (dateStr?: string) => {
+
     if (!dateStr) return "-";
     const timePart = dateStr.split(/[T ]/)[1];
     return timePart ? timePart.substring(0, 5) : "-";
