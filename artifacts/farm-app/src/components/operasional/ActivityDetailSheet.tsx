@@ -51,6 +51,7 @@ import { CatatanUmum } from "./sheet-parts/CatatanUmum";
 
 interface ActivityDetailSheetProps {
   item: AgronomyItem | null;
+  filterSiklus: "aktif" | "selesai"; // 🚀 TAMBAHAN: Daftarkan prop filterSiklus
   onClose: () => void;
   onStatusChange?: (id: string, payload: any) => void | Promise<any>;
   onProdukChange?: (id: string, logProduk: any[]) => Promise<any>;
@@ -60,6 +61,7 @@ interface ActivityDetailSheetProps {
 
 export function ActivityDetailSheet({
   item: incomingItem, // ✨ 1. Ubah nama parameter jadi 'incomingItem'
+  filterSiklus, // 🚀 TAMBAHAN: Tangkap prop di sini
   onClose,
   onStatusChange,
   onProdukChange,
@@ -346,13 +348,14 @@ useEffect(() => {
                 </div>
               </div>
 
-            {/* Property: Area */}
+             {/* Property: Area */}
               <div className="flex items-center min-h-[34px] group">
                 <div className="w-[140px] shrink-0 text-[13px] font-medium text-muted-foreground/80 flex items-center gap-2.5">
                   <MapPin className="h-4 w-4 opacity-50" /> Area
                 </div>
                 <div className="flex-1 flex items-center gap-2 flex-wrap">
-                  {item.module === "perawatan" ? (
+                  {/* 🚀 THE FIX: Gembok kalau modul perawatan ATAU tab Selesai sedang aktif */}
+                  {(item.module === "perawatan" || filterSiklus === "selesai") ? (
                     <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-foreground/90">
                       <Lock className="h-3 w-3 opacity-40" />
                       {item.metaEkstra?.namaSiklus ? `${item.area} - ${item.metaEkstra.namaSiklus}` : item.area}
@@ -378,7 +381,7 @@ useEffect(() => {
                   )}
                 </div>
               </div>
-
+  
               {/* Property: Kategori */}
               {item.module !== "inspeksi" && (
                 <div className="flex items-center min-h-[34px] group mt-1">
