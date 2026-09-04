@@ -110,15 +110,21 @@ useEffect(() => {
     enabled: !!item && item.module === "perawatan"
   });
 
-  // 💡 Fetch Opsi Kategori langsung dari backend
+    // 💡 Fetch Opsi Kategori langsung dari backend
   const { data: dropdownOptions } = useQuery({
-
     queryKey: ["operasional-options-list"],
     queryFn: async () => fetch("/api/notion/operasional-dropdown-options").then(res => res.json()),
     enabled: !!item // Hanya nge-fetch kalau sheet-nya lagi kebuka
   });
 
-      // 🚀 KALKULATOR LIVE: Total Biaya Racikan (SINKRON DENGAN DELTA ALGORITHM BACKEND)
+  // 🚀 THE FIX: Fetch Opsi Khusus Finance (Area & Kategori Keuangan)
+  const { data: financeOptions } = useQuery({
+    queryKey: ["pengeluaran-options-list"],
+    queryFn: async () => fetch("/api/pengeluaran-dropdown-options").then(res => res.json()),
+    enabled: !!isFinance // Cuma nembak API kalau yang dibuka adalah data keuangan
+  });
+
+  // 🚀 KALKULATOR LIVE: Total Biaya Racikan
   const costCalculation = useMemo(() => {
     // 🔒 Belum diedit: kembalikan angka total murni dari database
     if (!isDirty) {
@@ -375,15 +381,23 @@ useEffect(() => {
                       {item.metaEkstra?.namaSiklus ? `${item.area} - ${item.metaEkstra.namaSiklus}` : item.area}
                     </span>
                   ) : (
-                    <div className="relative inline-flex max-w-full group/select">
+                     <div className="relative inline-flex max-w-full group/select">
                       <select
                         value={item.areaId || ""}
-                        onChange={(e) => onStatusChange?.(item.id, { areaId: e.target.value })}
+                        // 🚀 THE FIX: Kalau string kosong, kirim null ke backend (Jadi Biaya Umum)
+                        onChange={(e) => onStatusChange?.(item.id, { areaId: e.target.value || null })}
                         // 🚀 Notion Style: Transparan, tanpa background mencolok, text rapi
                         className="appearance-none bg-transparent hover:bg-muted/50 rounded-lg pr-7 pl-2 py-1 -ml-2 text-[13px] font-medium text-foreground/90 outline-none cursor-pointer transition-all z-10 truncate max-w-[250px]"
                       >
-                        <option value="" disabled>Pilih Area...</option>
-                        {dropdownOptions?.areas?.map((a: any) => {
+                        {/* 🚀 THE FIX: Opsi khusus untuk Pengeluaran (Bisa kosong) */}
+                        {item.module === "pengeluaran" ? (
+                          <option value="">-- Biaya Umum (Tanpa Area) --</option>
+                        ) : (
+                          <option value="" disabled>Pilih Area...</option>
+                        )}
+                        
+                        {/* 🚀 THE FIX: Gunakan opsi dari API yang tepat */}
+                        {(isFinance ? financeOptions?.areas : dropdownOptions?.areas)?.map((a: any) => {
                           const isCurrentArea = a.id === item.areaId;
                           const displayLabel = (isCurrentArea && item.metaEkstra?.namaSiklus) 
                             ? `${item.area} - ${item.metaEkstra.namaSiklus}` : a.name;
@@ -396,27 +410,44 @@ useEffect(() => {
                 </div>
               </div>
   
-              {/* Property: Kategori */}
-              {item.module !== "inspeksi" && (
+            {/* Property: Kategori */}
+              {/* 🚀 THE FIX: Sembunyikan untuk Inspeksi DAN Panen */}
+              {item.module !== "inspeksi" && item.module !== "panen" && (
                 <div className="flex items-center min-h-[34px] group mt-1">
                   <div className="w-[140px] shrink-0 text-[13px] font-medium text-muted-foreground/80 flex items-center gap-2.5">
                     <Briefcase className="h-4 w-4 opacity-50" /> Kategori
                   </div>
-                  <div className="flex-1">
-                    <div className="relative inline-flex max-w-full group/select">
-                      <select
-                        value={item.module === "perawatan" ? (item.tagCategoryId || item.metaEkstra?.tagCategoryId || "") : (item.kategoriId || item.metaEkstra?.kategoriId || "")}
-                        onChange={(e) => {
-                          const field = item.module === "perawatan" ? "tagCategoryId" : "kategoriId";
-                          onStatusChange?.(item.id, { [field]: e.target.value });
-                        }}
-                        className="appearance-none bg-transparent hover:bg-muted/50 rounded-lg pr-7 pl-2 py-1 -ml-2 text-[13px] font-medium text-foreground/90 outline-none cursor-pointer transition-all z-10 truncate max-w-[250px]"
-                      >
-                        <option value="" disabled>Pilih Kategori...</option>
-                        {dropdownOptions?.kategori?.filter((k: any) => k.module === item.module).map((k: any) => (
-                          <option key={k.id} value={k.id}>{k.name}</option>
-                        ))}
-                      </select>
+                  {/* 🚀 THE FIX: flex wrap dan gap ditambahkan untuk menampung gembok */}
+                  <div className="flex-1 flex items-center gap-2 flex-wrap">
+                    {/* 🚀 THE FIX: Gembok Kategori kalau tab Selesai sedang aktif */}
+                    {filterSiklus === "selesai" ? (
+                      <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-foreground/90">
+                        <Lock className="h-3 w-3 opacity-40" />
+                        {item.category || "-"}
+                      </span>
+                    ) : (
+                      <div className="relative inline-flex max-w-full group/select">
+                        <select
+                          value={item.module === "perawatan" ? (item.tagCategoryId || item.metaEkstra?.tagCategoryId || "") : (item.kategoriId || item.metaEkstra?.kategoriId || "")}
+                          onChange={(e) => {
+                            const field = item.module === "perawatan" ? "tagCategoryId" : "kategoriId";
+                            // 🚀 THE FIX: Kirim null jika string kosong
+                            onStatusChange?.(item.id, { [field]: e.target.value || null });
+                          }}
+                          className="appearance-none bg-transparent hover:bg-muted/50 rounded-lg pr-7 pl-2 py-1 -ml-2 text-[13px] font-medium text-foreground/90 outline-none cursor-pointer transition-all z-10 truncate max-w-[250px]"
+                        >
+                          <option value="" disabled>Pilih Kategori...</option>
+                          
+                          {/* 🚀 THE FIX: Map data berdasarkan jenis modulnya */}
+                          {isFinance 
+                            ? financeOptions?.kategoriKeuangan?.map((k: any) => (
+                                <option key={k.id} value={k.id}>{k.nama}</option>
+                              ))
+                            : dropdownOptions?.kategori?.filter((k: any) => k.module === item.module).map((k: any) => (
+                                <option key={k.id} value={k.id}>{k.name}</option>
+                              ))
+                          }
+                        </select>
                       <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/30 pointer-events-none z-10 transition-all group-hover/select:text-foreground/70" />
                     </div>
                   </div>
