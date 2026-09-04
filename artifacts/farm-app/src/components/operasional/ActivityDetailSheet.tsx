@@ -351,25 +351,36 @@ useEffect(() => {
          {/* ✨ 2. NOTION-STYLE PROPERTIES (Metadata vertikal yang rapi) */}
             <div className="flex flex-col gap-2.5 mb-10 border-b border-border/40 pb-6">
               
-           {/* Property: Waktu & HST */}
+          {/* Property: Waktu & HST */}
               <div className="flex items-center min-h-[34px] group">
                 {/* 🚀 Selaraskan: gap-2.5, opacity-50, text-muted-foreground/80 */}
                 <div className="w-[140px] shrink-0 text-[13px] font-medium text-muted-foreground/80 flex items-center gap-2.5">
                   <CalendarDays className="h-4 w-4 opacity-50" /> Waktu
                 </div>
-                {/* 🚀 Selaraskan: text-foreground/90 */}
-                 <div className="flex-1 flex flex-wrap items-center gap-2 text-[13px] font-medium text-foreground/90 hover:bg-muted/50 rounded-lg px-2 py-1 -ml-2 transition-all w-fit cursor-default">
-                  <span>{formatTanggalLengkap(item.rawDate)}</span>
+                {/* 🚀 FIX: Hapus cursor-default di parent agar input date bisa diklik */}
+                 <div className="flex-1 flex flex-wrap items-center gap-2 text-[13px] font-medium text-foreground/90 hover:bg-muted/50 rounded-lg px-2 py-1 -ml-2 transition-all w-fit">
+                  
+                  {/* 🚀 THE FIX: Sulap teks jadi Input Date (Pemilih Kalender) khusus Finance */}
+                  {isFinance ? (
+                    <input 
+                      type="date"
+                      value={item.rawDate ? item.rawDate.substring(0, 10) : ""}
+                      onChange={(e) => onStatusChange?.(item.id, { tanggal: e.target.value })}
+                      className="bg-transparent font-medium text-foreground/90 outline-none cursor-pointer hover:text-primary transition-colors [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-50"
+                    />
+                  ) : (
+                    <span className="cursor-default">{formatTanggalLengkap(item.rawDate)}</span>
+                  )}
                   
                   {/* 🚀 THE FIX: Sembunyikan Jam & HST kalau ini nota Finance */}
                   {!isFinance && (
                     <>
-                      <span className="text-muted-foreground/30 text-[10px]">●</span>
-                      <span>{item.time}</span>
+                      <span className="text-muted-foreground/30 text-[10px] cursor-default">●</span>
+                      <span className="cursor-default">{item.time}</span>
                       
                       {/* ✨ BADGE HST : Tetap dipertahankan dengan warna tema */}
                       {calculateHST() && (
-                        <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20 px-1.5 py-0 rounded-sm font-bold shrink-0 ml-1 shadow-sm">
+                        <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20 px-1.5 py-0 rounded-sm font-bold shrink-0 ml-1 shadow-sm cursor-default">
                           {calculateHST()}
                         </Badge>
                       )}
