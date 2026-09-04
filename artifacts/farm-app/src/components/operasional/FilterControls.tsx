@@ -192,11 +192,12 @@ export function FilterControls({
                     <span className="font-bold tracking-wide">{activeTimeFilter}</span>
                   )}
                   
-                  {/* Kalau milih Rentang Waktu, munculin tanggal (cth: 09-01 s/d 09-30) */}
+                {/* Kalau milih Rentang Waktu, munculin tanggal (cth: 09-01 s/d 09-30) */}
                   {activeTimeFilter === "Rentang Waktu" && (
                     <span className="font-bold tracking-wide text-[11px]">
+                      {/* 🚀 THE FIX 3: Pakai String() dan substring biar kebal kalau datanya undefined */}
                       {customDateRange?.start && customDateRange?.end 
-                        ? `${customDateRange.start.slice(5)} - ${customDateRange.end.slice(5)}` 
+                        ? `${String(customDateRange.start).substring(5)} s/d ${String(customDateRange.end).substring(5)}` 
                         : "Pilih Tanggal"}
                     </span>
                   )}
