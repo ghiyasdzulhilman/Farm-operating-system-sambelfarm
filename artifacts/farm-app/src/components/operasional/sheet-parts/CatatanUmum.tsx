@@ -1,4 +1,5 @@
-import { useState } from "react";
+// 🚀 THE FIX: Tambahkan useEffect di import
+import { useState, useEffect } from "react";
 import type { AgronomyItem } from "@/types/operasional";
 
 interface CatatanUmumProps {
@@ -11,7 +12,9 @@ export function CatatanUmum({ item, onStatusChange }: CatatanUmumProps) {
   const [localValue, setLocalValue] = useState("");
 
   const getCleanCatatan = () => {
-    const raw = item.notes || "";
+    // 🚀 THE FIX: Cek juga metaEkstra.catatanKhusus untuk nampilin data Pengeluaran
+    const raw = item.notes || item.metaEkstra?.catatanKhusus || item.metaEkstra?.catatan || "";
+    
     if (item.module === "perawatan" && raw.includes("\n\nCatatan Tambahan:\n")) {
       const parts = raw.split("\n\nCatatan Tambahan:\n");
       return parts[parts.length - 1]; 
@@ -22,13 +25,31 @@ export function CatatanUmum({ item, onStatusChange }: CatatanUmumProps) {
     return raw;
   };
 
+  // 🚀 THE FIX: Anti-Lag! Sinkronkan memori lokal HANYA saat data awal berubah
+  useEffect(() => {
+    if (!isEditing) {
+      setLocalValue(getCleanCatatan());
+    }
+  }, [item, isEditing]);
+
   const handleSave = () => {
     setIsEditing(false);
     const valStr = localValue.trim();
-    const payload: any = {};
-    payload[item.module === "inspeksi" ? "keterangan" : "catatan"] = valStr;
     
     if (valStr !== getCleanCatatan()) {
+      const payload: any = {};
+      
+      // 🚀 THE FIX: Mapping Bahasa Payload ke Backend
+      if (item.module === "inspeksi") {
+        payload.keterangan = valStr;
+      } else if (item.module === "pengeluaran") {
+        // 🚀 Backend Pengeluaran butuhnya 'catatanKhusus'
+        payload.catatanKhusus = valStr; 
+      } else {
+        // 🚀 Agronomi dan Panen pakai 'catatan'
+        payload.catatan = valStr;
+      }
+
       onStatusChange?.(item.id, payload);
     }
   };
@@ -43,7 +64,8 @@ export function CatatanUmum({ item, onStatusChange }: CatatanUmumProps) {
       </div>
       
       <div 
-        onClick={() => { if(!isEditing) { setIsEditing(true); setLocalValue(getCleanCatatan()); } }}
+        // 🚀 THE FIX: Hapus setLocalValue di sini karena udah di-handle mulus oleh useEffect
+        onClick={() => { if(!isEditing) setIsEditing(true); }}
         className="group/notes w-full text-[14px] leading-relaxed text-foreground/90 min-h-[120px] cursor-pointer transition-all hover:bg-muted/30 rounded-2xl p-3 -mx-3"
       >
         {isEditing ? (
@@ -53,7 +75,8 @@ export function CatatanUmum({ item, onStatusChange }: CatatanUmumProps) {
             value={localValue} 
             onChange={(e) => setLocalValue(e.target.value)} 
             onBlur={handleSave} 
-            className="w-full bg-transparent outline-none resize-none p-0" 
+            // 🚀 THE FIX: Tambahkan focus:ring-0 biar UI-nya bersih di HP
+            className="w-full bg-transparent outline-none resize-none p-0 focus:ring-0" 
           />
         ) : (
           <div className="whitespace-pre-wrap">{getCleanCatatan() || "Ketik catatan disini..."}</div>
