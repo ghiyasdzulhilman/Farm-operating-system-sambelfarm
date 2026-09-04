@@ -410,14 +410,13 @@ useEffect(() => {
                 </div>
               </div>
   
-            {/* Property: Kategori */}
+             {/* Property: Kategori */}
               {/* 🚀 THE FIX: Sembunyikan untuk Inspeksi DAN Panen */}
               {item.module !== "inspeksi" && item.module !== "panen" && (
                 <div className="flex items-center min-h-[34px] group mt-1">
                   <div className="w-[140px] shrink-0 text-[13px] font-medium text-muted-foreground/80 flex items-center gap-2.5">
                     <Briefcase className="h-4 w-4 opacity-50" /> Kategori
                   </div>
-                  {/* 🚀 THE FIX: flex wrap dan gap ditambahkan untuk menampung gembok */}
                   <div className="flex-1 flex items-center gap-2 flex-wrap">
                     {/* 🚀 THE FIX: Gembok Kategori kalau tab Selesai sedang aktif */}
                     {filterSiklus === "selesai" ? (
@@ -448,8 +447,9 @@ useEffect(() => {
                               ))
                           }
                         </select>
-                      <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/30 pointer-events-none z-10 transition-all group-hover/select:text-foreground/70" />
-                    </div>
+                        <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/30 pointer-events-none z-10 transition-all group-hover/select:text-foreground/70" />
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
