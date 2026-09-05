@@ -292,22 +292,23 @@ export function AgronomyHubPage() {
         matchTime = item.dateLabel === "Hari ini";
       } else if (activeTimeFilter === "Kemarin") {
         matchTime = item.dateLabel === "Kemarin";
-      } else if (activeTimeFilter === "1 Bulan") {
+      } else if (activeTimeFilter === "30 Hari") {
         const oneMonthAgo = new Date();
         oneMonthAgo.setMonth(now.getMonth() - 1);
         oneMonthAgo.setHours(0, 0, 0, 0);
         matchTime = itemDate >= oneMonthAgo && itemDate <= endOfToday;
-      } else if (activeTimeFilter === "3 Bulan") {
+      } else if (activeTimeFilter === "90 Hari") {
         const threeMonthsAgo = new Date();
         threeMonthsAgo.setMonth(now.getMonth() - 3);
         threeMonthsAgo.setHours(0, 0, 0, 0);
         matchTime = itemDate >= threeMonthsAgo && itemDate <= endOfToday;
-      } else if (activeTimeFilter === "1 Tahun") {
-        const oneYearAgo = new Date();
-        oneYearAgo.setFullYear(now.getFullYear() - 1);
-        oneYearAgo.setHours(0, 0, 0, 0);
-        matchTime = itemDate >= oneYearAgo && itemDate <= endOfToday;
-      } else if (activeTimeFilter === "Rentang Waktu") {
+      } else if (activeTimeFilter === "7 Hari") {
+        // 🚀 THE FIX: Ubah logika jadi mundur 7 hari (pakai setDate)
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(now.getDate() - 7);
+        sevenDaysAgo.setHours(0, 0, 0, 0);
+        matchTime = itemDate >= sevenDaysAgo && itemDate <= endOfToday;
+      } else if (activeTimeFilter === "Kustom") {
         // 🚀 THE FIX 2: Proteksi ekstra untuk kalender manual
         if (customDateRange && customDateRange.start && customDateRange.end) {
           try {
