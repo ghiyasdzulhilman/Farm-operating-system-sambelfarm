@@ -310,13 +310,22 @@ export function FilterControls({
               </button>
             </div>
 
-          {/* Area Kalender Range */}
-            <div className="overflow-y-auto p-6 flex justify-center custom-scrollbar pb-12">
+           {/* Area Kalender Range */}
+            <div className="overflow-y-auto p-4 sm:p-6 flex justify-center custom-scrollbar pb-8">
               <Calendar
                 mode="range"
                 selected={{ from: tempRange.from, to: tempRange.to }}
                 onSelect={(range) => setTempRange({ from: range?.from, to: range?.to })}
-                className="w-full max-w-sm rounded-[1.5rem] border border-border/30 bg-background/50 shadow-inner p-4"
+                className={cn(
+                  "w-fit rounded-[1.5rem] border border-border/30 bg-background/50 shadow-inner p-4 sm:p-5 mx-auto",
+                  // 🚀 THE FIX: Paksa ukuran tinggi & lebar eksplisit biar kotak kalender BESAR 
+                  // Ini otomatis ngebunuh bug Safari/iOS yang suka motong bagian bawah kalender!
+                  "[--cell-size:2.8rem] sm:[--cell-size:3.2rem]",
+                  "[&_td]:h-[--cell-size] [&_td]:w-[--cell-size] [&_td]:aspect-auto",
+                  "[&_button]:h-[--cell-size] [&_button]:w-[--cell-size] [&_button]:aspect-auto",
+                  // 🚀 Bikin font angka tanggalnya lebih besar dan bold biar premium
+                  "[&_button]:text-sm [&_button>span]:text-[15px] sm:[&_button>span]:text-base font-medium"
+                )}
               />
             </div>
 
