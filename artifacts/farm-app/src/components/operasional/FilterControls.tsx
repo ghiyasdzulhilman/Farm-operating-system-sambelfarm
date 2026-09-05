@@ -310,16 +310,21 @@ export function FilterControls({
               </button>
             </div>
 
-           {/* Area Kalender Range */}
-            {/* 🚀 THE FIX 1: Hapus 'overflow-y-auto' biar modalnya langsung melar ke bawah, bukan malah bikin scroll di dalam */}
+          {/* Area Kalender Range */}
             <div className="p-4 sm:p-6 flex justify-center pb-12">
               <Calendar
                 mode="range"
                 selected={{ from: tempRange.from, to: tempRange.to }}
                 onSelect={(range) => setTempRange({ from: range?.from, to: range?.to })}
-                // 🚀 THE FIX 2: Balikin ke w-full max-w-sm (ukuran yg lu suka), 
-                // tapi tambahin "h-fit" dan "pb-6" biar kotak background-nya ditarik nutupin tanggal 31!
-                className="w-full max-w-sm rounded-[1.5rem] border border-border/30 bg-background/50 shadow-inner p-4 pb-6 h-fit"
+                className={cn(
+                  // Ukuran w-full max-w-sm dan padding tetap dipertahankan biar kalender tetap gede
+                  "w-full max-w-sm rounded-[1.5rem] border border-border/30 bg-background/50 shadow-inner p-4 pb-6 h-auto",
+                  
+                  // 🚀 THE FIX: Membunuh bug Safari/iOS! 
+                  // Kita cabut 'aspect-square' dari sel tabel, lalu ganti tinggi (height) jadi 42px.
+                  // Ini memaksa latar belakang putih mengenali baris ke-6 dan ikut melar ke bawah.
+                  "[&_td]:aspect-auto [&_button]:aspect-auto [&_button]:h-[42px] sm:[&_button]:h-[48px]"
+                )}
               />
             </div>
 
