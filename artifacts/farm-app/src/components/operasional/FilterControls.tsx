@@ -173,12 +173,12 @@ export function FilterControls({
                     {item}
                   </DropdownMenuItem>
                 ))}
-                <DropdownMenuSeparator className="my-1.5 border-border/40" />
+               <DropdownMenuSeparator className="my-1.5 border-border/40" />
                 <DropdownMenuItem 
-                  onSelect={(e) => {
-                    e.preventDefault(); 
-                    setIsCustomModalOpen(true); // Buka layar ala IG
-                    // Set default kalender dari customDateRange kalau udah ada
+                  onSelect={() => {
+                    // 🚀 THE FIX 1: Hapus e.preventDefault() biar menu Dropdown otomatis NUTUP!
+                    setIsCustomModalOpen(true); 
+                    
                     if (customDateRange?.start) {
                       setTempRange({
                         from: new Date(customDateRange.start),
@@ -261,14 +261,14 @@ export function FilterControls({
         </div>
       </div>
 
-      {/* 🌟 BOTTOM SHEET KALENDER KUSTOM (Gaya Instagram Insights) */}
+    {/* 🌟 TOP SHEET KALENDER KUSTOM (Muncul dari Atas ke Bawah) */}
       {isCustomModalOpen && (
-        <div className="fixed inset-0 z-50 flex flex-col justify-end bg-background/80 backdrop-blur-sm animate-in fade-in duration-300">
-          {/* Area klik luar buat nutup */}
-          <div className="flex-1" onClick={() => setIsCustomModalOpen(false)}></div>
+        // 🚀 THE FIX 2: Ubah justify-end jadi justify-start
+        <div className="fixed inset-0 z-50 flex flex-col justify-start bg-background/80 backdrop-blur-sm animate-in fade-in duration-300">
           
-          {/* Kertas Melorot (Bottom Sheet) */}
-          <div className="bg-card/95 backdrop-blur-md rounded-t-[2rem] border-t border-border/50 shadow-[0_-10px_40px_rgba(0,0,0,0.15)] flex flex-col max-h-[85vh] animate-in slide-in-from-bottom-full duration-300 ease-out">
+          {/* Kertas Meluncur dari Atas (Top Sheet) */}
+          {/* 🚀 THE FIX 3: Ubah rounded jadi di bawah (rounded-b), dan animasi dari top (slide-in-from-top-full) */}
+          <div className="bg-card/95 backdrop-blur-md rounded-b-[2rem] border-b border-border/50 shadow-[0_10px_40px_rgba(0,0,0,0.15)] flex flex-col max-h-[85vh] animate-in slide-in-from-top-full duration-300 ease-out">
             
             {/* Header ala IG */}
             <div className="flex items-center justify-between p-4 border-b border-border/30">
@@ -310,7 +310,7 @@ export function FilterControls({
               </button>
             </div>
 
-            {/* Area Kalender Range */}
+          {/* Area Kalender Range */}
             <div className="overflow-y-auto p-6 flex justify-center custom-scrollbar pb-12">
               <Calendar
                 mode="range"
@@ -321,8 +321,12 @@ export function FilterControls({
             </div>
 
           </div>
+          
+          {/* 🚀 THE FIX 4: Area klik luar dipindah ke sini (di bawah kalender) */}
+          <div className="flex-1" onClick={() => setIsCustomModalOpen(false)}></div>
+          
         </div>
       )}
-    </div> // Ini adalah tag div penutup dari return paling luar
+    </div> 
   );
 }
