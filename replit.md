@@ -1,92 +1,267 @@
-# Farm Management System (Sistem Manajemen Kebun)
+# 🌾 SambelFarm — Replit Development Guide
 
-A web app for Indonesian agri-entrepreneurs that connects to their Notion workspace via OAuth and surfaces farm financial data (Laba Rugi) on a clean dashboard.
+> **IMPORTANT:** Baca `ARCHITECTURE.md` sebelum membuat perubahan arsitektur, database, business rule, atau perubahan lintas modul.
+>
+> `ARCHITECTURE.md` adalah living source of context untuk arsitektur, progress, technical debt, roadmap, invariants, dan architecture changelog.
+>
+> File ini sengaja dibuat ringkas sebagai operational guide untuk development/testing di Replit.
 
-## Run & Operate
+## Current Product
 
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- `pnpm --filter @workspace/api-server run dev` — run API server locally
+SambelFarm adalah **Farm Operating System / farm ERP mobile-first** untuk mengelola operasi kebun dari aktivitas lapangan sampai biaya, inventory, panen, dan profitability.
 
-Required env vars:
-- `DATABASE_URL` — PostgreSQL connection string (auto-set by Replit DB)
-- `CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KEY`, `VITE_CLERK_PUBLISHABLE_KEY` — Clerk auth (auto-set)
-- `NOTION_CLIENT_ID` — Notion OAuth app client ID
-- `NOTION_CLIENT_SECRET` — Notion OAuth app secret
-- `NOTION_REDIRECT_URI` — OAuth callback URL (e.g. `https://<domain>/api/notion/callback`)
+Current phase:
 
-## Stack
+```text
+Functional Farm ERP Core → Production Hardening
+```
 
-- **Monorepo**: pnpm workspaces
-- **Node.js**: 24 / **TypeScript**: 5.9
-- **Frontend**: React 19 + Vite + Tailwind v4 + shadcn/ui + framer-motion
-- **Auth**: Clerk (email + Google, via @clerk/react + @clerk/express)
-- **Routing**: wouter (base-relative under WouterRouter)
-- **API framework**: Express 5
-- **Database**: PostgreSQL + Drizzle ORM
-- **Validation**: Zod (zod/v4), drizzle-zod
-- **API codegen**: Orval (OpenAPI → React Query hooks + Zod schemas)
-- **Build**: esbuild (CJS bundle for API server)
+Project saat audit 9 September 2026 diperkirakan sekitar **70–75% menuju production-ready MVP**. Fokus utama sekarang adalah reliability dan data integrity, bukan menambah sebanyak mungkin fitur baru.
 
-## Where things live
+## Current Architecture
 
-- `lib/api-spec/openapi.yaml` — OpenAPI contract (source of truth)
-- `lib/api-client-react/src/generated/` — generated React Query hooks
-- `lib/api-zod/src/generated/` — generated Zod schemas for server validation
-- `lib/db/src/schema/` — Drizzle table definitions
-  - `notionConnections.ts` — stores per-user Notion access tokens
-  - `oauthStates.ts` — transient OAuth PKCE state tokens
-  - `fieldMappings.ts` — per-user config (composite PK: userId+databaseType, columns: notionDatabaseId TEXT nullable, mappings JSONB)
-- `artifacts/farm-app/src/` — React frontend
-  - `pages/home.tsx` — landing page (public)
-  - `pages/dashboard.tsx` — financial summary (protected)
-  - `pages/connect.tsx` — Notion OAuth connect/disconnect (protected)
-  - `pages/settings.tsx` — field mapping configuration UI (protected)
-  - `components/layout/app-layout.tsx` — shell with header/nav
-- `artifacts/api-server/src/routes/` — Express route handlers
-  - `notion.ts` — POST /notion/connect, GET /notion/callback, GET /notion/status, POST /notion/disconnect
-  - `expenses.ts` — GET /notion/dropdown-options, POST /notion/add-expense (uses stored notionDatabaseId first)
-  - `harvest.ts` — GET /notion/harvest-dropdown-options, POST /notion/add-harvest (uses stored notionDatabaseId first)
-  - `mappings.ts` — GET /notion/list-databases, GET /notion/inspect-database?type&databaseId, GET+POST /notion/field-mappings (supports laba_rugi)
-  - `dashboard.ts` — GET /dashboard/summary (uses stored laba_rugi notionDatabaseId, falls back to name search)
+```text
+React 19 + Vite
+        ↓
+Express 5 + TypeScript
+        ↓
+Clerk Auth + requireOrganisasi
+        ↓
+Drizzle ORM
+        ↓
+PostgreSQL / Supabase
+```
 
-## Architecture decisions
+- **Monorepo:** pnpm workspaces
+- **Node.js:** 24
+- **TypeScript:** 5.9
+- **Frontend:** React 19, Vite, Wouter, TanStack Query/Table, Tailwind v4, shadcn/Radix, React Hook Form, Zod
+- **Backend:** Express 5, Clerk, Drizzle ORM, Zod, Pino
+- **Database:** PostgreSQL / Supabase
+- **Tenant boundary:** `organisasiId`
 
-- **Notion as headless CMS**: Each user connects their own Notion workspace via OAuth. Access tokens stored per-user in PostgreSQL. No shared database — users own their data.
-- **Contract-first API**: OpenAPI spec gates codegen which gates frontend. Orval generates both React Query hooks (client) and Zod schemas (server).
-- **Clerk proxy middleware**: Clerk FAPI requests are proxied through the Express API server so auth works on custom domains without DNS CNAME setup.
-- **Laba Rugi auto-discovery**: The dashboard route searches the user's Notion workspace for a database matching "Laba Rugi" — no manual DB ID configuration needed.
-- **State-based OAuth**: Transient state tokens stored in `oauth_states` table for CSRF protection during Notion OAuth flow.
-- **Dynamic Database Mapping**: `field_mappings` table now stores `notionDatabaseId TEXT` per row — the user-selected Notion database for each role. `GET /notion/list-databases` paginates Notion search API to return all databases. `inspect-database` resolves in order: explicit `databaseId` param → saved mapping → name search fallback. Dashboard and form routes use stored `notionDatabaseId` first, then fall back to name search for backward compat.
-- **Field Mapping (ID-based)**: app field keys → `{ propertyId, propertyName, relatedDatabaseId }`. POST to Notion uses property IDs as keys (not names). Relation dropdowns use stored `relatedDatabaseId`.
+## ⚠️ Notion Is NOT Part of the Current Architecture
 
-## Product
+SambelFarm sekarang **100% PostgreSQL-native**.
 
-- **Landing page**: Public marketing page with sign-in/sign-up CTAs (in Bahasa Indonesia)
-- **Authentication**: Email + Google login via Clerk
-- **Notion OAuth**: Connect/disconnect user's own Notion workspace; stores access token per user
-- **Dashboard**: Pulls Total Pendapatan + Total Pengeluaran from the "Laba Rugi" Notion database, displays Laba/Rugi net figure in IDR format
-- **Input Pengeluaran**: Form dialog (Tambah Pengeluaran) untuk menambah data ke Notion database "Expenses" — dropdown Kategori & Area dari Notion
-- **Input Panen**: Form dialog (Tambah Panen) untuk menambah data ke Notion database "Panen" — dropdown Area dari "Pindah Tanam", Select statis Kualitas & Channel Penjualan
-- **Pengaturan / Field Mapping**: Halaman `/settings` — Langkah 1: user pilih database Notion per peran (Laba Rugi, Panen, Pengeluaran) dari daftar dinamis; Langkah 2: petakan field aplikasi ke properti Notion. Semua disimpan per-user per-database-type termasuk notionDatabaseId.
+Jangan:
 
-## User preferences
+- menambahkan kembali Notion OAuth;
+- membuat Notion database mapping;
+- menambahkan Notion access token storage;
+- menggunakan Notion sebagai source of truth;
+- menganggap route `/notion/*` berarti project masih menggunakan Notion.
 
-- App UI should be in Bahasa Indonesia
-- Template-based SaaS model: users duplicate Notion template, then connect via OAuth
-- Phase 1 only (auth + Notion OAuth + financial dashboard); remaining 7 modules deferred
+Beberapa endpoint masih memakai prefix `/notion/*` karena **legacy naming only**. Rename akan dilakukan terpisah jika dianggap aman.
 
-## Gotchas
+## Important Locations
 
-- Notion OAuth requires `NOTION_CLIENT_ID`, `NOTION_CLIENT_SECRET`, and `NOTION_REDIRECT_URI` to be set before the connect flow works
-- `NOTION_REDIRECT_URI` must match the URI registered in your Notion integration exactly
-- Clerk proxy middleware must be mounted BEFORE `express.json()` — see `app.ts`
-- Route wildcard `/*?` is required for sign-in/sign-up routes so Clerk sub-paths work
+```text
+ARCHITECTURE.md
+  Living architecture + progress reference
 
-## Pointers
+lib/db/src/
+  Drizzle schema dan database helpers
 
-- See `.local/skills/clerk-auth/references/setup-and-customization.md` for Clerk customization
-- See `.local/skills/pnpm-workspace/references/openapi.md` for adding new endpoints
-- Notion API docs: https://developers.notion.com/reference
+artifacts/api-server/src/
+  Express backend
+
+artifacts/api-server/src/routes/
+  Business API routes
+
+artifacts/farm-app/src/
+  React frontend
+
+artifacts/farm-app/src/pages/AgronomyHubPage.tsx
+  Operational/Agronomy hub
+
+artifacts/farm-app/src/components/operasional/
+  Feed, Kanban, Table, Detail Sheet, filters
+
+lib/api-spec/
+lib/api-zod/
+lib/api-client-react/
+  Legacy/partial generated API infrastructure; BUKAN source of truth lengkap saat ini
+```
+
+## Run & Verify
+
+Gunakan command root berikut setelah perubahan signifikan:
+
+```bash
+pnpm run typecheck
+pnpm run build
+```
+
+Backend development:
+
+```bash
+pnpm --filter @workspace/api-server run dev
+```
+
+Database development command yang tersedia:
+
+```bash
+pnpm --filter @workspace/db run push
+```
+
+> Jangan melakukan perubahan schema/database tanpa memahami data impact terlebih dahulu. Lihat `ARCHITECTURE.md`.
+
+## Critical Engineering Rules
+
+### 1. Tenant isolation is mandatory
+
+Semua business data harus dibatasi `organisasiId`.
+
+Jangan melakukan lookup/update/delete entity hanya berdasarkan UUID jika entity tersebut tenant-owned.
+
+Tenant A tidak boleh dapat membaca, mengubah, atau menghapus data Tenant B.
+
+### 2. Never mutate inventory without the ledger
+
+`produkMaster.stokSaatIni` adalah current state.
+
+`stock_movement` adalah historical inventory journal.
+
+Perubahan stok harus menjaga keduanya konsisten.
+
+### 3. Multi-table writes must be atomic
+
+Gunakan DB transaction untuk operasi yang mengubah beberapa tabel, khususnya:
+
+- pembelian stok;
+- pemakaian produk perawatan;
+- stock rollback;
+- onboarding organisasi;
+- mutation lain yang memiliki dependent records.
+
+### 4. Preserve historical HPP
+
+Historical transaction cost tidak boleh berubah hanya karena harga/HPP produk master berubah kemudian.
+
+### 5. Validate mutations on the server
+
+Frontend Zod validation adalah UX protection, bukan security boundary.
+
+Target backend:
+
+```text
+HTTP request
+→ Zod safeParse
+→ validated input
+→ business logic
+→ DB transaction
+```
+
+Server-side Zod validation saat ini belum konsisten dan merupakan technical debt P0.
+
+### 6. Respect siklus tanam
+
+Perawatan, inspeksi, operasional, pengeluaran, dan panen dapat terkait dengan siklus. Jangan mengubah assignment/lifecycle siklus tanpa memeriksa dampaknya ke historical reporting.
+
+### 7. Do not bypass stock rollback safety
+
+Delete transaksi inventory-sensitive dapat diblokir dengan `LEDGER_BLOCKED` jika sudah ada transaksi lanjutan. Jangan menghapus protection ini hanya agar delete berhasil.
+
+## Current Development Priorities
+
+### P0 — Stability & Data Integrity
+
+1. audit tenant isolation seluruh endpoint;
+2. backend Zod validation;
+3. inventory concurrency protection;
+4. automated stock/HPP/rollback tests;
+5. tenant-isolation tests;
+6. finance constraint audit;
+7. transaction-safety audit;
+8. onboarding/auth smoke tests.
+
+### P1 — Architecture Consistency
+
+- putuskan API contract strategy;
+- reduce `any` pada boundaries;
+- standard error response;
+- shared WIB/time utilities;
+- structured logging;
+- dokumentasi legacy route naming.
+
+Detail roadmap dan progress ada di `ARCHITECTURE.md`.
+
+## API Contract Warning
+
+Repository memiliki OpenAPI + generated Zod + generated React Query client, tetapi OpenAPI **tidak mencakup API aktual secara lengkap** dan frontend utama mayoritas menggunakan raw `fetch()`.
+
+Karena itu:
+
+- jangan menganggap `lib/api-spec/openapi.yaml` sebagai source of truth lengkap;
+- jangan otomatis menjalankan codegen untuk endpoint baru tanpa memahami strategi API saat ini;
+- baca `ARCHITECTURE.md` bagian Validation & API Contract sebelum mengubah infrastructure ini.
+
+## Testing Status
+
+Automated test suite saat ini praktis belum tersedia.
+
+Sampai test foundation selesai, minimal verification setelah perubahan signifikan:
+
+```text
+1. pnpm run typecheck
+2. pnpm run build
+3. test happy path di Replit preview
+4. test invalid input/failure path
+5. jika tenant-sensitive: test tenant isolation
+6. jika inventory-sensitive: test stock + HPP + rollback behavior
+```
+
+Jangan menyatakan transaction-critical change aman hanya karena UI berhasil submit.
+
+## AI / Agent Workflow
+
+Untuk perubahan besar gunakan urutan:
+
+```text
+Read ARCHITECTURE.md
+        ↓
+Inspect current source
+        ↓
+Identify invariants & dependencies
+        ↓
+Design change
+        ↓
+Implement smallest safe change
+        ↓
+Typecheck + build
+        ↓
+Runtime test
+        ↓
+Failure/rollback test
+        ↓
+Update ARCHITECTURE.md jika behavior/architecture berubah
+```
+
+Jangan menebak implementation dari dokumentasi saja. Source terbaru tetap authoritative untuk detail kode.
+
+## Documentation Responsibilities
+
+`ARCHITECTURE.md` wajib diperbarui ketika terjadi perubahan penting pada:
+
+- schema/constraint database;
+- auth atau multi-tenancy;
+- API contract penting;
+- inventory/HPP/finance business rule;
+- lifecycle siklus;
+- milestone modul;
+- technical debt/roadmap priority;
+- architecture decision.
+
+Tidak perlu update untuk perubahan kosmetik kecil.
+
+## Current North Star
+
+**Engineering:** membuat core SambelFarm aman, konsisten, dapat diuji, dan dapat dipercaya sebagai source of truth operasional kebun.
+
+**Product:** memungkinkan user menjalankan siklus kebun dari aktivitas lapangan sampai mengetahui biaya, hasil, dan profitability melalui workflow mobile yang sederhana.
+
+---
+
+**Last refreshed:** 9 September 2026  
+**Primary reference:** `ARCHITECTURE.md`
