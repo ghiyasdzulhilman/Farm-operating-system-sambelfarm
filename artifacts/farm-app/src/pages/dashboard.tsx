@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { id } from "date-fns/locale";
 import { animate, motion } from "framer-motion";
 import { Bot, Sparkles } from "lucide-react";
@@ -12,9 +12,10 @@ import { OperationalSection } from "@/components/OperationalSection";
 import { ProductionSection } from "@/components/ProductionSection";
 import { Skeleton } from "@/components/ui/skeleton";
 import type {
+  DashboardCycleStatusFilter,
+  DashboardDataset,
   DashboardDateRange,
-  DashboardSiklusFilter,
-  DashboardSummary,
+  DashboardDerivedSummary,
   DashboardTimeFilter,
 } from "@/types/dashboard";
 
@@ -35,10 +36,7 @@ const scrollReveal = {
     opacity: 1,
     y: 0,
     filter: "blur(0px)",
-    transition: {
-      duration: 0.8,
-      ease: [0.21, 1.11, 0.81, 0.99],
-    },
+    transition: { duration: 0.8, ease: [0.21, 1.11, 0.81, 0.99] },
   },
 };
 
@@ -48,15 +46,6 @@ const sectionItems: Array<{ key: DashboardSection; label: string }> = [
   { key: "operational", label: "Operational" },
   { key: "insight", label: "Insight" },
 ];
-
-const emptyDisplayData: DisplayData = {
-  modal: 0,
-  pendapatan: 0,
-  pengeluaran: 0,
-  profit: 0,
-  margin: 0,
-  harvestWeight: 0,
-};
 
 const formatYmd = (date: Date) => {
   const offset = date.getTimezoneOffset() * 60_000;
@@ -83,7 +72,6 @@ function AnimatedNumber({
       ease: "easeOut",
       onUpdate: (latest) => setDisplayValue(formatRef.current(latest)),
     });
-
     return () => controls.stop();
   }, [value]);
 
@@ -96,9 +84,124 @@ const getMarginBg = (margin: number) => {
   return "border-destructive/20 bg-destructive/10";
 };
 
+function deriveSummary(
+  dataset: DashboardDataset,
+  contextId: string,
+  dateRange: DashboardDateRange | null
+): DashboardDerivedSummary {
+  const selectedContexts =
+    contextId === "all"
+      ? dataset.contexts
+      : dataset.contexts.filter((context) => context.siklusId === contextId);
+
+  const selectedCycleIds = new Set(selectedContexts.map((context) => context.siklusId));
+  const isFarmWide = contextId === "all";
+
+  const facts = dataset.facts.filter((fact) => {
+    if (!isFarmWide && (!fact.siklusId || !selectedCycleIds.has(fact.siklusId))) return false;
+    if (dateRange && (fact.date < dateRange.start || fact.date > dateRange.end)) return false;
+    return true;
+  });
+
+  const totalModal = selectedContexts.reduce((sum, context) => sum + context.modalAwal, 0);
+  const totalPendapatan = facts.reduce((sum, fact) => sum + fact.pendapatan, 0);
+  const totalPengeluaran = facts.reduce((sum, fact) => sum + fact.pengeluaran, 0);
+  const totalHarvestWeight = facts.reduce((sum, fact) => sum + fact.harvestWeight, 0);
+  const labaRugi = totalPendapatan - totalPengeluaran;
+  const marginTotal =
+    totalPendapatan > 0 ? (labaRugi / totalPendapatan) * 100 : totalPengeluaran > 0 ? -100 : 0;
+  const hpp = totalHarvestWeight > 0 ? totalPengeluaran / totalHarvestWeight : 0;
+  const averageRevenuePerKg = totalHarvestWeight > 0 ? totalPendapatan / totalHarvestWeight : 0;
+  const bepProgress = totalModal > 0 ? (totalPendapatan / totalModal) * 100 : 0;
+
+  const areasMap = new Map<
+    string,
+    { id: string; name: string; modalAwal: number; pendapatan: number; pengeluaran: number; harvestWeight: number }
+  >();
+
+  for (const context of selectedContexts) {
+    const current = areasMap.get(context.areaId) ?? {
+      id: context.areaId,
+      name: context.areaName,
+      modalAwal: 0,
+      pendapatan: 0,
+      pengeluaran: 0,
+      harvestWeight: 0,
+    };
+    current.modalAwal += context.modalAwal;
+    areasMap.set(context.areaId, current);
+  }
+
+  for (const fact of facts) {
+    if (!fact.areaId) continue;
+    const context = dataset.contexts.find((item) => item.areaId === fact.areaId && item.siklusId === fact.siklusId);
+    const current = areasMap.get(fact.areaId) ?? {
+      id: fact.areaId,
+      name: context?.areaName ?? "Area",
+      modalAwal: 0,
+      pendapatan: 0,
+      pengeluaran: 0,
+      harvestWeight: 0,
+    };
+    current.pendapatan += fact.pendapatan;
+    current.pengeluaran += fact.pengeluaran;
+    current.harvestWeight += fact.harvestWeight;
+    areasMap.set(fact.areaId, current);
+  }
+
+  const areas = Array.from(areasMap.values()).map((area) => {
+    const profit = area.pendapatan - area.pengeluaran;
+    const margin = area.pendapatan > 0 ? (profit / area.pendapatan) * 100 : area.pengeluaran > 0 ? -100 : 0;
+    return { ...area, profit, margin };
+  });
+
+  const activities = dataset.activities
+    .filter((activity) => {
+      if (!isFarmWide && (!activity.siklusId || !selectedCycleIds.has(activity.siklusId))) return false;
+      const activityDate = formatYmd(new Date(activity.occurredAt));
+      if (dateRange && (activityDate < dateRange.start || activityDate > dateRange.end)) return false;
+      return true;
+    })
+    .slice(0, 8);
+
+  return {
+    financial: {
+      totalModal,
+      totalPendapatan,
+      totalPengeluaran,
+      labaRugi,
+      marginTotal,
+      bepProgress,
+    },
+    production: {
+      totalHarvestWeight,
+      hpp,
+      averageRevenuePerKg,
+    },
+    operational: {
+      totalAreas: new Set(selectedContexts.map((context) => context.areaId)).size,
+      activeAreas:
+        dataset.cycleStatus === "aktif"
+          ? new Set(selectedContexts.map((context) => context.areaId)).size
+          : 0,
+    },
+    insight: {
+      businessStatus: marginTotal > 0 ? "Profitable" : "Developing",
+      recommendation:
+        marginTotal < 0
+          ? "Usaha masih merugi. Fokus meningkatkan penjualan dan efisiensi biaya."
+          : marginTotal < 15
+            ? "Margin rendah, efisiensi operasional perlu ditingkatkan."
+            : "Performa usaha dalam kondisi baik.",
+    },
+    areas,
+    activities,
+  };
+}
+
 export function DashboardPage() {
-  const [selectedAreaId, setSelectedAreaId] = useState("all");
-  const [siklusFilter, setSiklusFilter] = useState<DashboardSiklusFilter>("aktif");
+  const [cycleStatus, setCycleStatus] = useState<DashboardCycleStatusFilter>("aktif");
+  const [selectedContextId, setSelectedContextId] = useState("all");
   const [timeFilter, setTimeFilter] = useState<DashboardTimeFilter>("Semua Waktu");
   const [customDateRange, setCustomDateRange] = useState<DashboardDateRange | null>(null);
   const [activeSection, setActiveSection] = useState<DashboardSection>("financial");
@@ -109,25 +212,17 @@ export function DashboardPage() {
   const insightRef = useRef<HTMLDivElement>(null);
 
   const sectionRefs = useMemo(
-    () => ({
-      financial: financialRef,
-      production: productionRef,
-      operational: operationalRef,
-      insight: insightRef,
-    }),
+    () => ({ financial: financialRef, production: productionRef, operational: operationalRef, insight: insightRef }),
     []
   );
 
   useEffect(() => {
     const handleScroll = () => {
       let currentSection: DashboardSection = "financial";
-
       sectionItems.forEach((section) => {
         const element = sectionRefs[section.key].current;
-        if (!element) return;
-        if (element.getBoundingClientRect().top <= 92) currentSection = section.key;
+        if (element && element.getBoundingClientRect().top <= 92) currentSection = section.key;
       });
-
       setActiveSection(currentSection);
     };
 
@@ -144,50 +239,42 @@ export function DashboardPage() {
     const end = new Date();
     const start = new Date();
     start.setDate(end.getDate() - (days - 1));
-
     return { start: formatYmd(start), end: formatYmd(end) };
   }, [timeFilter, customDateRange]);
 
-  const { data: summary, isLoading: isLoadingSummary } = useQuery<DashboardSummary>({
-    queryKey: [
-      "dashboard-summary-v2",
-      selectedAreaId,
-      siklusFilter,
-      resolvedDateRange?.start ?? null,
-      resolvedDateRange?.end ?? null,
-    ],
+  const {
+    data: dataset,
+    isLoading,
+    isFetching,
+  } = useQuery<DashboardDataset>({
+    queryKey: ["dashboard-dataset-v2", cycleStatus],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      params.set("siklus", siklusFilter);
-      if (selectedAreaId !== "all") params.set("areaId", selectedAreaId);
-      if (resolvedDateRange) {
-        params.set("startDate", resolvedDateRange.start);
-        params.set("endDate", resolvedDateRange.end);
-      }
-
-      const res = await fetch(`/api/dashboard/summary?${params.toString()}`);
+      const res = await fetch(`/api/dashboard/summary?status=${cycleStatus}`);
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || "Gagal mengambil data dashboard");
       }
       return res.json();
     },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   });
 
-  const displayData = useMemo<DisplayData>(() => {
-    if (!summary) return emptyDisplayData;
-    return {
-      modal: summary.financial.totalModal,
-      pendapatan: summary.financial.totalPendapatan,
-      pengeluaran: summary.financial.totalPengeluaran,
-      profit: summary.financial.labaRugi,
-      margin: summary.financial.marginTotal,
-      harvestWeight: summary.production.totalHarvestWeight,
-    };
-  }, [summary]);
+  const summary = useMemo(
+    () => (dataset ? deriveSummary(dataset, selectedContextId, resolvedDateRange) : null),
+    [dataset, selectedContextId, resolvedDateRange]
+  );
 
-  const areas = summary?.areas ?? [];
-  const areaOptions = summary?.filterOptions.areas ?? [];
+  const displayData: DisplayData = summary
+    ? {
+        modal: summary.financial.totalModal,
+        pendapatan: summary.financial.totalPendapatan,
+        pengeluaran: summary.financial.totalPengeluaran,
+        profit: summary.financial.labaRugi,
+        margin: summary.financial.marginTotal,
+        harvestWeight: summary.production.totalHarvestWeight,
+      }
+    : { modal: 0, pendapatan: 0, pengeluaran: 0, profit: 0, margin: 0, harvestWeight: 0 };
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat("id-ID", {
@@ -206,24 +293,26 @@ export function DashboardPage() {
     }
   };
 
-  const profitChartData = areas.map((area) => ({
+  const profitChartData = (summary?.areas ?? []).map((area) => ({
     name: area.name,
-    profit: area.profit || 0,
-    produksi: area.harvestWeight || 0,
+    profit: area.profit,
+    produksi: area.harvestWeight,
   }));
 
-  const harvestActivities = summary?.activities.filter((activity) => activity.type === "harvest") ?? [];
-  const expenseActivities = summary?.activities.filter((activity) => activity.type === "expense") ?? [];
+  const visibleActivities = (summary?.activities ?? []).map((activity) => ({
+    ...activity,
+    time: formatDistanceToNow(new Date(activity.occurredAt), { addSuffix: true, locale: id }),
+  }));
 
-  const localBusinessStatus = summary?.insight.businessStatus ?? "Developing";
-  const localRecommendation = summary?.insight.recommendation ?? "Belum ada insight untuk scope ini.";
+  const harvestActivities = visibleActivities.filter((activity) => activity.type === "harvest");
+  const expenseActivities = visibleActivities.filter((activity) => activity.type === "expense");
 
   const scrollToSection = (section: DashboardSection) => {
     setActiveSection(section);
     sectionRefs[section].current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  if (isLoadingSummary && !summary) {
+  if (isLoading && !dataset) {
     return (
       <div className="mt-4 space-y-5 px-4 md:px-6">
         <Skeleton className="h-16 rounded-[1.25rem]" />
@@ -240,6 +329,7 @@ export function DashboardPage() {
 
   const hpp = summary?.production.hpp ?? 0;
   const bepProgress = Math.min(summary?.financial.bepProgress ?? 0, 100);
+  const contextKey = selectedContextId === "all" ? cycleStatus : selectedContextId;
 
   return (
     <div className="flex min-h-screen flex-col pb-20 font-sans">
@@ -270,26 +360,31 @@ export function DashboardPage() {
         </div>
 
         <DashboardFilters
-          areas={areaOptions}
-          areaId={selectedAreaId}
-          setAreaId={setSelectedAreaId}
-          siklus={siklusFilter}
-          setSiklus={setSiklusFilter}
+          contexts={dataset?.contexts ?? []}
+          contextId={selectedContextId}
+          setContextId={setSelectedContextId}
+          cycleStatus={cycleStatus}
+          setCycleStatus={setCycleStatus}
           timeFilter={timeFilter}
           setTimeFilter={setTimeFilter}
           customDateRange={customDateRange}
           setCustomDateRange={setCustomDateRange}
         />
 
+        {isFetching && (
+          <div className="mt-2 text-center text-[10px] font-semibold text-muted-foreground">
+            Memuat data siklus {cycleStatus === "aktif" ? "aktif" : "selesai"}…
+          </div>
+        )}
+
         <div className="relative mt-4 overflow-hidden rounded-[2rem] bg-slate-950 p-5 text-white shadow-2xl md:mt-6 md:rounded-[2.5rem] md:p-6 [transform:translateZ(0)]">
           <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/20 blur-[80px]" />
-
           <div className="relative z-10">
             <div className="flex items-start justify-between">
               <div>
                 <p className="mb-1 text-xs font-bold text-white/60">Business pulse</p>
                 <h2 className="text-2xl font-black text-white transition-colors duration-500 md:text-3xl">
-                  {localBusinessStatus}
+                  {summary?.insight.businessStatus ?? "Developing"}
                 </h2>
               </div>
               <div className="rounded-2xl bg-white/10 p-3 backdrop-blur-md">
@@ -302,22 +397,14 @@ export function DashboardPage() {
                 <div className={`rounded-2xl border p-4 transition-colors duration-500 ${getMarginBg(displayData.margin)}`}>
                   <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-white/60">Margin</p>
                   <p className="text-2xl font-black text-white">
-                    <AnimatedNumber
-                      key={`margin-${selectedAreaId}-${siklusFilter}-${summary?.lastUpdated}`}
-                      value={displayData.margin}
-                      formatFn={(val) => `${val.toFixed(1)}%`}
-                    />
+                    <AnimatedNumber key={`margin-${contextKey}-${resolvedDateRange?.start ?? "all"}`} value={displayData.margin} formatFn={(val) => `${val.toFixed(1)}%`} />
                   </p>
                 </div>
 
                 <div className={`rounded-2xl border p-4 transition-colors duration-500 ${getMarginBg(displayData.margin)}`}>
                   <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-white/60">HPP / kg</p>
                   <p className="text-xl font-black text-white">
-                    <AnimatedNumber
-                      key={`hpp-${selectedAreaId}-${siklusFilter}-${summary?.lastUpdated}`}
-                      value={hpp}
-                      formatFn={formatCurrency}
-                    />
+                    <AnimatedNumber key={`hpp-${contextKey}-${resolvedDateRange?.start ?? "all"}`} value={hpp} formatFn={formatCurrency} />
                   </p>
                 </div>
               </div>
@@ -326,16 +413,12 @@ export function DashboardPage() {
                 <div className="mb-2 flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.15em]">
                   <span className="text-white/60">BEP Runway</span>
                   <span className="font-bold text-white">
-                    <AnimatedNumber
-                      key={`bep-${selectedAreaId}-${siklusFilter}-${summary?.lastUpdated}`}
-                      value={bepProgress}
-                      formatFn={(val) => `${val.toFixed(1)}%`}
-                    />
+                    <AnimatedNumber key={`bep-${contextKey}-${resolvedDateRange?.start ?? "all"}`} value={bepProgress} formatFn={(val) => `${val.toFixed(1)}%`} />
                   </span>
                 </div>
                 <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
                   <motion.div
-                    key={`bep-bar-${selectedAreaId}-${siklusFilter}-${summary?.lastUpdated}`}
+                    key={`bep-bar-${contextKey}-${resolvedDateRange?.start ?? "all"}`}
                     initial={{ width: 0 }}
                     animate={{ width: `${bepProgress}%` }}
                     transition={{ duration: 1.2, ease: "easeOut" }}
@@ -348,7 +431,7 @@ export function DashboardPage() {
             <div className="mt-4 flex items-center justify-start gap-2">
               <div className="flex items-center gap-2 rounded-xl bg-white/5 px-3 py-1.5 text-[10px] font-medium text-white/80 sm:text-xs">
                 <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" />
-                <span className="truncate">Data Terkini: {formatDate(summary?.lastUpdated)}</span>
+                <span className="truncate">Data Terkini: {formatDate(dataset?.meta.generatedAt)}</span>
               </div>
             </div>
           </div>
@@ -363,7 +446,7 @@ export function DashboardPage() {
 
           <section ref={productionRef} className="scroll-mt-[74px]">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={scrollReveal}>
-              <ProductionSection displayData={displayData} areas={areas} formatCurrency={formatCurrency} />
+              <ProductionSection displayData={displayData} areas={summary?.areas ?? []} formatCurrency={formatCurrency} />
             </motion.div>
           </section>
 
@@ -377,8 +460,8 @@ export function DashboardPage() {
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={scrollReveal}>
               <InsightSection
                 displayData={displayData}
-                localBusinessStatus={localBusinessStatus}
-                localRecommendation={localRecommendation}
+                localBusinessStatus={summary?.insight.businessStatus ?? "Developing"}
+                localRecommendation={summary?.insight.recommendation ?? "Belum ada insight untuk scope ini."}
                 formatCurrency={formatCurrency}
               />
             </motion.div>
