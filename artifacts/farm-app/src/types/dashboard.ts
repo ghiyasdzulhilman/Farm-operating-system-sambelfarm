@@ -27,6 +27,15 @@ export type DashboardDailyFact = {
   harvestCount: number;
 };
 
+export type DashboardCostFact = {
+  date: string;
+  siklusId: string | null;
+  areaId: string | null;
+  kategoriId: string | null;
+  kategoriName: string;
+  totalBiaya: number;
+};
+
 export type DashboardActivity = {
   id: string;
   type: "harvest" | "expense";
@@ -41,6 +50,7 @@ export type DashboardDataset = {
   cycleStatus: DashboardCycleStatusFilter;
   contexts: DashboardContext[];
   facts: DashboardDailyFact[];
+  costFacts: DashboardCostFact[];
   activities: DashboardActivity[];
   meta: {
     generatedAt: string;
@@ -59,6 +69,13 @@ export type DashboardAreaSummary = {
   harvestWeight: number;
 };
 
+export type DashboardCostBreakdownItem = {
+  kategoriId: string | null;
+  name: string;
+  amount: number;
+  percentage: number;
+};
+
 export type DashboardDerivedSummary = {
   financial: {
     totalModal: number;
@@ -67,6 +84,8 @@ export type DashboardDerivedSummary = {
     labaRugi: number;
     marginTotal: number;
     bepProgress: number;
+    cashCostPerKg: number;
+    costBreakdown: DashboardCostBreakdownItem[];
   };
   production: {
     totalHarvestWeight: number;
