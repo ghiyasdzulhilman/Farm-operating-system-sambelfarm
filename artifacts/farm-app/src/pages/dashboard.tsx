@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { format, formatDistanceToNow } from "date-fns";
 import { id } from "date-fns/locale";
 import { animate, motion } from "framer-motion";
-import { Bot, Sparkles } from "lucide-react";
+import { AlertTriangle, Bot, RefreshCw, Sparkles } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
 import { AgronomyHealth } from "@/components/dashboard/AgronomyHealth";
@@ -11,7 +11,10 @@ import { FinancialSection } from "@/components/FinancialSection";
 import { InsightSection } from "@/components/InsightSection";
 import { OperationalSection } from "@/components/OperationalSection";
 import { ProductionSection } from "@/components/ProductionSection";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { kunciQueryDashboard } from "@/lib/sinkronisasiQuery";
+import { skemaDatasetDashboard } from "@/lib/validasiDashboard";
 import type {
   DashboardCycleStatusFilter,
   DashboardDataset,
@@ -535,15 +538,23 @@ export function DashboardPage() {
     data: dataset,
     isLoading,
     isFetching,
+    isError,
+    error,
+    refetch,
   } = useQuery<DashboardDataset>({
-    queryKey: ["dashboard-dataset-v2", cycleStatus],
+    queryKey: kunciQueryDashboard.ringkasan(cycleStatus),
     queryFn: async () => {
       const res = await fetch(`/api/dashboard/summary?status=${cycleStatus}`);
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || "Gagal mengambil data dashboard");
       }
-      return res.json();
+      const hasil = skemaDatasetDashboard.safeParse(await res.json());
+      if (!hasil.success) {
+        console.error("[DASHBOARD DATA INVALID]", hasil.error.flatten());
+        throw new Error("Format data dashboard tidak valid");
+      }
+      return hasil.data;
     },
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
@@ -607,6 +618,34 @@ export function DashboardPage() {
     );
   }
 
+  if (isError && !dataset) {
+    const pesanError = error instanceof Error ? error.message : "Terjadi kesalahan saat mengambil data dashboard.";
+
+    return (
+      <div className="mx-auto flex min-h-[60vh] w-full max-w-7xl items-center justify-center py-6">
+        <div
+          role="alert"
+          className="w-full max-w-md rounded-[1.5rem] border border-destructive/20 bg-card/60 p-5 text-center shadow-[0_16px_50px_-24px_rgba(0,0,0,0.3)] backdrop-blur-md"
+        >
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-destructive/20 bg-destructive/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]">
+            <AlertTriangle className="h-5 w-5 text-destructive" />
+          </div>
+          <p className="mt-4 text-[11px] font-bold uppercase tracking-widest text-destructive">Dashboard gagal dimuat</p>
+          <h1 className="mt-1 text-xl font-bold tracking-tight text-foreground">Data kebun belum dapat ditampilkan</h1>
+          <p className="mt-2 text-xs font-medium leading-relaxed text-muted-foreground">{pesanError}</p>
+          <Button
+            type="button"
+            onClick={() => void refetch()}
+            className="mt-5 h-11 w-full rounded-xl font-bold transition-all duration-500 ease-out"
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Coba lagi
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   const cashCostPerKg = summary?.financial.cashCostPerKg ?? 0;
   const recoveryProgress = Math.min(summary?.financial.bepProgress ?? 0, 100);
   const contextKey = selectedContextId === "all" ? cycleStatus : selectedContextId;
@@ -654,6 +693,28 @@ export function DashboardPage() {
         {isFetching && (
           <div className="mt-2 text-center text-[10px] font-semibold text-muted-foreground">
             Memuat data siklus {cycleStatus === "aktif" ? "aktif" : "selesai"}…
+          </div>
+        )}
+
+        {isError && dataset && (
+          <div
+            role="alert"
+            className="mt-3 flex items-center gap-3 rounded-[1.25rem] border border-amber-500/20 bg-amber-500/10 px-3.5 py-3 text-amber-800 backdrop-blur-md dark:text-amber-200"
+          >
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.3)]">
+              <AlertTriangle className="h-4 w-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-bold uppercase tracking-widest">Data terakhir tetap ditampilkan</p>
+              <p className="mt-0.5 text-[11px] font-medium opacity-80">Pembaruan terbaru gagal dimuat.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void refetch()}
+              className="shrink-0 rounded-xl px-3 py-2 text-[11px] font-bold transition-colors duration-500 ease-out hover:bg-amber-500/10"
+            >
+              Coba lagi
+            </button>
           </div>
         )}
 

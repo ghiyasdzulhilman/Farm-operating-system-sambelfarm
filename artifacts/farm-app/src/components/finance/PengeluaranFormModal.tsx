@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 
 import { useToast } from "@/hooks/use-toast";
+import { segarkanFeedDanDashboard } from "@/lib/sinkronisasiQuery";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -202,9 +203,10 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
       return response.json();
     },
     onSuccess: async () => {
-      // ✅ DISINKRONKAN: Menggunakan rumpun kunci data utama Hub agar tabel langsung berkedip update
-      await queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] });
-      await queryClient.invalidateQueries({ queryKey: ["produk-master-list"] }); 
+      await Promise.all([
+        segarkanFeedDanDashboard(queryClient),
+        queryClient.invalidateQueries({ queryKey: ["produk-master-list"] }),
+      ]);
       setSubmitted(true);
       form.reset(EMPTY_VALUES);
     },
@@ -644,4 +646,3 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
      </Sheet>
    );
 }
-
