@@ -1,211 +1,93 @@
 import {
   AlertTriangle,
-  Bot,
-  BrainCircuit,
+  Banknote,
+  Bug,
+  CheckCircle2,
   CircleGauge,
-  Lightbulb,
-  TrendingUp,
+  Sprout,
+  Wrench,
 } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
+import type { DashboardDerivedSummary, DashboardInsightDomain, DashboardInsightTone } from "@/types/dashboard";
 
 interface InsightSectionProps {
-  displayData: any;
-  localBusinessStatus: string;
-  localRecommendation: string;
-  formatCurrency: (amount: number) => string;
+  insight: DashboardDerivedSummary["insight"];
 }
 
-export function InsightSection({
-  displayData,
-  localBusinessStatus,
-  localRecommendation,
-  formatCurrency,
-}: InsightSectionProps) {
-
-const hpp =
-  displayData.pengeluaran /
-  (displayData.harvestWeight || 1);
-
-const insights = [
-  {
-    title:
-      displayData.margin < 15
-        ? "Margin perlu perhatian"
-        : "Margin stabil",
-
-    description:
-      `Margin saat ini ${displayData.margin.toFixed(1)}%.
-      Sistem membaca performa sebagai
-      ${localBusinessStatus.toLowerCase()}.`,
-
-    icon: CircleGauge,
-
-    tone:
-      displayData.margin < 15
-        ? "amber"
-        : "emerald",
-  },
-
-  {
-    title: "HPP terpantau otomatis",
-
-    description:
-      `Harga pokok produksi sekitar
-      ${formatCurrency(hpp)}/kg
-      berdasarkan data panen dan pengeluaran.`,
-
-    icon: BrainCircuit,
-
-    tone: "cyan",
-  },
-
-  {
-    title:
-      "Produksi meningkat jika bottleneck ditekan",
-
-    description:
-      "Prioritaskan area dengan output tinggi dan biaya input rendah untuk siklus berikutnya.",
-
-    icon: TrendingUp,
-
-    tone: "emerald",
-  },
-
-  {
-    title:
-      "Area paling boros perlu audit",
-
-    description:
-      "Bandingkan biaya pupuk, tenaga kerja, dan perlakuan per blok sebelum scale-up.",
-
-    icon: AlertTriangle,
-
-    tone: "rose",
-  },
-];
-
-const toneClass: Record<string, string> = {
-  amber:
-    "border-amber-500/20 bg-amber-500/10 text-amber-600",
-
-  emerald:
-    "border-primary/20 bg-primary/10 text-primary",
-
-  cyan:
-    "border-cyan-500/20 bg-cyan-500/10 text-cyan-600",
-
-  rose:
-    "border-rose-500/20 bg-rose-500/10 text-rose-600",
+const domainMeta: Record<DashboardInsightDomain, { label: string; icon: typeof Banknote }> = {
+  financial: { label: "Financial", icon: Banknote },
+  production: { label: "Production", icon: Sprout },
+  operational: { label: "Operational", icon: Wrench },
+  agronomy: { label: "Agronomy", icon: Bug },
 };
 
+const toneClass: Record<DashboardInsightTone, string> = {
+  attention: "border-destructive/20 bg-destructive/10 text-destructive",
+  positive: "border-primary/20 bg-primary/10 text-primary",
+  neutral: "border-border/50 bg-muted/30 text-foreground",
+};
+
+const toneIcon: Record<DashboardInsightTone, typeof AlertTriangle> = {
+  attention: AlertTriangle,
+  positive: CheckCircle2,
+  neutral: CircleGauge,
+};
+
+export function InsightSection({ insight }: InsightSectionProps) {
   return (
-  <div className="space-y-4 md:space-y-5">
-
-    <div>
-
-      <p
-        /* AUDIT WARNA: Teks statis violet diubah ke warna accent dinamis */
-        className="
-          text-xs
-          font-black
-          uppercase
-          tracking-[0.22em]
-          text-accent
-        "
-      >
-        Smart Insight
-      </p>
-
-    </div>
-
-    <div
-      className="
-        grid
-        gap-4
-      "
-    >
-
-      <div
-        className="
-          grid
-          gap-3
-          sm:grid-cols-2
-        "
-      >
-
-        {insights.map((insight) => {
-
-          const Icon = insight.icon;
-
-          return (
-
-            <Card
-              key={insight.title}
-              /* AUDIT WARNA: Mengganti kaca statis putih dengan semantic bg-card agar plong & responsif */
-              className="
-                rounded-[1.75rem]
-                border-border/50
-                bg-card
-                text-card-foreground
-                shadow-sm
-              "
-            >
-
-              <CardContent className="p-5">
-
-                <div
-                  className={`
-                    mb-4
-                    inline-flex
-                    rounded-2xl
-                    border
-                    p-3
-                    ${toneClass[insight.tone]}
-                  `}
-                >
-
-                  <Icon
-                    className="
-                      h-4
-                      w-4
-                    "
-                  />
-
-                </div>
-
-                <h3
-                  className="
-                    text-base
-                    font-black
-                    tracking-[-0.03em]
-                  "
-                >
-                  {insight.title}
-                </h3>
-
-                <p
-                  className="
-                    mt-2
-                    text-sm
-                    leading-6
-                    text-muted-foreground
-                  "
-                >
-                  {insight.description}
-                </p>
-
-              </CardContent>
-
-            </Card>
-
-          );
-        })}
-
+    <div className="space-y-4 md:space-y-5">
+      <div>
+        <p className="text-xs font-black uppercase tracking-[0.22em] text-primary">Smart Insight</p>
+        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+          Rule-based dari data pada scope yang sedang dipilih. Setiap insight menyertakan bukti angkanya.
+        </p>
       </div>
 
-    </div>
+      {insight.items.length > 0 ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {insight.items.map((item) => {
+            const DomainIcon = domainMeta[item.domain].icon;
+            const ToneIcon = toneIcon[item.tone];
 
-  </div>
-);
+            return (
+              <Card
+                key={item.id}
+                className="rounded-[1.5rem] border-border/50 bg-card/70 text-card-foreground shadow-sm backdrop-blur-md"
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className={`inline-flex rounded-xl border p-2.5 ${toneClass[item.tone]}`}>
+                      <ToneIcon className="h-4 w-4" />
+                    </div>
+                    <span className="flex items-center gap-1.5 rounded-full border border-border/40 bg-muted/20 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-muted-foreground">
+                      <DomainIcon className="h-3 w-3" />
+                      {domainMeta[item.domain].label}
+                    </span>
+                  </div>
+
+                  <h3 className="mt-3 text-sm font-black tracking-[-0.03em]">{item.title}</h3>
+                  <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{item.description}</p>
+
+                  <div className="mt-3 space-y-1.5 border-t border-border/30 pt-3">
+                    {item.evidence.map((evidence) => (
+                      <div key={evidence} className="flex items-start gap-2 text-[10px] font-semibold text-muted-foreground">
+                        <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/70" />
+                        <span>{evidence}</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="rounded-[1.5rem] border border-dashed border-border/50 bg-card/50 px-5 py-10 text-center">
+          <p className="text-sm font-black">Belum cukup data untuk membuat insight</p>
+          <p className="mt-1 text-xs text-muted-foreground">Tambahkan aktivitas, panen, pengeluaran, atau inspeksi pada scope ini.</p>
+        </div>
+      )}
+    </div>
+  );
 }
