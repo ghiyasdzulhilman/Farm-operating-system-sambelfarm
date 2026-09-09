@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { segarkanFeedDanDashboard } from "@/lib/sinkronisasiQuery";
 import type { AgronomyItem } from "@/types/operasional";
 import { EditableCell } from "./EditableCell";
 
@@ -69,9 +70,11 @@ export function MasterTableView({
     return res.json();
   },
 
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] });
-    queryClient.invalidateQueries({ queryKey: ["operasional-options-list"] });
+  onSuccess: async () => {
+    await Promise.all([
+      segarkanFeedDanDashboard(queryClient),
+      queryClient.invalidateQueries({ queryKey: ["operasional-options-list"] }),
+    ]);
   },
   onError: (err: any) => toast({ variant: "destructive", title: "Gagal Simpan", description: err.message }),
 });
@@ -101,7 +104,9 @@ export function MasterTableView({
       }
       return res.json();
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] }),
+    onSuccess: async () => {
+      await segarkanFeedDanDashboard(queryClient);
+    },
     onError: (err: any) => toast({ variant: "destructive", title: "Gagal Menghapus", description: err.message }),
   });
 

@@ -11,8 +11,8 @@ import {
   Check, X, Plus 
 } from "lucide-react";
 
-import { getGetDashboardSummaryQueryKey } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
+import { segarkanFeedDanDashboard } from "@/lib/sinkronisasiQuery";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -225,10 +225,7 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
     },
 
       onSuccess: async (responseData) => {
-      await queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey(), refetchType: "all" });
-      
-      // 🚀 SUNTIKAN BARU: Wajib invalidate ini biar feed di background langsung refresh instan!
-      await queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] });
+      await segarkanFeedDanDashboard(queryClient);
       
       const results = responseData?.data || [];
       if (results.length > 0) setSubmittedRecords(results);

@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 
 import { useToast } from "@/hooks/use-toast";
+import { segarkanFeedDanDashboard } from "@/lib/sinkronisasiQuery";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -85,9 +86,11 @@ export function FormPanen({ onSuccess }: { onSuccess?: () => void }) {
       }
       return res.json();
     },
-    onSuccess: (responseData) => {
-  queryClient.invalidateQueries({ queryKey: ["harvest"] });
-  queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] }); 
+    onSuccess: async (responseData) => {
+  await Promise.all([
+    queryClient.invalidateQueries({ queryKey: ["harvest"] }),
+    segarkanFeedDanDashboard(queryClient),
+  ]);
   
   setSubmittedRecords(responseData.data);
   form.reset(EMPTY_VALUES);
