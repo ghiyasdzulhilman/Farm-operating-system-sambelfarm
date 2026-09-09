@@ -7,6 +7,7 @@ import {
   siklusTanamTable,
   panenTable,
   pengeluaranTable,
+  kategoriKeuanganTable,
 } from "@workspace/db";
 import { and, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 
@@ -57,8 +58,6 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
         ? eq(siklusTanamTable.status, "Aktif")
         : inArray(siklusTanamTable.status, ["Selesai", "Ditutup"]);
 
-    // Dashboard bekerja dalam context Area + Siklus, bukan Area saja.
-    // Satu request hanya memuat satu kelompok context: aktif ATAU historis selesai.
     const contexts = await db
       .select({
         siklusId: siklusTanamTable.id,
@@ -108,8 +107,6 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
           .orderBy(desc(panenTable.tanggal))
       : [];
 
-    // Biaya umum (siklusId NULL) hanya dimasukkan pada dashboard aktif/farm-wide.
-    // Untuk histori selesai biaya umum tidak dialokasikan secara paksa ke siklus lama.
     const expenseScope =
       status === "aktif"
         ? cycleIds.length
@@ -124,11 +121,20 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
         id: pengeluaranTable.id,
         siklusId: pengeluaranTable.siklusId,
         areaId: pengeluaranTable.areaId,
+        kategoriId: pengeluaranTable.kategoriId,
+        kategoriName: kategoriKeuanganTable.nama,
         tanggal: pengeluaranTable.tanggal,
         namaItem: pengeluaranTable.namaItem,
         totalBiaya: pengeluaranTable.totalBiaya,
       })
       .from(pengeluaranTable)
+      .leftJoin(
+        kategoriKeuanganTable,
+        and(
+          eq(pengeluaranTable.kategoriId, kategoriKeuanganTable.id),
+          eq(kategoriKeuanganTable.organisasiId, req.organisasiId)
+        )
+      )
       .where(
         and(
           eq(pengeluaranTable.organisasiId, req.organisasiId),
@@ -180,6 +186,37 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
       fact.pengeluaran += safeNumber(row.totalBiaya);
     }
 
+    const costFactMap = new Map<
+      string,
+      {
+        date: string;
+        siklusId: string | null;
+        areaId: string | null;
+        kategoriId: string | null;
+        kategoriName: string;
+        totalBiaya: number;
+      }
+    >();
+
+    for (const row of pengeluaranRows) {
+      const date = dateKeyWIB(row.tanggal);
+      const kategoriName = row.kategoriName?.trim() || "Tanpa kategori";
+      const key = `${date}|${row.siklusId ?? "general"}|${row.areaId ?? "general"}|${row.kategoriId ?? "uncategorized"}`;
+      const existing = costFactMap.get(key);
+      if (existing) {
+        existing.totalBiaya += safeNumber(row.totalBiaya);
+        continue;
+      }
+      costFactMap.set(key, {
+        date,
+        siklusId: row.siklusId,
+        areaId: row.areaId,
+        kategoriId: row.kategoriId,
+        kategoriName,
+        totalBiaya: safeNumber(row.totalBiaya),
+      });
+    }
+
     const contextMap = new Map(contexts.map((context) => [context.siklusId, context]));
 
     const activities = [
@@ -217,6 +254,7 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
         label: `${context.areaName} - ${context.namaSiklus}`,
       })),
       facts: Array.from(factMap.values()).sort((a, b) => b.date.localeCompare(a.date)),
+      costFacts: Array.from(costFactMap.values()).sort((a, b) => b.date.localeCompare(a.date)),
       activities,
       meta: {
         generatedAt: new Date().toISOString(),
