@@ -17,6 +17,7 @@ import type {
   DashboardDataset,
   DashboardDateRange,
   DashboardDerivedSummary,
+  DashboardInsightItem,
   DashboardTimeFilter,
 } from "@/types/dashboard";
 
@@ -48,11 +49,6 @@ const sectionItems: Array<{ key: DashboardSection; label: string }> = [
   { key: "insight", label: "Insight" },
 ];
 
-const formatYmd = (date: Date) => {
-  const offset = date.getTimezoneOffset() * 60_000;
-  return new Date(date.getTime() - offset).toISOString().split("T")[0];
-};
-
 const formatDateKeyWIB = (date: Date) =>
   new Intl.DateTimeFormat("sv-SE", {
     timeZone: "Asia/Jakarta",
@@ -60,6 +56,9 @@ const formatDateKeyWIB = (date: Date) =>
     month: "2-digit",
     day: "2-digit",
   }).format(date);
+
+const formatMoneyPlain = (amount: number) =>
+  `Rp${new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(Math.abs(amount || 0))}`;
 
 function AnimatedNumber({
   value,
@@ -88,9 +87,9 @@ function AnimatedNumber({
 }
 
 const getMarginBg = (margin: number) => {
-  if (margin >= 15) return "border-primary/20 bg-primary/10";
-  if (margin > 0) return "border-accent/20 bg-accent/10";
-  return "border-destructive/20 bg-destructive/10";
+  if (margin > 0) return "border-primary/20 bg-primary/10";
+  if (margin < 0) return "border-destructive/20 bg-destructive/10";
+  return "border-border/40 bg-muted/20";
 };
 
 function deriveSummary(
@@ -178,8 +177,7 @@ function deriveSummary(
   }
 
   for (const fact of facts) {
-    if (!fact.areaId || !fact.siklusId) continue;
-    if (!selectedCycleIds.has(fact.siklusId)) continue;
+    if (!fact.areaId || !fact.siklusId || !selectedCycleIds.has(fact.siklusId)) continue;
     const context = dataset.contexts.find((item) => item.areaId === fact.areaId && item.siklusId === fact.siklusId);
     const current = areasMap.get(fact.areaId) ?? {
       id: fact.areaId,
@@ -267,6 +265,183 @@ function deriveSummary(
     })
     .slice(0, 8);
 
+  const insightCandidates: DashboardInsightItem[] = [];
+
+  if (totalPendapatan === 0 && totalPengeluaran > 0) {
+    insightCandidates.push({
+      id: "financial-no-revenue",
+      domain: "financial",
+      tone: "attention",
+      title: "Belum ada pendapatan pada scope ini",
+      description: "Pengeluaran sudah tercatat, sementara pendapatan panen pada periode yang dipilih masih nol.",
+      evidence: [
+        `Pengeluaran ${formatMoneyPlain(totalPengeluaran)}`,
+        `Pendapatan ${formatMoneyPlain(totalPendapatan)}`,
+        `Panen ${totalHarvestWeight.toLocaleString("id-ID", { maximumFractionDigits: 1 })} kg`,
+      ],
+    });
+  } else if (labaRugi < 0) {
+    insightCandidates.push({
+      id: "financial-deficit",
+      domain: "financial",
+      tone: "attention",
+      title: "Cash position masih negatif",
+      description: "Pengeluaran pada scope ini lebih besar daripada pendapatan panen yang tercatat.",
+      evidence: [
+        `Defisit ${formatMoneyPlain(labaRugi)}`,
+        `Pendapatan ${formatMoneyPlain(totalPendapatan)}`,
+        `Pengeluaran ${formatMoneyPlain(totalPengeluaran)}`,
+      ],
+    });
+  } else if (labaRugi > 0) {
+    insightCandidates.push({
+      id: "financial-positive",
+      domain: "financial",
+      tone: "positive",
+      title: "Cash profit positif",
+      description: "Pendapatan panen pada scope ini berada di atas pengeluaran kas yang tercatat.",
+      evidence: [
+        `Cash profit ${formatMoneyPlain(labaRugi)}`,
+        `Margin ${marginTotal.toFixed(1)}%`,
+        `Pendapatan ${formatMoneyPlain(totalPendapatan)}`,
+      ],
+    });
+  }
+
+  const largestCost = costBreakdown[0];
+  if (largestCost && largestCost.amount > 0) {
+    insightCandidates.push({
+      id: `financial-cost-${largestCost.kategoriId ?? largestCost.name}`,
+      domain: "financial",
+      tone: "neutral",
+      title: `${largestCost.name} adalah kategori biaya terbesar`,
+      description: "Kategori ini menyumbang porsi pengeluaran terbesar pada scope dan periode yang sedang dilihat.",
+      evidence: [
+        `${formatMoneyPlain(largestCost.amount)} tercatat`,
+        `${largestCost.percentage.toFixed(1)}% dari total pengeluaran`,
+      ],
+    });
+  }
+
+  if (isFarmWide && areaRanking.length > 1 && totalHarvestWeight > 0) {
+    const leader = areaRanking[0];
+    const share = (leader.harvestWeight / totalHarvestWeight) * 100;
+    insightCandidates.push({
+      id: `production-leader-${leader.id}`,
+      domain: "production",
+      tone: "neutral",
+      title: `${leader.name} menjadi kontributor panen terbesar`,
+      description: "Area ini menyumbang volume panen terbesar dibanding area lain pada scope yang sama.",
+      evidence: [
+        `${leader.harvestWeight.toLocaleString("id-ID", { maximumFractionDigits: 1 })} kg panen`,
+        `${share.toFixed(1)}% dari total volume`,
+        `Revenue/kg ${formatMoneyPlain(leader.revenuePerKg)}`,
+      ],
+    });
+  } else if (!isFarmWide && harvestCount > 0) {
+    insightCandidates.push({
+      id: "production-cycle-summary",
+      domain: "production",
+      tone: "neutral",
+      title: "Ritme panen siklus terukur",
+      description: "Data panen pada siklus ini sudah cukup untuk melihat volume dan rata-rata hasil per pencatatan panen.",
+      evidence: [
+        `${harvestCount} kali panen`,
+        `${totalHarvestWeight.toLocaleString("id-ID", { maximumFractionDigits: 1 })} kg total`,
+        `${averageKgPerHarvest.toLocaleString("id-ID", { maximumFractionDigits: 1 })} kg rata-rata/panen`,
+      ],
+    });
+  }
+
+  if (pending > 0) {
+    insightCandidates.push({
+      id: "operational-pending",
+      domain: "operational",
+      tone: "attention",
+      title: `${pending} aktivitas belum ditangani`,
+      description: "Masih ada perawatan, inspeksi, atau pekerjaan operasional yang berada pada status awal/pending.",
+      evidence: [
+        `${pending} pending`,
+        `${inProgress} dalam proses`,
+        `${completed} selesai`,
+      ],
+    });
+  } else if (operationalEvents.length > 0 && completed === operationalEvents.length) {
+    insightCandidates.push({
+      id: "operational-complete",
+      domain: "operational",
+      tone: "positive",
+      title: "Seluruh aktivitas pada scope sudah selesai",
+      description: "Tidak ada aktivitas agronomi yang masih berada pada status pending atau dalam proses.",
+      evidence: [`${completed} dari ${operationalEvents.length} aktivitas selesai`],
+    });
+  } else if (inProgress > 0) {
+    insightCandidates.push({
+      id: "operational-progress",
+      domain: "operational",
+      tone: "neutral",
+      title: `${inProgress} aktivitas sedang berjalan`,
+      description: "Aktivitas pada scope ini sedang berada dalam tahap pengerjaan atau penanganan.",
+      evidence: [`${inProgress} dalam proses`, `${completed} selesai`],
+    });
+  }
+
+  const topIssue = topIssues[0];
+  if (inspectionFindings.length > 0) {
+    insightCandidates.push({
+      id: `agronomy-findings-${topIssue?.name ?? "general"}`,
+      domain: "agronomy",
+      tone: "attention",
+      title: topIssue ? `${topIssue.name} paling sering tercatat` : "Temuan inspeksi tercatat",
+      description: "Ada kendala yang tercatat dari inspeksi pada scope ini. Temuan periode tidak otomatis berarti kendala tersebut masih aktif.",
+      evidence: [
+        `${inspectionFindings.length} total temuan`,
+        `${affectedInspectionCount} inspeksi memiliki temuan`,
+        `${affectedAreaCount} area terdampak`,
+        ...(topIssue ? [`${topIssue.count} temuan ${topIssue.name}`] : []),
+      ],
+    });
+  } else if (inspectionEvents.length > 0) {
+    insightCandidates.push({
+      id: "agronomy-no-findings",
+      domain: "agronomy",
+      tone: "positive",
+      title: "Inspeksi pada scope ini tanpa temuan kendala",
+      description: "Tidak ada hama, penyakit, atau kendala lain yang tercatat pada inspeksi dalam periode yang dipilih.",
+      evidence: [
+        `${inspectionEvents.length} inspeksi`,
+        "0 temuan kendala",
+        ...(latestPhEvent?.phTanah != null ? [`pH terbaru ${latestPhEvent.phTanah.toFixed(1)}`] : []),
+      ],
+    });
+  }
+
+  if (insightCandidates.length === 0) {
+    insightCandidates.push({
+      id: "scope-no-data",
+      domain: "operational",
+      tone: "neutral",
+      title: "Belum cukup data pada scope ini",
+      description: "Belum ada transaksi atau aktivitas yang cukup untuk membentuk insight berbasis bukti.",
+      evidence: ["0 pendapatan", "0 pengeluaran", "0 aktivitas agronomi"],
+    });
+  }
+
+  const tonePriority = { attention: 0, positive: 1, neutral: 2 } as const;
+  const insightItems = insightCandidates
+    .sort((a, b) => tonePriority[a.tone] - tonePriority[b.tone])
+    .slice(0, 6);
+
+  const businessStatus =
+    totalPendapatan === 0 && totalPengeluaran === 0
+      ? "Monitoring"
+      : labaRugi > 0
+        ? "Profitable"
+        : labaRugi < 0
+          ? "Cash Deficit"
+          : "Break Even";
+  const primaryInsight = insightItems.find((item) => item.tone === "attention") ?? insightItems[0];
+
   return {
     financial: {
       totalModal,
@@ -305,13 +480,9 @@ function deriveSummary(
       topIssues,
     },
     insight: {
-      businessStatus: marginTotal > 0 ? "Profitable" : "Developing",
-      recommendation:
-        marginTotal < 0
-          ? "Cash position masih negatif pada scope ini. Cek kategori biaya terbesar dan progres pendapatan panen."
-          : marginTotal < 15
-            ? "Cash margin masih tipis. Prioritaskan efisiensi kategori biaya terbesar."
-            : "Cash performance pada scope ini berada dalam kondisi baik.",
+      businessStatus,
+      recommendation: primaryInsight?.description ?? "Belum ada insight untuk scope ini.",
+      items: insightItems,
     },
     areas,
     activities,
@@ -356,9 +527,8 @@ export function DashboardPage() {
 
     const days = timeFilter === "7 Hari" ? 7 : timeFilter === "30 Hari" ? 30 : 90;
     const end = new Date();
-    const start = new Date();
-    start.setDate(end.getDate() - (days - 1));
-    return { start: formatYmd(start), end: formatYmd(end) };
+    const start = new Date(end.getTime() - (days - 1) * 86_400_000);
+    return { start: formatDateKeyWIB(start), end: formatDateKeyWIB(end) };
   }, [timeFilter, customDateRange]);
 
   const {
@@ -492,7 +662,7 @@ export function DashboardPage() {
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Business pulse</p>
               <h2 className="mt-0.5 text-2xl font-black tracking-[-0.05em] text-foreground">
-                {summary?.insight.businessStatus ?? "Developing"}
+                {summary?.insight.businessStatus ?? "Monitoring"}
               </h2>
               <p className="mt-1 max-w-xl text-[11px] font-medium leading-relaxed text-muted-foreground">
                 {summary?.insight.recommendation ?? "Belum ada insight untuk scope ini."}
@@ -507,14 +677,22 @@ export function DashboardPage() {
             <div className={`rounded-xl border p-3 ${getMarginBg(displayData.margin)}`}>
               <p className="text-[9px] font-bold uppercase tracking-[0.13em] text-muted-foreground">Margin</p>
               <p className="mt-1 text-xl font-black tracking-[-0.04em] text-foreground">
-                <AnimatedNumber key={`margin-${contextKey}-${resolvedDateRange?.start ?? "all"}`} value={displayData.margin} formatFn={(val) => `${val.toFixed(1)}%`} />
+                <AnimatedNumber
+                  key={`margin-${contextKey}-${resolvedDateRange?.start ?? "all"}`}
+                  value={displayData.margin}
+                  formatFn={(val) => `${val.toFixed(1)}%`}
+                />
               </p>
             </div>
 
             <div className="rounded-xl border border-border/40 bg-background/50 p-3">
               <p className="text-[9px] font-bold uppercase tracking-[0.13em] text-muted-foreground">Cash cost / kg</p>
               <p className="mt-1 text-lg font-black tracking-[-0.04em] text-foreground">
-                <AnimatedNumber key={`cash-cost-${contextKey}-${resolvedDateRange?.start ?? "all"}`} value={cashCostPerKg} formatFn={formatCurrency} />
+                <AnimatedNumber
+                  key={`cash-cost-${contextKey}-${resolvedDateRange?.start ?? "all"}`}
+                  value={cashCostPerKg}
+                  formatFn={formatCurrency}
+                />
               </p>
             </div>
           </div>
@@ -523,7 +701,11 @@ export function DashboardPage() {
             <div className="mb-2 flex items-center justify-between text-[9px] font-bold uppercase tracking-[0.13em]">
               <span className="text-muted-foreground">Pemulihan modal awal</span>
               <span className="text-foreground">
-                <AnimatedNumber key={`recovery-${contextKey}-${resolvedDateRange?.start ?? "all"}`} value={recoveryProgress} formatFn={(val) => `${val.toFixed(1)}%`} />
+                <AnimatedNumber
+                  key={`recovery-${contextKey}-${resolvedDateRange?.start ?? "all"}`}
+                  value={recoveryProgress}
+                  formatFn={(val) => `${val.toFixed(1)}%`}
+                />
               </span>
             </div>
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
@@ -619,10 +801,11 @@ export function DashboardPage() {
           <section ref={insightRef} className="scroll-mt-[74px]">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={scrollReveal}>
               <InsightSection
-                displayData={displayData}
-                localBusinessStatus={summary?.insight.businessStatus ?? "Developing"}
-                localRecommendation={summary?.insight.recommendation ?? "Belum ada insight untuk scope ini."}
-                formatCurrency={formatCurrency}
+                insight={summary?.insight ?? {
+                  businessStatus: "Monitoring",
+                  recommendation: "Belum ada insight untuk scope ini.",
+                  items: [],
+                }}
               />
             </motion.div>
           </section>
