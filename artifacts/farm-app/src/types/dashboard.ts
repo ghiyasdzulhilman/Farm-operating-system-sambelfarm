@@ -56,6 +56,18 @@ export type DashboardOperationalEvent = {
   radius: number | null;
 };
 
+export type DashboardInspectionFinding = {
+  id: string;
+  inspeksiId: string;
+  kendalaId: string;
+  siklusId: string | null;
+  areaId: string | null;
+  occurredAt: string;
+  name: string;
+  kind: string;
+  note: string | null;
+};
+
 export type DashboardActivity = {
   id: string;
   type: DashboardActivityType;
@@ -73,6 +85,7 @@ export type DashboardDataset = {
   facts: DashboardDailyFact[];
   costFacts: DashboardCostFact[];
   operationalEvents: DashboardOperationalEvent[];
+  inspectionFindings: DashboardInspectionFinding[];
   activities: DashboardActivity[];
   meta: {
     generatedAt: string;
@@ -118,6 +131,12 @@ export type DashboardOperationalModuleSummary = {
   count: number;
 };
 
+export type DashboardAgronomyIssueSummary = {
+  name: string;
+  kind: string;
+  count: number;
+};
+
 export type DashboardDerivedSummary = {
   financial: {
     totalModal: number;
@@ -143,6 +162,17 @@ export type DashboardDerivedSummary = {
     inProgress: number;
     completed: number;
     byModule: DashboardOperationalModuleSummary[];
+  };
+  agronomy: {
+    inspectionCount: number;
+    findingCount: number;
+    affectedInspectionCount: number;
+    affectedAreaCount: number;
+    latestPh: {
+      value: number;
+      occurredAt: string;
+    } | null;
+    topIssues: DashboardAgronomyIssueSummary[];
   };
   insight: {
     businessStatus: string;
