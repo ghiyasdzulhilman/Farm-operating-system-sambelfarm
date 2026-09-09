@@ -3,6 +3,8 @@ export type DashboardTimeFilter = "Semua Waktu" | "7 Hari" | "30 Hari" | "90 Har
 export type DashboardOperationalStatus = "pending" | "in_progress" | "completed";
 export type DashboardOperationalModule = "perawatan" | "inspeksi" | "operasional";
 export type DashboardActivityType = DashboardOperationalModule | "harvest" | "expense";
+export type DashboardInsightDomain = "financial" | "production" | "operational" | "agronomy";
+export type DashboardInsightTone = "attention" | "positive" | "neutral";
 
 export type DashboardDateRange = {
   start: string;
@@ -137,6 +139,15 @@ export type DashboardAgronomyIssueSummary = {
   count: number;
 };
 
+export type DashboardInsightItem = {
+  id: string;
+  domain: DashboardInsightDomain;
+  tone: DashboardInsightTone;
+  title: string;
+  description: string;
+  evidence: string[];
+};
+
 export type DashboardDerivedSummary = {
   financial: {
     totalModal: number;
@@ -177,6 +188,7 @@ export type DashboardDerivedSummary = {
   insight: {
     businessStatus: string;
     recommendation: string;
+    items: DashboardInsightItem[];
   };
   areas: DashboardAreaSummary[];
   activities: DashboardActivity[];
