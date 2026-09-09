@@ -52,6 +52,14 @@ const formatYmd = (date: Date) => {
   return new Date(date.getTime() - offset).toISOString().split("T")[0];
 };
 
+const formatDateKeyWIB = (date: Date) =>
+  new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+
 function AnimatedNumber({
   value,
   formatFn,
@@ -106,6 +114,11 @@ function deriveSummary(
   const costFacts = (dataset.costFacts ?? []).filter((fact) => {
     if (!isFarmWide && (!fact.siklusId || !selectedCycleIds.has(fact.siklusId))) return false;
     return inDateRange(fact.date);
+  });
+
+  const operationalEvents = (dataset.operationalEvents ?? []).filter((event) => {
+    if (!isFarmWide && (!event.siklusId || !selectedCycleIds.has(event.siklusId))) return false;
+    return inDateRange(formatDateKeyWIB(new Date(event.occurredAt)));
   });
 
   const totalModal = selectedContexts.reduce((sum, context) => sum + context.modalAwal, 0);
@@ -210,11 +223,18 @@ function deriveSummary(
     }))
     .sort((a, b) => b.harvestWeight - a.harvestWeight);
 
+  const pending = operationalEvents.filter((event) => event.normalizedStatus === "pending").length;
+  const inProgress = operationalEvents.filter((event) => event.normalizedStatus === "in_progress").length;
+  const completed = operationalEvents.filter((event) => event.normalizedStatus === "completed").length;
+  const byModule = (["perawatan", "inspeksi", "operasional"] as const).map((module) => ({
+    module,
+    count: operationalEvents.filter((event) => event.module === module).length,
+  }));
+
   const activities = dataset.activities
     .filter((activity) => {
       if (!isFarmWide && (!activity.siklusId || !selectedCycleIds.has(activity.siklusId))) return false;
-      const activityDate = formatYmd(new Date(activity.occurredAt));
-      return inDateRange(activityDate);
+      return inDateRange(formatDateKeyWIB(new Date(activity.occurredAt)));
     })
     .slice(0, 8);
 
@@ -238,11 +258,11 @@ function deriveSummary(
       areaRanking,
     },
     operational: {
-      totalAreas: new Set(selectedContexts.map((context) => context.areaId)).size,
-      activeAreas:
-        dataset.cycleStatus === "aktif"
-          ? new Set(selectedContexts.map((context) => context.areaId)).size
-          : 0,
+      total: operationalEvents.length,
+      pending,
+      inProgress,
+      completed,
+      byModule,
     },
     insight: {
       businessStatus: marginTotal > 0 ? "Profitable" : "Developing",
@@ -356,9 +376,6 @@ export function DashboardPage() {
     ...activity,
     time: formatDistanceToNow(new Date(activity.occurredAt), { addSuffix: true, locale: id }),
   }));
-
-  const harvestActivities = visibleActivities.filter((activity) => activity.type === "harvest");
-  const expenseActivities = visibleActivities.filter((activity) => activity.type === "expense");
 
   const scrollToSection = (section: DashboardSection) => {
     setActiveSection(section);
@@ -526,7 +543,20 @@ export function DashboardPage() {
 
           <section ref={operationalRef} className="scroll-mt-[74px]">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={scrollReveal}>
-              <OperationalSection harvestActivities={harvestActivities} expenseActivities={expenseActivities} />
+              <OperationalSection
+                operational={summary?.operational ?? {
+                  total: 0,
+                  pending: 0,
+                  inProgress: 0,
+                  completed: 0,
+                  byModule: [
+                    { module: "perawatan", count: 0 },
+                    { module: "inspeksi", count: 0 },
+                    { module: "operasional", count: 0 },
+                  ],
+                }}
+                activities={visibleActivities}
+              />
             </motion.div>
           </section>
 
