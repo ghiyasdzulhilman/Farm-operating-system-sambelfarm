@@ -18,6 +18,8 @@ interface FinancialSectionProps {
   isFarmWide: boolean;
 }
 
+type MetricTone = "default" | "positive" | "negative";
+
 const staggerContainer = {
   hidden: { opacity: 0 },
   show: {
@@ -46,7 +48,7 @@ function MetricCard({
   value: string;
   helper: string;
   icon: typeof WalletCards;
-  tone?: "default" | "positive" | "negative";
+  tone?: MetricTone;
 }) {
   const toneClass =
     tone === "negative"
@@ -192,8 +194,8 @@ function AreaProfitability({
 }
 
 export function FinancialSection({ financial, areas, formatCurrency, isFarmWide }: FinancialSectionProps) {
-  const profitTone = financial.labaRugi < 0 ? "negative" : financial.labaRugi > 0 ? "positive" : "default";
-  const marginTone = financial.marginTotal < 0 ? "negative" : financial.marginTotal >= 15 ? "positive" : "default";
+  const profitTone: MetricTone = financial.labaRugi < 0 ? "negative" : financial.labaRugi > 0 ? "positive" : "default";
+  const marginTone: MetricTone = financial.marginTotal < 0 ? "negative" : financial.marginTotal >= 15 ? "positive" : "default";
 
   return (
     <motion.div variants={staggerContainer} initial="hidden" animate="show" className="space-y-4 md:space-y-5">
