@@ -8,6 +8,9 @@ import {
   panenTable,
   pengeluaranTable,
   kategoriKeuanganTable,
+  perawatanTable,
+  inspeksiTable,
+  operasionalTable,
 } from "@workspace/db";
 import { and, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 
@@ -27,6 +30,13 @@ const dateKeyWIB = (value: Date | string) => {
     month: "2-digit",
     day: "2-digit",
   }).format(date);
+};
+
+const normalizeOperationalStatus = (status: string | null) => {
+  const value = (status ?? "").trim().toLowerCase();
+  if (value === "selesai" || value === "sudah ditangani") return "completed" as const;
+  if (value === "dalam proses" || value === "sedang ditangani") return "in_progress" as const;
+  return "pending" as const;
 };
 
 router.get("/dashboard/summary", async (req, res): Promise<void> => {
@@ -86,26 +96,95 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
 
     const cycleIds = contexts.map((context) => context.siklusId);
 
-    const panenRows = cycleIds.length
-      ? await db
-          .select({
-            id: panenTable.id,
-            siklusId: panenTable.siklusId,
-            areaId: panenTable.areaId,
-            tanggal: panenTable.tanggal,
-            kegiatan: panenTable.kegiatan,
-            kuantitasKg: panenTable.kuantitasKg,
-            totalPendapatan: panenTable.totalPendapatan,
-          })
-          .from(panenTable)
-          .where(
-            and(
-              eq(panenTable.organisasiId, req.organisasiId),
-              inArray(panenTable.siklusId, cycleIds)
+    const [panenRows, perawatanRows, inspeksiRows, operasionalRows] = await Promise.all([
+      cycleIds.length
+        ? db
+            .select({
+              id: panenTable.id,
+              siklusId: panenTable.siklusId,
+              areaId: panenTable.areaId,
+              tanggal: panenTable.tanggal,
+              kegiatan: panenTable.kegiatan,
+              kuantitasKg: panenTable.kuantitasKg,
+              totalPendapatan: panenTable.totalPendapatan,
+            })
+            .from(panenTable)
+            .where(
+              and(
+                eq(panenTable.organisasiId, req.organisasiId),
+                inArray(panenTable.siklusId, cycleIds)
+              )
             )
-          )
-          .orderBy(desc(panenTable.tanggal))
-      : [];
+            .orderBy(desc(panenTable.tanggal))
+        : Promise.resolve([]),
+      cycleIds.length
+        ? db
+            .select({
+              id: perawatanTable.id,
+              siklusId: perawatanTable.siklusId,
+              areaId: perawatanTable.areaId,
+              waktuMulai: perawatanTable.waktuMulai,
+              waktuSelesai: perawatanTable.waktuSelesai,
+              kegiatan: perawatanTable.kegiatan,
+              status: perawatanTable.status,
+              durasiKerja: perawatanTable.durasiKerja,
+            })
+            .from(perawatanTable)
+            .where(
+              and(
+                eq(perawatanTable.organisasiId, req.organisasiId),
+                inArray(perawatanTable.siklusId, cycleIds)
+              )
+            )
+            .orderBy(desc(perawatanTable.waktuMulai))
+        : Promise.resolve([]),
+      cycleIds.length
+        ? db
+            .select({
+              id: inspeksiTable.id,
+              siklusId: inspeksiTable.siklusId,
+              areaId: inspeksiTable.areaId,
+              waktuMulai: inspeksiTable.waktuMulai,
+              waktuSelesai: inspeksiTable.waktuSelesai,
+              kegiatan: inspeksiTable.kegiatan,
+              status: inspeksiTable.status,
+              durasiKerja: inspeksiTable.durasiKerja,
+              phTanah: inspeksiTable.phTanah,
+              tingkatSerangan: inspeksiTable.tingkatSerangan,
+              radius: inspeksiTable.radius,
+            })
+            .from(inspeksiTable)
+            .where(
+              and(
+                eq(inspeksiTable.organisasiId, req.organisasiId),
+                inArray(inspeksiTable.siklusId, cycleIds)
+              )
+            )
+            .orderBy(desc(inspeksiTable.waktuMulai))
+        : Promise.resolve([]),
+      cycleIds.length
+        ? db
+            .select({
+              id: operasionalTable.id,
+              siklusId: operasionalTable.siklusId,
+              areaId: operasionalTable.areaId,
+              waktuMulai: operasionalTable.waktuMulai,
+              waktuSelesai: operasionalTable.waktuSelesai,
+              namaPekerjaan: operasionalTable.namaPekerjaan,
+              status: operasionalTable.status,
+              prioritas: operasionalTable.prioritas,
+              durasiKerja: operasionalTable.durasiKerja,
+            })
+            .from(operasionalTable)
+            .where(
+              and(
+                eq(operasionalTable.organisasiId, req.organisasiId),
+                inArray(operasionalTable.siklusId, cycleIds)
+              )
+            )
+            .orderBy(desc(operasionalTable.waktuMulai))
+        : Promise.resolve([]),
+    ]);
 
     const expenseScope =
       status === "aktif"
@@ -217,9 +296,73 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
       });
     }
 
+    const operationalEvents = [
+      ...perawatanRows.map((row) => ({
+        id: row.id,
+        module: "perawatan" as const,
+        siklusId: row.siklusId,
+        areaId: row.areaId,
+        occurredAt: row.waktuMulai.toISOString(),
+        finishedAt: row.waktuSelesai?.toISOString() ?? null,
+        title: row.kegiatan,
+        originalStatus: row.status ?? "Belum dikerjakan",
+        normalizedStatus: normalizeOperationalStatus(row.status),
+        durationHours: safeNumber(row.durasiKerja),
+        priority: null,
+        phTanah: null,
+        tingkatSerangan: null,
+        radius: null,
+      })),
+      ...inspeksiRows.map((row) => ({
+        id: row.id,
+        module: "inspeksi" as const,
+        siklusId: row.siklusId,
+        areaId: row.areaId,
+        occurredAt: row.waktuMulai.toISOString(),
+        finishedAt: row.waktuSelesai?.toISOString() ?? null,
+        title: row.kegiatan,
+        originalStatus: row.status ?? "Baru ditemukan",
+        normalizedStatus: normalizeOperationalStatus(row.status),
+        durationHours: safeNumber(row.durasiKerja),
+        priority: null,
+        phTanah: row.phTanah == null ? null : safeNumber(row.phTanah),
+        tingkatSerangan: row.tingkatSerangan == null ? null : safeNumber(row.tingkatSerangan),
+        radius: row.radius == null ? null : safeNumber(row.radius),
+      })),
+      ...operasionalRows.map((row) => ({
+        id: row.id,
+        module: "operasional" as const,
+        siklusId: row.siklusId,
+        areaId: row.areaId,
+        occurredAt: row.waktuMulai.toISOString(),
+        finishedAt: row.waktuSelesai?.toISOString() ?? null,
+        title: row.namaPekerjaan,
+        originalStatus: row.status ?? "Belum dikerjakan",
+        normalizedStatus: normalizeOperationalStatus(row.status),
+        durationHours: safeNumber(row.durasiKerja),
+        priority: row.prioritas ?? null,
+        phTanah: null,
+        tingkatSerangan: null,
+        radius: null,
+      })),
+    ].sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime());
+
     const contextMap = new Map(contexts.map((context) => [context.siklusId, context]));
 
     const activities = [
+      ...operationalEvents.map((row) => {
+        const context = row.siklusId ? contextMap.get(row.siklusId) : undefined;
+        return {
+          id: row.id,
+          type: row.module,
+          siklusId: row.siklusId,
+          areaId: row.areaId,
+          occurredAt: row.occurredAt,
+          title: row.title,
+          description: `${context?.areaName ?? "Area"} • ${row.originalStatus}`,
+          status: row.originalStatus,
+        };
+      }),
       ...panenRows.map((row) => {
         const context = row.siklusId ? contextMap.get(row.siklusId) : undefined;
         return {
@@ -230,6 +373,7 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
           occurredAt: row.tanggal.toISOString(),
           title: `Panen ${context?.areaName ?? "Area"}`,
           description: `${safeNumber(row.kuantitasKg)}kg • ${row.kegiatan}`,
+          status: null,
         };
       }),
       ...pengeluaranRows.map((row) => {
@@ -242,6 +386,7 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
           occurredAt: row.tanggal.toISOString(),
           title: row.namaItem,
           description: `Rp${safeNumber(row.totalBiaya).toLocaleString("id-ID")} • ${context?.areaName ?? "Biaya umum"}`,
+          status: null,
         };
       }),
     ].sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime());
@@ -255,6 +400,7 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
       })),
       facts: Array.from(factMap.values()).sort((a, b) => b.date.localeCompare(a.date)),
       costFacts: Array.from(costFactMap.values()).sort((a, b) => b.date.localeCompare(a.date)),
+      operationalEvents,
       activities,
       meta: {
         generatedAt: new Date().toISOString(),
