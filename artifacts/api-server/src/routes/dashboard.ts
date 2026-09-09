@@ -1,21 +1,32 @@
 import { Router, type IRouter } from "express";
 import { getAuth } from "@clerk/express";
+import { z } from "zod";
 import { db } from "@workspace/db";
-import { 
-  areasTable, 
-  siklusTanamTable, 
-  panenTable, 
-  pengeluaranTable 
-} from "@workspace/db"; 
-// 🚀 FIX: Tambahkan import 'eq' dari drizzle-orm untuk kebutuhan filter
-import { sql, desc, eq } from "drizzle-orm";
+import {
+  areasTable,
+  siklusTanamTable,
+  panenTable,
+  pengeluaranTable,
+} from "@workspace/db";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { formatDistanceToNow } from "date-fns";
 import { id } from "date-fns/locale";
 
 const router: IRouter = Router();
 
-// Fungsi helper buat ngerapihin output angka dari hasil aggregate Drizzle (Postgres SUM return string)
-const safeNumber = (val: any) => Number(val) || 0;
+const safeNumber = (val: unknown) => Number(val) || 0;
+
+const dashboardQuerySchema = z
+  .object({
+    areaId: z.string().uuid().optional(),
+    siklus: z.enum(["aktif", "selesai", "semua"]).default("aktif"),
+    startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  })
+  .refine(
+    (value) => Boolean(value.startDate) === Boolean(value.endDate),
+    { message: "startDate dan endDate harus dikirim bersamaan" }
+  );
 
 router.get("/dashboard/summary", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
@@ -23,107 +34,147 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
-  
-  // 🚀 PROTEKSI TENANT DI AWAL: Pastikan request punya organisasiId
-  if (!req.organisasiId) { 
-    res.status(403).json({ error: "BELUM_ONBOARDING" }); 
-    return; 
+
+  if (!req.organisasiId) {
+    res.status(403).json({ error: "BELUM_ONBOARDING" });
+    return;
   }
 
+  const parsedQuery = dashboardQuerySchema.safeParse(req.query);
+  if (!parsedQuery.success) {
+    res.status(400).json({
+      error: "Filter dashboard tidak valid",
+      details: parsedQuery.error.flatten(),
+    });
+    return;
+  }
+
+  const { areaId, siklus, startDate, endDate } = parsedQuery.data;
+
   try {
-    // ── 1. AMBIL SEMUA DATA AGREGASI SECARA PARALEL (SUPER KILAT) ──
-    const [
-      areas,
-      modalSiklusRaw,
-      panenRaw,
-      pengeluaranRaw,
-      recentPanen,
-      recentPengeluaran
-    ] = await Promise.all([
-      // Ambil daftar area (🚀 FILTER TENANT)
-      db.select({ id: areasTable.id, name: areasTable.name })
-        .from(areasTable)
-        .where(eq(areasTable.organisasiId, req.organisasiId)),
-      
-      // Aggregate Modal Awal per Area (🚀 FILTER TENANT)
-      db.select({
+    // Filter options selalu mengambil seluruh area tenant agar selector tidak kehilangan pilihan.
+    const allAreas = await db
+      .select({ id: areasTable.id, name: areasTable.name })
+      .from(areasTable)
+      .where(eq(areasTable.organisasiId, req.organisasiId));
+
+    const scopedAreas = areaId
+      ? allAreas.filter((area) => area.id === areaId)
+      : allAreas;
+
+    // Siklus diambil sebagai rows supaya status, modal, dan active-area bisa dihitung dari satu sumber.
+    const allCycleRows = await db
+      .select({
+        id: siklusTanamTable.id,
         areaId: siklusTanamTable.areaId,
-        totalModal: sql<number>`SUM(${siklusTanamTable.modalAwal})`.mapWith(Number)
+        status: siklusTanamTable.status,
+        modalAwal: siklusTanamTable.modalAwal,
       })
       .from(siklusTanamTable)
-      .where(eq(siklusTanamTable.organisasiId, req.organisasiId))
-      .groupBy(siklusTanamTable.areaId),
+      .where(
+        and(
+          eq(siklusTanamTable.organisasiId, req.organisasiId),
+          areaId ? eq(siklusTanamTable.areaId, areaId) : undefined
+        )
+      );
 
-      // Aggregate Panen per Area (Pendapatan & Berat) (🚀 FILTER TENANT)
-      db.select({
-        areaId: panenTable.areaId,
-        totalPendapatan: sql<number>`SUM(${panenTable.totalPendapatan})`.mapWith(Number),
-        totalBerat: sql<number>`SUM(${panenTable.kuantitasKg})`.mapWith(Number)
-      })
-      .from(panenTable)
-      .where(eq(panenTable.organisasiId, req.organisasiId))
-      .groupBy(panenTable.areaId),
+    const scopedCycles = allCycleRows.filter((cycle) => {
+      if (siklus === "aktif") return cycle.status === "Aktif";
+      if (siklus === "selesai") return cycle.status === "Selesai" || cycle.status === "Ditutup";
+      return true;
+    });
 
-      // Aggregate Pengeluaran per Area (Total Biaya) (🚀 FILTER TENANT)
-      db.select({
-        areaId: pengeluaranTable.areaId,
-        totalBiaya: sql<number>`SUM(${pengeluaranTable.totalBiaya})`.mapWith(Number)
-      })
-      .from(pengeluaranTable)
-      .where(eq(pengeluaranTable.organisasiId, req.organisasiId))
-      .groupBy(pengeluaranTable.areaId),
+    const scopedCycleIds = scopedCycles.map((cycle) => cycle.id);
+    const restrictToCycle = siklus !== "semua";
 
-      // Ambil 5 Aktivitas Panen Terakhir (🚀 FILTER TENANT)
-      db.select({
-        id: panenTable.id,
-        areaId: panenTable.areaId,
-        kegiatan: panenTable.kegiatan,
-        kuantitasKg: panenTable.kuantitasKg,
-        tanggal: panenTable.tanggal,
-      })
-      .from(panenTable)
-      .where(eq(panenTable.organisasiId, req.organisasiId))
-      .orderBy(desc(panenTable.createdAt))
-      .limit(5),
+    const panenConditions = [
+      eq(panenTable.organisasiId, req.organisasiId),
+      areaId ? eq(panenTable.areaId, areaId) : undefined,
+      startDate ? sql`${panenTable.tanggal}::date >= ${startDate}::date` : undefined,
+      endDate ? sql`${panenTable.tanggal}::date <= ${endDate}::date` : undefined,
+      restrictToCycle
+        ? scopedCycleIds.length > 0
+          ? inArray(panenTable.siklusId, scopedCycleIds)
+          : sql`false`
+        : undefined,
+    ];
 
-      // Ambil 5 Aktivitas Pengeluaran Terakhir (🚀 FILTER TENANT)
-      db.select({
-        id: pengeluaranTable.id,
-        areaId: pengeluaranTable.areaId,
-        namaItem: pengeluaranTable.namaItem,
-        totalBiaya: pengeluaranTable.totalBiaya,
-        tanggal: pengeluaranTable.tanggal,
-      })
-      .from(pengeluaranTable)
-      .where(eq(pengeluaranTable.organisasiId, req.organisasiId))
-      .orderBy(desc(pengeluaranTable.createdAt))
-      .limit(5)
+    const pengeluaranConditions = [
+      eq(pengeluaranTable.organisasiId, req.organisasiId),
+      areaId ? eq(pengeluaranTable.areaId, areaId) : undefined,
+      startDate ? sql`${pengeluaranTable.tanggal}::date >= ${startDate}::date` : undefined,
+      endDate ? sql`${pengeluaranTable.tanggal}::date <= ${endDate}::date` : undefined,
+      restrictToCycle
+        ? scopedCycleIds.length > 0
+          ? inArray(pengeluaranTable.siklusId, scopedCycleIds)
+          : sql`false`
+        : undefined,
+    ];
+
+    const [panenRaw, pengeluaranRaw, recentPanen, recentPengeluaran] = await Promise.all([
+      db
+        .select({
+          areaId: panenTable.areaId,
+          totalPendapatan: sql<number>`SUM(${panenTable.totalPendapatan})`.mapWith(Number),
+          totalBerat: sql<number>`SUM(${panenTable.kuantitasKg})`.mapWith(Number),
+        })
+        .from(panenTable)
+        .where(and(...panenConditions))
+        .groupBy(panenTable.areaId),
+
+      db
+        .select({
+          areaId: pengeluaranTable.areaId,
+          totalBiaya: sql<number>`SUM(${pengeluaranTable.totalBiaya})`.mapWith(Number),
+        })
+        .from(pengeluaranTable)
+        .where(and(...pengeluaranConditions))
+        .groupBy(pengeluaranTable.areaId),
+
+      db
+        .select({
+          id: panenTable.id,
+          areaId: panenTable.areaId,
+          kegiatan: panenTable.kegiatan,
+          kuantitasKg: panenTable.kuantitasKg,
+          tanggal: panenTable.tanggal,
+        })
+        .from(panenTable)
+        .where(and(...panenConditions))
+        .orderBy(desc(panenTable.tanggal))
+        .limit(5),
+
+      db
+        .select({
+          id: pengeluaranTable.id,
+          areaId: pengeluaranTable.areaId,
+          namaItem: pengeluaranTable.namaItem,
+          totalBiaya: pengeluaranTable.totalBiaya,
+          tanggal: pengeluaranTable.tanggal,
+        })
+        .from(pengeluaranTable)
+        .where(and(...pengeluaranConditions))
+        .orderBy(desc(pengeluaranTable.tanggal))
+        .limit(5),
     ]);
 
-    // ── 2. OLAH DATA PER AREA (GABUNGAN) ──
+    const areaMap = new Map(allAreas.map((area) => [area.id, area.name]));
+
     let totalModalGlobal = 0;
     let totalPendapatanGlobal = 0;
     let totalPengeluaranGlobal = 0;
     let totalBeratGlobal = 0;
 
-    // Bikin mapping area buat lookup cepat
-    const areaMap = new Map<string, string>();
-    areas.forEach(a => areaMap.set(a.id, a.name));
-
-    const finalAreas = areas.map((area) => {
-      // Tarik hasil agregasi tiap area
-      const modal = modalSiklusRaw.find(m => m.areaId === area.id)?.totalModal || 0;
-      const pendapatan = panenRaw.find(p => p.areaId === area.id)?.totalPendapatan || 0;
-      const berat = panenRaw.find(p => p.areaId === area.id)?.totalBerat || 0;
-      const pengeluaran = pengeluaranRaw.find(e => e.areaId === area.id)?.totalBiaya || 0;
-
-      // Hitung margin jujur per area
+    const finalAreas = scopedAreas.map((area) => {
+      const modal = scopedCycles
+        .filter((cycle) => cycle.areaId === area.id)
+        .reduce((total, cycle) => total + safeNumber(cycle.modalAwal), 0);
+      const pendapatan = panenRaw.find((row) => row.areaId === area.id)?.totalPendapatan || 0;
+      const berat = panenRaw.find((row) => row.areaId === area.id)?.totalBerat || 0;
+      const pengeluaran = pengeluaranRaw.find((row) => row.areaId === area.id)?.totalBiaya || 0;
       const profit = pendapatan - pengeluaran;
-      const margin = pendapatan > 0 
-        ? (profit / pendapatan) * 100 
-        : (pengeluaran > 0 ? -100 : 0);
+      const margin = pendapatan > 0 ? (profit / pendapatan) * 100 : pengeluaran > 0 ? -100 : 0;
 
-      // Tambahkan ke Global Total
       totalModalGlobal += modal;
       totalPendapatanGlobal += pendapatan;
       totalPengeluaranGlobal += pengeluaran;
@@ -141,42 +192,55 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
       };
     });
 
-    // ── 3. KALKULASI GLOBAL ──
     const profitGlobal = totalPendapatanGlobal - totalPengeluaranGlobal;
-    const marginGlobal = totalPendapatanGlobal > 0 
-      ? (profitGlobal / totalPendapatanGlobal) * 100 
-      : (totalPengeluaranGlobal > 0 ? -100 : 0);
+    const marginGlobal =
+      totalPendapatanGlobal > 0
+        ? (profitGlobal / totalPendapatanGlobal) * 100
+        : totalPengeluaranGlobal > 0
+          ? -100
+          : 0;
 
-    const hpp = totalBeratGlobal > 0 ? (totalPengeluaranGlobal / totalBeratGlobal) : 0;
-    const averageRevenuePerKg = totalBeratGlobal > 0 ? (totalPendapatanGlobal / totalBeratGlobal) : 0;
+    const hpp = totalBeratGlobal > 0 ? totalPengeluaranGlobal / totalBeratGlobal : 0;
+    const averageRevenuePerKg =
+      totalBeratGlobal > 0 ? totalPendapatanGlobal / totalBeratGlobal : 0;
     const bepProgress = totalModalGlobal > 0 ? (totalPendapatanGlobal / totalModalGlobal) * 100 : 0;
 
-    // ── 4. ACTIVITY FEED (GABUNGAN PANEN & PENGELUARAN) ──
     const allActivities = [
-      ...recentPanen.map(p => ({
-        type: "harvest",
-        title: `Panen ${areaMap.get(p.areaId!) || "Area"}`,
-        description: `${safeNumber(p.kuantitasKg)}kg berhasil dicatat • ${p.kegiatan}`,
-        rawDate: new Date(p.tanggal),
-        time: formatDistanceToNow(new Date(p.tanggal), { addSuffix: true, locale: id }),
+      ...recentPanen.map((panen) => ({
+        type: "harvest" as const,
+        title: `Panen ${areaMap.get(panen.areaId ?? "") || "Area"}`,
+        description: `${safeNumber(panen.kuantitasKg)}kg berhasil dicatat • ${panen.kegiatan}`,
+        rawDate: new Date(panen.tanggal),
+        time: formatDistanceToNow(new Date(panen.tanggal), { addSuffix: true, locale: id }),
       })),
-      ...recentPengeluaran.map(e => ({
-        type: "expense",
-        title: e.namaItem,
-        description: `Pengeluaran Rp${safeNumber(e.totalBiaya).toLocaleString("id-ID")} • ${areaMap.get(e.areaId!) || "Area"}`,
-        rawDate: new Date(e.tanggal),
-        time: formatDistanceToNow(new Date(e.tanggal), { addSuffix: true, locale: id }),
-      }))
+      ...recentPengeluaran.map((expense) => ({
+        type: "expense" as const,
+        title: expense.namaItem,
+        description: `Pengeluaran Rp${safeNumber(expense.totalBiaya).toLocaleString("id-ID")} • ${areaMap.get(expense.areaId ?? "") || "Area"}`,
+        rawDate: new Date(expense.tanggal),
+        time: formatDistanceToNow(new Date(expense.tanggal), { addSuffix: true, locale: id }),
+      })),
     ];
 
-    // Urutkan gabungan aktivitas dari yang paling baru, lalu potong max 5
     const finalActivities = allActivities
       .sort((a, b) => b.rawDate.getTime() - a.rawDate.getTime())
       .slice(0, 5)
-      .map(({ rawDate, ...rest }) => rest); // Buang rawDate dari response
+      .map(({ rawDate, ...activity }) => activity);
 
-    // ── 5. RESPONSE PAYLOAD KEMBALI KE FRONTEND ──
+    const activeAreaCount = new Set(
+      allCycleRows.filter((cycle) => cycle.status === "Aktif").map((cycle) => cycle.areaId)
+    ).size;
+
     res.json({
+      filters: {
+        areaId: areaId ?? null,
+        siklus,
+        startDate: startDate ?? null,
+        endDate: endDate ?? null,
+      },
+      filterOptions: {
+        areas: allAreas,
+      },
       financial: {
         totalModal: totalModalGlobal,
         totalPendapatan: totalPendapatanGlobal,
@@ -190,18 +254,9 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
         hpp,
         averageRevenuePerKg,
       },
-      // Staging stats di-set 0 semua biar frontend (kartu staging) gak error, 
-      // bisa dihapus nanti pas clean-up frontend UI.
-      stagingStats: {
-        pendingCount: 0,
-        pendingFinanceAmount: 0,
-        pendingWeight: 0,
-        pendingInspeksiCount: 0,
-        pendingPerawatanCount: 0,
-      },
       operational: {
-        totalAreas: finalAreas.length,
-        activeAreas: finalAreas.length, 
+        totalAreas: scopedAreas.length,
+        activeAreas: activeAreaCount,
       },
       insight: {
         businessStatus: marginGlobal > 0 ? "Profitable" : "Developing",
@@ -215,14 +270,8 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
       areas: finalAreas,
       currency: "IDR",
       lastUpdated: new Date().toISOString(),
-      notionDatabaseId: null, // Udah gak pakai notion
       activities: finalActivities,
-      cacheInfo: {
-        hit: false, 
-        cachedAt: null,
-      },
     });
-
   } catch (err) {
     console.error("[DASHBOARD ERR]:", err);
     res.status(500).json({ error: "Gagal mengambil ringkasan dashboard" });
