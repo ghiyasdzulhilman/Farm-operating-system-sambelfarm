@@ -10,6 +10,8 @@ import {
   kategoriKeuanganTable,
   perawatanTable,
   inspeksiTable,
+  inspeksiTemuanTable,
+  kendalaMasterTable,
   operasionalTable,
 } from "@workspace/db";
 import { and, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
@@ -186,6 +188,28 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
         : Promise.resolve([]),
     ]);
 
+    const inspectionIds = inspeksiRows.map((row) => row.id);
+    const inspectionFindingRows = inspectionIds.length
+      ? await db
+          .select({
+            id: inspeksiTemuanTable.id,
+            inspeksiId: inspeksiTemuanTable.inspeksiId,
+            kendalaId: inspeksiTemuanTable.kendalaMasterId,
+            namaKendala: kendalaMasterTable.nama,
+            jenisKendala: kendalaMasterTable.jenis,
+            catatanKhusus: inspeksiTemuanTable.catatanKhusus,
+          })
+          .from(inspeksiTemuanTable)
+          .innerJoin(
+            kendalaMasterTable,
+            and(
+              eq(inspeksiTemuanTable.kendalaMasterId, kendalaMasterTable.id),
+              eq(kendalaMasterTable.organisasiId, req.organisasiId)
+            )
+          )
+          .where(inArray(inspeksiTemuanTable.inspeksiId, inspectionIds))
+      : [];
+
     const expenseScope =
       status === "aktif"
         ? cycleIds.length
@@ -347,6 +371,26 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
       })),
     ].sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime());
 
+    const inspectionMap = new Map(inspeksiRows.map((row) => [row.id, row]));
+    const inspectionFindings = inspectionFindingRows
+      .map((row) => {
+        const inspection = inspectionMap.get(row.inspeksiId);
+        if (!inspection) return null;
+        return {
+          id: row.id,
+          inspeksiId: row.inspeksiId,
+          kendalaId: row.kendalaId,
+          siklusId: inspection.siklusId,
+          areaId: inspection.areaId,
+          occurredAt: inspection.waktuMulai.toISOString(),
+          name: row.namaKendala,
+          kind: row.jenisKendala.trim().toLowerCase(),
+          note: row.catatanKhusus ?? null,
+        };
+      })
+      .filter((row): row is NonNullable<typeof row> => row !== null)
+      .sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime());
+
     const contextMap = new Map(contexts.map((context) => [context.siklusId, context]));
 
     const activities = [
@@ -401,6 +445,7 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
       facts: Array.from(factMap.values()).sort((a, b) => b.date.localeCompare(a.date)),
       costFacts: Array.from(costFactMap.values()).sort((a, b) => b.date.localeCompare(a.date)),
       operationalEvents,
+      inspectionFindings,
       activities,
       meta: {
         generatedAt: new Date().toISOString(),
