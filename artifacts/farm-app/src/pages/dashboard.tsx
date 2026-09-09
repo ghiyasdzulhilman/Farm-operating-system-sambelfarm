@@ -96,7 +96,6 @@ function deriveSummary(
 
   const selectedCycleIds = new Set(selectedContexts.map((context) => context.siklusId));
   const isFarmWide = contextId === "all";
-
   const inDateRange = (date: string) => !dateRange || (date >= dateRange.start && date <= dateRange.end);
 
   const facts = dataset.facts.filter((fact) => {
@@ -113,11 +112,13 @@ function deriveSummary(
   const totalPendapatan = facts.reduce((sum, fact) => sum + fact.pendapatan, 0);
   const totalPengeluaran = facts.reduce((sum, fact) => sum + fact.pengeluaran, 0);
   const totalHarvestWeight = facts.reduce((sum, fact) => sum + fact.harvestWeight, 0);
+  const harvestCount = facts.reduce((sum, fact) => sum + fact.harvestCount, 0);
   const labaRugi = totalPendapatan - totalPengeluaran;
   const marginTotal =
     totalPendapatan > 0 ? (labaRugi / totalPendapatan) * 100 : totalPengeluaran > 0 ? -100 : 0;
   const cashCostPerKg = totalHarvestWeight > 0 ? totalPengeluaran / totalHarvestWeight : 0;
   const averageRevenuePerKg = totalHarvestWeight > 0 ? totalPendapatan / totalHarvestWeight : 0;
+  const averageKgPerHarvest = harvestCount > 0 ? totalHarvestWeight / harvestCount : 0;
   const bepProgress = totalModal > 0 ? (totalPendapatan / totalModal) * 100 : 0;
 
   const categoryMap = new Map<string, { kategoriId: string | null; name: string; amount: number }>();
@@ -181,6 +182,34 @@ function deriveSummary(
     return { ...area, profit, margin };
   });
 
+  const trendMap = new Map<string, { date: string; harvestWeight: number; harvestCount: number; revenue: number }>();
+  for (const fact of facts) {
+    if (fact.harvestCount <= 0 && fact.harvestWeight <= 0) continue;
+    const current = trendMap.get(fact.date) ?? {
+      date: fact.date,
+      harvestWeight: 0,
+      harvestCount: 0,
+      revenue: 0,
+    };
+    current.harvestWeight += fact.harvestWeight;
+    current.harvestCount += fact.harvestCount;
+    current.revenue += fact.pendapatan;
+    trendMap.set(fact.date, current);
+  }
+
+  const trend = Array.from(trendMap.values()).sort((a, b) => a.date.localeCompare(b.date));
+
+  const areaRanking = areas
+    .filter((area) => area.harvestWeight > 0)
+    .map((area) => ({
+      id: area.id,
+      name: area.name,
+      harvestWeight: area.harvestWeight,
+      revenue: area.pendapatan,
+      revenuePerKg: area.harvestWeight > 0 ? area.pendapatan / area.harvestWeight : 0,
+    }))
+    .sort((a, b) => b.harvestWeight - a.harvestWeight);
+
   const activities = dataset.activities
     .filter((activity) => {
       if (!isFarmWide && (!activity.siklusId || !selectedCycleIds.has(activity.siklusId))) return false;
@@ -202,8 +231,11 @@ function deriveSummary(
     },
     production: {
       totalHarvestWeight,
-      hpp: cashCostPerKg,
+      harvestCount,
+      averageKgPerHarvest,
       averageRevenuePerKg,
+      trend,
+      areaRanking,
     },
     operational: {
       totalAreas: new Set(selectedContexts.map((context) => context.areaId)).size,
@@ -477,7 +509,18 @@ export function DashboardPage() {
 
           <section ref={productionRef} className="scroll-mt-[74px]">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={scrollReveal}>
-              <ProductionSection displayData={displayData} areas={summary?.areas ?? []} formatCurrency={formatCurrency} />
+              <ProductionSection
+                production={summary?.production ?? {
+                  totalHarvestWeight: 0,
+                  harvestCount: 0,
+                  averageKgPerHarvest: 0,
+                  averageRevenuePerKg: 0,
+                  trend: [],
+                  areaRanking: [],
+                }}
+                formatCurrency={formatCurrency}
+                isFarmWide={selectedContextId === "all"}
+              />
             </motion.div>
           </section>
 
