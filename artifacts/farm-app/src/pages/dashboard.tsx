@@ -5,6 +5,7 @@ import { animate, motion } from "framer-motion";
 import { Bot, Sparkles } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
+import { AgronomyHealth } from "@/components/dashboard/AgronomyHealth";
 import { DashboardFilters } from "@/components/dashboard/DashboardFilters";
 import { FinancialSection } from "@/components/FinancialSection";
 import { InsightSection } from "@/components/InsightSection";
@@ -121,6 +122,11 @@ function deriveSummary(
     return inDateRange(formatDateKeyWIB(new Date(event.occurredAt)));
   });
 
+  const inspectionFindings = (dataset.inspectionFindings ?? []).filter((finding) => {
+    if (!isFarmWide && (!finding.siklusId || !selectedCycleIds.has(finding.siklusId))) return false;
+    return inDateRange(formatDateKeyWIB(new Date(finding.occurredAt)));
+  });
+
   const totalModal = selectedContexts.reduce((sum, context) => sum + context.modalAwal, 0);
   const totalPendapatan = facts.reduce((sum, fact) => sum + fact.pendapatan, 0);
   const totalPengeluaran = facts.reduce((sum, fact) => sum + fact.pengeluaran, 0);
@@ -231,6 +237,29 @@ function deriveSummary(
     count: operationalEvents.filter((event) => event.module === module).length,
   }));
 
+  const inspectionEvents = operationalEvents.filter((event) => event.module === "inspeksi");
+  const affectedInspectionCount = new Set(inspectionFindings.map((finding) => finding.inspeksiId)).size;
+  const affectedAreaCount = new Set(
+    inspectionFindings.map((finding) => finding.areaId).filter((areaId): areaId is string => Boolean(areaId))
+  ).size;
+  const latestPhEvent = inspectionEvents.find((event) => event.phTanah != null);
+
+  const issueMap = new Map<string, { name: string; kind: string; count: number }>();
+  for (const finding of inspectionFindings) {
+    const key = `${finding.kind.trim().toLowerCase()}|${finding.name.trim().toLowerCase()}`;
+    const current = issueMap.get(key) ?? {
+      name: finding.name,
+      kind: finding.kind,
+      count: 0,
+    };
+    current.count += 1;
+    issueMap.set(key, current);
+  }
+
+  const topIssues = Array.from(issueMap.values())
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+    .slice(0, 5);
+
   const activities = dataset.activities
     .filter((activity) => {
       if (!isFarmWide && (!activity.siklusId || !selectedCycleIds.has(activity.siklusId))) return false;
@@ -263,6 +292,17 @@ function deriveSummary(
       inProgress,
       completed,
       byModule,
+    },
+    agronomy: {
+      inspectionCount: inspectionEvents.length,
+      findingCount: inspectionFindings.length,
+      affectedInspectionCount,
+      affectedAreaCount,
+      latestPh:
+        latestPhEvent?.phTanah != null
+          ? { value: latestPhEvent.phTanah, occurredAt: latestPhEvent.occurredAt }
+          : null,
+      topIssues,
     },
     insight: {
       businessStatus: marginTotal > 0 ? "Profitable" : "Developing",
@@ -542,7 +582,13 @@ export function DashboardPage() {
           </section>
 
           <section ref={operationalRef} className="scroll-mt-[74px]">
-            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={scrollReveal}>
+            <motion.div
+              className="space-y-5"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-100px" }}
+              variants={scrollReveal}
+            >
               <OperationalSection
                 operational={summary?.operational ?? {
                   total: 0,
@@ -556,6 +602,16 @@ export function DashboardPage() {
                   ],
                 }}
                 activities={visibleActivities}
+              />
+              <AgronomyHealth
+                agronomy={summary?.agronomy ?? {
+                  inspectionCount: 0,
+                  findingCount: 0,
+                  affectedInspectionCount: 0,
+                  affectedAreaCount: 0,
+                  latestPh: null,
+                  topIssues: [],
+                }}
               />
             </motion.div>
           </section>
