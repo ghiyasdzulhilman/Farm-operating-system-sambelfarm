@@ -97,10 +97,16 @@ function deriveSummary(
   const selectedCycleIds = new Set(selectedContexts.map((context) => context.siklusId));
   const isFarmWide = contextId === "all";
 
+  const inDateRange = (date: string) => !dateRange || (date >= dateRange.start && date <= dateRange.end);
+
   const facts = dataset.facts.filter((fact) => {
     if (!isFarmWide && (!fact.siklusId || !selectedCycleIds.has(fact.siklusId))) return false;
-    if (dateRange && (fact.date < dateRange.start || fact.date > dateRange.end)) return false;
-    return true;
+    return inDateRange(fact.date);
+  });
+
+  const costFacts = (dataset.costFacts ?? []).filter((fact) => {
+    if (!isFarmWide && (!fact.siklusId || !selectedCycleIds.has(fact.siklusId))) return false;
+    return inDateRange(fact.date);
   });
 
   const totalModal = selectedContexts.reduce((sum, context) => sum + context.modalAwal, 0);
@@ -110,9 +116,28 @@ function deriveSummary(
   const labaRugi = totalPendapatan - totalPengeluaran;
   const marginTotal =
     totalPendapatan > 0 ? (labaRugi / totalPendapatan) * 100 : totalPengeluaran > 0 ? -100 : 0;
-  const hpp = totalHarvestWeight > 0 ? totalPengeluaran / totalHarvestWeight : 0;
+  const cashCostPerKg = totalHarvestWeight > 0 ? totalPengeluaran / totalHarvestWeight : 0;
   const averageRevenuePerKg = totalHarvestWeight > 0 ? totalPendapatan / totalHarvestWeight : 0;
   const bepProgress = totalModal > 0 ? (totalPendapatan / totalModal) * 100 : 0;
+
+  const categoryMap = new Map<string, { kategoriId: string | null; name: string; amount: number }>();
+  for (const fact of costFacts) {
+    const key = fact.kategoriId ?? `name:${fact.kategoriName}`;
+    const current = categoryMap.get(key) ?? {
+      kategoriId: fact.kategoriId,
+      name: fact.kategoriName,
+      amount: 0,
+    };
+    current.amount += fact.totalBiaya;
+    categoryMap.set(key, current);
+  }
+
+  const costBreakdown = Array.from(categoryMap.values())
+    .map((item) => ({
+      ...item,
+      percentage: totalPengeluaran > 0 ? (item.amount / totalPengeluaran) * 100 : 0,
+    }))
+    .sort((a, b) => b.amount - a.amount);
 
   const areasMap = new Map<
     string,
@@ -133,7 +158,8 @@ function deriveSummary(
   }
 
   for (const fact of facts) {
-    if (!fact.areaId) continue;
+    if (!fact.areaId || !fact.siklusId) continue;
+    if (!selectedCycleIds.has(fact.siklusId)) continue;
     const context = dataset.contexts.find((item) => item.areaId === fact.areaId && item.siklusId === fact.siklusId);
     const current = areasMap.get(fact.areaId) ?? {
       id: fact.areaId,
@@ -159,8 +185,7 @@ function deriveSummary(
     .filter((activity) => {
       if (!isFarmWide && (!activity.siklusId || !selectedCycleIds.has(activity.siklusId))) return false;
       const activityDate = formatYmd(new Date(activity.occurredAt));
-      if (dateRange && (activityDate < dateRange.start || activityDate > dateRange.end)) return false;
-      return true;
+      return inDateRange(activityDate);
     })
     .slice(0, 8);
 
@@ -172,10 +197,12 @@ function deriveSummary(
       labaRugi,
       marginTotal,
       bepProgress,
+      cashCostPerKg,
+      costBreakdown,
     },
     production: {
       totalHarvestWeight,
-      hpp,
+      hpp: cashCostPerKg,
       averageRevenuePerKg,
     },
     operational: {
@@ -189,10 +216,10 @@ function deriveSummary(
       businessStatus: marginTotal > 0 ? "Profitable" : "Developing",
       recommendation:
         marginTotal < 0
-          ? "Usaha masih merugi. Fokus meningkatkan penjualan dan efisiensi biaya."
+          ? "Cash position masih negatif pada scope ini. Cek kategori biaya terbesar dan progres pendapatan panen."
           : marginTotal < 15
-            ? "Margin rendah, efisiensi operasional perlu ditingkatkan."
-            : "Performa usaha dalam kondisi baik.",
+            ? "Cash margin masih tipis. Prioritaskan efisiensi kategori biaya terbesar."
+            : "Cash performance pada scope ini berada dalam kondisi baik.",
     },
     areas,
     activities,
@@ -293,12 +320,6 @@ export function DashboardPage() {
     }
   };
 
-  const profitChartData = (summary?.areas ?? []).map((area) => ({
-    name: area.name,
-    profit: area.profit,
-    produksi: area.harvestWeight,
-  }));
-
   const visibleActivities = (summary?.activities ?? []).map((activity) => ({
     ...activity,
     time: formatDistanceToNow(new Date(activity.occurredAt), { addSuffix: true, locale: id }),
@@ -327,8 +348,8 @@ export function DashboardPage() {
     );
   }
 
-  const hpp = summary?.production.hpp ?? 0;
-  const bepProgress = Math.min(summary?.financial.bepProgress ?? 0, 100);
+  const cashCostPerKg = summary?.financial.cashCostPerKg ?? 0;
+  const recoveryProgress = Math.min(summary?.financial.bepProgress ?? 0, 100);
   const contextKey = selectedContextId === "all" ? cycleStatus : selectedContextId;
 
   return (
@@ -377,70 +398,80 @@ export function DashboardPage() {
           </div>
         )}
 
-        <div className="relative mt-4 overflow-hidden rounded-[2rem] bg-slate-950 p-5 text-white shadow-2xl md:mt-6 md:rounded-[2.5rem] md:p-6 [transform:translateZ(0)]">
-          <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/20 blur-[80px]" />
-          <div className="relative z-10">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="mb-1 text-xs font-bold text-white/60">Business pulse</p>
-                <h2 className="text-2xl font-black text-white transition-colors duration-500 md:text-3xl">
-                  {summary?.insight.businessStatus ?? "Developing"}
-                </h2>
-              </div>
-              <div className="rounded-2xl bg-white/10 p-3 backdrop-blur-md">
-                <Bot className="h-6 w-6 text-white" />
-              </div>
+        <div className="relative mt-4 overflow-hidden rounded-[1.5rem] border border-border/40 bg-card/70 p-4 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.12)] backdrop-blur-md md:mt-6 md:p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Business pulse</p>
+              <h2 className="mt-0.5 text-2xl font-black tracking-[-0.05em] text-foreground">
+                {summary?.insight.businessStatus ?? "Developing"}
+              </h2>
+              <p className="mt-1 max-w-xl text-[11px] font-medium leading-relaxed text-muted-foreground">
+                {summary?.insight.recommendation ?? "Belum ada insight untuk scope ini."}
+              </p>
+            </div>
+            <div className="rounded-xl border border-border/30 bg-background/70 p-2.5">
+              <Bot className="h-5 w-5 text-primary" />
+            </div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-2.5">
+            <div className={`rounded-xl border p-3 ${getMarginBg(displayData.margin)}`}>
+              <p className="text-[9px] font-bold uppercase tracking-[0.13em] text-muted-foreground">Margin</p>
+              <p className="mt-1 text-xl font-black tracking-[-0.04em] text-foreground">
+                <AnimatedNumber key={`margin-${contextKey}-${resolvedDateRange?.start ?? "all"}`} value={displayData.margin} formatFn={(val) => `${val.toFixed(1)}%`} />
+              </p>
             </div>
 
-            <div className="mt-5 md:mt-6">
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className={`rounded-2xl border p-4 transition-colors duration-500 ${getMarginBg(displayData.margin)}`}>
-                  <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-white/60">Margin</p>
-                  <p className="text-2xl font-black text-white">
-                    <AnimatedNumber key={`margin-${contextKey}-${resolvedDateRange?.start ?? "all"}`} value={displayData.margin} formatFn={(val) => `${val.toFixed(1)}%`} />
-                  </p>
-                </div>
-
-                <div className={`rounded-2xl border p-4 transition-colors duration-500 ${getMarginBg(displayData.margin)}`}>
-                  <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-white/60">HPP / kg</p>
-                  <p className="text-xl font-black text-white">
-                    <AnimatedNumber key={`hpp-${contextKey}-${resolvedDateRange?.start ?? "all"}`} value={hpp} formatFn={formatCurrency} />
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-3 rounded-2xl border border-white/10 bg-white/5 p-3.5">
-                <div className="mb-2 flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.15em]">
-                  <span className="text-white/60">BEP Runway</span>
-                  <span className="font-bold text-white">
-                    <AnimatedNumber key={`bep-${contextKey}-${resolvedDateRange?.start ?? "all"}`} value={bepProgress} formatFn={(val) => `${val.toFixed(1)}%`} />
-                  </span>
-                </div>
-                <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
-                  <motion.div
-                    key={`bep-bar-${contextKey}-${resolvedDateRange?.start ?? "all"}`}
-                    initial={{ width: 0 }}
-                    animate={{ width: `${bepProgress}%` }}
-                    transition={{ duration: 1.2, ease: "easeOut" }}
-                    className="h-full rounded-full bg-primary"
-                  />
-                </div>
-              </div>
+            <div className="rounded-xl border border-border/40 bg-background/50 p-3">
+              <p className="text-[9px] font-bold uppercase tracking-[0.13em] text-muted-foreground">Cash cost / kg</p>
+              <p className="mt-1 text-lg font-black tracking-[-0.04em] text-foreground">
+                <AnimatedNumber key={`cash-cost-${contextKey}-${resolvedDateRange?.start ?? "all"}`} value={cashCostPerKg} formatFn={formatCurrency} />
+              </p>
             </div>
+          </div>
 
-            <div className="mt-4 flex items-center justify-start gap-2">
-              <div className="flex items-center gap-2 rounded-xl bg-white/5 px-3 py-1.5 text-[10px] font-medium text-white/80 sm:text-xs">
-                <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" />
-                <span className="truncate">Data Terkini: {formatDate(dataset?.meta.generatedAt)}</span>
-              </div>
+          <div className="mt-3 rounded-xl border border-border/30 bg-muted/20 p-3">
+            <div className="mb-2 flex items-center justify-between text-[9px] font-bold uppercase tracking-[0.13em]">
+              <span className="text-muted-foreground">Pemulihan modal awal</span>
+              <span className="text-foreground">
+                <AnimatedNumber key={`recovery-${contextKey}-${resolvedDateRange?.start ?? "all"}`} value={recoveryProgress} formatFn={(val) => `${val.toFixed(1)}%`} />
+              </span>
             </div>
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+              <motion.div
+                key={`recovery-bar-${contextKey}-${resolvedDateRange?.start ?? "all"}`}
+                initial={{ width: 0 }}
+                animate={{ width: `${recoveryProgress}%` }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+                className="h-full rounded-full bg-primary"
+              />
+            </div>
+          </div>
+
+          <div className="mt-3 flex items-center gap-2 text-[10px] font-medium text-muted-foreground">
+            <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" />
+            <span className="truncate">Data dataset: {formatDate(dataset?.meta.generatedAt)}</span>
           </div>
         </div>
 
         <div className="mt-4 space-y-8 md:mt-6 md:space-y-12">
           <section ref={financialRef} className="scroll-mt-[83px]">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={scrollReveal}>
-              <FinancialSection displayData={displayData} formatCurrency={formatCurrency} profitChartData={profitChartData} />
+              <FinancialSection
+                financial={summary?.financial ?? {
+                  totalModal: 0,
+                  totalPendapatan: 0,
+                  totalPengeluaran: 0,
+                  labaRugi: 0,
+                  marginTotal: 0,
+                  bepProgress: 0,
+                  cashCostPerKg: 0,
+                  costBreakdown: [],
+                }}
+                areas={summary?.areas ?? []}
+                formatCurrency={formatCurrency}
+                isFarmWide={selectedContextId === "all"}
+              />
             </motion.div>
           </section>
 
