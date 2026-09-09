@@ -1,5 +1,8 @@
 export type DashboardCycleStatusFilter = "aktif" | "selesai";
 export type DashboardTimeFilter = "Semua Waktu" | "7 Hari" | "30 Hari" | "90 Hari" | "Kustom";
+export type DashboardOperationalStatus = "pending" | "in_progress" | "completed";
+export type DashboardOperationalModule = "perawatan" | "inspeksi" | "operasional";
+export type DashboardActivityType = DashboardOperationalModule | "harvest" | "expense";
 
 export type DashboardDateRange = {
   start: string;
@@ -36,14 +39,32 @@ export type DashboardCostFact = {
   totalBiaya: number;
 };
 
+export type DashboardOperationalEvent = {
+  id: string;
+  module: DashboardOperationalModule;
+  siklusId: string | null;
+  areaId: string | null;
+  occurredAt: string;
+  finishedAt: string | null;
+  title: string;
+  originalStatus: string;
+  normalizedStatus: DashboardOperationalStatus;
+  durationHours: number;
+  priority: string | null;
+  phTanah: number | null;
+  tingkatSerangan: number | null;
+  radius: number | null;
+};
+
 export type DashboardActivity = {
   id: string;
-  type: "harvest" | "expense";
+  type: DashboardActivityType;
   siklusId: string | null;
   areaId: string | null;
   occurredAt: string;
   title: string;
   description: string;
+  status: string | null;
 };
 
 export type DashboardDataset = {
@@ -51,6 +72,7 @@ export type DashboardDataset = {
   contexts: DashboardContext[];
   facts: DashboardDailyFact[];
   costFacts: DashboardCostFact[];
+  operationalEvents: DashboardOperationalEvent[];
   activities: DashboardActivity[];
   meta: {
     generatedAt: string;
@@ -91,6 +113,11 @@ export type DashboardProductionAreaRank = {
   revenuePerKg: number;
 };
 
+export type DashboardOperationalModuleSummary = {
+  module: DashboardOperationalModule;
+  count: number;
+};
+
 export type DashboardDerivedSummary = {
   financial: {
     totalModal: number;
@@ -111,8 +138,11 @@ export type DashboardDerivedSummary = {
     areaRanking: DashboardProductionAreaRank[];
   };
   operational: {
-    totalAreas: number;
-    activeAreas: number;
+    total: number;
+    pending: number;
+    inProgress: number;
+    completed: number;
+    byModule: DashboardOperationalModuleSummary[];
   };
   insight: {
     businessStatus: string;
