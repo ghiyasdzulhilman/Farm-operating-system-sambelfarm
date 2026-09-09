@@ -1,44 +1,24 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
-import { motion, AnimatePresence, animate } from "framer-motion";
-import {
-  Bot,
-  ChevronDown,
-  Leaf,
-  Sparkles,
-} from "lucide-react";
+import { animate, motion } from "framer-motion";
+import { Bot, Sparkles } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getGetDashboardSummaryQueryKey } from "@workspace/api-client-react";
-
+import { DashboardFilters } from "@/components/dashboard/DashboardFilters";
 import { FinancialSection } from "@/components/FinancialSection";
 import { InsightSection } from "@/components/InsightSection";
 import { OperationalSection } from "@/components/OperationalSection";
 import { ProductionSection } from "@/components/ProductionSection";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import type {
+  DashboardDateRange,
+  DashboardSiklusFilter,
+  DashboardSummary,
+  DashboardTimeFilter,
+} from "@/types/dashboard";
 
 type DashboardSection = "financial" | "production" | "operational" | "insight";
-
-const scrollReveal = {
-  hidden: { opacity: 0, y: 40, filter: "blur(10px)" },
-  visible: { 
-    opacity: 1, 
-    y: 0, 
-    filter: "blur(0px)",
-    transition: { 
-      duration: 0.8, 
-      ease: [0.21, 1.11, 0.81, 0.99] // Efek spring yang smooth
-    } 
-  }
-};
 
 type DisplayData = {
   modal: number;
@@ -49,10 +29,20 @@ type DisplayData = {
   harvestWeight: number;
 };
 
-const sectionItems: Array<{
-  key: DashboardSection;
-  label: string;
-}> = [
+const scrollReveal = {
+  hidden: { opacity: 0, y: 40, filter: "blur(10px)" },
+  visible: {
+    opacity: 1,
+    y: 0,
+    filter: "blur(0px)",
+    transition: {
+      duration: 0.8,
+      ease: [0.21, 1.11, 0.81, 0.99],
+    },
+  },
+};
+
+const sectionItems: Array<{ key: DashboardSection; label: string }> = [
   { key: "financial", label: "Financial" },
   { key: "production", label: "Production" },
   { key: "operational", label: "Operational" },
@@ -68,17 +58,21 @@ const emptyDisplayData: DisplayData = {
   harvestWeight: 0,
 };
 
-function AnimatedNumber({ 
-  value, 
-  formatFn 
-}: { 
-  value: number; 
-  formatFn: (val: number) => string 
+const formatYmd = (date: Date) => {
+  const offset = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - offset).toISOString().split("T")[0];
+};
+
+function AnimatedNumber({
+  value,
+  formatFn,
+}: {
+  value: number;
+  formatFn: (val: number) => string;
 }) {
   const [displayValue, setDisplayValue] = useState(formatFn(0));
-
-  // Trik biar animasi ga ke-trigger cuma gara-gara buka/tutup menu filter
   const formatRef = useRef(formatFn);
+
   useEffect(() => {
     formatRef.current = formatFn;
   }, [formatFn]);
@@ -87,13 +81,11 @@ function AnimatedNumber({
     const controls = animate(0, value, {
       duration: 1.2,
       ease: "easeOut",
-      onUpdate: (latest) => {
-        setDisplayValue(formatRef.current(latest));
-      },
+      onUpdate: (latest) => setDisplayValue(formatRef.current(latest)),
     });
 
     return () => controls.stop();
-  }, [value]); // Kunci utama: Animasi cuma ngulang kalo 'value' nya berubah
+  }, [value]);
 
   return <span>{displayValue}</span>;
 }
@@ -105,10 +97,11 @@ const getMarginBg = (margin: number) => {
 };
 
 export function DashboardPage() {
-  const queryClient = useQueryClient();
   const [selectedAreaId, setSelectedAreaId] = useState("all");
+  const [siklusFilter, setSiklusFilter] = useState<DashboardSiklusFilter>("aktif");
+  const [timeFilter, setTimeFilter] = useState<DashboardTimeFilter>("Semua Waktu");
+  const [customDateRange, setCustomDateRange] = useState<DashboardDateRange | null>(null);
   const [activeSection, setActiveSection] = useState<DashboardSection>("financial");
-  const [showControls, setShowControls] = useState(false);
 
   const financialRef = useRef<HTMLDivElement>(null);
   const productionRef = useRef<HTMLDivElement>(null);
@@ -132,12 +125,7 @@ export function DashboardPage() {
       sectionItems.forEach((section) => {
         const element = sectionRefs[section.key].current;
         if (!element) return;
-
-        const rect = element.getBoundingClientRect();
-        // Ubah angkanya jadi 112 biar sensornya pas sama landing baru
-        if (rect.top <= 92) {
-          currentSection = section.key;
-        }
+        if (element.getBoundingClientRect().top <= 92) currentSection = section.key;
       });
 
       setActiveSection(currentSection);
@@ -145,53 +133,61 @@ export function DashboardPage() {
 
     window.addEventListener("scroll", handleScroll, { passive: true });
     handleScroll();
-
     return () => window.removeEventListener("scroll", handleScroll);
   }, [sectionRefs]);
 
-  // 🚀 CLEANUP: Semua hooks & states terkait Notion OAuth, Token, dan Cache dihapus!
+  const resolvedDateRange = useMemo<DashboardDateRange | null>(() => {
+    if (timeFilter === "Kustom") return customDateRange;
+    if (timeFilter === "Semua Waktu") return null;
 
-  const {
-    data: summary,
-    isLoading: isLoadingSummary,
-  } = useQuery({
-    queryKey: getGetDashboardSummaryQueryKey(),
-    // 🚀 CLEANUP: Hapus dependensi 'enabled: !!isConnected', langsung narik aja dari Postgres!
+    const days = timeFilter === "7 Hari" ? 7 : timeFilter === "30 Hari" ? 30 : 90;
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - (days - 1));
+
+    return { start: formatYmd(start), end: formatYmd(end) };
+  }, [timeFilter, customDateRange]);
+
+  const { data: summary, isLoading: isLoadingSummary } = useQuery<DashboardSummary>({
+    queryKey: [
+      "dashboard-summary-v2",
+      selectedAreaId,
+      siklusFilter,
+      resolvedDateRange?.start ?? null,
+      resolvedDateRange?.end ?? null,
+    ],
     queryFn: async () => {
-      const res = await fetch("/api/dashboard/summary");
-      if (!res.ok) throw new Error("Gagal mengambil data dashboard");
+      const params = new URLSearchParams();
+      params.set("siklus", siklusFilter);
+      if (selectedAreaId !== "all") params.set("areaId", selectedAreaId);
+      if (resolvedDateRange) {
+        params.set("startDate", resolvedDateRange.start);
+        params.set("endDate", resolvedDateRange.end);
+      }
+
+      const res = await fetch(`/api/dashboard/summary?${params.toString()}`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || "Gagal mengambil data dashboard");
+      }
       return res.json();
     },
   });
 
-  const areas = summary?.areas || [];
-
   const displayData = useMemo<DisplayData>(() => {
     if (!summary) return emptyDisplayData;
-
-    if (selectedAreaId === "all") {
-      return {
-        modal: summary.financial?.totalModal ?? 0,
-        pendapatan: summary.financial?.totalPendapatan ?? 0,
-        pengeluaran: summary.financial?.totalPengeluaran ?? 0,
-        profit: summary.financial?.labaRugi ?? 0,
-        margin: summary.financial?.marginTotal ?? 0,
-        harvestWeight: summary.production?.totalHarvestWeight ?? 0,
-      };
-    }
-
-    const area = areas.find((item: any) => item.id === selectedAreaId);
-    if (!area) return emptyDisplayData;
-
     return {
-      modal: area.modalAwal ?? 0,
-      pendapatan: area.pendapatan ?? 0,
-      pengeluaran: area.pengeluaran ?? 0,
-      profit: area.profit ?? 0,
-      margin: area.margin ?? 0,
-      harvestWeight: area.harvestWeight ?? 0,
+      modal: summary.financial.totalModal,
+      pendapatan: summary.financial.totalPendapatan,
+      pengeluaran: summary.financial.totalPengeluaran,
+      profit: summary.financial.labaRugi,
+      margin: summary.financial.marginTotal,
+      harvestWeight: summary.production.totalHarvestWeight,
     };
-  }, [summary, selectedAreaId, areas]);
+  }, [summary]);
+
+  const areas = summary?.areas ?? [];
+  const areaOptions = summary?.filterOptions.areas ?? [];
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat("id-ID", {
@@ -201,7 +197,7 @@ export function DashboardPage() {
       maximumFractionDigits: 0,
     }).format(amount || 0);
 
-  const formatDate = (dateString: string | null) => {
+  const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return "Baru saja";
     try {
       return format(new Date(dateString), "dd MMM yyyy, HH:mm", { locale: id });
@@ -210,158 +206,89 @@ export function DashboardPage() {
     }
   };
 
-  const profitChartData = areas.map((area: any) => ({
+  const profitChartData = areas.map((area) => ({
     name: area.name,
     profit: area.profit || 0,
     produksi: area.harvestWeight || 0,
   }));
 
-  const harvestActivities =
-    summary?.activities?.filter((activity: any) => activity.type === "harvest") || [];
+  const harvestActivities = summary?.activities.filter((activity) => activity.type === "harvest") ?? [];
+  const expenseActivities = summary?.activities.filter((activity) => activity.type === "expense") ?? [];
 
-  const expenseActivities =
-    summary?.activities?.filter((activity: any) => activity.type === "expense") || [];
-
-  const localBusinessStatus = selectedAreaId === "all" && summary?.insight?.businessStatus 
-    ? summary.insight.businessStatus 
-    : (displayData.margin > 0 ? "Profitable" : "Developing");
-
-  const localRecommendation = selectedAreaId === "all" && summary?.insight?.recommendation
-    ? summary.insight.recommendation
-    : (displayData.margin < 0
-        ? "Usaha masih merugi. Evaluasi total biaya pengeluaran dan audit operasional."
-        : displayData.margin < 15
-          ? "Margin tipis. Optimalkan HPP per kg dan pantau jadwal panen."
-          : "Unit farming sehat. Scale area paling produktif sambil menjaga HPP.");
+  const localBusinessStatus = summary?.insight.businessStatus ?? "Developing";
+  const localRecommendation = summary?.insight.recommendation ?? "Belum ada insight untuk scope ini.";
 
   const scrollToSection = (section: DashboardSection) => {
     setActiveSection(section);
-    sectionRefs[section].current?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
+    sectionRefs[section].current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  // 1. CEK LOADING SCREEN
   if (isLoadingSummary && !summary) {
     return (
       <div className="mt-4 space-y-5 px-4 md:px-6">
-        <Skeleton className="h-44 rounded-[2rem]" />
-        <Skeleton className="h-16 rounded-3xl" />
+        <Skeleton className="h-16 rounded-[1.25rem]" />
+        <Skeleton className="h-40 rounded-[1.25rem]" />
+        <Skeleton className="h-44 rounded-[1.5rem]" />
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {[1, 2, 3, 4].map((item) => (
-            <Skeleton key={item} className="h-36 rounded-[1.75rem]" />
+            <Skeleton key={item} className="h-36 rounded-[1.25rem]" />
           ))}
         </div>
       </div>
     );
   }
 
-  // 2. HITUNGAN VARIABEL
-  const hpp = displayData.pengeluaran / (displayData.harvestWeight || 1);
-  
-  const bepProgress = Math.min(
-    (displayData.pendapatan / (displayData.modal || 1)) * 100,
-    100
-  );
+  const hpp = summary?.production.hpp ?? 0;
+  const bepProgress = Math.min(summary?.financial.bepProgress ?? 0, 100);
 
-  // 3. RENDER UI UTAMA
   return (
     <div className="flex min-h-screen flex-col pb-20 font-sans">
-      
-      {/* 🚀 CLEANUP: StagingQueueCard Dihapus! Udah real-time ke Postgres! */}
-
       <main className="relative mx-auto w-full max-w-7xl overflow-x-clip px-4 pt-4 md:px-6">
-        
-        {/* 🚀 CLEANUP: Alert Koneksi Notion Dihapus! */}
-
-        {/* --- NAVIGASI PILL & FILTER (Versi Drawer / Pull-Tab) --- */}
-        <div className="sticky top-2 z-30 flex flex-col md:top-4">
-          <div className="w-full overflow-hidden rounded-[1.55rem] border border-white/60 bg-white/72 p-1.5 shadow-[0_18px_50px_rgba(15,23,42,0.10)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/70">
-            
+        <div className="sticky top-2 z-30 md:top-4">
+          <div className="w-full overflow-hidden rounded-[1.25rem] border border-border/50 bg-card/70 p-1.5 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] backdrop-blur-md">
             <div className="relative z-20 grid grid-cols-4 gap-1">
               {sectionItems.map((item) => (
                 <button
                   key={item.key}
                   onClick={() => scrollToSection(item.key)}
-                  className="relative min-h-11 rounded-[1.15rem] px-2 text-xs font-bold text-muted-foreground transition-colors duration-300 hover:text-foreground md:text-sm"
+                  className="relative min-h-11 rounded-xl px-2 text-xs font-bold text-muted-foreground transition-colors duration-300 hover:text-foreground md:text-sm"
                 >
                   {activeSection === item.key && (
                     <motion.span
                       layoutId="smart-section-pill"
-                      className="absolute inset-0 rounded-[1.15rem] bg-primary shadow-md"
+                      className="absolute inset-0 rounded-xl bg-primary shadow-[0_4px_15px_-4px_rgba(0,0,0,0.16)]"
                       transition={{ type: "spring", bounce: 0.18, duration: 0.55 }}
                     />
                   )}
-                  <span
-                    className={
-                      activeSection === item.key
-                        ? "relative z-10 text-white"
-                        : "relative z-10"
-                    }
-                  >
+                  <span className={activeSection === item.key ? "relative z-10 text-primary-foreground" : "relative z-10"}>
                     {item.label}
                   </span>
                 </button>
               ))}
             </div>
-
-            <AnimatePresence initial={false}>
-              {showControls && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.3, ease: "easeInOut" }}
-                  className="overflow-hidden"
-                >
-                  <div className="pt-2">
-                    <div className="flex items-center justify-center gap-2 rounded-2xl bg-white/40 py-2 dark:bg-black/20">
-                      <Select value={selectedAreaId} onValueChange={setSelectedAreaId}>
-                        <SelectTrigger className="h-8 w-[130px] rounded-full border-none bg-white px-3 text-xs font-bold shadow-sm focus:ring-0 dark:bg-slate-900">
-                          <Leaf className="mr-1.5 h-3 w-3 text-primary" />
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all" className="text-xs font-semibold">Semua Area</SelectItem>
-                          {areas.map((area: any) => (
-                            <SelectItem key={area.id} value={area.id} className="text-xs font-semibold">
-                              {area.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          <div className="relative z-10 -mt-1 flex w-full justify-center">
-            <button
-              onClick={() => setShowControls(!showControls)}
-              className="flex h-5 w-12 items-center justify-center rounded-b-xl border-x border-b border-white/60 bg-white/72 shadow-[0_4px_10px_rgba(0,0,0,0.05)] backdrop-blur-2xl transition-colors hover:bg-white dark:border-white/10 dark:bg-slate-950/70"
-              aria-label="Toggle dashboard filters"
-            >
-              <ChevronDown
-                className={`h-3 w-3 text-muted-foreground transition-transform duration-300 ${
-                  showControls ? "rotate-180" : ""
-                }`}
-              />
-            </button>
           </div>
         </div>
 
-        {/* --- CARD BUSINESS PULSE & BEP SLIM --- */}
+        <DashboardFilters
+          areas={areaOptions}
+          areaId={selectedAreaId}
+          setAreaId={setSelectedAreaId}
+          siklus={siklusFilter}
+          setSiklus={setSiklusFilter}
+          timeFilter={timeFilter}
+          setTimeFilter={setTimeFilter}
+          customDateRange={customDateRange}
+          setCustomDateRange={setCustomDateRange}
+        />
+
         <div className="relative mt-4 overflow-hidden rounded-[2rem] bg-slate-950 p-5 text-white shadow-2xl md:mt-6 md:rounded-[2.5rem] md:p-6 [transform:translateZ(0)]">
           <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/20 blur-[80px]" />
-          
+
           <div className="relative z-10">
             <div className="flex items-start justify-between">
               <div>
                 <p className="mb-1 text-xs font-bold text-white/60">Business pulse</p>
-                <h2 className="text-2xl font-black text-white md:text-3xl transition-colors duration-500">
+                <h2 className="text-2xl font-black text-white transition-colors duration-500 md:text-3xl">
                   {localBusinessStatus}
                 </h2>
               </div>
@@ -372,14 +299,13 @@ export function DashboardPage() {
 
             <div className="mt-5 md:mt-6">
               <div className="grid grid-cols-2 gap-3 text-sm">
-                
                 <div className={`rounded-2xl border p-4 transition-colors duration-500 ${getMarginBg(displayData.margin)}`}>
                   <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-white/60">Margin</p>
                   <p className="text-2xl font-black text-white">
-                    <AnimatedNumber 
-                      key={`margin-${selectedAreaId}-${summary?.lastUpdated}`}
-                      value={displayData.margin} 
-                      formatFn={(val) => `${val.toFixed(1)}%`} 
+                    <AnimatedNumber
+                      key={`margin-${selectedAreaId}-${siklusFilter}-${summary?.lastUpdated}`}
+                      value={displayData.margin}
+                      formatFn={(val) => `${val.toFixed(1)}%`}
                     />
                   </p>
                 </div>
@@ -387,30 +313,29 @@ export function DashboardPage() {
                 <div className={`rounded-2xl border p-4 transition-colors duration-500 ${getMarginBg(displayData.margin)}`}>
                   <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-white/60">HPP / kg</p>
                   <p className="text-xl font-black text-white">
-                    <AnimatedNumber 
-                      key={`hpp-${selectedAreaId}-${summary?.lastUpdated}`}
-                      value={hpp} 
-                      formatFn={(val) => formatCurrency(val)} 
+                    <AnimatedNumber
+                      key={`hpp-${selectedAreaId}-${siklusFilter}-${summary?.lastUpdated}`}
+                      value={hpp}
+                      formatFn={formatCurrency}
                     />
                   </p>
                 </div>
-
               </div>
 
               <div className="mt-3 rounded-2xl border border-white/10 bg-white/5 p-3.5">
                 <div className="mb-2 flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.15em]">
                   <span className="text-white/60">BEP Runway</span>
-                  <span className="text-white font-bold">
-                    <AnimatedNumber 
-                      key={`bep-${selectedAreaId}-${summary?.lastUpdated}`}
-                      value={bepProgress} 
-                      formatFn={(val) => `${val.toFixed(1)}%`} 
+                  <span className="font-bold text-white">
+                    <AnimatedNumber
+                      key={`bep-${selectedAreaId}-${siklusFilter}-${summary?.lastUpdated}`}
+                      value={bepProgress}
+                      formatFn={(val) => `${val.toFixed(1)}%`}
                     />
                   </span>
                 </div>
                 <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
                   <motion.div
-                    key={`bep-bar-${selectedAreaId}-${summary?.lastUpdated}`}
+                    key={`bep-bar-${selectedAreaId}-${siklusFilter}-${summary?.lastUpdated}`}
                     initial={{ width: 0 }}
                     animate={{ width: `${bepProgress}%` }}
                     transition={{ duration: 1.2, ease: "easeOut" }}
@@ -420,7 +345,6 @@ export function DashboardPage() {
               </div>
             </div>
 
-            {/* 🚀 CLEANUP: Tombol Upload Staging & Refresh Cache Dihapus! */}
             <div className="mt-4 flex items-center justify-start gap-2">
               <div className="flex items-center gap-2 rounded-xl bg-white/5 px-3 py-1.5 text-[10px] font-medium text-white/80 sm:text-xs">
                 <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" />
@@ -430,59 +354,27 @@ export function DashboardPage() {
           </div>
         </div>
 
-        {/* --- SECTION KONTEN --- */}
         <div className="mt-4 space-y-8 md:mt-6 md:space-y-12">
           <section ref={financialRef} className="scroll-mt-[83px]">
-            <motion.div
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: "-100px" }}
-              variants={scrollReveal}
-            >
-              <FinancialSection
-                displayData={displayData}
-                formatCurrency={formatCurrency}
-                profitChartData={profitChartData}
-              />
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={scrollReveal}>
+              <FinancialSection displayData={displayData} formatCurrency={formatCurrency} profitChartData={profitChartData} />
             </motion.div>
           </section>
 
           <section ref={productionRef} className="scroll-mt-[74px]">
-            <motion.div
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: "-100px" }}
-              variants={scrollReveal}
-            >
-              <ProductionSection
-                displayData={displayData}
-                areas={areas}
-                formatCurrency={formatCurrency}
-              />
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={scrollReveal}>
+              <ProductionSection displayData={displayData} areas={areas} formatCurrency={formatCurrency} />
             </motion.div>
           </section>
 
           <section ref={operationalRef} className="scroll-mt-[74px]">
-            <motion.div
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: "-100px" }}
-              variants={scrollReveal}
-            >
-              <OperationalSection
-                harvestActivities={harvestActivities}
-                expenseActivities={expenseActivities}
-              />
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={scrollReveal}>
+              <OperationalSection harvestActivities={harvestActivities} expenseActivities={expenseActivities} />
             </motion.div>
           </section>
 
           <section ref={insightRef} className="scroll-mt-[74px]">
-            <motion.div
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: "-100px" }}
-              variants={scrollReveal}
-            >
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={scrollReveal}>
               <InsightSection
                 displayData={displayData}
                 localBusinessStatus={localBusinessStatus}
@@ -492,7 +384,6 @@ export function DashboardPage() {
             </motion.div>
           </section>
         </div>
-
       </main>
     </div>
   );
