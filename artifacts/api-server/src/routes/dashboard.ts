@@ -1,32 +1,32 @@
 import { Router, type IRouter } from "express";
 import { getAuth } from "@clerk/express";
 import { z } from "zod";
-import { db } from "@workspace/db";
 import {
+  db,
   areasTable,
   siklusTanamTable,
   panenTable,
   pengeluaranTable,
 } from "@workspace/db";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
-import { formatDistanceToNow } from "date-fns";
-import { id } from "date-fns/locale";
+import { and, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 
 const router: IRouter = Router();
 
-const safeNumber = (val: unknown) => Number(val) || 0;
+const safeNumber = (value: unknown) => Number(value) || 0;
 
-const dashboardQuerySchema = z
-  .object({
-    areaId: z.string().uuid().optional(),
-    siklus: z.enum(["aktif", "selesai", "semua"]).default("aktif"),
-    startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-    endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  })
-  .refine(
-    (value) => Boolean(value.startDate) === Boolean(value.endDate),
-    { message: "startDate dan endDate harus dikirim bersamaan" }
-  );
+const dashboardQuerySchema = z.object({
+  status: z.enum(["aktif", "selesai"]).default("aktif"),
+});
+
+const dateKeyWIB = (value: Date | string) => {
+  const date = typeof value === "string" ? new Date(value) : value;
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+};
 
 router.get("/dashboard/summary", async (req, res): Promise<void> => {
   const { userId } = getAuth(req);
@@ -40,241 +40,192 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
     return;
   }
 
-  const parsedQuery = dashboardQuerySchema.safeParse(req.query);
-  if (!parsedQuery.success) {
+  const parsed = dashboardQuerySchema.safeParse(req.query);
+  if (!parsed.success) {
     res.status(400).json({
       error: "Filter dashboard tidak valid",
-      details: parsedQuery.error.flatten(),
+      details: parsed.error.flatten(),
     });
     return;
   }
 
-  const { areaId, siklus, startDate, endDate } = parsedQuery.data;
+  const { status } = parsed.data;
 
   try {
-    // Filter options selalu mengambil seluruh area tenant agar selector tidak kehilangan pilihan.
-    const allAreas = await db
-      .select({ id: areasTable.id, name: areasTable.name })
-      .from(areasTable)
-      .where(eq(areasTable.organisasiId, req.organisasiId));
+    const cycleCondition =
+      status === "aktif"
+        ? eq(siklusTanamTable.status, "Aktif")
+        : inArray(siklusTanamTable.status, ["Selesai", "Ditutup"]);
 
-    const scopedAreas = areaId
-      ? allAreas.filter((area) => area.id === areaId)
-      : allAreas;
-
-    // Siklus diambil sebagai rows supaya status, modal, dan active-area bisa dihitung dari satu sumber.
-    const allCycleRows = await db
+    // Dashboard bekerja dalam context Area + Siklus, bukan Area saja.
+    // Satu request hanya memuat satu kelompok context: aktif ATAU historis selesai.
+    const contexts = await db
       .select({
-        id: siklusTanamTable.id,
+        siklusId: siklusTanamTable.id,
         areaId: siklusTanamTable.areaId,
-        status: siklusTanamTable.status,
+        areaName: areasTable.name,
+        namaSiklus: siklusTanamTable.namaSiklus,
+        statusSiklus: siklusTanamTable.status,
+        tanggalPindahTanam: siklusTanamTable.tanggalPindahTanam,
         modalAwal: siklusTanamTable.modalAwal,
       })
       .from(siklusTanamTable)
+      .innerJoin(
+        areasTable,
+        and(
+          eq(siklusTanamTable.areaId, areasTable.id),
+          eq(areasTable.organisasiId, req.organisasiId)
+        )
+      )
       .where(
         and(
           eq(siklusTanamTable.organisasiId, req.organisasiId),
-          areaId ? eq(siklusTanamTable.areaId, areaId) : undefined
+          cycleCondition
         )
-      );
+      )
+      .orderBy(desc(siklusTanamTable.tanggalPindahTanam));
 
-    const scopedCycles = allCycleRows.filter((cycle) => {
-      if (siklus === "aktif") return cycle.status === "Aktif";
-      if (siklus === "selesai") return cycle.status === "Selesai" || cycle.status === "Ditutup";
-      return true;
-    });
+    const cycleIds = contexts.map((context) => context.siklusId);
 
-    const scopedCycleIds = scopedCycles.map((cycle) => cycle.id);
-    const restrictToCycle = siklus !== "semua";
+    const panenRows = cycleIds.length
+      ? await db
+          .select({
+            id: panenTable.id,
+            siklusId: panenTable.siklusId,
+            areaId: panenTable.areaId,
+            tanggal: panenTable.tanggal,
+            kegiatan: panenTable.kegiatan,
+            kuantitasKg: panenTable.kuantitasKg,
+            totalPendapatan: panenTable.totalPendapatan,
+          })
+          .from(panenTable)
+          .where(
+            and(
+              eq(panenTable.organisasiId, req.organisasiId),
+              inArray(panenTable.siklusId, cycleIds)
+            )
+          )
+          .orderBy(desc(panenTable.tanggal))
+      : [];
 
-    const panenConditions = [
-      eq(panenTable.organisasiId, req.organisasiId),
-      areaId ? eq(panenTable.areaId, areaId) : undefined,
-      startDate ? sql`${panenTable.tanggal}::date >= ${startDate}::date` : undefined,
-      endDate ? sql`${panenTable.tanggal}::date <= ${endDate}::date` : undefined,
-      restrictToCycle
-        ? scopedCycleIds.length > 0
-          ? inArray(panenTable.siklusId, scopedCycleIds)
-          : sql`false`
-        : undefined,
-    ];
+    // Biaya umum (siklusId NULL) hanya dimasukkan pada dashboard aktif/farm-wide.
+    // Untuk histori selesai biaya umum tidak dialokasikan secara paksa ke siklus lama.
+    const expenseScope =
+      status === "aktif"
+        ? cycleIds.length
+          ? or(inArray(pengeluaranTable.siklusId, cycleIds), isNull(pengeluaranTable.siklusId))
+          : isNull(pengeluaranTable.siklusId)
+        : cycleIds.length
+          ? inArray(pengeluaranTable.siklusId, cycleIds)
+          : sql`false`;
 
-    const pengeluaranConditions = [
-      eq(pengeluaranTable.organisasiId, req.organisasiId),
-      areaId ? eq(pengeluaranTable.areaId, areaId) : undefined,
-      startDate ? sql`${pengeluaranTable.tanggal}::date >= ${startDate}::date` : undefined,
-      endDate ? sql`${pengeluaranTable.tanggal}::date <= ${endDate}::date` : undefined,
-      restrictToCycle
-        ? scopedCycleIds.length > 0
-          ? inArray(pengeluaranTable.siklusId, scopedCycleIds)
-          : sql`false`
-        : undefined,
-    ];
+    const pengeluaranRows = await db
+      .select({
+        id: pengeluaranTable.id,
+        siklusId: pengeluaranTable.siklusId,
+        areaId: pengeluaranTable.areaId,
+        tanggal: pengeluaranTable.tanggal,
+        namaItem: pengeluaranTable.namaItem,
+        totalBiaya: pengeluaranTable.totalBiaya,
+      })
+      .from(pengeluaranTable)
+      .where(
+        and(
+          eq(pengeluaranTable.organisasiId, req.organisasiId),
+          expenseScope
+        )
+      )
+      .orderBy(desc(pengeluaranTable.tanggal));
 
-    const [panenRaw, pengeluaranRaw, recentPanen, recentPengeluaran] = await Promise.all([
-      db
-        .select({
-          areaId: panenTable.areaId,
-          totalPendapatan: sql<number>`SUM(${panenTable.totalPendapatan})`.mapWith(Number),
-          totalBerat: sql<number>`SUM(${panenTable.kuantitasKg})`.mapWith(Number),
-        })
-        .from(panenTable)
-        .where(and(...panenConditions))
-        .groupBy(panenTable.areaId),
+    const factMap = new Map<
+      string,
+      {
+        date: string;
+        siklusId: string | null;
+        areaId: string | null;
+        pendapatan: number;
+        pengeluaran: number;
+        harvestWeight: number;
+        harvestCount: number;
+      }
+    >();
 
-      db
-        .select({
-          areaId: pengeluaranTable.areaId,
-          totalBiaya: sql<number>`SUM(${pengeluaranTable.totalBiaya})`.mapWith(Number),
-        })
-        .from(pengeluaranTable)
-        .where(and(...pengeluaranConditions))
-        .groupBy(pengeluaranTable.areaId),
+    const getFact = (date: string, siklusId: string | null, areaId: string | null) => {
+      const key = `${date}|${siklusId ?? "general"}|${areaId ?? "general"}`;
+      const existing = factMap.get(key);
+      if (existing) return existing;
 
-      db
-        .select({
-          id: panenTable.id,
-          areaId: panenTable.areaId,
-          kegiatan: panenTable.kegiatan,
-          kuantitasKg: panenTable.kuantitasKg,
-          tanggal: panenTable.tanggal,
-        })
-        .from(panenTable)
-        .where(and(...panenConditions))
-        .orderBy(desc(panenTable.tanggal))
-        .limit(5),
-
-      db
-        .select({
-          id: pengeluaranTable.id,
-          areaId: pengeluaranTable.areaId,
-          namaItem: pengeluaranTable.namaItem,
-          totalBiaya: pengeluaranTable.totalBiaya,
-          tanggal: pengeluaranTable.tanggal,
-        })
-        .from(pengeluaranTable)
-        .where(and(...pengeluaranConditions))
-        .orderBy(desc(pengeluaranTable.tanggal))
-        .limit(5),
-    ]);
-
-    const areaMap = new Map(allAreas.map((area) => [area.id, area.name]));
-
-    let totalModalGlobal = 0;
-    let totalPendapatanGlobal = 0;
-    let totalPengeluaranGlobal = 0;
-    let totalBeratGlobal = 0;
-
-    const finalAreas = scopedAreas.map((area) => {
-      const modal = scopedCycles
-        .filter((cycle) => cycle.areaId === area.id)
-        .reduce((total, cycle) => total + safeNumber(cycle.modalAwal), 0);
-      const pendapatan = panenRaw.find((row) => row.areaId === area.id)?.totalPendapatan || 0;
-      const berat = panenRaw.find((row) => row.areaId === area.id)?.totalBerat || 0;
-      const pengeluaran = pengeluaranRaw.find((row) => row.areaId === area.id)?.totalBiaya || 0;
-      const profit = pendapatan - pengeluaran;
-      const margin = pendapatan > 0 ? (profit / pendapatan) * 100 : pengeluaran > 0 ? -100 : 0;
-
-      totalModalGlobal += modal;
-      totalPendapatanGlobal += pendapatan;
-      totalPengeluaranGlobal += pengeluaran;
-      totalBeratGlobal += berat;
-
-      return {
-        id: area.id,
-        name: area.name,
-        modalAwal: modal,
-        pendapatan,
-        pengeluaran,
-        profit,
-        margin,
-        harvestWeight: berat,
+      const fact = {
+        date,
+        siklusId,
+        areaId,
+        pendapatan: 0,
+        pengeluaran: 0,
+        harvestWeight: 0,
+        harvestCount: 0,
       };
-    });
+      factMap.set(key, fact);
+      return fact;
+    };
 
-    const profitGlobal = totalPendapatanGlobal - totalPengeluaranGlobal;
-    const marginGlobal =
-      totalPendapatanGlobal > 0
-        ? (profitGlobal / totalPendapatanGlobal) * 100
-        : totalPengeluaranGlobal > 0
-          ? -100
-          : 0;
+    for (const row of panenRows) {
+      const fact = getFact(dateKeyWIB(row.tanggal), row.siklusId, row.areaId);
+      fact.pendapatan += safeNumber(row.totalPendapatan);
+      fact.harvestWeight += safeNumber(row.kuantitasKg);
+      fact.harvestCount += 1;
+    }
 
-    const hpp = totalBeratGlobal > 0 ? totalPengeluaranGlobal / totalBeratGlobal : 0;
-    const averageRevenuePerKg =
-      totalBeratGlobal > 0 ? totalPendapatanGlobal / totalBeratGlobal : 0;
-    const bepProgress = totalModalGlobal > 0 ? (totalPendapatanGlobal / totalModalGlobal) * 100 : 0;
+    for (const row of pengeluaranRows) {
+      const fact = getFact(dateKeyWIB(row.tanggal), row.siklusId, row.areaId);
+      fact.pengeluaran += safeNumber(row.totalBiaya);
+    }
 
-    const allActivities = [
-      ...recentPanen.map((panen) => ({
-        type: "harvest" as const,
-        title: `Panen ${areaMap.get(panen.areaId ?? "") || "Area"}`,
-        description: `${safeNumber(panen.kuantitasKg)}kg berhasil dicatat • ${panen.kegiatan}`,
-        rawDate: new Date(panen.tanggal),
-        time: formatDistanceToNow(new Date(panen.tanggal), { addSuffix: true, locale: id }),
-      })),
-      ...recentPengeluaran.map((expense) => ({
-        type: "expense" as const,
-        title: expense.namaItem,
-        description: `Pengeluaran Rp${safeNumber(expense.totalBiaya).toLocaleString("id-ID")} • ${areaMap.get(expense.areaId ?? "") || "Area"}`,
-        rawDate: new Date(expense.tanggal),
-        time: formatDistanceToNow(new Date(expense.tanggal), { addSuffix: true, locale: id }),
-      })),
-    ];
+    const contextMap = new Map(contexts.map((context) => [context.siklusId, context]));
 
-    const finalActivities = allActivities
-      .sort((a, b) => b.rawDate.getTime() - a.rawDate.getTime())
-      .slice(0, 5)
-      .map(({ rawDate, ...activity }) => activity);
-
-    const activeAreaCount = new Set(
-      allCycleRows.filter((cycle) => cycle.status === "Aktif").map((cycle) => cycle.areaId)
-    ).size;
+    const activities = [
+      ...panenRows.map((row) => {
+        const context = row.siklusId ? contextMap.get(row.siklusId) : undefined;
+        return {
+          id: row.id,
+          type: "harvest" as const,
+          siklusId: row.siklusId,
+          areaId: row.areaId,
+          occurredAt: row.tanggal.toISOString(),
+          title: `Panen ${context?.areaName ?? "Area"}`,
+          description: `${safeNumber(row.kuantitasKg)}kg • ${row.kegiatan}`,
+        };
+      }),
+      ...pengeluaranRows.map((row) => {
+        const context = row.siklusId ? contextMap.get(row.siklusId) : undefined;
+        return {
+          id: row.id,
+          type: "expense" as const,
+          siklusId: row.siklusId,
+          areaId: row.areaId,
+          occurredAt: row.tanggal.toISOString(),
+          title: row.namaItem,
+          description: `Rp${safeNumber(row.totalBiaya).toLocaleString("id-ID")} • ${context?.areaName ?? "Biaya umum"}`,
+        };
+      }),
+    ].sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime());
 
     res.json({
-      filters: {
-        areaId: areaId ?? null,
-        siklus,
-        startDate: startDate ?? null,
-        endDate: endDate ?? null,
+      cycleStatus: status,
+      contexts: contexts.map((context) => ({
+        ...context,
+        modalAwal: safeNumber(context.modalAwal),
+        label: `${context.areaName} - ${context.namaSiklus}`,
+      })),
+      facts: Array.from(factMap.values()).sort((a, b) => b.date.localeCompare(a.date)),
+      activities,
+      meta: {
+        generatedAt: new Date().toISOString(),
+        timezone: "Asia/Jakarta",
       },
-      filterOptions: {
-        areas: allAreas,
-      },
-      financial: {
-        totalModal: totalModalGlobal,
-        totalPendapatan: totalPendapatanGlobal,
-        totalPengeluaran: totalPengeluaranGlobal,
-        labaRugi: profitGlobal,
-        marginTotal: marginGlobal,
-        bepProgress,
-      },
-      production: {
-        totalHarvestWeight: totalBeratGlobal,
-        hpp,
-        averageRevenuePerKg,
-      },
-      operational: {
-        totalAreas: scopedAreas.length,
-        activeAreas: activeAreaCount,
-      },
-      insight: {
-        businessStatus: marginGlobal > 0 ? "Profitable" : "Developing",
-        recommendation:
-          marginGlobal < 0
-            ? "Usaha masih merugi. Fokus meningkatkan penjualan dan efisiensi biaya."
-            : marginGlobal < 15
-              ? "Margin rendah, efisiensi operasional perlu ditingkatkan."
-              : "Performa usaha dalam kondisi baik.",
-      },
-      areas: finalAreas,
-      currency: "IDR",
-      lastUpdated: new Date().toISOString(),
-      activities: finalActivities,
     });
   } catch (err) {
     console.error("[DASHBOARD ERR]:", err);
-    res.status(500).json({ error: "Gagal mengambil ringkasan dashboard" });
+    res.status(500).json({ error: "Gagal mengambil dataset dashboard" });
   }
 });
 
