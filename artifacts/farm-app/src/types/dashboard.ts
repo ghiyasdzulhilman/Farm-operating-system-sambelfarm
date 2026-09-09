@@ -76,6 +76,21 @@ export type DashboardCostBreakdownItem = {
   percentage: number;
 };
 
+export type DashboardProductionTrendPoint = {
+  date: string;
+  harvestWeight: number;
+  harvestCount: number;
+  revenue: number;
+};
+
+export type DashboardProductionAreaRank = {
+  id: string;
+  name: string;
+  harvestWeight: number;
+  revenue: number;
+  revenuePerKg: number;
+};
+
 export type DashboardDerivedSummary = {
   financial: {
     totalModal: number;
@@ -89,8 +104,11 @@ export type DashboardDerivedSummary = {
   };
   production: {
     totalHarvestWeight: number;
-    hpp: number;
+    harvestCount: number;
+    averageKgPerHarvest: number;
     averageRevenuePerKg: number;
+    trend: DashboardProductionTrendPoint[];
+    areaRanking: DashboardProductionAreaRank[];
   };
   operational: {
     totalAreas: number;
