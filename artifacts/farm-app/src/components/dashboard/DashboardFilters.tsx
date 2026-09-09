@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CalendarDays, ChevronDown, Leaf } from "lucide-react";
+import { CalendarDays, ChevronDown, Sprout } from "lucide-react";
 
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -18,18 +18,18 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import type {
-  DashboardAreaOption,
+  DashboardContext,
+  DashboardCycleStatusFilter,
   DashboardDateRange,
-  DashboardSiklusFilter,
   DashboardTimeFilter,
 } from "@/types/dashboard";
 
 interface DashboardFiltersProps {
-  areas: DashboardAreaOption[];
-  areaId: string;
-  setAreaId: (value: string) => void;
-  siklus: DashboardSiklusFilter;
-  setSiklus: (value: DashboardSiklusFilter) => void;
+  contexts: DashboardContext[];
+  contextId: string;
+  setContextId: (value: string) => void;
+  cycleStatus: DashboardCycleStatusFilter;
+  setCycleStatus: (value: DashboardCycleStatusFilter) => void;
   timeFilter: DashboardTimeFilter;
   setTimeFilter: (value: DashboardTimeFilter) => void;
   customDateRange: DashboardDateRange | null;
@@ -45,11 +45,11 @@ const formatYmd = (date: Date) => {
 };
 
 export function DashboardFilters({
-  areas,
-  areaId,
-  setAreaId,
-  siklus,
-  setSiklus,
+  contexts,
+  contextId,
+  setContextId,
+  cycleStatus,
+  setCycleStatus,
   timeFilter,
   setTimeFilter,
   customDateRange,
@@ -61,6 +61,12 @@ export function DashboardFilters({
   const chooseTimeFilter = (value: DashboardTimeFilter) => {
     setTimeFilter(value);
     if (value !== "Kustom") setCustomDateRange(null);
+  };
+
+  const chooseCycleStatus = (value: DashboardCycleStatusFilter) => {
+    if (value === cycleStatus) return;
+    setContextId("all");
+    setCycleStatus(value);
   };
 
   const openCustomRange = () => {
@@ -88,13 +94,13 @@ export function DashboardFilters({
       <div className="rounded-[1.25rem] border border-border/50 bg-card/60 p-3 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)] backdrop-blur-md">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center rounded-xl border border-border/30 bg-muted/30 p-1">
-            {(["aktif", "selesai", "semua"] as DashboardSiklusFilter[]).map((item) => (
+            {(["aktif", "selesai"] as DashboardCycleStatusFilter[]).map((item) => (
               <button
                 key={item}
-                onClick={() => setSiklus(item)}
+                onClick={() => chooseCycleStatus(item)}
                 className={cn(
-                  "rounded-lg px-3 py-2 text-[11px] font-semibold capitalize transition-all duration-300",
-                  siklus === item
+                  "rounded-lg px-4 py-2 text-[11px] font-semibold capitalize transition-all duration-300",
+                  cycleStatus === item
                     ? "border border-border/50 bg-background text-primary shadow-[0_2px_10px_rgba(0,0,0,0.06)]"
                     : "text-muted-foreground hover:text-foreground"
                 )}
@@ -178,16 +184,18 @@ export function DashboardFilters({
         </div>
 
         <div className="mt-3 border-t border-border/30 pt-3">
-          <Select value={areaId} onValueChange={setAreaId}>
-            <SelectTrigger className="h-10 w-full rounded-xl border-border/30 bg-background/70 px-3 text-xs font-semibold shadow-none focus:ring-0 sm:w-[220px]">
-              <Leaf className="mr-2 h-3.5 w-3.5 text-primary" />
-              <SelectValue placeholder="Pilih area" />
+          <Select value={contextId} onValueChange={setContextId}>
+            <SelectTrigger className="h-10 w-full rounded-xl border-border/30 bg-background/70 px-3 text-xs font-semibold shadow-none focus:ring-0 sm:w-[320px]">
+              <Sprout className="mr-2 h-3.5 w-3.5 shrink-0 text-primary" />
+              <SelectValue placeholder="Pilih area - siklus" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all" className="text-xs font-semibold">Semua Area</SelectItem>
-              {areas.map((area) => (
-                <SelectItem key={area.id} value={area.id} className="text-xs font-semibold">
-                  {area.name}
+              <SelectItem value="all" className="text-xs font-semibold">
+                {cycleStatus === "aktif" ? "Semua Siklus Aktif" : "Semua Siklus Selesai"}
+              </SelectItem>
+              {contexts.map((context) => (
+                <SelectItem key={context.siklusId} value={context.siklusId} className="text-xs font-semibold">
+                  {context.label}
                 </SelectItem>
               ))}
             </SelectContent>
