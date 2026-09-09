@@ -1,322 +1,219 @@
-import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowDownRight,
-  ArrowUpRight,
   Banknote,
   CircleDollarSign,
-  LineChart,
-  PieChart as PieChartIcon,
-  Target,
+  Gauge,
+  Percent,
   WalletCards,
 } from "lucide-react";
 
-import {
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-} from "recharts";
-
 import { Card, CardContent } from "@/components/ui/card";
+import type { DashboardAreaSummary, DashboardDerivedSummary } from "@/types/dashboard";
 
-// Interface untuk properti section
 interface FinancialSectionProps {
-  displayData: any;
+  financial: DashboardDerivedSummary["financial"];
+  areas: DashboardAreaSummary[];
   formatCurrency: (amount: number) => string;
-  profitChartData: any[];
+  isFarmWide: boolean;
 }
 
-/* AUDIT WARNA: Background diseragamkan pakai Primary, Garis ikon dimatikan jadi text-white */
-const metricAccent: Record<string, string> = {
-  modal: "from-primary to-primary/70 text-white",
-  pendapatan: "from-primary to-primary/70 text-white",
-  pengeluaran: "from-primary to-primary/70 text-white",
-  profit: "from-primary to-primary/70 text-white",
-  margin: "from-primary to-primary/70 text-white",
-  hpp: "from-primary to-primary/70 text-white",
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.06 },
+  },
 };
 
-// --- METRIC CARD ---
+const fadeSlideItem = {
+  hidden: { opacity: 0, y: 12 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { type: "spring", stiffness: 300, damping: 26 },
+  },
+};
+
 function MetricCard({
   label,
-  rawValue, // Terima angka mentahnya
-  formatFn, // Cara nampilin angkanya (misal + '%', atau format rupiah)
-  valueTooltip, // Angka asli buat di-hover
-  caption,
+  value,
+  helper,
   icon: Icon,
-  accent,
-  status,
-}: any) {
-  const StatusIcon = status === "down" ? ArrowDownRight : ArrowUpRight;
+  tone = "default",
+}: {
+  label: string;
+  value: string;
+  helper: string;
+  icon: typeof WalletCards;
+  tone?: "default" | "positive" | "negative";
+}) {
+  const toneClass =
+    tone === "negative"
+      ? "border-destructive/20 bg-destructive/5"
+      : tone === "positive"
+        ? "border-primary/20 bg-primary/5"
+        : "border-border/40 bg-card/60";
+
+  const iconClass = tone === "negative" ? "text-destructive" : "text-primary";
 
   return (
-    <Card
-      className="
-        relative
-        overflow-hidden
-        rounded-[1.5rem]
-        border-border/50
-        bg-card
-        text-card-foreground
-        shadow-sm
-      "
-    >
-      <CardContent className="flex min-h-[120px] flex-col justify-between p-3">
-        <div
-          className={`absolute right-2.5 top-2.5 rounded-xl bg-gradient-to-br p-2 shadow-sm ${metricAccent[accent]}`}
-        >
-          <Icon className="h-3.5 w-3.5" />
-        </div>
-
-        <div className="pr-8">
-          <p className="text-[9px] font-black uppercase tracking-[0.15em] text-muted-foreground">
-            {label}
-          </p>
-        </div>
-
-        <div className="mt-1 flex flex-1 items-center justify-start py-1.5">
-          <p
-            className="w-full truncate text-left text-[17px] font-black tracking-tighter sm:text-lg"
-            title={valueTooltip}
-          >
-            {/* AUDIT UI: Efek hitung animasi dihapus, angka langsung tampil cepat */}
-            {formatFn(rawValue)}
-          </p>
-        </div>
-
-        <div>
-          <div className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-[10px] font-bold text-muted-foreground">
-            <StatusIcon
-              className={`h-3 w-3 ${status === "down" ? "text-destructive" : "text-primary"}`}
-            />
-            live indicator
+    <Card className={`shrink-0 snap-start overflow-hidden rounded-[1.25rem] shadow-none backdrop-blur-md ${toneClass}`}>
+      <CardContent className="flex min-h-[118px] w-[158px] flex-col justify-between p-3.5 sm:w-auto">
+        <div className="flex items-start justify-between gap-2">
+          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
+          <div className="rounded-xl border border-border/30 bg-background/70 p-2">
+            <Icon className={`h-3.5 w-3.5 ${iconClass}`} />
           </div>
+        </div>
+        <div>
+          <p className="truncate text-[17px] font-black tracking-[-0.04em] text-foreground" title={value}>
+            {value}
+          </p>
+          <p className="mt-1 text-[10px] font-medium leading-snug text-muted-foreground">{helper}</p>
         </div>
       </CardContent>
     </Card>
   );
 }
 
-// --- FINANCIAL SECTION UTAMA ---
-export function FinancialSection({
-  displayData,
+function CostBreakdown({
+  items,
+  total,
   formatCurrency,
-  profitChartData,
-}: FinancialSectionProps) {
-  const hpp = displayData.pengeluaran / (displayData.harvestWeight || 1);
-  const bepProgress = Math.min((displayData.pendapatan / (displayData.modal || 1)) * 100, 100);
-
-    const donutData = profitChartData.map((item, index) => ({
-    ...item,
-    value: Math.abs(item.profit),
-    color: [
-      "url(#gradEmerald)", // Warna Area 1 (Hijau zamrud)
-      "url(#gradLime)",    // Warna Area 2 (Hijau limau)
-      "url(#gradAmber)",   // Warna Area 3 (Kuning amber)
-      "url(#gradOrange)",  // Warna Area 4 (Oranye)
-    ][index % 4],
-  }));
-
-  // Ambil langsung dari sumber utama biar selalu klop sama kartu atas
-const totalProfit = displayData.profit; 
-
-  // VARIAN ANIMASI
-  // Bikin kartu munculnya berurutan dengan jeda 0.08 detik (stagger)
-  const staggerContainer = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: { staggerChildren: 0.08 },
-    },
-  };
-
-  // Gerakan slide-up yang soft ala Apple/Fintech
-  const fadeSlideItem = {
-    hidden: { opacity: 0, y: 15 },
-    show: {
-      opacity: 1,
-      y: 0,
-      transition: { type: "spring", stiffness: 300, damping: 24 },
-    },
-  };
+}: {
+  items: DashboardDerivedSummary["financial"]["costBreakdown"];
+  total: number;
+  formatCurrency: (amount: number) => string;
+}) {
+  const visible = items.slice(0, 6);
 
   return (
-    // Bungkus semua konten pake motion.div supaya efek stagger jalan
-    <motion.div 
-      variants={staggerContainer}
-      initial="hidden"
-      animate="show"
-      className="space-y-4 md:space-y-5"
-    >
-      
-      <div className="grid grid-cols-2 gap-2 lg:grid-cols-6">
-        <motion.div variants={fadeSlideItem}>
-          <MetricCard
-            label="Modal"
-            rawValue={displayData.modal}
-            formatFn={formatCurrency}
-            valueTooltip={formatCurrency(displayData.modal)}
-            icon={WalletCards}
-            accent="modal"
-            status="neutral"
-          />
-        </motion.div>
+    <Card className="rounded-[1.5rem] border-border/40 bg-card/60 shadow-none backdrop-blur-md">
+      <CardContent className="p-4 md:p-5">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Komposisi biaya</p>
+            <h3 className="mt-0.5 text-lg font-black tracking-[-0.04em]">Pengeluaran per kategori</h3>
+          </div>
+          <p className="text-right text-xs font-bold text-muted-foreground">{formatCurrency(total)}</p>
+        </div>
 
-        <motion.div variants={fadeSlideItem}>
-          <MetricCard
-            label="Pendapatan"
-            rawValue={displayData.pendapatan}
-            formatFn={formatCurrency}
-            valueTooltip={formatCurrency(displayData.pendapatan)}
-            icon={Banknote}
-            accent="pendapatan"
-            status="up"
-          />
-        </motion.div>
-
-        <motion.div variants={fadeSlideItem}>
-          <MetricCard
-            label="Pengeluaran"
-            rawValue={displayData.pengeluaran}
-            formatFn={formatCurrency}
-            valueTooltip={formatCurrency(displayData.pengeluaran)}
-            icon={ArrowDownRight}
-            accent="pengeluaran"
-            status="down"
-          />
-        </motion.div>
-
-        <motion.div variants={fadeSlideItem}>
-          <MetricCard
-            label="Profit"
-            rawValue={displayData.profit}
-            formatFn={formatCurrency}
-            valueTooltip={formatCurrency(displayData.profit)}
-            icon={CircleDollarSign}
-            accent="profit"
-            status={displayData.profit >= 0 ? "up" : "down"}
-          />
-        </motion.div>
-
-        <motion.div variants={fadeSlideItem}>
-          <MetricCard
-            label="Margin"
-            rawValue={displayData.margin}
-            formatFn={(val: number) => `${val.toFixed(1)}%`}
-            valueTooltip={`${displayData.margin.toFixed(1)}%`}
-            icon={PieChartIcon}
-            accent="margin"
-            status={displayData.margin >= 0 ? "up" : "down"}
-          />
-        </motion.div>
-        
-        <motion.div variants={fadeSlideItem}>
-          <MetricCard
-            label="HPP"
-            rawValue={hpp}
-            formatFn={(val: number) => `${formatCurrency(val)}/kg`}
-            valueTooltip={`${formatCurrency(hpp)}/kg`}
-            icon={LineChart}
-            accent="hpp"
-            status="neutral"
-          />
-        </motion.div>
-      </div>
-
-      <motion.div variants={fadeSlideItem}>
-        <Card className="rounded-[1.75rem] border-border/50 bg-card text-card-foreground shadow-sm">
-          <CardContent className="p-4 md:p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.18em] text-muted-foreground">
-                  Area Profitability
-                </p>
-                <h3 className="text-xl font-black tracking-[-0.04em]">
-                  Profit per area
-                </h3>
+        {visible.length === 0 ? (
+          <div className="mt-4 rounded-xl border border-dashed border-border/50 bg-muted/20 px-4 py-8 text-center text-xs font-medium text-muted-foreground">
+            Belum ada pengeluaran pada scope ini.
+          </div>
+        ) : (
+          <div className="mt-5 space-y-4">
+            {visible.map((item) => (
+              <div key={item.kategoriId ?? item.name}>
+                <div className="mb-1.5 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-bold text-foreground">{item.name}</p>
+                    <p className="text-[10px] font-medium text-muted-foreground">{item.percentage.toFixed(1)}% dari pengeluaran</p>
+                  </div>
+                  <p className="shrink-0 text-xs font-black text-foreground">{formatCurrency(item.amount)}</p>
+                </div>
+                <div className="h-1.5 overflow-hidden rounded-full bg-muted/60">
+                  <div className="h-full rounded-full bg-primary transition-[width] duration-500" style={{ width: `${Math.min(item.percentage, 100)}%` }} />
+                </div>
               </div>
-            </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
-            <div className="relative h-[250px] md:h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                {/* Tambahin margin biar tooltip ga kepotong pas minggir */}
-                <PieChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                  
-                  {/* --- DEFS UNTUK GRADASI WARNA --- */}
-                  <defs>
-                    <linearGradient id="gradEmerald" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0%" stopColor="#6ee7b7" /> 
-                      <stop offset="100%" stopColor="#10b981" /> 
-                    </linearGradient>
-                    
-                    <linearGradient id="gradLime" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0%" stopColor="#bef264" /> 
-                      <stop offset="100%" stopColor="#84cc16" /> 
-                    </linearGradient>
-                    
-                    <linearGradient id="gradAmber" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0%" stopColor="#fde68a" /> 
-                      <stop offset="100%" stopColor="#f59e0b" /> 
-                    </linearGradient>
-                    
-                    <linearGradient id="gradOrange" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0%" stopColor="#fdba74" /> 
-                      <stop offset="100%" stopColor="#ea580c" /> 
-                    </linearGradient>
-                  </defs>
+function AreaProfitability({
+  areas,
+  formatCurrency,
+  isFarmWide,
+}: {
+  areas: DashboardAreaSummary[];
+  formatCurrency: (amount: number) => string;
+  isFarmWide: boolean;
+}) {
+  const ranked = [...areas].sort((a, b) => b.profit - a.profit);
+  const maxMagnitude = Math.max(...ranked.map((area) => Math.abs(area.profit)), 1);
 
-                  <Pie
-                    data={donutData}
-                    dataKey="value"
-                    nameKey="name"
-                    innerRadius={65} // Dikecilin dikit biar ruang tengah lega
-                    outerRadius={95}
-                    paddingAngle={4}
-                    strokeWidth={0}
-                  >
-                    {donutData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={entry.color} 
-                      />
-                    ))}
-                  </Pie>
+  return (
+    <Card className="rounded-[1.5rem] border-border/40 bg-card/60 shadow-none backdrop-blur-md">
+      <CardContent className="p-4 md:p-5">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+            {isFarmWide ? "Perbandingan context" : "Posisi context"}
+          </p>
+          <h3 className="mt-0.5 text-lg font-black tracking-[-0.04em]">
+            {isFarmWide ? "Cash profit per area" : "Cash position siklus"}
+          </h3>
+          {isFarmWide && (
+            <p className="mt-1 text-[10px] font-medium text-muted-foreground">
+              Biaya umum farm tidak dialokasikan paksa ke area, jadi total per-area dapat berbeda dari profit farm-wide.
+            </p>
+          )}
+        </div>
 
-                  <Tooltip
-                    formatter={(value: number) => formatCurrency(value)}
-                    offset={40} // <-- Ini yang bikin tooltip minggir menjauh dari jari
-                    wrapperStyle={{ zIndex: 100 }}
-                    contentStyle={{
-                      borderRadius: "1rem",
-                      border: "none",
-                      boxShadow: "0 10px 40px -10px rgba(0,0,0,0.15)",
-                      background: "var(--card)",
-                      color: "var(--card-foreground)",
-                      padding: "8px 12px",
-                      fontSize: "12px",
-                      fontWeight: "bold",
-                    }}
-                    itemStyle={{ color: "var(--foreground)", fontWeight: "900" }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+        {ranked.length === 0 ? (
+          <div className="mt-4 rounded-xl border border-dashed border-border/50 bg-muted/20 px-4 py-8 text-center text-xs font-medium text-muted-foreground">
+            Belum ada context untuk dibandingkan.
+          </div>
+        ) : (
+          <div className="mt-5 space-y-4">
+            {ranked.map((area) => {
+              const width = Math.max((Math.abs(area.profit) / maxMagnitude) * 100, area.profit === 0 ? 0 : 4);
+              const negative = area.profit < 0;
+              return (
+                <div key={area.id}>
+                  <div className="mb-1.5 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-xs font-bold text-foreground">{area.name}</p>
+                      <p className="text-[10px] font-medium text-muted-foreground">Margin {area.margin.toFixed(1)}%</p>
+                    </div>
+                    <p className={`shrink-0 text-xs font-black ${negative ? "text-destructive" : "text-foreground"}`}>
+                      {formatCurrency(area.profit)}
+                    </p>
+                  </div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-muted/60">
+                    <div
+                      className={`h-full rounded-full transition-[width] duration-500 ${negative ? "bg-destructive" : "bg-primary"}`}
+                      style={{ width: `${width}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
-              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                <p className="text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/80">
-                  Total Profit
-                </p>
-                <p className="mt-0.5 text-lg font-black tracking-tighter text-foreground">
-                  {/* AUDIT UI: Efek animasi dihapus, angka di tengah donat langsung tampil */}
-                  {formatCurrency(totalProfit)}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+export function FinancialSection({ financial, areas, formatCurrency, isFarmWide }: FinancialSectionProps) {
+  const profitTone = financial.labaRugi < 0 ? "negative" : financial.labaRugi > 0 ? "positive" : "default";
+  const marginTone = financial.marginTotal < 0 ? "negative" : financial.marginTotal >= 15 ? "positive" : "default";
+
+  return (
+    <motion.div variants={staggerContainer} initial="hidden" animate="show" className="space-y-4 md:space-y-5">
+      <motion.div variants={fadeSlideItem} className="flex snap-x gap-2.5 overflow-x-auto pb-1 custom-scrollbar lg:grid lg:grid-cols-6 lg:overflow-visible">
+        <MetricCard label="Modal awal" value={formatCurrency(financial.totalModal)} helper="Baseline modal dari siklus" icon={WalletCards} />
+        <MetricCard label="Pendapatan" value={formatCurrency(financial.totalPendapatan)} helper="Pendapatan panen pada periode" icon={Banknote} tone={financial.totalPendapatan > 0 ? "positive" : "default"} />
+        <MetricCard label="Pengeluaran" value={formatCurrency(financial.totalPengeluaran)} helper="Cash out tercatat" icon={ArrowDownRight} tone={financial.totalPengeluaran > 0 ? "negative" : "default"} />
+        <MetricCard label="Cash profit" value={formatCurrency(financial.labaRugi)} helper="Pendapatan dikurangi pengeluaran" icon={CircleDollarSign} tone={profitTone} />
+        <MetricCard label="Margin" value={`${financial.marginTotal.toFixed(1)}%`} helper="Cash profit / pendapatan" icon={Percent} tone={marginTone} />
+        <MetricCard label="Cash cost / kg" value={`${formatCurrency(financial.cashCostPerKg)}/kg`} helper="Pengeluaran / kg panen, bukan HPP stok" icon={Gauge} />
       </motion.div>
 
+      <div className="grid gap-4 lg:grid-cols-2">
+        <motion.div variants={fadeSlideItem}>
+          <CostBreakdown items={financial.costBreakdown} total={financial.totalPengeluaran} formatCurrency={formatCurrency} />
+        </motion.div>
+        <motion.div variants={fadeSlideItem}>
+          <AreaProfitability areas={areas} formatCurrency={formatCurrency} isFarmWide={isFarmWide} />
+        </motion.div>
+      </div>
     </motion.div>
   );
 }
