@@ -335,7 +335,7 @@ export function DashboardPage() {
 
   if (isLoading && !dataset) {
     return (
-      <div className="mt-4 space-y-5 px-4 md:px-6">
+      <div className="mx-auto w-full max-w-7xl space-y-5 py-6 animate-in fade-in duration-500">
         <Skeleton className="h-16 rounded-[1.25rem]" />
         <Skeleton className="h-40 rounded-[1.25rem]" />
         <Skeleton className="h-44 rounded-[1.5rem]" />
@@ -354,7 +354,7 @@ export function DashboardPage() {
 
   return (
     <div className="flex min-h-screen flex-col pb-20 font-sans">
-      <main className="relative mx-auto w-full max-w-7xl overflow-x-clip px-4 pt-4 md:px-6">
+      <main className="relative mx-auto w-full max-w-7xl space-y-0 overflow-x-clip py-6">
         <div className="sticky top-2 z-30 md:top-4">
           <div className="w-full overflow-hidden rounded-[1.25rem] border border-border/50 bg-card/70 p-1.5 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] backdrop-blur-md">
             <div className="relative z-20 grid grid-cols-4 gap-1">
