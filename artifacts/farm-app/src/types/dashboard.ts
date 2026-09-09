@@ -1,4 +1,4 @@
-export type DashboardSiklusFilter = "aktif" | "selesai" | "semua";
+export type DashboardCycleStatusFilter = "aktif" | "selesai";
 export type DashboardTimeFilter = "Semua Waktu" | "7 Hari" | "30 Hari" | "90 Hari" | "Kustom";
 
 export type DashboardDateRange = {
@@ -6,16 +6,46 @@ export type DashboardDateRange = {
   end: string;
 };
 
-export type DashboardFilters = {
+export type DashboardContext = {
+  siklusId: string;
   areaId: string;
-  siklus: DashboardSiklusFilter;
-  time: DashboardTimeFilter;
-  customDateRange: DashboardDateRange | null;
+  areaName: string;
+  namaSiklus: string;
+  statusSiklus: "Aktif" | "Selesai" | "Ditutup";
+  tanggalPindahTanam: string;
+  modalAwal: number;
+  label: string;
 };
 
-export type DashboardAreaOption = {
+export type DashboardDailyFact = {
+  date: string;
+  siklusId: string | null;
+  areaId: string | null;
+  pendapatan: number;
+  pengeluaran: number;
+  harvestWeight: number;
+  harvestCount: number;
+};
+
+export type DashboardActivity = {
   id: string;
-  name: string;
+  type: "harvest" | "expense";
+  siklusId: string | null;
+  areaId: string | null;
+  occurredAt: string;
+  title: string;
+  description: string;
+};
+
+export type DashboardDataset = {
+  cycleStatus: DashboardCycleStatusFilter;
+  contexts: DashboardContext[];
+  facts: DashboardDailyFact[];
+  activities: DashboardActivity[];
+  meta: {
+    generatedAt: string;
+    timezone: "Asia/Jakarta";
+  };
 };
 
 export type DashboardAreaSummary = {
@@ -29,23 +59,7 @@ export type DashboardAreaSummary = {
   harvestWeight: number;
 };
 
-export type DashboardActivity = {
-  type: "harvest" | "expense";
-  title: string;
-  description: string;
-  time: string;
-};
-
-export type DashboardSummary = {
-  filters: {
-    areaId: string | null;
-    siklus: DashboardSiklusFilter;
-    startDate: string | null;
-    endDate: string | null;
-  };
-  filterOptions: {
-    areas: DashboardAreaOption[];
-  };
+export type DashboardDerivedSummary = {
   financial: {
     totalModal: number;
     totalPendapatan: number;
@@ -69,6 +83,4 @@ export type DashboardSummary = {
   };
   areas: DashboardAreaSummary[];
   activities: DashboardActivity[];
-  currency: "IDR";
-  lastUpdated: string;
 };
