@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { 
-  Sprout, Banknote, MapPin, 
+  Sprout, Banknote, ShoppingBasket, MapPin,
   HardHat, Bug, Trash2, 
   Calendar, Timer, Inbox // ✨ Ganti dengan Ikon Baru yang Konsisten
 } from "lucide-react";
@@ -91,9 +91,12 @@ export function KanbanView({
                 } else if (item.module === "inspeksi") {
                   RenderIcon = <Bug className="h-4 w-4" />;
                   iconBg = "bg-red-500/10 text-red-600 border-red-500/20";
-                } else if (item.module === "finance") {
+                } else if (item.module === "pengeluaran") {
                   RenderIcon = <Banknote className="h-4 w-4" />;
-                  iconBg = item.category === "Pengeluaran" ? "bg-red-500/10 text-red-600 border-red-500/20" : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20";
+                  iconBg = "bg-rose-500/10 text-rose-600 border border-rose-500/20";
+                } else if (item.module === "panen") {
+                  RenderIcon = <ShoppingBasket className="h-4 w-4" />;
+                  iconBg = "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20";
                 }
 
               // 2. Tentukan Ikon & Warna Status (Sinkron dengan SummaryHeader)

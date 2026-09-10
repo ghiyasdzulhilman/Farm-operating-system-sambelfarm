@@ -34,7 +34,7 @@ export function MasterTableView({
     queryFn: async () => fetch("/api/notion/operasional-dropdown-options").then(res => res.json())
   });
 
-  const areaOptions = useMemo(() => {
+  const areaOptions = useMemo<Array<{ label: string; value: string }>>(() => {
     return (dropdownOptions?.areas || []).map((a: any) => ({ label: a.name, value: a.id }));
   }, [dropdownOptions]);
 
