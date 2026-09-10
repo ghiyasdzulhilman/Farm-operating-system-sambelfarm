@@ -219,8 +219,8 @@ export function PengeluaranFormModal({ onSuccess }: { onSuccess?: () => void }) 
   // --- HANDLER NAVIGASI & SUBMIT ---
   const handleNextStep = async () => {
     let fieldsToValidate: Array<keyof PengeluaranFormValues> = [];
-    if (step === 1) fieldsToValidate = ["tanggal", "namaItem"];
-    if (step === 2) fieldsToValidate = ["kategoriId", "isPembelianStok", "totalBiayaLumpsum", "produkId", "hargaPerPcs", "beratPerPcs", "qtyPcs"];
+    if (step === 1) fieldsToValidate = ["tanggal", "namaItem", "tipeTransaksi"];
+    if (step === 2) fieldsToValidate = ["kategoriId", "areaId", "totalBiayaLumpsum", "produkId", "hargaPerPcs", "beratPerPcs", "qtyPcs"];
 
     const isStepValid = await form.trigger(fieldsToValidate);
     if (isStepValid) setStep((prev) => prev + 1);
