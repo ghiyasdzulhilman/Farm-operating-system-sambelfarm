@@ -234,7 +234,7 @@ useEffect(() => {
 
   // 💡 Helper update Waktu & Tanggal (NAIVE STRATEGY) 🚀
   const handleDateTimeSave = (field: 'waktuMulai' | 'waktuSelesai', type: 'date' | 'time', value: string) => {
-    if (!value) return;
+    if (!item || !value) return;
     
     // 1. Ambil raw string, pecah jadi tanggal & jam
     const currentRaw = item.metaEkstra?.[field] || item.rawDate || new Date().toISOString().substring(0, 19).replace('T', ' ');

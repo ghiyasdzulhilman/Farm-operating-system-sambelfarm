@@ -8,10 +8,11 @@ interface OperasionalFieldsProps {
 }
 
 export function OperasionalFields({ item, onStatusChange }: OperasionalFieldsProps) {
-  if (item.module !== "operasional" || !item.metaEkstra) return null;
+  const dataOperasional = item.metaEkstra;
+  if (item.module !== "operasional" || !dataOperasional) return null;
 
   const prioValue = ["Low", "Medium", "High"].find(
-    (p) => p.toLowerCase() === (item.metaEkstra.prioritas || "Medium").toLowerCase()
+    (p) => p.toLowerCase() === (dataOperasional.prioritas || "Medium").toLowerCase()
   ) || "Medium";
 
   return (
@@ -58,7 +59,7 @@ export function OperasionalFields({ item, onStatusChange }: OperasionalFieldsPro
         </div>
         <div className="mt-2 flex items-baseline gap-1.5">
           <span className="text-3xl font-bold tracking-tight text-foreground/90">
-            {item.metaEkstra.durasiKerja || "0"}
+            {dataOperasional.durasiKerja || "0"}
           </span>
           <span className="text-[13px] font-semibold text-muted-foreground/70 mb-1">Jam</span>
         </div>

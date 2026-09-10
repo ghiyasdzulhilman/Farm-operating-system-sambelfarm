@@ -15,6 +15,10 @@ import { MasterTableView } from "@/components/operasional/MasterTableView";
 import { KanbanView } from "@/components/operasional/KanbanView";
 import type { AgronomyItem, ModuleKey, ViewKey } from "@/types/operasional";
 import { useToast } from "@/hooks/use-toast";
+import {
+  kunciQueryFeedAgronomi,
+  segarkanFeedDanDashboard,
+} from "@/lib/sinkronisasiQuery";
 import { FinanceTableView } from "../components/operasional/finance/FinanceTableView";
 
 type FeedModeKey = "time" | "area";
@@ -57,7 +61,7 @@ export function AgronomyHubPage() {
   // 1. FETCH DATA (LANGSUNG DARI 3 ENDPOINT SUPABASE + MASTER PEKERJA)
   // =====================================================================
       const { data: unifiedFeedData, isLoading } = useQuery({
-    queryKey: ["agronomy-feed-supabase", filterSiklus], 
+    queryKey: kunciQueryFeedAgronomi.berdasarkanStatusSiklus(filterSiklus),
     queryFn: async () => {
       // 🚀 UPGRADE 1: Tambah colokan ke API Pengeluaran & Harvest
       const [resOp, resPer, resIns, resOptions, resPengeluaran, resPanen] = await Promise.all([
@@ -198,8 +202,8 @@ export function AgronomyHubPage() {
       return response.json();
     },
 
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] });
+    onSuccess: async () => {
+      await segarkanFeedDanDashboard(queryClient);
     },
     onError: (err) => {
       toast({ variant: "destructive", title: "Gagal Menyimpan", description: err instanceof Error ? err.message : "Kesalahan jaringan." });
@@ -219,8 +223,8 @@ export function AgronomyHubPage() {
       }
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] });
+    onSuccess: async () => {
+      await segarkanFeedDanDashboard(queryClient);
     },
     onError: (err) => {
       toast({ variant: "destructive", title: "Gagal Menyimpan Produk", description: err instanceof Error ? err.message : "Kesalahan jaringan." });
@@ -254,8 +258,8 @@ export function AgronomyHubPage() {
         return response.json();
       },
 
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] });
+    onSuccess: async () => {
+      await segarkanFeedDanDashboard(queryClient);
       toast({ title: "Terhapus", description: "Aktivitas berhasil dihapus dari riwayat." });
     },
     onError: (err) => {
@@ -465,16 +469,6 @@ export function AgronomyHubPage() {
               items={filteredItems} 
               filterSiklus={filterSiklus} // 🚀 TAMBAHAN: Lempar state filterSiklus
               onItemClick={setSelectedItem} 
-              onStatusChange={(id, payload) => {
-
-                const target = filteredItems.find(i => i.id === id);
-                if (target) {
-                  const updateData = typeof payload === "string" 
-                    ? { status: payload } 
-                    : payload;
-                  updateStatusMutation.mutate({ id, module: target.module, ...updateData });
-                }
-              }}
             />
           )
         )}
@@ -524,6 +518,5 @@ export function AgronomyHubPage() {
     </div>
   );
 }
-
 
 

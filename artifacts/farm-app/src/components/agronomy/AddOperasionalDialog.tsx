@@ -11,8 +11,8 @@ import {
   Briefcase, Wrench, Edit3, Undo2, Check, X, Plus
 } from "lucide-react";
 
-import { getGetDashboardSummaryQueryKey } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
+import { segarkanFeedDanDashboard } from "@/lib/sinkronisasiQuery";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -163,10 +163,7 @@ export function AddOperasionalDialog({ onSuccess }: { onSuccess?: () => void }) 
       return response.json();
     },
         onSuccess: async (responseData) => {
-      // 💡 Tambahkan ini agar tabel master langsung sinkron & narik data terbaru!
-      await queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] });
-      
-      await queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey(), refetchType: "all" });
+      await segarkanFeedDanDashboard(queryClient);
       const results = responseData?.data || [];
 
       if (results.length > 0) setSubmittedRecords(results);
