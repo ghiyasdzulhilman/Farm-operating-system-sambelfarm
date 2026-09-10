@@ -284,21 +284,27 @@ export function AddInspeksiDialog({ onSuccess }: { onSuccess?: () => void }) {
       values.areaIds.forEach((areaId) => {
         const isOvr = overriddenAreas[areaId];
 
-        basePayload.waktuMulaiPerArea[areaId] = isOvr ? values.waktuMulaiPerArea[areaId] : values.waktuMulaiBroadcast;
-        basePayload.waktuSelesaiPerArea[areaId] = isOvr ? values.waktuSelesaiPerArea[areaId] : values.waktuSelesaiBroadcast;
+        const waktuMulai = isOvr ? values.waktuMulaiPerArea[areaId] : values.waktuMulaiBroadcast;
+        if (waktuMulai !== undefined) basePayload.waktuMulaiPerArea[areaId] = waktuMulai;
+        const waktuSelesai = isOvr ? values.waktuSelesaiPerArea[areaId] : values.waktuSelesaiBroadcast;
+        if (waktuSelesai !== undefined) basePayload.waktuSelesaiPerArea[areaId] = waktuSelesai;
         basePayload.durasiKerjaPerArea[areaId] = isOvr ? values.durasiKerjaPerArea[areaId] : values.durasiKerjaBroadcast;
         
         // 💡 Mengambil array & object nested secara utuh
         basePayload.kendalaPerArea[areaId] = isOvr ? (values.kendalaPerArea[areaId] || []) : values.kendalaBroadcast;
         basePayload.temuanPerArea[areaId] = isOvr ? (values.temuanPerArea[areaId] || {}) : values.temuanBroadcast;
         
-        basePayload.phTanahPerArea[areaId] = isOvr ? values.phTanahPerArea[areaId] : values.phTanahBroadcast;
-        basePayload.tingkatSeranganPerArea[areaId] = isOvr ? values.tingkatSeranganPerArea[areaId] : values.tingkatSeranganBroadcast;
-        basePayload.radiusPerArea[areaId] = isOvr ? values.radiusPerArea[areaId] : values.radiusBroadcast;
+        const phTanah = isOvr ? values.phTanahPerArea[areaId] : values.phTanahBroadcast;
+        if (phTanah !== undefined) basePayload.phTanahPerArea[areaId] = phTanah;
+        const tingkatSerangan = isOvr ? values.tingkatSeranganPerArea[areaId] : values.tingkatSeranganBroadcast;
+        if (tingkatSerangan !== undefined) basePayload.tingkatSeranganPerArea[areaId] = tingkatSerangan;
+        const radius = isOvr ? values.radiusPerArea[areaId] : values.radiusBroadcast;
+        if (radius !== undefined) basePayload.radiusPerArea[areaId] = radius;
         
         basePayload.pekerjaPerArea[areaId] = isOvr ? (values.pekerjaPerArea[areaId] || []) : values.pekerjaBroadcast;
         basePayload.statusPerArea[areaId] = isOvr ? values.statusPerArea[areaId] : values.statusBroadcast;
-        basePayload.keteranganPerArea[areaId] = isOvr ? values.keteranganPerArea[areaId] : values.keteranganBroadcast;
+        const keterangan = isOvr ? values.keteranganPerArea[areaId] : values.keteranganBroadcast;
+        if (keterangan !== undefined) basePayload.keteranganPerArea[areaId] = keterangan;
       });
     }
 
