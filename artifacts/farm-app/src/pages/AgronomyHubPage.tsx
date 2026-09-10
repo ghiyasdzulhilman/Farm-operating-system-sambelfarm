@@ -469,16 +469,6 @@ export function AgronomyHubPage() {
               items={filteredItems} 
               filterSiklus={filterSiklus} // 🚀 TAMBAHAN: Lempar state filterSiklus
               onItemClick={setSelectedItem} 
-              onStatusChange={(id, payload) => {
-
-                const target = filteredItems.find(i => i.id === id);
-                if (target) {
-                  const updateData = typeof payload === "string" 
-                    ? { status: payload } 
-                    : payload;
-                  updateStatusMutation.mutate({ id, module: target.module, ...updateData });
-                }
-              }}
             />
           )
         )}
