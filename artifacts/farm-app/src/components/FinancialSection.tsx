@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { motion, type Variants } from "framer-motion";
 import {
   ArrowDownRight,
   Banknote,
@@ -20,7 +20,7 @@ interface FinancialSectionProps {
 
 type MetricTone = "default" | "positive" | "negative";
 
-const staggerContainer = {
+const staggerContainer: Variants = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
@@ -28,7 +28,7 @@ const staggerContainer = {
   },
 };
 
-const fadeSlideItem = {
+const fadeSlideItem: Variants = {
   hidden: { opacity: 0, y: 12 },
   show: {
     opacity: 1,

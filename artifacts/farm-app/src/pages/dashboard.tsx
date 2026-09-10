@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { format, formatDistanceToNow } from "date-fns";
 import { id } from "date-fns/locale";
-import { animate, motion } from "framer-motion";
+import { animate, motion, type Variants } from "framer-motion";
 import { AlertTriangle, Bot, RefreshCw, Sparkles } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
@@ -35,7 +35,7 @@ type DisplayData = {
   harvestWeight: number;
 };
 
-const scrollReveal = {
+const scrollReveal: Variants = {
   hidden: { opacity: 0, y: 40, filter: "blur(10px)" },
   visible: {
     opacity: 1,
