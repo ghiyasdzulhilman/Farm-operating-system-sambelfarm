@@ -69,7 +69,10 @@ export const EditableCell: React.FC<EditableCellProps> = ({
             {selectedValues.length > 0 && (
               <span className="text-xs font-medium text-foreground px-1 truncate max-w-[150px]">
                 {selectedValues.map((val: string) => {
-                  const optMatch = options.find(o => typeof o === 'object' && o.value === val);
+                  const optMatch = options.find(
+                    (pilihan): pilihan is { label: string; value: string } =>
+                      typeof pilihan === "object" && pilihan.value === val,
+                  );
                   return optMatch ? optMatch.label : val;
                 }).join(", ")}
               </span>

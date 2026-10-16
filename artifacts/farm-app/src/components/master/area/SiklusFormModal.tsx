@@ -4,6 +4,7 @@ import { X, Loader2, Leaf, AlertTriangle, CalendarDays, CheckCircle2 } from "luc
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { segarkanFeedDanDashboard } from "@/lib/sinkronisasiQuery";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 interface SiklusFormModalProps {
@@ -36,10 +37,12 @@ export function SiklusFormModal({ isOpen, onClose, areaId, areaName, currentCycl
       headers: { "Content-Type": "application/json" }, 
       body: JSON.stringify({ areaId, namaSiklus, tanggalPindahTanam: tglTanam }) 
     }).then(r => r.json()),
-    onSuccess: () => { 
-      queryClient.invalidateQueries({ queryKey: ["siklus-tanam-list"] }); 
-      queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] });
-      queryClient.invalidateQueries({ queryKey: ["master-dropdown-options"] }); 
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["siklus-tanam-list"] }),
+        queryClient.invalidateQueries({ queryKey: ["master-dropdown-options"] }),
+        segarkanFeedDanDashboard(queryClient),
+      ]);
       toast({ title: "Siklus Diperbarui", description: `Siklus tanaman di ${areaName} berhasil dikelola.` }); 
       onClose(); 
     },

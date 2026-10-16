@@ -11,8 +11,8 @@ import {
   Briefcase, Wrench, Edit3, Undo2, Check, X, Plus
 } from "lucide-react";
 
-import { getGetDashboardSummaryQueryKey } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
+import { segarkanFeedDanDashboard } from "@/lib/sinkronisasiQuery";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -91,6 +91,7 @@ const EMPTY_VALUES: OperasionalFormValues = {
   modeWaktu: "broadcast", waktuMulaiBroadcast: format(new Date(), "yyyy-MM-dd'T'HH:mm"), waktuSelesaiBroadcast: "", durasiKerjaBroadcast: 0, waktuMulaiPerArea: {}, waktuSelesaiPerArea: {}, durasiKerjaPerArea: {},
   modePekerja: "broadcast", pekerjaBroadcast: [], pekerjaPerArea: {},
   modeAtribut: "broadcast", statusBroadcast: "Belum dikerjakan", prioritasBroadcast: "Medium", statusPerArea: {}, prioritasPerArea: {},
+  jenisTenagaKerjaPerArea: {},
   modeCatatan: "broadcast", catatanBroadcast: "", catatanPerArea: {},
 };
 
@@ -163,10 +164,7 @@ export function AddOperasionalDialog({ onSuccess }: { onSuccess?: () => void }) 
       return response.json();
     },
         onSuccess: async (responseData) => {
-      // 💡 Tambahkan ini agar tabel master langsung sinkron & narik data terbaru!
-      await queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] });
-      
-      await queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey(), refetchType: "all" });
+      await segarkanFeedDanDashboard(queryClient);
       const results = responseData?.data || [];
 
       if (results.length > 0) setSubmittedRecords(results);
@@ -234,14 +232,20 @@ export function AddOperasionalDialog({ onSuccess }: { onSuccess?: () => void }) 
       values.areaIds.forEach((areaId) => {
         const isOvr = overriddenAreas[areaId];
 
-        basePayload.kategoriPerArea[areaId] = isOvr ? values.kategoriPerArea[areaId] : values.kategoriBroadcast;
-        basePayload.waktuMulaiPerArea[areaId] = isOvr ? values.waktuMulaiPerArea[areaId] : values.waktuMulaiBroadcast;
-        basePayload.waktuSelesaiPerArea[areaId] = isOvr ? values.waktuSelesaiPerArea[areaId] : values.waktuSelesaiBroadcast;
+        const kategori = isOvr ? values.kategoriPerArea[areaId] : values.kategoriBroadcast;
+        const waktuMulai = isOvr ? values.waktuMulaiPerArea[areaId] : values.waktuMulaiBroadcast;
+        const waktuSelesai = isOvr ? values.waktuSelesaiPerArea[areaId] : values.waktuSelesaiBroadcast;
+        const catatan = isOvr ? values.catatanPerArea[areaId] : values.catatanBroadcast;
+
+        // Nilai yang tidak tersedia tetap tidak dikirim, sesuai perilaku JSON.stringify.
+        if (kategori !== undefined) basePayload.kategoriPerArea[areaId] = kategori;
+        if (waktuMulai !== undefined) basePayload.waktuMulaiPerArea[areaId] = waktuMulai;
+        if (waktuSelesai !== undefined) basePayload.waktuSelesaiPerArea[areaId] = waktuSelesai;
+        if (catatan !== undefined) basePayload.catatanPerArea[areaId] = catatan;
         basePayload.durasiKerjaPerArea[areaId] = isOvr ? values.durasiKerjaPerArea[areaId] : values.durasiKerjaBroadcast;
         basePayload.pekerjaPerArea[areaId] = isOvr ? (values.pekerjaPerArea[areaId] || []) : values.pekerjaBroadcast;
         basePayload.statusPerArea[areaId] = isOvr ? values.statusPerArea[areaId] : values.statusBroadcast;
         basePayload.prioritasPerArea[areaId] = isOvr ? values.prioritasPerArea[areaId] : values.prioritasBroadcast;
-        basePayload.catatanPerArea[areaId] = isOvr ? values.catatanPerArea[areaId] : values.catatanBroadcast;
       });
     }
 

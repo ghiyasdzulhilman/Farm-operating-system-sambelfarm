@@ -222,7 +222,9 @@ export function LiveFeedView({
 
                         {/* ✨ SWIPE AFFORDANCE HINT: Ikon Grip + Chevron yang memberi tahu kartu bisa digeser */}
                         <div className="flex items-center gap-0.5 shrink-0 self-center text-muted-foreground/40 group-hover:text-muted-foreground/80 transition-colors">
-                          <GripVertical className="h-4 w-4 hidden md:inline-block" title="Geser ke kiri untuk aksi" />
+                          <span className="hidden md:inline-flex" title="Geser ke kiri untuk aksi">
+                            <GripVertical className="h-4 w-4" aria-hidden="true" />
+                          </span>
                           <ChevronRight className="h-4 w-4" />
                         </div>
                       </div>

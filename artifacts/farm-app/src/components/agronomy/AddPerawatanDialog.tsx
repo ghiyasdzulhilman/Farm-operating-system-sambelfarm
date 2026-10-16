@@ -10,8 +10,8 @@ import {
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 
-import { getGetDashboardSummaryQueryKey } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
+import { segarkanFeedDanDashboard } from "@/lib/sinkronisasiQuery";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -179,10 +179,7 @@ export function AddPerawatanDialog({ onSuccess }: { onSuccess?: () => void }) {
       return response.json();
     },
     onSuccess: async (data) => {
-      await queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey(), refetchType: "all" });
-      
-      // 🚀 SUNTIKAN BARU: Wajib invalidate ini biar feed di background langsung refresh!
-      await queryClient.invalidateQueries({ queryKey: ["agronomy-feed-supabase"] });
+      await segarkanFeedDanDashboard(queryClient);
       
       if (data && data.data) setSubmittedRecords(data.data);
       
